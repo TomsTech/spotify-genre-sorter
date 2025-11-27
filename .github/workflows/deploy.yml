@@ -32,6 +32,7 @@ permissions:
 env:
   STAGING_WORKER: spotify-genre-sorter-staging
   PRODUCTION_WORKER: spotify-genre-sorter
+  WORKER_SUBDOMAIN: dev-playground-df5.workers.dev
 
 jobs:
   quality:
@@ -160,7 +161,7 @@ jobs:
     if: ${{ !inputs.skip_staging }}
     environment:
       name: staging
-      url: https://${{ env.STAGING_WORKER }}.workers.dev
+      url: https://${{ env.STAGING_WORKER }}.${{ env.WORKER_SUBDOMAIN }}
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js
@@ -214,7 +215,7 @@ jobs:
       - name: Health Check
         run: |
           sleep 15
-          URL="https://${{ env.STAGING_WORKER }}.workers.dev"
+          URL="https://${{ env.STAGING_WORKER }}.${{ env.WORKER_SUBDOMAIN }}"
           for i in 1 2 3; do
             CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL/session")
             if [ "$CODE" == "200" ]; then echo "Staging OK"; exit 0; fi
@@ -236,7 +237,7 @@ jobs:
       (needs.check-dns-conflicts.result == 'success' || needs.check-dns-conflicts.result == 'skipped')
     environment:
       name: production
-      url: https://${{ env.PRODUCTION_WORKER }}.workers.dev
+      url: https://${{ env.PRODUCTION_WORKER }}.${{ env.WORKER_SUBDOMAIN }}
     outputs:
       deployed: ${{ steps.deploy.outcome == 'success' }}
     steps:
@@ -292,7 +293,7 @@ jobs:
         id: health
         run: |
           sleep 20
-          URL="https://${{ env.PRODUCTION_WORKER }}.workers.dev"
+          URL="https://${{ env.PRODUCTION_WORKER }}.${{ env.WORKER_SUBDOMAIN }}"
           for i in 1 2 3 4 5; do
             CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL/session")
             if [ "$CODE" == "200" ]; then
@@ -333,7 +334,7 @@ jobs:
           curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
             -H "Content-Type: application/json" \
-            --data "{\"type\":\"CNAME\",\"name\":\"$DOMAIN\",\"content\":\"${{ env.PRODUCTION_WORKER }}.workers.dev\",\"ttl\":1,\"proxied\":true}"
+            --data "{\"type\":\"CNAME\",\"name\":\"$DOMAIN\",\"content\":\"${{ env.PRODUCTION_WORKER }}.${{ env.WORKER_SUBDOMAIN }}\",\"ttl\":1,\"proxied\":true}"
 
           echo "DNS configured for $DOMAIN"
 
@@ -377,4 +378,4 @@ jobs:
           echo "| Production | ${{ needs.deploy-production.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| DNS Cutover | ${{ needs.dns-cutover.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Worker**: https://${{ env.PRODUCTION_WORKER }}.workers.dev" >> $GITHUB_STEP_SUMMARY
+          echo "**Worker**: https://${{ env.PRODUCTION_WORKER }}.${{ env.WORKER_SUBDOMAIN }}" >> $GITHUB_STEP_SUMMARY
