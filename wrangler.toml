@@ -2,6 +2,12 @@ name = "spotify-genre-sorter"
 main = "src/index.ts"
 compatibility_date = "2024-11-01"
 
+# Custom domain configuration (optional)
+# Uncomment and set your zone_id to enable custom domain
+# [[routes]]
+# pattern = "spotify.houstons.tech/*"
+# zone_id = "YOUR_ZONE_ID"
+
 # KV Namespace for storing sessions and tokens
 [[kv_namespaces]]
 binding = "SESSIONS"
