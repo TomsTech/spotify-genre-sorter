@@ -7,18 +7,24 @@ import { getSession } from './lib/session';
 
 const app = new Hono<{ Bindings: Env }>();
 
-// Middleware
+// Global error handler
+app.onError((err, c) => {
+  console.error('Worker error:', err);
+  return c.json({ error: err.message || 'Internal error' }, 500);
+});
+
+// Health check - FIRST route, no middleware dependency
+app.get('/health', (c) => {
+  return c.json({ status: 'ok' });
+});
+
+// Middleware (after health check so it doesn't block health)
 app.use('*', logger());
 app.use('/api/*', cors());
 
 // Mount routes
 app.route('/auth', auth);
 app.route('/api', api);
-
-// Health check - always returns 200
-app.get('/health', (c) => {
-  return c.json({ status: 'ok' });
-});
 
 // Setup check - verifies required secrets are configured
 app.get('/setup', (c) => {
