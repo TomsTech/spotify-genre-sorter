@@ -1,4 +1,5 @@
-export interface Env {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface Env {
   SESSIONS: KVNamespace;
   GITHUB_CLIENT_ID: string;
   GITHUB_CLIENT_SECRET: string;
