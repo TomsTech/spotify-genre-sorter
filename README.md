@@ -8,7 +8,7 @@
 
 Organise your Spotify liked songs into genre-based playlists with one click.
 
-> 🇸🇪 *Made with inspiration from Heidi* — click the badge in the corner for a Swedish surprise!
+> 🇸🇪 *For Heidi x, hopefully you know why I disappear for so long, I'm just dicking my keyboard for countless hours instead* 🤓
 
 ## Features
 
@@ -17,7 +17,7 @@ Organise your Spotify liked songs into genre-based playlists with one click.
 - View all genres in your liked songs
 - Create playlists for individual genres or bulk create
 - Modern, minimal dark UI
-- 🥚 Hidden Swedish Easter egg mode!
+- 🥚 Varför läser du detta? Gå och lek någon annanstans, din nyfikna smansen!
 
 ## Architecture
 
@@ -150,7 +150,7 @@ Run `npm run setup` and select your DNS zone when prompted.
 | Secret | Required | Description |
 |--------|----------|-------------|
 | `CLOUDFLARE_API_TOKEN` | **Yes** | API token with Workers permissions |
-| `SNYK_TOKEN` | No | Optional security scanning |
+| `SNYK_TOKEN` | No | Optional security scanning ([get token](https://app.snyk.io/account)) |
 
 ### Optional Variable
 
@@ -246,4 +246,4 @@ Free for personal use. Commercial use requires a paid license — see [LICENSE](
 
 ---
 
-<sub>🇸🇪 *Tack Heidi!*</sub>
+<sub>🇸🇪 *För min raring, Heidi*</sub>
