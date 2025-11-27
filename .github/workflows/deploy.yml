@@ -1,0 +1,349 @@
+ame: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      custom_domain:
+        description: 'Custom domain (e.g., spotify.example.com)'
+        required: false
+        type: string
+      skip_staging:
+        description: 'Skip staging deployment'
+        required: false
+        type: boolean
+        default: false
+      force_dns:
+        description: 'Force DNS update even if existing record found'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  deployments: write
+  pull-requests: write
+
+env:
+  STAGING_WORKER: spotify-genre-sorter-staging
+  PRODUCTION_WORKER: spotify-genre-sorter
+
+jobs:
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: ESLint
+        run: npm run lint
+      - name: TypeScript Check
+        run: npm run typecheck
+      - name: Build Test
+        run: npm run build
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+      - name: Snyk Security Scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        if: ${{ secrets.SNYK_TOKEN != '' }}
+
+  get-account-id:
+    name: Get Cloudflare Account
+    runs-on: ubuntu-latest
+    outputs:
+      account_id: ${{ steps.account.outputs.id }}
+    steps:
+      - name: Fetch Account ID from API Token
+        id: account
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          echo "Fetching Cloudflare account ID from API token..."
+          RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/accounts" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json")
+          SUCCESS=$(echo "$RESPONSE" | jq -r '.success')
+          if [ "$SUCCESS" != "true" ]; then
+            echo "::error::Failed to fetch account. Check CLOUDFLARE_API_TOKEN."
+            exit 1
+          fi
+          ACCOUNT_ID=$(echo "$RESPONSE" | jq -r '.result[0].id')
+          if [ -z "$ACCOUNT_ID" ] || [ "$ACCOUNT_ID" == "null" ]; then
+            echo "::error::No accounts found for this API token"
+            exit 1
+          fi
+          echo "Found account: $ACCOUNT_ID"
+          echo "id=$ACCOUNT_ID" >> $GITHUB_OUTPUT
+
+  check-dns-conflicts:
+    name: Check DNS Conflicts
+    runs-on: ubuntu-latest
+    needs: [get-account-id]
+    if: ${{ vars.CUSTOM_DOMAIN != '' || inputs.custom_domain != '' }}
+    outputs:
+      zone_id: ${{ steps.dns.outputs.zone_id }}
+      has_conflict: ${{ steps.dns.outputs.has_conflict }}
+    steps:
+      - name: Check for existing DNS records
+        id: dns
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          DOMAIN="${{ inputs.custom_domain || vars.CUSTOM_DOMAIN }}"
+          echo "Checking DNS for: $DOMAIN"
+          BASE_DOMAIN=$(echo "$DOMAIN" | awk -F. '{print $(NF-1)"."$NF}')
+
+          ZONES=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$BASE_DOMAIN" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json")
+          ZONE_ID=$(echo "$ZONES" | jq -r '.result[0].id')
+
+          if [ -z "$ZONE_ID" ] || [ "$ZONE_ID" == "null" ]; then
+            echo "::error::Could not find DNS zone for $BASE_DOMAIN"
+            echo "::error::Ensure domain is in Cloudflare and token has Zone:Read permission"
+            exit 1
+          fi
+          echo "zone_id=$ZONE_ID" >> $GITHUB_OUTPUT
+
+          RECORDS=$(curl -s -X GET \
+            "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=$DOMAIN" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json")
+          COUNT=$(echo "$RECORDS" | jq -r '.result | length')
+
+          if [ "$COUNT" -gt 0 ]; then
+            TYPE=$(echo "$RECORDS" | jq -r '.result[0].type')
+            CONTENT=$(echo "$RECORDS" | jq -r '.result[0].content')
+            echo "has_conflict=true" >> $GITHUB_OUTPUT
+
+            if [ "${{ inputs.force_dns }}" != "true" ]; then
+              echo "::error::DNS CONFLICT: $TYPE record exists for $DOMAIN pointing to $CONTENT"
+              echo "::error::Options: 1) Delete record in Cloudflare 2) Re-run with force_dns 3) Use different subdomain"
+              exit 1
+            fi
+          else
+            echo "has_conflict=false" >> $GITHUB_OUTPUT
+          fi
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [quality, security, get-account-id]
+    if: ${{ !inputs.skip_staging }}
+    environment:
+      name: staging
+      url: https://${{ env.STAGING_WORKER }}.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Configure Staging
+        run: sed -i 's/name = "spotify-genre-sorter"/name = "${{ env.STAGING_WORKER }}"/g' wrangler.toml
+      - name: Setup KV Namespace
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ needs.get-account-id.outputs.account_id }}
+        run: |
+          OUTPUT=$(npx wrangler kv:namespace create SESSIONS 2>&1 || true)
+          NAMESPACE_ID=$(echo "$OUTPUT" | grep -o 'id = "[^"]*"' | cut -d'"' -f2 || echo "")
+          if [ -n "$NAMESPACE_ID" ]; then
+            sed -i "s/YOUR_KV_NAMESPACE_ID/$NAMESPACE_ID/g" wrangler.toml
+          fi
+      - name: Deploy to Staging
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ needs.get-account-id.outputs.account_id }}
+          command: deploy --minify
+
+  verify-staging:
+    name: Verify Staging
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: ${{ !inputs.skip_staging }}
+    steps:
+      - name: Health Check
+        run: |
+          sleep 15
+          URL="https://${{ env.STAGING_WORKER }}.workers.dev"
+          for i in 1 2 3; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL/session")
+            if [ "$CODE" == "200" ]; then echo "Staging OK"; exit 0; fi
+            sleep 5
+          done
+          echo "::error::Staging health check failed"
+          exit 1
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [quality, security, verify-staging, get-account-id, check-dns-conflicts]
+    if: |
+      always() &&
+      needs.quality.result == 'success' &&
+      needs.security.result == 'success' &&
+      needs.get-account-id.result == 'success' &&
+      (needs.verify-staging.result == 'success' || inputs.skip_staging) &&
+      (needs.check-dns-conflicts.result == 'success' || needs.check-dns-conflicts.result == 'skipped')
+    environment:
+      name: production
+      url: https://${{ env.PRODUCTION_WORKER }}.workers.dev
+    outputs:
+      deployed: ${{ steps.deploy.outcome == 'success' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Setup KV Namespace
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ needs.get-account-id.outputs.account_id }}
+        run: |
+          OUTPUT=$(npx wrangler kv:namespace create SESSIONS 2>&1 || true)
+          NAMESPACE_ID=$(echo "$OUTPUT" | grep -o 'id = "[^"]*"' | cut -d'"' -f2 || echo "")
+          if [ -n "$NAMESPACE_ID" ]; then
+            sed -i "s/YOUR_KV_NAMESPACE_ID/$NAMESPACE_ID/g" wrangler.toml
+          fi
+      - name: Deploy to Production
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ needs.get-account-id.outputs.account_id }}
+          command: deploy --minify
+
+  verify-production:
+    name: Verify Production
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    outputs:
+      healthy: ${{ steps.health.outputs.ok }}
+    steps:
+      - name: Health Check
+        id: health
+        run: |
+          sleep 20
+          URL="https://${{ env.PRODUCTION_WORKER }}.workers.dev"
+          for i in 1 2 3 4 5; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL/session")
+            if [ "$CODE" == "200" ]; then
+              echo "ok=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Production health check failed"
+          echo "ok=false" >> $GITHUB_OUTPUT
+          exit 1
+
+  dns-cutover:
+    name: DNS Cutover
+    runs-on: ubuntu-latest
+    needs: [verify-production, get-account-id, check-dns-conflicts]
+    if: |
+      needs.verify-production.outputs.healthy == 'true' &&
+      (vars.CUSTOM_DOMAIN != '' || inputs.custom_domain != '') &&
+      needs.check-dns-conflicts.result == 'success'
+    steps:
+      - name: Configure DNS
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ZONE_ID: ${{ needs.check-dns-conflicts.outputs.zone_id }}
+        run: |
+          DOMAIN="${{ inputs.custom_domain || vars.CUSTOM_DOMAIN }}"
+
+          if [ "${{ needs.check-dns-conflicts.outputs.has_conflict }}" == "true" ]; then
+            RECORD_ID=$(curl -s -X GET \
+              "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=$DOMAIN" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" | jq -r '.result[0].id')
+            curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+          fi
+
+          curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data "{\"type\":\"CNAME\",\"name\":\"$DOMAIN\",\"content\":\"${{ env.PRODUCTION_WORKER }}.workers.dev\",\"ttl\":1,\"proxied\":true}"
+
+          echo "DNS configured for $DOMAIN"
+
+  cleanup:
+    name: Cleanup Staging
+    runs-on: ubuntu-latest
+    needs: [verify-production, get-account-id]
+    if: success() && !inputs.skip_staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Delete Staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ needs.get-account-id.outputs.account_id }}
+        run: npx wrangler delete ${{ env.STAGING_WORKER }} --force || true
+        continue-on-error: true
+
+  report:
+    name: Deployment Report
+    runs-on: ubuntu-latest
+    needs: [quality, security, deploy-staging, verify-staging, deploy-production, verify-production, dns-cutover, get-account-id]
+    if: always()
+    steps:
+      - name: Generate Report
+        run: |
+          echo "# Deployment Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Account Detection | ${{ needs.get-account-id.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality | ${{ needs.quality.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Staging | ${{ needs.deploy-staging.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Production | ${{ needs.deploy-production.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| DNS Cutover | ${{ needs.dns-cutover.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Worker**: https://${{ env.PRODUCTION_WORKER }}.workers.dev" >> $GITHUB_STEP_SUMMARY
