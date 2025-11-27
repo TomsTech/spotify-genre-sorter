@@ -15,18 +15,51 @@ app.use('/api/*', cors());
 app.route('/auth', auth);
 app.route('/api', api);
 
+// Health check - always returns 200
+app.get('/health', (c) => {
+  return c.json({ status: 'ok' });
+});
+
+// Setup check - verifies required secrets are configured
+app.get('/setup', (c) => {
+  const missing: string[] = [];
+  if (!c.env.GITHUB_CLIENT_ID) missing.push('GITHUB_CLIENT_ID');
+  if (!c.env.GITHUB_CLIENT_SECRET) missing.push('GITHUB_CLIENT_SECRET');
+  if (!c.env.SPOTIFY_CLIENT_ID) missing.push('SPOTIFY_CLIENT_ID');
+  if (!c.env.SPOTIFY_CLIENT_SECRET) missing.push('SPOTIFY_CLIENT_SECRET');
+  if (!c.env.SESSIONS) missing.push('SESSIONS (KV namespace)');
+
+  if (missing.length > 0) {
+    return c.json({
+      configured: false,
+      missing,
+      message: 'Set secrets via: npx wrangler secret put SECRET_NAME'
+    }, 503);
+  }
+  return c.json({ configured: true });
+});
+
 // Session status endpoint
 app.get('/session', async (c) => {
-  const session = await getSession(c);
-  if (!session) {
-    return c.json({ authenticated: false });
+  // Check if KV is configured
+  if (!c.env.SESSIONS) {
+    return c.json({ authenticated: false, error: 'KV not configured' });
   }
-  return c.json({
-    authenticated: true,
-    githubUser: session.githubUser,
-    githubAvatar: session.githubAvatar,
-    spotifyConnected: !!session.spotifyAccessToken,
-  });
+
+  try {
+    const session = await getSession(c);
+    if (!session) {
+      return c.json({ authenticated: false });
+    }
+    return c.json({
+      authenticated: true,
+      githubUser: session.githubUser,
+      githubAvatar: session.githubAvatar,
+      spotifyConnected: !!session.spotifyAccessToken,
+    });
+  } catch {
+    return c.json({ authenticated: false, error: 'Session error' });
+  }
 });
 
 // Swedish-themed favicon (Spotify logo in Swedish colors)

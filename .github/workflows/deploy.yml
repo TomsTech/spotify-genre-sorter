@@ -217,7 +217,7 @@ jobs:
           sleep 15
           URL="https://${{ env.STAGING_WORKER }}.${{ env.WORKER_SUBDOMAIN }}"
           for i in 1 2 3; do
-            CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL/session")
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL/health")
             if [ "$CODE" == "200" ]; then echo "Staging OK"; exit 0; fi
             sleep 5
           done
@@ -295,7 +295,7 @@ jobs:
           sleep 20
           URL="https://${{ env.PRODUCTION_WORKER }}.${{ env.WORKER_SUBDOMAIN }}"
           for i in 1 2 3 4 5; do
-            CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL/session")
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL/health")
             if [ "$CODE" == "200" ]; then
               echo "ok=true" >> $GITHUB_OUTPUT
               exit 0
