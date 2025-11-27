@@ -12,8 +12,11 @@ export interface Session {
 const SESSION_COOKIE = 'session_id';
 const SESSION_TTL = 60 * 60 * 24 * 7; // 7 days
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AppContext = Context<{ Bindings: Env }, any, any>;
+
 export async function createSession(
-  c: Context<{ Bindings: Env }>,
+  c: AppContext,
   session: Session
 ): Promise<string> {
   const sessionId = crypto.randomUUID();
@@ -35,7 +38,7 @@ export async function createSession(
 }
 
 export async function getSession(
-  c: Context<{ Bindings: Env }>
+  c: AppContext
 ): Promise<Session | null> {
   const sessionId = getCookie(c, SESSION_COOKIE);
   if (!sessionId) return null;
@@ -43,11 +46,12 @@ export async function getSession(
   const data = await c.env.SESSIONS.get(`session:${sessionId}`);
   if (!data) return null;
 
-  return JSON.parse(data) as Session;
+  const session: Session = JSON.parse(data);
+  return session;
 }
 
 export async function updateSession(
-  c: Context<{ Bindings: Env }>,
+  c: AppContext,
   updates: Partial<Session>
 ): Promise<void> {
   const sessionId = getCookie(c, SESSION_COOKIE);
@@ -65,7 +69,7 @@ export async function updateSession(
 }
 
 export async function deleteSession(
-  c: Context<{ Bindings: Env }>
+  c: AppContext
 ): Promise<void> {
   const sessionId = getCookie(c, SESSION_COOKIE);
   if (sessionId) {
@@ -93,5 +97,6 @@ export async function verifyState(
   const data = await kv.get(`state:${state}`);
   if (!data) return null;
   await kv.delete(`state:${state}`);
-  return JSON.parse(data);
+  const parsed: Record<string, string> = JSON.parse(data);
+  return parsed;
 }

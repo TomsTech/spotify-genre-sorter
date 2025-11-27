@@ -46,7 +46,7 @@ app.get('/favicon.svg', (c) => {
 });
 
 // Main UI
-app.get('/', async (c) => {
+app.get('/', (c) => {
   return c.html(getHtml());
 });
 
