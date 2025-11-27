@@ -246,4 +246,4 @@ Free for personal use. Commercial use requires a paid license — see [LICENSE](
 
 ---
 
-<sub>🇸🇪 *För min raring, Heidi*</sub>
+<sub><img src="https://flagcdn.com/16x12/se.png" width="16" height="12" alt="SE"> *För min raring, Heidi*</sub>
