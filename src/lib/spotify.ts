@@ -45,7 +45,7 @@ export function getSpotifyAuthUrl(
     state,
   });
 
-  return `${SPOTIFY_AUTH}/authorize?${params}`;
+  return `${SPOTIFY_AUTH}/authorize?${params.toString()}`;
 }
 
 export async function exchangeSpotifyCode(
@@ -72,7 +72,8 @@ export async function exchangeSpotifyCode(
     throw new Error(`Spotify token exchange failed: ${error}`);
   }
 
-  return response.json() as Promise<SpotifyTokens>;
+  const data: SpotifyTokens = await response.json();
+  return data;
 }
 
 export async function refreshSpotifyToken(
@@ -96,7 +97,7 @@ export async function refreshSpotifyToken(
     throw new Error('Failed to refresh Spotify token');
   }
 
-  const data = await response.json() as SpotifyTokens;
+  const data: SpotifyTokens = await response.json();
   // Spotify may not return a new refresh token
   return {
     ...data,
@@ -123,7 +124,8 @@ async function spotifyFetch<T>(
     throw new Error(`Spotify API error: ${response.status} ${error}`);
   }
 
-  return response.json() as Promise<T>;
+  const data: T = await response.json();
+  return data;
 }
 
 export async function getLikedTracks(

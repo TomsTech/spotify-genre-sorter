@@ -11,7 +11,7 @@ export function getGitHubAuthUrl(clientId: string, redirectUri: string, state: s
     scope: 'read:user',
     state,
   });
-  return `https://github.com/login/oauth/authorize?${params}`;
+  return `https://github.com/login/oauth/authorize?${params.toString()}`;
 }
 
 export async function exchangeGitHubCode(
@@ -32,7 +32,7 @@ export async function exchangeGitHubCode(
     }),
   });
 
-  const data = await response.json() as { access_token?: string; error?: string };
+  const data: { access_token?: string; error?: string } = await response.json();
   if (data.error || !data.access_token) {
     throw new Error(data.error || 'Failed to exchange code');
   }
@@ -52,7 +52,8 @@ export async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
     throw new Error('Failed to get GitHub user');
   }
 
-  return response.json() as Promise<GitHubUser>;
+  const data: GitHubUser = await response.json();
+  return data;
 }
 
 export function isUserAllowed(username: string, allowedUsers: string): boolean {

@@ -116,10 +116,11 @@ api.get('/genres', async (c) => {
       }
 
       for (const genre of trackGenres) {
-        if (!genreData.has(genre)) {
-          genreData.set(genre, { count: 0, trackIds: [] });
+        let data = genreData.get(genre);
+        if (!data) {
+          data = { count: 0, trackIds: [] };
+          genreData.set(genre, data);
         }
-        const data = genreData.get(genre)!;
         data.count++;
         data.trackIds.push(track.id);
       }
