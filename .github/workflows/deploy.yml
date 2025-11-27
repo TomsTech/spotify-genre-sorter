@@ -1,4 +1,4 @@
-ame: Deploy
+name: Deploy
 
 on:
   push:
@@ -69,11 +69,11 @@ jobs:
         run: npm audit --audit-level=moderate
         continue-on-error: true
       - name: Snyk Security Scan
+        if: ${{ vars.SNYK_ENABLED == 'true' }}
         uses: snyk/actions/node@master
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        if: ${{ secrets.SNYK_TOKEN != '' }}
 
   get-account-id:
     name: Get Cloudflare Account
