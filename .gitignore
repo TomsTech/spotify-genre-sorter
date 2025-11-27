@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+*.log
+
+# Claude context (local only)
+CLAUDE.md
+.claude/

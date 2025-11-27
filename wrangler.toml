@@ -1,0 +1,19 @@
+name = "spotify-genre-sorter"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+
+# KV Namespace for storing sessions and tokens
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "YOUR_KV_NAMESPACE_ID"
+
+# Environment variables (set these in Cloudflare dashboard or use wrangler secret)
+# GITHUB_CLIENT_ID = ""
+# GITHUB_CLIENT_SECRET = ""
+# SPOTIFY_CLIENT_ID = ""
+# SPOTIFY_CLIENT_SECRET = ""
+# ALLOWED_GITHUB_USERS = "username1,username2"
+# SESSION_SECRET = "random-32-char-string"
+
+[vars]
+ALLOWED_GITHUB_USERS = ""
