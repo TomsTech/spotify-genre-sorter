@@ -315,7 +315,7 @@ jobs:
       (vars.CUSTOM_DOMAIN != '' || inputs.custom_domain != '') &&
       needs.check-dns-conflicts.result == 'success'
     steps:
-      - name: Configure DNS and Worker Route
+      - name: Configure Custom Domain
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ needs.get-account-id.outputs.account_id }}
@@ -323,25 +323,21 @@ jobs:
         run: |
           DOMAIN="${{ inputs.custom_domain || vars.CUSTOM_DOMAIN }}"
 
-          # Handle existing DNS record
+          # Delete existing DNS record if present (Custom Domains manages its own DNS)
           if [ "${{ needs.check-dns-conflicts.outputs.has_conflict }}" == "true" ]; then
+            echo "Removing existing DNS record..."
             RECORD_ID=$(curl -s -X GET \
               "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=$DOMAIN" \
               -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
               -H "Content-Type: application/json" | jq -r '.result[0].id')
-            curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$RECORD_ID" \
-              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+            if [ -n "$RECORD_ID" ] && [ "$RECORD_ID" != "null" ]; then
+              curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$RECORD_ID" \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+              echo "Deleted DNS record: $RECORD_ID"
+            fi
           fi
 
-          # Create DNS record
-          curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
-            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            -H "Content-Type: application/json" \
-            --data "{\"type\":\"CNAME\",\"name\":\"$DOMAIN\",\"content\":\"${{ env.PRODUCTION_WORKER }}.${{ env.WORKER_SUBDOMAIN }}\",\"ttl\":1,\"proxied\":true}"
-
-          echo "DNS configured for $DOMAIN"
-
-          # Delete existing worker route if present
+          # Delete existing worker routes for this domain
           EXISTING_ROUTES=$(curl -s -X GET \
             "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/workers/routes" \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
@@ -353,16 +349,29 @@ jobs:
               -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
           fi
 
-          # Create worker route for custom domain
-          ROUTE_RESULT=$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/workers/routes" \
+          # Use Workers Custom Domains API (the correct way to add custom domains)
+          echo "Adding custom domain via Workers Custom Domains API..."
+          CUSTOM_DOMAIN_RESULT=$(curl -s -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains" \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
             -H "Content-Type: application/json" \
-            --data "{\"pattern\":\"$DOMAIN/*\",\"script\":\"${{ env.PRODUCTION_WORKER }}\"}")
+            --data "{\"hostname\":\"$DOMAIN\",\"service\":\"${{ env.PRODUCTION_WORKER }}\",\"zone_id\":\"$ZONE_ID\",\"environment\":\"production\"}")
 
-          if echo "$ROUTE_RESULT" | jq -e '.success' > /dev/null; then
-            echo "Worker route configured for $DOMAIN/*"
+          if echo "$CUSTOM_DOMAIN_RESULT" | jq -e '.success' > /dev/null; then
+            echo "Custom domain configured: $DOMAIN -> ${{ env.PRODUCTION_WORKER }}"
+            echo "$CUSTOM_DOMAIN_RESULT" | jq '.result'
           else
-            echo "::warning::Worker route creation result: $ROUTE_RESULT"
+            echo "::warning::Custom domain setup result: $CUSTOM_DOMAIN_RESULT"
+            # Fallback: try the legacy route method
+            echo "Trying legacy worker route method..."
+            curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data "{\"type\":\"CNAME\",\"name\":\"$DOMAIN\",\"content\":\"${{ env.PRODUCTION_WORKER }}.${{ env.WORKER_SUBDOMAIN }}\",\"ttl\":1,\"proxied\":true}"
+            curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/workers/routes" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data "{\"pattern\":\"$DOMAIN/*\",\"script\":\"${{ env.PRODUCTION_WORKER }}\"}"
           fi
 
   cleanup:
