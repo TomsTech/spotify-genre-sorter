@@ -110,13 +110,7 @@ The setup script will:
    - [GitHub OAuth App](https://github.com/settings/developers)
    - [Spotify Developer App](https://developer.spotify.com/dashboard)
 
-2. **Create KV Namespace**
-   ```bash
-   npx wrangler kv:namespace create SESSIONS
-   ```
-   Update `wrangler.toml` with the ID
-
-3. **Set Worker Secrets** (required for the app to function)
+2. **Set Worker Secrets** (required for the app to function)
    ```bash
    npx wrangler secret put GITHUB_CLIENT_ID
    npx wrangler secret put GITHUB_CLIENT_SECRET
@@ -125,7 +119,7 @@ The setup script will:
    npx wrangler secret put ALLOWED_GITHUB_USERS  # comma-separated usernames, or leave empty for all
    ```
 
-4. **Deploy**
+3. **Deploy** (KV namespace is created automatically)
    ```bash
    npm run deploy
    ```
