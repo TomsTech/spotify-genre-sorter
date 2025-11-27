@@ -1,0 +1,31 @@
+{
+  "name": "spotify-genre-sorter",
+  "version": "1.0.0",
+  "description": "Organise your Spotify liked songs into genre-based playlists",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "wrangler deploy --dry-run --outdir=dist",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run typecheck",
+    "setup": "node scripts/setup.mjs"
+  },
+  "dependencies": {
+    "hono": "^4.6.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241112.0",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.6.0",
+    "wrangler": "^3.91.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
