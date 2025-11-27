@@ -12,11 +12,9 @@ export interface Session {
 const SESSION_COOKIE = 'session_id';
 const SESSION_TTL = 60 * 60 * 24 * 7; // 7 days
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AppContext = Context<{ Bindings: Env }, any, any>;
-
 export async function createSession(
-  c: AppContext,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  c: Context<{ Bindings: Env }, any, any>,
   session: Session
 ): Promise<string> {
   const sessionId = crypto.randomUUID();
@@ -26,6 +24,7 @@ export async function createSession(
     { expirationTtl: SESSION_TTL }
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   setCookie(c, SESSION_COOKIE, sessionId, {
     httpOnly: true,
     secure: true,
@@ -38,22 +37,27 @@ export async function createSession(
 }
 
 export async function getSession(
-  c: AppContext
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  c: Context<{ Bindings: Env }, any, any>
 ): Promise<Session | null> {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   const sessionId = getCookie(c, SESSION_COOKIE);
   if (!sessionId) return null;
 
   const data = await c.env.SESSIONS.get(`session:${sessionId}`);
   if (!data) return null;
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const session: Session = JSON.parse(data);
   return session;
 }
 
 export async function updateSession(
-  c: AppContext,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  c: Context<{ Bindings: Env }, any, any>,
   updates: Partial<Session>
 ): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   const sessionId = getCookie(c, SESSION_COOKIE);
   if (!sessionId) return;
 
@@ -69,12 +73,15 @@ export async function updateSession(
 }
 
 export async function deleteSession(
-  c: AppContext
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  c: Context<{ Bindings: Env }, any, any>
 ): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   const sessionId = getCookie(c, SESSION_COOKIE);
   if (sessionId) {
     await c.env.SESSIONS.delete(`session:${sessionId}`);
   }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   deleteCookie(c, SESSION_COOKIE, { path: '/' });
 }
 
@@ -97,6 +104,7 @@ export async function verifyState(
   const data = await kv.get(`state:${state}`);
   if (!data) return null;
   await kv.delete(`state:${state}`);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const parsed: Record<string, string> = JSON.parse(data);
   return parsed;
 }
