@@ -116,12 +116,13 @@ The setup script will:
    ```
    Update `wrangler.toml` with the ID
 
-3. **Set Secrets**
+3. **Set Worker Secrets** (required for the app to function)
    ```bash
    npx wrangler secret put GITHUB_CLIENT_ID
    npx wrangler secret put GITHUB_CLIENT_SECRET
    npx wrangler secret put SPOTIFY_CLIENT_ID
    npx wrangler secret put SPOTIFY_CLIENT_SECRET
+   npx wrangler secret put ALLOWED_GITHUB_USERS  # comma-separated usernames, or leave empty for all
    ```
 
 4. **Deploy**
@@ -151,6 +152,20 @@ Run `npm run setup` and select your DNS zone when prompted.
 |--------|----------|-------------|
 | `CLOUDFLARE_API_TOKEN` | **Yes** | API token with Workers permissions |
 | `SNYK_TOKEN` | No | Optional security scanning ([get token](https://app.snyk.io/account)) |
+
+### Worker Secrets (Cloudflare)
+
+These must be set on the Cloudflare Worker itself (not GitHub):
+
+| Secret | Description |
+|--------|-------------|
+| `GITHUB_CLIENT_ID` | From your GitHub OAuth App |
+| `GITHUB_CLIENT_SECRET` | From your GitHub OAuth App |
+| `SPOTIFY_CLIENT_ID` | From your Spotify Developer App |
+| `SPOTIFY_CLIENT_SECRET` | From your Spotify Developer App |
+| `ALLOWED_GITHUB_USERS` | Comma-separated GitHub usernames (empty = allow all) |
+
+Set via CLI: `npx wrangler secret put SECRET_NAME`
 
 ### Optional Variable
 
