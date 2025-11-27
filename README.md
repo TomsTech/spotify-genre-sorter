@@ -88,41 +88,84 @@ flowchart LR
     end
 ```
 
-## Quick Start
+## Prerequisites
 
-### Option 1: Interactive Setup
+You **must** create OAuth apps on both GitHub and Spotify before deploying. These cannot be auto-generated.
+
+---
+
+## Step 1: Create GitHub OAuth App (Required)
+
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Click **OAuth Apps** → **New OAuth App**
+3. Fill in the form:
+   | Field | Value |
+   |-------|-------|
+   | Application name | `Spotify Genre Sorter` (or any name) |
+   | Homepage URL | `https://spotify-genre-sorter.workers.dev` |
+   | Authorization callback URL | `https://spotify-genre-sorter.workers.dev/auth/github/callback` |
+
+   > **Using custom domain?** Replace `spotify-genre-sorter.workers.dev` with your domain (e.g., `spotify.houstons.tech`)
+
+4. Click **Register application**
+5. Copy the **Client ID**
+6. Click **Generate a new client secret** and copy it immediately (you won't see it again)
+
+---
+
+## Step 2: Create Spotify Developer App (Required)
+
+1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+2. Log in with your Spotify account (create one if needed)
+3. Click **Create App**
+4. Fill in the form:
+   | Field | Value |
+   |-------|-------|
+   | App name | `Spotify Genre Sorter` (or any name) |
+   | App description | `Organise liked songs into genre playlists` |
+   | Website | `https://spotify-genre-sorter.workers.dev` (optional) |
+   | Redirect URI | `https://spotify-genre-sorter.workers.dev/auth/spotify/callback` |
+
+   > **Using custom domain?** Use your domain for the Redirect URI (e.g., `https://spotify.houstons.tech/auth/spotify/callback`)
+
+5. Check **Web API** under "Which API/SDKs are you planning to use?"
+6. Agree to terms and click **Save**
+7. Go to **Settings** in your new app
+8. Copy the **Client ID** and **Client Secret**
+
+---
+
+## Step 3: Set Worker Secrets
+
+After creating both OAuth apps, set the secrets on your Cloudflare Worker:
+
+```bash
+npx wrangler secret put GITHUB_CLIENT_ID
+# Paste your GitHub Client ID
+
+npx wrangler secret put GITHUB_CLIENT_SECRET
+# Paste your GitHub Client Secret
+
+npx wrangler secret put SPOTIFY_CLIENT_ID
+# Paste your Spotify Client ID
+
+npx wrangler secret put SPOTIFY_CLIENT_SECRET
+# Paste your Spotify Client Secret
+
+npx wrangler secret put ALLOWED_GITHUB_USERS
+# Enter comma-separated GitHub usernames (e.g., "user1,user2") or leave empty to allow all
+```
+
+---
+
+## Step 4: Deploy
 
 ```bash
 npm install
-npm run setup
+npm run deploy
 ```
 
-The setup script will:
-- Authenticate with Cloudflare
-- Create KV namespace
-- List your DNS zones for custom domain selection
-- Collect OAuth credentials
-- Configure everything automatically
-
-### Option 2: Manual Setup
-
-1. **Create OAuth Apps**
-   - [GitHub OAuth App](https://github.com/settings/developers)
-   - [Spotify Developer App](https://developer.spotify.com/dashboard)
-
-2. **Set Worker Secrets** (required for the app to function)
-   ```bash
-   npx wrangler secret put GITHUB_CLIENT_ID
-   npx wrangler secret put GITHUB_CLIENT_SECRET
-   npx wrangler secret put SPOTIFY_CLIENT_ID
-   npx wrangler secret put SPOTIFY_CLIENT_SECRET
-   npx wrangler secret put ALLOWED_GITHUB_USERS  # comma-separated usernames, or leave empty for all
-   ```
-
-3. **Deploy** (KV namespace is created automatically)
-   ```bash
-   npm run deploy
-   ```
+The KV namespace for sessions is created automatically during deployment.
 
 ## Custom Domain Setup
 
