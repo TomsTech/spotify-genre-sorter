@@ -323,18 +323,19 @@ jobs:
         run: |
           DOMAIN="${{ inputs.custom_domain || vars.CUSTOM_DOMAIN }}"
 
-          # Delete existing DNS record if present (Custom Domains manages its own DNS)
-          if [ "${{ needs.check-dns-conflicts.outputs.has_conflict }}" == "true" ]; then
-            echo "Removing existing DNS record..."
-            RECORD_ID=$(curl -s -X GET \
+          # Delete existing DNS record if force_dns requested or conflict detected
+          if [ "${{ inputs.force_dns }}" == "true" ] || [ "${{ needs.check-dns-conflicts.outputs.has_conflict }}" == "true" ]; then
+            echo "Removing existing DNS records for $DOMAIN..."
+            RECORDS=$(curl -s -X GET \
               "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=$DOMAIN" \
               -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-              -H "Content-Type: application/json" | jq -r '.result[0].id')
-            if [ -n "$RECORD_ID" ] && [ "$RECORD_ID" != "null" ]; then
+              -H "Content-Type: application/json")
+            echo "Found records: $(echo "$RECORDS" | jq '.result | length')"
+            for RECORD_ID in $(echo "$RECORDS" | jq -r '.result[].id'); do
+              echo "Deleting record: $RECORD_ID"
               curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$RECORD_ID" \
                 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
-              echo "Deleted DNS record: $RECORD_ID"
-            fi
+            done
           fi
 
           # Delete existing worker routes for this domain
@@ -364,23 +365,17 @@ jobs:
             echo "::warning::Custom domain setup result: $CUSTOM_DOMAIN_RESULT"
           fi
 
-          # Always ensure DNS record exists (Workers Custom Domains doesn't always create it)
-          echo "Ensuring DNS record exists..."
-          DNS_CHECK=$(curl -s -X GET \
-            "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=$DOMAIN" \
+          # Always create DNS CNAME record (force recreation if force_dns)
+          echo "Creating DNS CNAME record..."
+          DNS_RESULT=$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            -H "Content-Type: application/json")
-          EXISTING_RECORD=$(echo "$DNS_CHECK" | jq -r '.result[0].id // empty')
-
-          if [ -z "$EXISTING_RECORD" ]; then
-            echo "Creating DNS CNAME record..."
-            DNS_RESULT=$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
-              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-              -H "Content-Type: application/json" \
-              --data "{\"type\":\"CNAME\",\"name\":\"$DOMAIN\",\"content\":\"${{ env.PRODUCTION_WORKER }}.${{ env.WORKER_SUBDOMAIN }}\",\"ttl\":1,\"proxied\":true}")
-            echo "$DNS_RESULT" | jq '.'
+            -H "Content-Type: application/json" \
+            --data "{\"type\":\"CNAME\",\"name\":\"$DOMAIN\",\"content\":\"${{ env.PRODUCTION_WORKER }}.${{ env.WORKER_SUBDOMAIN }}\",\"ttl\":1,\"proxied\":true}")
+          echo "$DNS_RESULT" | jq '.'
+          if echo "$DNS_RESULT" | jq -e '.success' > /dev/null; then
+            echo "DNS record created successfully"
           else
-            echo "DNS record already exists: $EXISTING_RECORD"
+            echo "Note: $(echo "$DNS_RESULT" | jq -r '.errors[0].message // "DNS record may already exist"')"
           fi
 
   cleanup:
