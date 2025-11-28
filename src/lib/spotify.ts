@@ -171,11 +171,13 @@ export async function getArtists(
 
   const results: SpotifyArtist[] = [];
   for (const chunk of chunks) {
-    const response = await spotifyFetch<{ artists: SpotifyArtist[] }>(
+    const response = await spotifyFetch<{ artists: (SpotifyArtist | null)[] }>(
       `/artists?ids=${chunk.join(',')}`,
       accessToken
     );
-    results.push(...response.artists);
+    // Filter out null entries (some artists may not have data)
+    const validArtists = response.artists.filter((a): a is SpotifyArtist => a !== null);
+    results.push(...validArtists);
   }
 
   return results;
