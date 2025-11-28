@@ -93,8 +93,8 @@ app.get('/session', async (c) => {
   }
 });
 
-// Stats endpoint - user count and hall of fame
-app.get('/api/stats', async (c) => {
+// Stats endpoint - user count and hall of fame (public, no auth)
+app.get('/stats', async (c) => {
   try {
     const countStr = await c.env.SESSIONS.get('stats:user_count');
     const count = countStr ? parseInt(countStr, 10) : 0;
@@ -895,7 +895,7 @@ function getHtml(): string {
 
       // Load stats for user counter
       try {
-        statsData = await fetch('/api/stats').then(r => r.json());
+        statsData = await fetch('/stats').then(r => r.json());
       } catch {}
 
       // Check session
