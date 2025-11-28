@@ -2,8 +2,11 @@ import { Context } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 
 export interface Session {
-  githubUser: string;
+  githubUser?: string;
   githubAvatar?: string;
+  spotifyUser?: string;
+  spotifyUserId?: string;
+  spotifyAvatar?: string;
   spotifyAccessToken?: string;
   spotifyRefreshToken?: string;
   spotifyExpiresAt?: number;
