@@ -9,6 +9,7 @@ interface Env {
   SPOTIFY_ONLY_AUTH?: string; // "true" to skip GitHub auth
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface UserRegistration {
   spotifyId: string;
   spotifyName: string;

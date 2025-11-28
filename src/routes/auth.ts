@@ -194,7 +194,7 @@ auth.get('/spotify/callback', async (c) => {
   const spotifyOnly = stateData.spotifyOnly === 'true';
 
   // In GitHub mode, require existing session
-  let session = await getSession(c);
+  const session = await getSession(c);
   if (!spotifyOnly && !session) {
     return c.redirect('/?error=not_logged_in');
   }
