@@ -41,7 +41,14 @@ async function registerUser(
 
   if (existing) {
     // Update last seen
-    const data = JSON.parse(existing);
+    const data = JSON.parse(existing) as {
+      spotifyId: string;
+      spotifyName: string;
+      spotifyAvatar?: string;
+      githubUser?: string;
+      registeredAt: string;
+      lastSeenAt: string;
+    };
     data.lastSeenAt = now;
     data.spotifyName = spotifyName;
     if (spotifyAvatar) data.spotifyAvatar = spotifyAvatar;
