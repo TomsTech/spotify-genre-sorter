@@ -105,7 +105,7 @@ app.get('/api/stats', async (c) => {
       const hofKey = `hof:${String(i).padStart(3, '0')}`;
       const data = await c.env.SESSIONS.get(hofKey);
       if (data) {
-        const entry = JSON.parse(data);
+        const entry = JSON.parse(data) as { position: number; spotifyName: string; registeredAt: string };
         hallOfFame.push({
           position: entry.position,
           spotifyName: entry.spotifyName,
@@ -141,7 +141,7 @@ app.get('/favicon.svg', (c) => {
 });
 
 // PNG favicon (Swedish Spotify logo from favicon_io)
-app.get('/favicon.png', async (c) => {
+app.get('/favicon.png', (c) => {
   c.header('Content-Type', 'image/png');
   c.header('Cache-Control', 'public, max-age=31536000');
   // Base64 decoded at runtime - Swedish-themed Spotify logo
