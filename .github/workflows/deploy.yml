@@ -286,6 +286,7 @@ jobs:
     name: Verify Production
     runs-on: ubuntu-latest
     needs: [deploy-production]
+    if: always() && needs.deploy-production.result == 'success'
     outputs:
       healthy: ${{ steps.health.outputs.ok }}
     steps:
@@ -311,9 +312,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [verify-production, get-account-id, check-dns-conflicts]
     if: |
+      always() &&
       needs.verify-production.outputs.healthy == 'true' &&
       (vars.CUSTOM_DOMAIN != '' || inputs.custom_domain != '') &&
-      needs.check-dns-conflicts.result == 'success'
+      (needs.check-dns-conflicts.result == 'success' || needs.check-dns-conflicts.result == 'skipped')
     steps:
       - name: Configure Custom Domain
         env:
