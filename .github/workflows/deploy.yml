@@ -362,16 +362,25 @@ jobs:
             echo "$CUSTOM_DOMAIN_RESULT" | jq '.result'
           else
             echo "::warning::Custom domain setup result: $CUSTOM_DOMAIN_RESULT"
-            # Fallback: try the legacy route method
-            echo "Trying legacy worker route method..."
-            curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+          fi
+
+          # Always ensure DNS record exists (Workers Custom Domains doesn't always create it)
+          echo "Ensuring DNS record exists..."
+          DNS_CHECK=$(curl -s -X GET \
+            "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=$DOMAIN" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json")
+          EXISTING_RECORD=$(echo "$DNS_CHECK" | jq -r '.result[0].id // empty')
+
+          if [ -z "$EXISTING_RECORD" ]; then
+            echo "Creating DNS CNAME record..."
+            DNS_RESULT=$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
               -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
               -H "Content-Type: application/json" \
-              --data "{\"type\":\"CNAME\",\"name\":\"$DOMAIN\",\"content\":\"${{ env.PRODUCTION_WORKER }}.${{ env.WORKER_SUBDOMAIN }}\",\"ttl\":1,\"proxied\":true}"
-            curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/workers/routes" \
-              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-              -H "Content-Type: application/json" \
-              --data "{\"pattern\":\"$DOMAIN/*\",\"script\":\"${{ env.PRODUCTION_WORKER }}\"}"
+              --data "{\"type\":\"CNAME\",\"name\":\"$DOMAIN\",\"content\":\"${{ env.PRODUCTION_WORKER }}.${{ env.WORKER_SUBDOMAIN }}\",\"ttl\":1,\"proxied\":true}")
+            echo "$DNS_RESULT" | jq '.'
+          else
+            echo "DNS record already exists: $EXISTING_RECORD"
           fi
 
   cleanup:
