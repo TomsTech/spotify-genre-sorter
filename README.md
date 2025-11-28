@@ -8,289 +8,247 @@
 
 Organise your Spotify liked songs into genre-based playlists with one click.
 
-> 🇸🇪 *For Heidi x, hopefully you know why I disappear for so long, I'm just dicking my keyboard for countless hours instead* 🤓
+> *For Heidi x, hopefully you know why I disappear for so long, I'm just dicking my keyboard for countless hours instead*
 
-## Features
+## Quick Start
 
-- GitHub SSO authentication (whitelist specific users)
-- Spotify OAuth integration
-- View all genres in your liked songs
-- Create playlists for individual genres or bulk create
-- Modern, minimal dark UI
-- 🥚 Varför läser du detta? Gå och lek någon annanstans, din nyfikna smansen!
+### TL;DR - What You Need
 
-## Architecture
-
-### System Overview
-
-```mermaid
-flowchart TB
-    subgraph User["👤 User"]
-        Browser["Browser"]
-    end
-
-    subgraph CF["☁️ Cloudflare"]
-        Worker["Worker"]
-        KV["KV Storage"]
-    end
-
-    subgraph External["🌐 External"]
-        GitHub["GitHub OAuth"]
-        Spotify["Spotify API"]
-    end
-
-    Browser <-->|HTTPS| Worker
-    Worker <-->|Sessions| KV
-    Worker <-->|Auth| GitHub
-    Worker <-->|API| Spotify
-```
-
-### Authentication Flow
-
-```mermaid
-sequenceDiagram
-    actor U as User
-    participant W as Worker
-    participant GH as GitHub
-    participant SP as Spotify
-
-    U->>W: Visit app
-    W->>U: Login page
-    U->>GH: Authorize
-    GH->>W: Code
-    W->>GH: Exchange token
-    W->>U: Connect Spotify
-    U->>SP: Authorize
-    SP->>W: Code
-    W->>SP: Exchange token
-    W->>U: Genre dashboard
-```
-
-### CI/CD Pipeline
-
-```mermaid
-flowchart LR
-    subgraph CI["🔍 CI"]
-        L[Lint] --> T[TypeCheck]
-        T --> S[Security]
-        S --> B[Build]
-    end
-
-    subgraph CD["🚀 CD"]
-        B --> D[Deploy]
-        D --> V[Verify]
-        V --> DNS[DNS Check]
-    end
-
-    subgraph R["📦 Release"]
-        DNS --> CL[Changelog]
-        CL --> GHR[GitHub Release]
-    end
-```
-
-## Prerequisites
-
-You **must** create OAuth apps on both GitHub and Spotify before deploying. These cannot be auto-generated.
+1. **Cloudflare account** with Workers enabled (free tier works)
+2. **GitHub OAuth App** - for login
+3. **Spotify Developer App** - for accessing your music
+4. **5 minutes** to set it all up
 
 ---
 
-## Step 1: Create GitHub OAuth App (Required)
+## Complete Setup Guide
+
+### Step 1: Fork & Clone
+
+```bash
+git clone https://github.com/TomsTech/spotify-genre-sorter.git
+cd spotify-genre-sorter
+npm install
+```
+
+### Step 2: Create Cloudflare API Token
+
+You need this for GitHub Actions to deploy automatically.
+
+1. Go to [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens)
+2. Click **Create Token**
+3. Use **Edit Cloudflare Workers** template
+4. Add these permissions:
+   - `Account > Workers Scripts > Edit`
+   - `Account > Workers KV Storage > Edit`
+   - `Account > Account Settings > Read`
+   - `Zone > DNS > Edit` (only if using custom domain)
+5. Create token and **copy it**
+
+### Step 3: Add Token to GitHub
+
+1. Go to your repo → **Settings** → **Secrets and variables** → **Actions**
+2. Click **New repository secret**
+3. Name: `CLOUDFLARE_API_TOKEN`
+4. Value: paste the token from Step 2
+
+### Step 4: Create GitHub OAuth App
+
+This lets users log in with their GitHub account.
 
 1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
 2. Click **OAuth Apps** → **New OAuth App**
-3. Fill in the form:
-   | Field | Value |
-   |-------|-------|
-   | Application name | `Spotify Genre Sorter` (or any name) |
-   | Homepage URL | `https://spotify-genre-sorter.workers.dev` |
-   | Authorization callback URL | `https://spotify-genre-sorter.workers.dev/auth/github/callback` |
+3. Fill in:
 
-   > **Using custom domain?** Replace `spotify-genre-sorter.workers.dev` with your domain (e.g., `spotify.houstons.tech`)
+| Field | Value |
+|-------|-------|
+| Application name | `Spotify Genre Sorter` |
+| Homepage URL | `https://spotify-genre-sorter.<your-subdomain>.workers.dev` |
+| Authorization callback URL | `https://spotify-genre-sorter.<your-subdomain>.workers.dev/auth/github/callback` |
+
+> **Find your subdomain**: Check your Cloudflare Workers dashboard - it's usually `<something>.workers.dev`. For example: `dev-playground-df5.workers.dev`
 
 4. Click **Register application**
-5. Copy the **Client ID**
-6. Click **Generate a new client secret** and copy it immediately (you won't see it again)
+5. **Copy the Client ID** (you'll need this)
+6. Click **Generate a new client secret** and **copy it immediately**
 
----
+### Step 5: Create Spotify Developer App
 
-## Step 2: Create Spotify Developer App (Required)
+This lets the app access your Spotify library.
 
 1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Log in with your Spotify account (create one if needed)
-3. Click **Create App**
-4. Fill in the form:
-   | Field | Value |
-   |-------|-------|
-   | App name | `Spotify Genre Sorter` (or any name) |
-   | App description | `Organise liked songs into genre playlists` |
-   | Website | `https://spotify-genre-sorter.workers.dev` (optional) |
-   | Redirect URI | `https://spotify-genre-sorter.workers.dev/auth/spotify/callback` |
+2. Click **Create App**
+3. Fill in:
 
-   > **Using custom domain?** Use your domain for the Redirect URI (e.g., `https://spotify.houstons.tech/auth/spotify/callback`)
+| Field | Value |
+|-------|-------|
+| App name | `Spotify Genre Sorter` |
+| App description | `Organise liked songs into genre playlists` |
+| Redirect URI | `https://spotify-genre-sorter.<your-subdomain>.workers.dev/auth/spotify/callback` |
 
-5. Check **Web API** under "Which API/SDKs are you planning to use?"
-6. Agree to terms and click **Save**
-7. Go to **Settings** in your new app
-8. Copy the **Client ID** and **Client Secret**
+4. Check **Web API** under APIs
+5. Click **Save**
+6. Go to **Settings** → **copy Client ID and Client Secret**
 
----
+### Step 6: Deploy the Worker
 
-## Step 3: Set Worker Secrets
-
-After creating both OAuth apps, set the secrets on your Cloudflare Worker:
+Push to GitHub to trigger the first deploy:
 
 ```bash
+git push origin main
+```
+
+Wait for the GitHub Action to complete (check the Actions tab).
+
+### Step 7: Set Worker Secrets (THE IMPORTANT BIT)
+
+**This is where most people get stuck.** The secrets must be set on the Cloudflare Worker, NOT in GitHub.
+
+Run these commands in your terminal:
+
+```bash
+# GitHub OAuth credentials
 npx wrangler secret put GITHUB_CLIENT_ID
-# Paste your GitHub Client ID
+# Paste your GitHub Client ID when prompted
 
 npx wrangler secret put GITHUB_CLIENT_SECRET
-# Paste your GitHub Client Secret
+# Paste your GitHub Client Secret when prompted
 
+# Spotify OAuth credentials
 npx wrangler secret put SPOTIFY_CLIENT_ID
-# Paste your Spotify Client ID
+# Paste your Spotify Client ID when prompted
 
 npx wrangler secret put SPOTIFY_CLIENT_SECRET
-# Paste your Spotify Client Secret
-
-npx wrangler secret put ALLOWED_GITHUB_USERS
-# Enter comma-separated GitHub usernames (e.g., "user1,user2") or leave empty to allow all
+# Paste your Spotify Client Secret when prompted
 ```
+
+Each command will prompt you to enter the value. It won't show what you type (that's normal - it's hidden for security).
+
+### Step 8: Verify It Works
+
+1. Visit `https://spotify-genre-sorter.<your-subdomain>.workers.dev/health`
+   - Should show: `{"status":"ok"}`
+2. Visit `https://spotify-genre-sorter.<your-subdomain>.workers.dev/setup`
+   - Should show: `{"configured":true}`
+   - If it shows missing secrets, go back to Step 7
 
 ---
 
-## Step 4: Deploy
+## Custom Domain Setup (Optional)
+
+Want to use your own domain like `spotify.example.com`?
+
+### Option A: Via GitHub Actions (Recommended)
+
+1. Go to your repo → **Settings** → **Variables** → **Actions**
+2. Add variable: `CUSTOM_DOMAIN` = `spotify.example.com`
+3. Run the Deploy workflow manually with "Force DNS update" checked
+
+### Option B: Manual Setup
 
 ```bash
-npm install
-npm run deploy
+# Add the domain via Cloudflare dashboard
+# Workers & Pages → your worker → Settings → Triggers → Custom Domains
 ```
 
-The KV namespace for sessions is created automatically during deployment.
+**Important**: Update your OAuth callback URLs in both GitHub and Spotify apps to use the new domain!
 
-## Custom Domain Setup
+---
 
-### Via Pipeline (Recommended)
+## Troubleshooting
 
-Set repository variables in GitHub:
-- `CUSTOM_DOMAIN`: Your custom domain (e.g., `spotify.example.com`)
-- `WORKER_SUBDOMAIN`: Or just a subdomain for workers.dev
-
-Then trigger a deploy via "Run workflow" with your domain.
-
-### Via Setup Script
-
-Run `npm run setup` and select your DNS zone when prompted.
-
-## GitHub Actions Setup
-
-### Required Secret
-
-| Secret | Required | Description |
-|--------|----------|-------------|
-| `CLOUDFLARE_API_TOKEN` | **Yes** | API token with Workers permissions |
-| `SNYK_TOKEN` | No | Optional security scanning ([get token](https://app.snyk.io/account)) |
-
-### Worker Secrets (Cloudflare)
-
-These must be set on the Cloudflare Worker itself (not GitHub):
-
-| Secret | Description |
-|--------|-------------|
-| `GITHUB_CLIENT_ID` | From your GitHub OAuth App |
-| `GITHUB_CLIENT_SECRET` | From your GitHub OAuth App |
-| `SPOTIFY_CLIENT_ID` | From your Spotify Developer App |
-| `SPOTIFY_CLIENT_SECRET` | From your Spotify Developer App |
-| `ALLOWED_GITHUB_USERS` | Comma-separated GitHub usernames (empty = allow all) |
-
-Set via CLI: `npx wrangler secret put SECRET_NAME`
-
-### Optional Variable
-
-| Variable | Description |
-|----------|-------------|
-| `CUSTOM_DOMAIN` | Your custom domain (e.g., `spotify.example.com`) |
-
-### How to Get Your Cloudflare API Token
-
-1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com/profile/api-tokens)
-2. Click **Create Token**
-3. Use the **Edit Cloudflare Workers** template, OR create custom with:
-   - `Account > Workers Scripts > Edit`
-   - `Account > Workers KV Storage > Edit`
-   - `Zone > DNS > Edit` (if using custom domain)
-   - `Account > Account Settings > Read` (for auto-detection)
-4. Copy the token and add as `CLOUDFLARE_API_TOKEN` secret in GitHub
-
-> **Note**: Account ID is auto-detected from your API token - no need to configure separately!
-
-### DNS Conflict Detection
-
-The pipeline automatically checks for existing DNS records before deployment:
-- If a record exists for your custom domain, deployment **stops** with a clear error
-- To override, re-run the workflow with **"Force DNS update"** checked
-- This prevents accidentally breaking existing services
-
-## Pipeline Features
-
-| Stage | Checks |
-|-------|--------|
-| **Lint** | ESLint code quality |
-| **Type** | TypeScript static analysis |
-| **Security** | npm audit, Snyk, CodeQL |
-| **Deploy** | Cloudflare Workers |
-| **Verify** | Health check, DNS, SSL |
-| **Release** | Auto-changelog on tags |
-
-## Local Development
-
+### "Worker returns error 1042"
+The worker is crashing. Usually means secrets aren't set. Run:
 ```bash
-# Create .dev.vars with your OAuth credentials
-npm run dev
+npx wrangler secret list
+```
+Should show all 4 secrets. If not, set them with `npx wrangler secret put`.
+
+### "/setup shows missing secrets but I set them"
+Secrets are per-worker. Make sure you're setting them on the right worker:
+```bash
+npx wrangler secret put GITHUB_CLIENT_ID --name spotify-genre-sorter
 ```
 
-OAuth callback URLs for local: `http://localhost:8787/auth/*/callback`
+### "redirect_uri_mismatch" error
+Your OAuth callback URL doesn't match. Check:
+1. The URL in your GitHub/Spotify app settings
+2. Must match EXACTLY: `https://your-domain/auth/github/callback` or `/auth/spotify/callback`
+
+### "DNS not resolving for custom domain"
+DNS can take a few minutes to propagate. Try:
+```bash
+# Check if DNS is working
+nslookup your-domain.com 8.8.8.8
+```
+
+### "Pipeline succeeds but site shows error"
+The health check passed but OAuth isn't configured. Check `/setup` endpoint.
+
+---
+
+## How It Works
+
+1. User logs in with GitHub (whitelist specific users if you want)
+2. User connects their Spotify account
+3. App fetches all liked songs
+4. Extracts genres from artists (Spotify assigns genres to artists, not tracks)
+5. User can create playlists for any genre
+
+---
 
 ## API Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/session` | GET | Session status |
-| `/auth/github` | GET | GitHub OAuth |
-| `/auth/spotify` | GET | Spotify OAuth |
-| `/auth/logout` | GET | Clear session |
-| `/api/genres` | GET | Get all genres |
-| `/api/playlist` | POST | Create one playlist |
-| `/api/playlists/bulk` | POST | Create multiple |
+| Endpoint | Description |
+|----------|-------------|
+| `/` | Main UI |
+| `/health` | Health check (returns `{"status":"ok"}`) |
+| `/setup` | Check if secrets are configured |
+| `/session` | Current session status |
+| `/auth/github` | Start GitHub login |
+| `/auth/spotify` | Connect Spotify |
+| `/auth/logout` | Log out |
+| `/api/genres` | Get all genres from liked songs |
+| `/api/playlist` | Create a playlist |
 
-## Releases
+---
 
-Uses [Conventional Commits](https://www.conventionalcommits.org/):
+## Local Development
 
+Create a `.dev.vars` file:
+
+```
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+SPOTIFY_CLIENT_ID=your_spotify_client_id
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+```
+
+Then:
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+npm run dev
 ```
 
-Auto-generates changelog and GitHub release.
+Update OAuth callback URLs to `http://localhost:8787/auth/*/callback` for local testing.
 
-## File Structure
+---
 
-```text
-├── .github/workflows/   # CI/CD pipelines
-├── scripts/setup.mjs    # Interactive setup
-├── src/
-│   ├── index.ts         # Main + UI
-│   ├── routes/          # Auth & API
-│   └── lib/             # Helpers
-├── wrangler.toml        # Cloudflare config
-└── cliff.toml           # Changelog config
+## Architecture
+
 ```
+User → Cloudflare Worker → GitHub OAuth (login)
+                        → Spotify API (music data)
+                        → KV Storage (sessions)
+```
+
+---
 
 ## Notes
 
-- Genres are assigned to **artists**, not tracks
-- Large libraries may take a moment (API pagination)
-- Playlists are created as private
+- Genres come from **artists**, not individual tracks
+- Large libraries take longer (paginated API calls)
+- Playlists are created as **private** by default
+- Session expires after 7 days
 
 ## License
 
@@ -298,4 +256,4 @@ Free for personal use. Commercial use requires a paid license — see [LICENSE](
 
 ---
 
-<sub><img src="https://flagcdn.com/16x12/se.png" width="16" height="12" alt="SE"> *För min raring, Heidi*</sub>
+<sub><img src="https://flagcdn.com/16x12/se.png" width="16" height="12" alt="SE"> *For Heidi*</sub>
