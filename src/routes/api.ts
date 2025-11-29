@@ -265,7 +265,7 @@ function sanitiseGenreName(genre: unknown): { valid: boolean; error?: string; na
     return { valid: false, error: `Genre name exceeds ${MAX_GENRE_NAME_LENGTH} characters` };
   }
   // Remove any potentially dangerous characters (keep alphanumeric, spaces, hyphens, common chars)
-  const sanitised = trimmed.replace(/[<>\"'&]/g, '');
+  const sanitised = trimmed.replace(/[<>"'&]/g, '');
   return { valid: true, name: sanitised };
 }
 
