@@ -13,6 +13,25 @@ app.onError((err, c) => {
   return c.json({ error: err.message || 'Internal error' }, 500);
 });
 
+// Security headers middleware - fixes Google Safe Browsing warnings
+app.use('*', async (c, next) => {
+  await next();
+  c.header('Content-Security-Policy', [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https://flagcdn.com https://i.scdn.co https://avatars.githubusercontent.com",
+    "connect-src 'self' https://api.spotify.com https://ko-fi.com",
+    "frame-ancestors 'none'",
+  ].join('; '));
+  c.header('X-Content-Type-Options', 'nosniff');
+  c.header('X-Frame-Options', 'DENY');
+  c.header('X-XSS-Protection', '1; mode=block');
+  c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+  c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+});
+
 // Health check - FIRST route, no middleware dependency
 app.get('/health', (c) => {
   return c.json({ status: 'ok' });
@@ -124,7 +143,7 @@ app.get('/stats', async (c) => {
   }
 });
 
-// Swedish-themed favicon (Spotify logo in Swedish colors)
+// Swedish-themed favicon (Spotify logo in Swedish colours)
 app.get('/favicon.svg', (c) => {
   c.header('Content-Type', 'image/svg+xml');
   return c.body(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -430,6 +449,13 @@ function getHtml(): string {
       to { transform: rotate(360deg); }
     }
 
+    .loading-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      opacity: 0.7;
+    }
+
     .error {
       background: rgba(231, 76, 60, 0.1);
       border: 1px solid var(--danger);
@@ -437,6 +463,22 @@ function getHtml(): string {
       padding: 1rem;
       border-radius: 6px;
       margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .error strong {
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .error p {
+      margin: 0.5rem 0;
+    }
+
+    .error-detail {
+      font-size: 0.8rem;
+      opacity: 0.8;
+      font-family: monospace;
     }
 
     .success {
@@ -563,18 +605,36 @@ function getHtml(): string {
       opacity: 1;
     }
 
-    /* Swedish mode decorations */
-    .swedish-crown {
+    /* Swedish mode decorations - Three Crowns (Tre Kronor) */
+    .swedish-crowns {
       display: none;
       position: absolute;
-      top: -15px;
+      top: -20px;
       right: 10px;
-      font-size: 1.5rem;
+      font-size: 1.2rem;
     }
 
-    body.swedish-mode .swedish-crown {
-      display: block;
+    body.swedish-mode .swedish-crowns {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .swedish-crowns .crown {
       animation: float 2s ease-in-out infinite;
+    }
+
+    .swedish-crowns .crown:nth-child(1) {
+      animation-delay: 0s;
+    }
+
+    .swedish-crowns .crown:nth-child(2) {
+      animation-delay: 0.3s;
+      font-size: 1.4rem;
+      margin-top: -3px;
+    }
+
+    .swedish-crowns .crown:nth-child(3) {
+      animation-delay: 0.6s;
     }
 
     @keyframes float {
@@ -615,6 +675,26 @@ function getHtml(): string {
     .user-counter .count {
       color: var(--accent);
       font-weight: 700;
+    }
+
+    /* Swedish mode user counter */
+    body.swedish-mode .user-counter {
+      background: linear-gradient(135deg, var(--swedish-blue), #004d7a);
+      color: #fff;
+    }
+
+    body.swedish-mode .user-counter .count {
+      color: var(--swedish-yellow);
+    }
+
+    /* Swedish mode Hall of Fame */
+    body.swedish-mode .hall-of-fame h3 {
+      color: var(--swedish-yellow);
+    }
+
+    body.swedish-mode .hof-entry {
+      background: linear-gradient(135deg, var(--swedish-blue), #004d7a);
+      color: #fff;
     }
 
     /* Hall of Fame */
@@ -678,13 +758,22 @@ function getHtml(): string {
       box-shadow: 0 0 15px rgba(210, 105, 30, 0.4);
     }
 
-    .durry-btn .smoke {
+    .durry-btn .icon {
       animation: smoke 2s ease-in-out infinite;
     }
 
     @keyframes smoke {
       0%, 100% { opacity: 0.5; transform: translateY(0); }
       50% { opacity: 1; transform: translateY(-2px); }
+    }
+
+    /* Swedish mode snus styling */
+    body.swedish-mode .durry-btn {
+      background: linear-gradient(135deg, var(--swedish-blue), #004d7a);
+    }
+
+    body.swedish-mode .durry-btn:hover {
+      box-shadow: 0 0 15px rgba(0, 106, 167, 0.4);
     }
 
     /* Footer badges */
@@ -729,7 +818,11 @@ function getHtml(): string {
         </svg>
         <span data-i18n="title">Genre Sorter</span>
       </h1>
-      <span class="swedish-crown" title="Sveriges kungakrona">👑</span>
+      <span class="swedish-crowns" title="Tre Kronor - Three Crowns of Sweden">
+        <span class="crown">👑</span>
+        <span class="crown">👑</span>
+        <span class="crown">👑</span>
+      </span>
       <div id="header-actions"></div>
     </header>
 
@@ -741,10 +834,10 @@ function getHtml(): string {
     </main>
   </div>
 
-  <!-- Shout me a durry button (Aussie style) -->
-  <a href="https://buymeacoffee.com/tomstech" target="_blank" class="durry-btn" title="Chuck us a dart, legend">
-    <span class="smoke">🚬</span>
-    <span>Shout me a durry</span>
+  <!-- Shout me a durry button (Aussie style) / Snus button (Swedish mode) -->
+  <a href="https://buymeacoffee.com/tomstech" target="_blank" class="durry-btn" id="donation-btn" title="Chuck us a dart, legend">
+    <span class="icon">🚬</span>
+    <span class="text">Shout me a durry</span>
   </a>
 
   <!-- Heidi Easter Egg Badge -->
@@ -783,7 +876,7 @@ function getHtml(): string {
         organiseDesc: 'Automatically sort your Spotify liked songs into genre-based playlists with one click.',
         signInGithub: 'Sign in with GitHub',
         connectSpotify: 'Connect Your Spotify',
-        connectDesc: 'Connect your Spotify account to analyze your liked songs and organise them by genre.',
+        connectDesc: 'Connect your Spotify account to analyse your liked songs and organise them by genre.',
         connectBtn: 'Connect Spotify',
         fetchingGenres: 'Fetching your liked songs and genres...',
         likedSongs: 'Liked Songs',
@@ -808,9 +901,12 @@ function getHtml(): string {
         refresh: 'Refresh',
         tracks: 'tracks',
         errorGithubDenied: 'GitHub authorization was denied.',
-        errorNotAllowed: 'Your GitHub account is not authorized to use this app.',
+        errorNotAllowed: 'Your GitHub account is not authorised to use this app.',
         errorAuthFailed: 'Authentication failed. Please try again.',
         errorInvalidState: 'Invalid state. Please try again.',
+        hallOfFame: 'First Users - Hall of Fame',
+        musicLoversJoined: 'music lovers have joined',
+        signInSpotify: 'Sign in with Spotify',
       },
       sv: {
         title: 'Genresorterare',
@@ -847,6 +943,9 @@ function getHtml(): string {
         errorNotAllowed: 'Ditt GitHub-konto är inte behörigt att använda denna app.',
         errorAuthFailed: 'Autentisering misslyckades. Försök igen.',
         errorInvalidState: 'Ogiltigt tillstånd. Försök igen.',
+        hallOfFame: 'Första Användarna',
+        musicLoversJoined: 'musikälskare har gått med',
+        signInSpotify: 'Logga in med Spotify',
       }
     };
 
@@ -864,6 +963,22 @@ function getHtml(): string {
       document.querySelectorAll('[data-i18n]').forEach(el => {
         el.textContent = t(el.dataset.i18n);
       });
+
+      // Update donation button (durry -> snus)
+      const donationBtn = document.getElementById('donation-btn');
+      if (donationBtn) {
+        const icon = donationBtn.querySelector('.icon');
+        const text = donationBtn.querySelector('.text');
+        if (swedishMode) {
+          icon.textContent = '🫙';
+          text.textContent = 'Bjud mig på snus';
+          donationBtn.title = 'Tack för stödet, kompis!';
+        } else {
+          icon.textContent = '🚬';
+          text.textContent = 'Shout me a durry';
+          donationBtn.title = 'Chuck us a dart, legend';
+        }
+      }
 
       // Play Swedish chime when entering Swedish mode
       if (swedishMode) {
@@ -886,6 +1001,15 @@ function getHtml(): string {
     // Apply Swedish mode on load if previously enabled
     if (swedishMode) {
       document.body.classList.add('swedish-mode');
+      // Also update the donation button on load
+      const donationBtn = document.getElementById('donation-btn');
+      if (donationBtn) {
+        const icon = donationBtn.querySelector('.icon');
+        const text = donationBtn.querySelector('.text');
+        if (icon) icon.textContent = '🫙';
+        if (text) text.textContent = 'Bjud mig på snus';
+        donationBtn.title = 'Tack för stödet, kompis!';
+      }
     }
 
     async function init() {
@@ -929,18 +1053,18 @@ function getHtml(): string {
         'spotify_auth_failed': 'Spotify authentication failed. Please try again.',
       };
 
-      // User counter HTML
+      // User counter HTML - now with Swedish translation
       const userCounterHtml = statsData?.userCount ? \`
         <div class="user-counter">
-          <span>🎵</span>
-          <span><span class="count">\${statsData.userCount}</span> music lovers have joined</span>
+          <span>\${swedishMode ? '🇸🇪' : '🎵'}</span>
+          <span><span class="count">\${statsData.userCount}</span> \${t('musicLoversJoined')}</span>
         </div>
       \` : '';
 
-      // Hall of fame HTML
+      // Hall of fame HTML - using i18n
       const hofHtml = statsData?.hallOfFame?.length ? \`
         <div class="hall-of-fame">
-          <h3>\${swedishMode ? '🏆 Första Användarna' : '🏆 First Users - Hall of Fame'}</h3>
+          <h3>🏆 \${t('hallOfFame')}</h3>
           <div class="hof-list">
             \${statsData.hallOfFame.map(u => \`
               <div class="hof-entry">
@@ -958,7 +1082,7 @@ function getHtml(): string {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 01-.277-1.215c3.809-.87 7.076-.496 9.712 1.115.293.18.386.563.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.972c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.071zm.105-2.835c-3.223-1.914-8.54-2.09-11.618-1.156a.935.935 0 11-.543-1.79c3.533-1.072 9.404-.865 13.115 1.338a.935.935 0 11-.954 1.608z"/>
           </svg>
-          <span>\${swedishMode ? 'Logga in med Spotify' : 'Sign in with Spotify'}</span>
+          <span>\${t('signInSpotify')}</span>
         </a>
       \` : \`
         <a href="/auth/github" class="btn btn-primary">
@@ -978,10 +1102,10 @@ function getHtml(): string {
           \${loginButton}
           <div class="footer-badges">
             <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank">
-              <img src="https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=social" alt="Star on GitHub">
+              <img src="https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=for-the-badge&logo=github&logoColor=white&label=Star&color=1DB954&labelColor=191414" alt="Star on GitHub">
             </a>
             <a href="https://stats.uptimerobot.com/tomstech" target="_blank">
-              <img src="https://img.shields.io/badge/uptime-100%25-brightgreen" alt="Uptime">
+              <img src="https://img.shields.io/badge/uptime-100%25-1DB954?style=for-the-badge&logo=checkmarx&logoColor=white&labelColor=191414" alt="Uptime">
             </a>
           </div>
           \${hofHtml}
@@ -1018,29 +1142,70 @@ function getHtml(): string {
       \`;
     }
 
-    function renderLoading(message) {
+    function renderLoading(message, subMessage = '') {
       app.innerHTML = \`
         <div class="loading">
           <div class="spinner"></div>
           <span>\${message}</span>
+          \${subMessage ? \`<span class="loading-sub">\${subMessage}</span>\` : ''}
         </div>
       \`;
     }
 
     async function loadGenres() {
       try {
+        renderLoading(
+          swedishMode ? 'Hämtar dina låtar...' : 'Fetching your liked songs...',
+          swedishMode ? 'Detta kan ta en stund för stora bibliotek' : 'This may take a moment for large libraries'
+        );
+
         const response = await fetch('/api/genres');
+        const data = await response.json();
+
         if (!response.ok) {
-          throw new Error('Failed to load genres');
+          // Show detailed error from API
+          const errorDetail = data.details || data.error || 'Unknown error';
+          const step = data.step || 'unknown';
+          const stepLabels = {
+            'fetching_tracks': 'while fetching your liked tracks',
+            'fetching_artists': 'while fetching artist data',
+            'unknown': ''
+          };
+
+          app.innerHTML = \`
+            <div class="error">
+              <strong>Error \${stepLabels[step] || ''}</strong>
+              <p>\${errorDetail}</p>
+              \${data.tracksFound ? \`<p class="error-detail">Tracks found: \${data.tracksFound}</p>\` : ''}
+              \${data.artistsToFetch ? \`<p class="error-detail">Artists to fetch: \${data.artistsToFetch}</p>\` : ''}
+            </div>
+            <button onclick="loadGenres()" class="btn btn-secondary">Try Again</button>
+            <button onclick="location.href='/auth/logout'" class="btn btn-secondary">Reconnect Spotify</button>
+          \`;
+          return;
         }
-        genreData = await response.json();
+
+        if (data.totalTracks === 0) {
+          app.innerHTML = \`
+            <div class="card">
+              <h2>No Liked Songs Found</h2>
+              <p>Your Spotify library doesn't have any liked songs yet. Like some songs on Spotify and come back!</p>
+            </div>
+          \`;
+          return;
+        }
+
+        genreData = data;
         renderGenres();
       } catch (error) {
+        console.error('Load genres error:', error);
         app.innerHTML = \`
-          <div class="error" data-i18n="errorLoad">
-            \${t('errorLoad')}
+          <div class="error">
+            <strong>Connection Error</strong>
+            <p>Could not connect to the server. Please check your internet connection.</p>
+            <p class="error-detail">\${error.message || 'Unknown error'}</p>
           </div>
-          <button onclick="location.reload()" class="btn btn-secondary" data-i18n="refresh">\${t('refresh')}</button>
+          <button onclick="loadGenres()" class="btn btn-secondary">Try Again</button>
         \`;
       }
     }
