@@ -299,6 +299,19 @@ jobs:
           accountId: ${{ needs.get-account-id.outputs.account_id }}
           command: deploy --minify
 
+      - name: Configure Secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          # Set Spotify secrets
+          echo "${{ secrets.SPOTIFY_CLIENT_ID }}" | npx wrangler secret put SPOTIFY_CLIENT_ID
+          echo "${{ secrets.SPOTIFY_CLIENT_SECRET }}" | npx wrangler secret put SPOTIFY_CLIENT_SECRET
+
+          # Enable Spotify-only auth mode
+          echo "true" | npx wrangler secret put SPOTIFY_ONLY_AUTH
+
+          echo "Secrets configured successfully"
+
   verify-production:
     name: Verify Production
     runs-on: ubuntu-latest
