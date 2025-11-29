@@ -11,7 +11,50 @@ import {
 
 const api = new Hono<{ Bindings: Env }>();
 
-// Middleware to check auth and refresh tokens if needed
+// Security constants
+const MAX_TRACK_IDS = 10000; // Max tracks per playlist
+const MAX_GENRES_BULK = 50; // Max genres in bulk create
+const MAX_GENRE_NAME_LENGTH = 100;
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 30; // 30 requests per minute
+const SPOTIFY_TRACK_ID_REGEX = /^[a-zA-Z0-9]{22}$/;
+
+// Simple in-memory rate limiter (resets on worker restart, but good enough for abuse prevention)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+// Rate limiting middleware
+api.use('/*', async (c, next) => {
+  const clientIP = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
+  const now = Date.now();
+
+  const rateData = rateLimitMap.get(clientIP);
+  if (rateData) {
+    if (now > rateData.resetAt) {
+      // Window expired, reset
+      rateLimitMap.set(clientIP, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    } else if (rateData.count >= RATE_LIMIT_MAX_REQUESTS) {
+      c.header('Retry-After', String(Math.ceil((rateData.resetAt - now) / 1000)));
+      return c.json({ error: 'Rate limit exceeded. Please try again later.' }, 429);
+    } else {
+      rateData.count++;
+    }
+  } else {
+    rateLimitMap.set(clientIP, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+  }
+
+  // Clean up old entries periodically (every 100 requests)
+  if (Math.random() < 0.01) {
+    for (const [ip, data] of rateLimitMap.entries()) {
+      if (now > data.resetAt + RATE_LIMIT_WINDOW_MS) {
+        rateLimitMap.delete(ip);
+      }
+    }
+  }
+
+  await next();
+});
+
+// Auth middleware - check auth and refresh tokens if needed
 api.use('/*', async (c, next) => {
   const session = await getSession(c);
 
@@ -186,6 +229,46 @@ api.get('/genres', async (c) => {
   }
 });
 
+// Helper to validate track IDs
+function validateTrackIds(trackIds: unknown): { valid: boolean; error?: string; ids?: string[] } {
+  if (!Array.isArray(trackIds)) {
+    return { valid: false, error: 'trackIds must be an array' };
+  }
+  if (trackIds.length === 0) {
+    return { valid: false, error: 'trackIds cannot be empty' };
+  }
+  if (trackIds.length > MAX_TRACK_IDS) {
+    return { valid: false, error: `trackIds exceeds maximum of ${MAX_TRACK_IDS}` };
+  }
+
+  const validIds: string[] = [];
+  for (const id of trackIds) {
+    if (typeof id !== 'string' || !SPOTIFY_TRACK_ID_REGEX.test(id)) {
+      return { valid: false, error: 'Invalid track ID format detected' };
+    }
+    validIds.push(id);
+  }
+
+  return { valid: true, ids: validIds };
+}
+
+// Helper to sanitise genre name
+function sanitiseGenreName(genre: unknown): { valid: boolean; error?: string; name?: string } {
+  if (typeof genre !== 'string') {
+    return { valid: false, error: 'Genre must be a string' };
+  }
+  const trimmed = genre.trim();
+  if (trimmed.length === 0) {
+    return { valid: false, error: 'Genre cannot be empty' };
+  }
+  if (trimmed.length > MAX_GENRE_NAME_LENGTH) {
+    return { valid: false, error: `Genre name exceeds ${MAX_GENRE_NAME_LENGTH} characters` };
+  }
+  // Remove any potentially dangerous characters (keep alphanumeric, spaces, hyphens, common chars)
+  const sanitised = trimmed.replace(/[<>\"'&]/g, '');
+  return { valid: true, name: sanitised };
+}
+
 // Create a playlist for a specific genre
 api.post('/playlist', async (c) => {
   const session = await getSession(c);
@@ -197,21 +280,31 @@ api.post('/playlist', async (c) => {
     const body = await c.req.json<{ genre: string; trackIds: string[] }>();
     const { genre, trackIds } = body;
 
-    if (!genre || !trackIds?.length) {
-      return c.json({ error: 'Genre and trackIds required' }, 400);
+    // Validate genre name
+    const genreValidation = sanitiseGenreName(genre);
+    if (!genreValidation.valid) {
+      return c.json({ error: genreValidation.error }, 400);
+    }
+
+    // Validate track IDs
+    const trackValidation = validateTrackIds(trackIds);
+    if (!trackValidation.valid) {
+      return c.json({ error: trackValidation.error }, 400);
     }
 
     const user = await getCurrentUser(session.spotifyAccessToken);
+    const safeName = genreValidation.name!;
+    const safeTrackIds = trackValidation.ids!;
 
     const playlist = await createPlaylist(
       session.spotifyAccessToken,
       user.id,
-      `${genre} (from Likes)`,
-      `Auto-generated playlist of ${genre} tracks from your liked songs`,
+      `${safeName} (from Likes)`,
+      `Auto-generated playlist of ${safeName} tracks from your liked songs`,
       false
     );
 
-    const trackUris = trackIds.map(id => `spotify:track:${id}`);
+    const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
     await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
 
     return c.json({
@@ -219,8 +312,8 @@ api.post('/playlist', async (c) => {
       playlist: {
         id: playlist.id,
         url: playlist.external_urls.spotify,
-        name: `${genre} (from Likes)`,
-        trackCount: trackIds.length,
+        name: `${safeName} (from Likes)`,
+        trackCount: safeTrackIds.length,
       },
     });
   } catch (err) {
@@ -240,36 +333,57 @@ api.post('/playlists/bulk', async (c) => {
     const body = await c.req.json<{ genres: { name: string; trackIds: string[] }[] }>();
     const { genres } = body;
 
-    if (!genres?.length) {
+    if (!Array.isArray(genres) || genres.length === 0) {
       return c.json({ error: 'Genres array required' }, 400);
+    }
+
+    if (genres.length > MAX_GENRES_BULK) {
+      return c.json({ error: `Maximum ${MAX_GENRES_BULK} genres allowed per request` }, 400);
     }
 
     const user = await getCurrentUser(session.spotifyAccessToken);
     const results: { genre: string; success: boolean; url?: string; error?: string }[] = [];
 
     for (const { name, trackIds } of genres) {
+      // Validate each genre
+      const genreValidation = sanitiseGenreName(name);
+      if (!genreValidation.valid) {
+        results.push({ genre: String(name), success: false, error: genreValidation.error });
+        continue;
+      }
+
+      const trackValidation = validateTrackIds(trackIds);
+      if (!trackValidation.valid) {
+        results.push({ genre: genreValidation.name!, success: false, error: trackValidation.error });
+        continue;
+      }
+
       try {
+        const safeName = genreValidation.name!;
+        const safeTrackIds = trackValidation.ids!;
+
         const playlist = await createPlaylist(
           session.spotifyAccessToken,
           user.id,
-          `${name} (from Likes)`,
-          `Auto-generated playlist of ${name} tracks from your liked songs`,
+          `${safeName} (from Likes)`,
+          `Auto-generated playlist of ${safeName} tracks from your liked songs`,
           false
         );
 
-        const trackUris = trackIds.map(id => `spotify:track:${id}`);
+        const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
         await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
 
         results.push({
-          genre: name,
+          genre: safeName,
           success: true,
           url: playlist.external_urls.spotify,
         });
-      } catch (err) {
+      } catch {
+        // Don't expose internal error details
         results.push({
-          genre: name,
+          genre: genreValidation.name!,
           success: false,
-          error: err instanceof Error ? err.message : 'Unknown error',
+          error: 'Failed to create playlist',
         });
       }
     }
@@ -281,7 +395,7 @@ api.post('/playlists/bulk', async (c) => {
     });
   } catch (err) {
     console.error('Error creating playlists:', err);
-    return c.json({ error: 'Failed to create playlists' }, 500);
+    return c.json({ error: 'Failed to process request' }, 500);
   }
 });
 

@@ -39,7 +39,21 @@ app.get('/health', (c) => {
 
 // Middleware (after health check so it doesn't block health)
 app.use('*', logger());
-app.use('/api/*', cors());
+
+// CORS - restrict to same-origin only (no cross-origin API access)
+// This prevents malicious sites from making requests on behalf of users
+app.use('/api/*', cors({
+  origin: (origin, c) => {
+    // Allow same-origin requests (origin will be null for same-origin)
+    // or match the request host
+    const host = c.req.header('host');
+    if (!origin || origin.includes(host || '')) {
+      return origin || '*';
+    }
+    return null; // Reject cross-origin
+  },
+  credentials: true,
+}));
 
 // Mount routes
 app.route('/auth', auth);
