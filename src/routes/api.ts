@@ -83,14 +83,34 @@ api.get('/me', async (c) => {
 api.get('/genres', async (c) => {
   const session = await getSession(c);
   if (!session?.spotifyAccessToken) {
-    return c.json({ error: 'Not authenticated' }, 401);
+    return c.json({ error: 'Not authenticated', details: 'No Spotify access token found. Please reconnect Spotify.' }, 401);
   }
 
   try {
-    // Get all liked tracks
-    const likedTracks = await getAllLikedTracks(session.spotifyAccessToken);
+    // Step 1: Get all liked tracks
+    let likedTracks;
+    try {
+      likedTracks = await getAllLikedTracks(session.spotifyAccessToken);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Error fetching liked tracks:', message);
+      return c.json({
+        error: 'Failed to fetch liked tracks from Spotify',
+        details: message,
+        step: 'fetching_tracks'
+      }, 500);
+    }
 
-    // Collect unique artist IDs
+    if (!likedTracks || likedTracks.length === 0) {
+      return c.json({
+        totalTracks: 0,
+        totalGenres: 0,
+        genres: [],
+        message: 'No liked tracks found in your Spotify library'
+      });
+    }
+
+    // Step 2: Collect unique artist IDs
     const artistIds = new Set<string>();
     for (const { track } of likedTracks) {
       for (const artist of track.artists) {
@@ -98,14 +118,28 @@ api.get('/genres', async (c) => {
       }
     }
 
-    // Fetch all artists to get genres
-    const artists = await getArtists(session.spotifyAccessToken, [...artistIds]);
+    // Step 3: Fetch all artists to get genres
+    let artists;
+    try {
+      artists = await getArtists(session.spotifyAccessToken, [...artistIds]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Error fetching artists:', message);
+      return c.json({
+        error: 'Failed to fetch artist data from Spotify',
+        details: message,
+        step: 'fetching_artists',
+        tracksFound: likedTracks.length,
+        artistsToFetch: artistIds.size
+      }, 500);
+    }
+
     const artistGenreMap = new Map<string, string[]>();
     for (const artist of artists) {
       artistGenreMap.set(artist.id, artist.genres);
     }
 
-    // Count tracks per genre and collect track IDs
+    // Step 4: Count tracks per genre and collect track IDs
     const genreData = new Map<string, { count: number; trackIds: string[] }>();
 
     for (const { track } of likedTracks) {
@@ -138,11 +172,17 @@ api.get('/genres', async (c) => {
     return c.json({
       totalTracks: likedTracks.length,
       totalGenres: genres.length,
+      totalArtists: artistIds.size,
       genres,
     });
   } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('Error fetching genres:', err);
-    return c.json({ error: 'Failed to fetch genres' }, 500);
+    return c.json({
+      error: 'Failed to fetch genres',
+      details: message,
+      step: 'unknown'
+    }, 500);
   }
 });
 

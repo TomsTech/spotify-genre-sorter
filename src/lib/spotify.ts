@@ -25,6 +25,52 @@ export interface LikedTrack {
 const SPOTIFY_API = 'https://api.spotify.com/v1';
 const SPOTIFY_AUTH = 'https://accounts.spotify.com';
 
+// High availability: retry with exponential backoff
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 1000;
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  retries = MAX_RETRIES
+): Promise<Response> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+
+      // Retry on rate limiting (429) or server errors (5xx)
+      if (response.status === 429 || response.status >= 500) {
+        const retryAfter = response.headers.get('Retry-After');
+        const delay = retryAfter
+          ? parseInt(retryAfter, 10) * 1000
+          : BASE_DELAY_MS * Math.pow(2, attempt);
+
+        if (attempt < retries - 1) {
+          await sleep(delay);
+          continue;
+        }
+      }
+
+      return response;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+
+      if (attempt < retries - 1) {
+        await sleep(BASE_DELAY_MS * Math.pow(2, attempt));
+        continue;
+      }
+    }
+  }
+
+  throw lastError || new Error('Request failed after retries');
+}
+
 export function getSpotifyAuthUrl(
   clientId: string,
   redirectUri: string,
@@ -54,7 +100,7 @@ export async function exchangeSpotifyCode(
   clientSecret: string,
   redirectUri: string
 ): Promise<SpotifyTokens> {
-  const response = await fetch(`${SPOTIFY_AUTH}/api/token`, {
+  const response = await fetchWithRetry(`${SPOTIFY_AUTH}/api/token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -81,7 +127,7 @@ export async function refreshSpotifyToken(
   clientId: string,
   clientSecret: string
 ): Promise<SpotifyTokens> {
-  const response = await fetch(`${SPOTIFY_AUTH}/api/token`, {
+  const response = await fetchWithRetry(`${SPOTIFY_AUTH}/api/token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -110,7 +156,7 @@ async function spotifyFetch<T>(
   accessToken: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const response = await fetch(`${SPOTIFY_API}${endpoint}`, {
+  const response = await fetchWithRetry(`${SPOTIFY_API}${endpoint}`, {
     ...options,
     headers: {
       Authorization: `Bearer ${accessToken}`,
