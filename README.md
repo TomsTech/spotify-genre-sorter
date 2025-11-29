@@ -1,7 +1,9 @@
 # Spotify Genre Sorter
 
+[![GitHub stars](https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=social)](https://github.com/TomsTech/spotify-genre-sorter/stargazers)
 [![CI](https://github.com/TomsTech/spotify-genre-sorter/actions/workflows/ci.yml/badge.svg)](https://github.com/TomsTech/spotify-genre-sorter/actions/workflows/ci.yml)
 [![Deploy](https://github.com/TomsTech/spotify-genre-sorter/actions/workflows/deploy.yml/badge.svg)](https://github.com/TomsTech/spotify-genre-sorter/actions/workflows/deploy.yml)
+[![Status](https://img.shields.io/badge/status-operational-brightgreen)](https://spotify.houstons.tech/health)
 [![License: Personal Use](https://img.shields.io/badge/License-Personal%20Use-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg)](https://www.typescriptlang.org/)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange.svg)](https://workers.cloudflare.com/)
