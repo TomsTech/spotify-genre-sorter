@@ -265,6 +265,50 @@ User → Cloudflare Worker → GitHub OAuth (login)
 
 ---
 
+## Security
+
+Your data and tokens are protected with industry best practices:
+
+### Token Protection
+
+| Measure | Description |
+|---------|-------------|
+| **Server-side only** | OAuth tokens stored in Cloudflare KV, never sent to browser |
+| **HttpOnly cookies** | Session ID cookie cannot be accessed by JavaScript |
+| **Secure flag** | Cookies only transmitted over HTTPS |
+| **SameSite=Lax** | Prevents cross-site request forgery (CSRF) |
+| **Single-use state** | OAuth state tokens deleted after verification |
+
+### API Hardening
+
+| Protection | Implementation |
+|------------|----------------|
+| **Rate limiting** | 30 requests/minute per IP (429 with Retry-After) |
+| **CORS restriction** | Same-origin only - no cross-site API access |
+| **Input validation** | Track IDs validated (22-char alphanumeric) |
+| **Genre sanitisation** | Dangerous characters stripped, max 100 chars |
+| **Request limits** | Max 10,000 tracks, 50 genres per bulk request |
+| **Error sanitisation** | Internal details never exposed to clients |
+
+### Security Headers
+
+All responses include:
+
+- `Content-Security-Policy` - strict source restrictions
+- `X-Frame-Options: DENY` - prevents clickjacking
+- `X-Content-Type-Options: nosniff` - prevents MIME sniffing
+- `Strict-Transport-Security` - enforces HTTPS
+- `Referrer-Policy` - limits referrer leakage
+- `Permissions-Policy` - disables camera/microphone/geolocation
+
+### CI/CD Security
+
+- **CodeQL** analysis on every push
+- **Snyk** vulnerability scanning
+- **npm audit** for dependency checks
+
+---
+
 ## Notes
 
 - Genres come from **artists**, not individual tracks
