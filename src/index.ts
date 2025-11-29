@@ -184,7 +184,7 @@ app.get('/deploy-status', async (c) => {
       });
     }
 
-    const data = await response.json() as {
+    const data: {
       workflow_runs: Array<{
         id: number;
         status: string;
@@ -197,7 +197,7 @@ app.get('/deploy-status', async (c) => {
           avatar_url: string;
         };
       }>;
-    };
+    } = await response.json();
 
     const latestRun = data.workflow_runs?.[0];
 
@@ -222,13 +222,13 @@ app.get('/deploy-status', async (c) => {
           }
         );
         if (jobsResponse.ok) {
-          const jobsData = await jobsResponse.json() as {
+          const jobsData: {
             jobs: Array<{
               name: string;
               status: string;
               steps?: Array<{ name: string; status: string }>;
             }>;
-          };
+          } = await jobsResponse.json();
           const activeJob = jobsData.jobs?.find(j => j.status === 'in_progress');
           const activeStep = activeJob?.steps?.find(s => s.status === 'in_progress');
           currentStep = activeStep?.name || activeJob?.name || 'Deploying...';
@@ -566,6 +566,43 @@ function getHtml(): string {
       margin-top: 1.5rem;
       padding-top: 1.5rem;
       border-top: 1px solid var(--border);
+    }
+
+    /* Playlist Template Settings */
+    .template-settings {
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: var(--surface);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .template-settings label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .template-input-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .template-input-row input {
+      flex: 1;
+    }
+
+    .template-preview {
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .template-preview span {
+      color: var(--accent);
+      font-weight: 500;
     }
 
     .loading {
@@ -1109,6 +1146,7 @@ function getHtml(): string {
     let swedishMode = localStorage.getItem('swedishMode') === 'true';
     let spotifyOnlyMode = false;
     let statsData = null;
+    let playlistTemplate = localStorage.getItem('playlistTemplate') || '{genre} (from Likes)';
 
     // Swedish anthem sound (short piano melody in base64 - plays "Du gamla, Du fria" opening)
     const swedishChime = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYZNYW9jAAAAAAAAAAAAAAAAAAAAAP/7kGQAAAAAADSAAAAAAAAANIAAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/+5JkDw/wAABpAAAACAAADSAAAAEAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
@@ -1591,6 +1629,25 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
 
         <div class="card">
           <h2 class="card-title" data-i18n="yourGenres">\${t('yourGenres')}</h2>
+
+          <div class="template-settings">
+            <label>\${swedishMode ? 'Spellistnamn mall' : 'Playlist Name Template'}</label>
+            <div class="template-input-row">
+              <input
+                type="text"
+                class="search-input"
+                id="template-input"
+                value="\${playlistTemplate.replace(/"/g, '&quot;')}"
+                oninput="updatePlaylistTemplate(this.value)"
+                placeholder="{genre} (from Likes)"
+              >
+              <button onclick="resetTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}">↺</button>
+            </div>
+            <div class="template-preview">
+              \${swedishMode ? 'Förhandsvisning:' : 'Preview:'} <span id="template-preview">\${getTemplatePreview()}</span>
+            </div>
+          </div>
+
           <input
             type="text"
             class="search-input"
@@ -1661,6 +1718,34 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
     function updateSelectedCount() {
       document.getElementById('selected-count').textContent = selectedGenres.size;
       document.getElementById('create-btn').disabled = selectedGenres.size === 0;
+    }
+
+    // Playlist template functions
+    function getTemplatePreview() {
+      const exampleGenre = genreData?.genres?.[0]?.name || 'rock';
+      return applyTemplate(exampleGenre);
+    }
+
+    function applyTemplate(genre) {
+      return playlistTemplate.replace('{genre}', genre);
+    }
+
+    function updatePlaylistTemplate(value) {
+      playlistTemplate = value || '{genre} (from Likes)';
+      localStorage.setItem('playlistTemplate', playlistTemplate);
+      const preview = document.getElementById('template-preview');
+      if (preview) {
+        preview.textContent = getTemplatePreview();
+      }
+    }
+
+    function resetTemplate() {
+      playlistTemplate = '{genre} (from Likes)';
+      localStorage.setItem('playlistTemplate', playlistTemplate);
+      const input = document.getElementById('template-input');
+      const preview = document.getElementById('template-preview');
+      if (input) input.value = playlistTemplate;
+      if (preview) preview.textContent = getTemplatePreview();
     }
 
     function selectAll() {
