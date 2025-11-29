@@ -178,23 +178,31 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ needs.get-account-id.outputs.account_id }}
         run: |
-          # Try to create namespace, capture output
-          OUTPUT=$(npx wrangler kv:namespace create SESSIONS 2>&1 || true)
-          NAMESPACE_ID=$(echo "$OUTPUT" | grep -o 'id = "[^"]*"' | cut -d'"' -f2 || echo "")
+          # Use Cloudflare API directly to list KV namespaces
+          NAMESPACES=$(curl -s -X GET \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/storage/kv/namespaces" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json")
 
-          # If creation didn't return an ID (namespace exists), list and find it
-          if [ -z "$NAMESPACE_ID" ]; then
-            echo "Namespace may already exist, searching..."
-            LIST_OUTPUT=$(npx wrangler kv:namespace list 2>&1 || true)
-            # Look for namespace with title containing "SESSIONS" for this worker
-            NAMESPACE_ID=$(echo "$LIST_OUTPUT" | grep -o '"id": "[^"]*"' | head -1 | cut -d'"' -f4 || echo "")
+          # Find existing SESSIONS namespace or create one
+          NAMESPACE_ID=$(echo "$NAMESPACES" | jq -r '.result[] | select(.title | contains("SESSIONS")) | .id' | head -1)
+
+          if [ -z "$NAMESPACE_ID" ] || [ "$NAMESPACE_ID" == "null" ]; then
+            echo "Creating new KV namespace..."
+            CREATE_RESULT=$(curl -s -X POST \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/storage/kv/namespaces" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data '{"title":"spotify-genre-sorter-SESSIONS"}')
+            NAMESPACE_ID=$(echo "$CREATE_RESULT" | jq -r '.result.id')
           fi
 
-          if [ -n "$NAMESPACE_ID" ]; then
+          if [ -n "$NAMESPACE_ID" ] && [ "$NAMESPACE_ID" != "null" ]; then
             echo "Using KV namespace: $NAMESPACE_ID"
             sed -i "s/YOUR_KV_NAMESPACE_ID/$NAMESPACE_ID/g" wrangler.toml
           else
-            echo "::warning::Could not find or create KV namespace"
+            echo "::error::Could not find or create KV namespace"
+            exit 1
           fi
 
           # Debug: show wrangler.toml kv section
@@ -254,22 +262,31 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ needs.get-account-id.outputs.account_id }}
         run: |
-          # Try to create namespace, capture output
-          OUTPUT=$(npx wrangler kv:namespace create SESSIONS 2>&1 || true)
-          NAMESPACE_ID=$(echo "$OUTPUT" | grep -o 'id = "[^"]*"' | cut -d'"' -f2 || echo "")
+          # Use Cloudflare API directly to list KV namespaces
+          NAMESPACES=$(curl -s -X GET \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/storage/kv/namespaces" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json")
 
-          # If creation didn't return an ID (namespace exists), list and find it
-          if [ -z "$NAMESPACE_ID" ]; then
-            echo "Namespace may already exist, searching..."
-            LIST_OUTPUT=$(npx wrangler kv:namespace list 2>&1 || true)
-            NAMESPACE_ID=$(echo "$LIST_OUTPUT" | grep -o '"id": "[^"]*"' | head -1 | cut -d'"' -f4 || echo "")
+          # Find existing SESSIONS namespace or create one
+          NAMESPACE_ID=$(echo "$NAMESPACES" | jq -r '.result[] | select(.title | contains("SESSIONS")) | .id' | head -1)
+
+          if [ -z "$NAMESPACE_ID" ] || [ "$NAMESPACE_ID" == "null" ]; then
+            echo "Creating new KV namespace..."
+            CREATE_RESULT=$(curl -s -X POST \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/storage/kv/namespaces" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data '{"title":"spotify-genre-sorter-SESSIONS"}')
+            NAMESPACE_ID=$(echo "$CREATE_RESULT" | jq -r '.result.id')
           fi
 
-          if [ -n "$NAMESPACE_ID" ]; then
+          if [ -n "$NAMESPACE_ID" ] && [ "$NAMESPACE_ID" != "null" ]; then
             echo "Using KV namespace: $NAMESPACE_ID"
             sed -i "s/YOUR_KV_NAMESPACE_ID/$NAMESPACE_ID/g" wrangler.toml
           else
-            echo "::warning::Could not find or create KV namespace"
+            echo "::error::Could not find or create KV namespace"
+            exit 1
           fi
 
           # Debug: show wrangler.toml kv section
