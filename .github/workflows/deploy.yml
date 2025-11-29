@@ -46,7 +46,7 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - name: Install dependencies
-        run: npm ci
+        run: npm install
       - name: ESLint
         run: npm run lint
       - name: TypeScript Check
@@ -65,7 +65,7 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - name: Install dependencies
-        run: npm ci
+        run: npm install
       - name: npm audit
         run: npm audit --audit-level=moderate
         continue-on-error: true
@@ -170,7 +170,7 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - name: Install dependencies
-        run: npm ci
+        run: npm install
       - name: Configure Staging
         run: sed -i 's/name = "spotify-genre-sorter"/name = "${{ env.STAGING_WORKER }}"/g' wrangler.toml
       - name: Setup KV Namespace
@@ -248,7 +248,7 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - name: Install dependencies
-        run: npm ci
+        run: npm install
       - name: Setup KV Namespace
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -393,7 +393,7 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - name: Install dependencies
-        run: npm ci
+        run: npm install
       - name: Delete Staging
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
