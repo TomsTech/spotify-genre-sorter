@@ -213,6 +213,26 @@ The health check passed but OAuth isn't configured. Check `/setup` endpoint.
 
 ---
 
+## Testing
+
+Run the test suite:
+
+```bash
+npm test              # Run all tests
+npm run test:watch    # Watch mode
+npm run test:coverage # With coverage report
+```
+
+Tests cover:
+
+- Spotify OAuth URL generation
+- Genre extraction and counting logic
+- Playlist creation chunking
+- Session management
+- API response formats
+
+---
+
 ## Local Development
 
 Create a `.dev.vars` file:
