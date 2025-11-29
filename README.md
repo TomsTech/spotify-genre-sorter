@@ -257,10 +257,57 @@ Update OAuth callback URLs to `http://localhost:8787/auth/*/callback` for local 
 
 ## Architecture
 
+```mermaid
+flowchart TB
+    subgraph Client["🌐 Browser"]
+        User[User]
+    end
+
+    subgraph CF["☁️ Cloudflare"]
+        Worker["⚡ Worker<br/>(Hono)"]
+        KV[("🗄️ KV Store<br/>Sessions")]
+    end
+
+    subgraph External["🔗 External APIs"]
+        GitHub["🐙 GitHub OAuth"]
+        Spotify["🎵 Spotify API"]
+    end
+
+    User -->|1. Login| Worker
+    Worker -->|2. Redirect| GitHub
+    GitHub -->|3. Token| Worker
+    Worker -->|4. Connect| Spotify
+    Spotify -->|5. Access Token| Worker
+    Worker <-->|6. Store Session| KV
+    Worker -->|7. Fetch Genres| Spotify
+    Spotify -->|8. Artist Data| Worker
+    Worker -->|9. Create Playlist| Spotify
 ```
-User → Cloudflare Worker → GitHub OAuth (login)
-                        → Spotify API (music data)
-                        → KV Storage (sessions)
+
+### Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant W as Worker
+    participant G as GitHub
+    participant S as Spotify
+    participant K as KV Store
+
+    U->>W: Visit /
+    W->>U: Show login page
+    U->>W: Click "Login with GitHub"
+    W->>G: Redirect to OAuth
+    G->>W: Callback with code
+    W->>G: Exchange for token
+    W->>K: Create session
+    W->>U: Show "Connect Spotify"
+    U->>W: Click connect
+    W->>S: Redirect to OAuth
+    S->>W: Callback with code
+    W->>S: Exchange for token
+    W->>K: Store Spotify token
+    W->>U: Show genres UI
 ```
 
 ---
