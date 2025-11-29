@@ -11,6 +11,25 @@ import {
 
 const api = new Hono<{ Bindings: Env }>();
 
+// Cache constants
+const GENRE_CACHE_TTL = 3600; // 1 hour in seconds
+const GENRE_CACHE_PREFIX = 'genre_cache_';
+
+interface GenreCacheData {
+  genres: { name: string; count: number; trackIds: string[] }[];
+  totalTracks: number;
+  totalGenres: number;
+  totalArtists: number;
+  cachedAt: number;
+}
+
+// Helper to invalidate genre cache for a user
+async function invalidateGenreCache(kv: KVNamespace, spotifyUserId: string): Promise<void> {
+  const cacheKey = `${GENRE_CACHE_PREFIX}${spotifyUserId}`;
+  await kv.delete(cacheKey);
+  console.log(`Invalidated genre cache for user ${spotifyUserId}`);
+}
+
 // Security constants
 const MAX_TRACK_IDS = 10000; // Max tracks per playlist
 const MAX_GENRES_BULK = 50; // Max genres in bulk create
@@ -122,14 +141,34 @@ api.get('/me', async (c) => {
   }
 });
 
-// Get all genres from liked tracks
+// Get all genres from liked tracks (with KV caching)
 api.get('/genres', async (c) => {
   const session = await getSession(c);
   if (!session?.spotifyAccessToken) {
     return c.json({ error: 'Not authenticated', details: 'No Spotify access token found. Please reconnect Spotify.' }, 401);
   }
 
+  const forceRefresh = c.req.query('refresh') === 'true';
+
   try {
+    // Get user ID for cache key
+    const user = await getCurrentUser(session.spotifyAccessToken);
+    const cacheKey = `${GENRE_CACHE_PREFIX}${user.id}`;
+
+    // Check cache unless forcing refresh
+    if (!forceRefresh) {
+      const cachedData = await c.env.SESSIONS.get<GenreCacheData>(cacheKey, 'json');
+      if (cachedData) {
+        console.log(`Cache hit for user ${user.id}`);
+        return c.json({
+          ...cachedData,
+          fromCache: true,
+        });
+      }
+    }
+
+    console.log(`Cache miss for user ${user.id}, fetching fresh data...`);
+
     // Step 1: Get all liked tracks
     let likedTracks;
     try {
@@ -149,6 +188,8 @@ api.get('/genres', async (c) => {
         totalTracks: 0,
         totalGenres: 0,
         genres: [],
+        cachedAt: null,
+        fromCache: false,
         message: 'No liked tracks found in your Spotify library'
       });
     }
@@ -183,7 +224,7 @@ api.get('/genres', async (c) => {
     }
 
     // Step 4: Count tracks per genre and collect track IDs
-    const genreData = new Map<string, { count: number; trackIds: string[] }>();
+    const genreDataMap = new Map<string, { count: number; trackIds: string[] }>();
 
     for (const { track } of likedTracks) {
       const trackGenres = new Set<string>();
@@ -193,10 +234,10 @@ api.get('/genres', async (c) => {
       }
 
       for (const genre of trackGenres) {
-        let data = genreData.get(genre);
+        let data = genreDataMap.get(genre);
         if (!data) {
           data = { count: 0, trackIds: [] };
-          genreData.set(genre, data);
+          genreDataMap.set(genre, data);
         }
         data.count++;
         data.trackIds.push(track.id);
@@ -204,7 +245,7 @@ api.get('/genres', async (c) => {
     }
 
     // Convert to sorted array
-    const genres = [...genreData.entries()]
+    const genres = [...genreDataMap.entries()]
       .map(([name, data]) => ({
         name,
         count: data.count,
@@ -212,11 +253,23 @@ api.get('/genres', async (c) => {
       }))
       .sort((a, b) => b.count - a.count);
 
-    return c.json({
+    // Build response data for caching
+    const responseData: GenreCacheData = {
       totalTracks: likedTracks.length,
       totalGenres: genres.length,
       totalArtists: artistIds.size,
       genres,
+      cachedAt: Date.now(),
+    };
+
+    // Store in KV cache
+    await c.env.SESSIONS.put(cacheKey, JSON.stringify(responseData), {
+      expirationTtl: GENRE_CACHE_TTL,
+    });
+
+    return c.json({
+      ...responseData,
+      fromCache: false,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -307,6 +360,9 @@ api.post('/playlist', async (c) => {
     const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
     await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
 
+    // Invalidate genre cache (library has changed)
+    await invalidateGenreCache(c.env.SESSIONS, user.id);
+
     return c.json({
       success: true,
       playlist: {
@@ -388,9 +444,15 @@ api.post('/playlists/bulk', async (c) => {
       }
     }
 
+    // Invalidate cache if any playlists were created
+    const successCount = results.filter(r => r.success).length;
+    if (successCount > 0) {
+      await invalidateGenreCache(c.env.SESSIONS, user.id);
+    }
+
     return c.json({
       total: genres.length,
-      successful: results.filter(r => r.success).length,
+      successful: successCount,
       results,
     });
   } catch (err) {

@@ -383,6 +383,28 @@ function getHtml(): string {
       letter-spacing: 0.05em;
     }
 
+    .cache-status {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      font-size: 0.75rem;
+    }
+
+    .cache-info {
+      color: var(--text-muted);
+    }
+
+    .btn-sm {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.7rem;
+    }
+
+    body.swedish-mode .cache-status .btn {
+      background: var(--swedish-blue);
+    }
+
     .genre-list {
       display: grid;
       gap: 0.5rem;
