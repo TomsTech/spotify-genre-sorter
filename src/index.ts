@@ -5,6 +5,10 @@ import auth from './routes/auth';
 import api from './routes/api';
 import { getSession } from './lib/session';
 
+// App version - increment on each deployment
+const APP_VERSION = '1.1.0';
+const GITHUB_REPO = 'TomsTech/spotify-genre-sorter';
+
 const app = new Hono<{ Bindings: Env }>();
 
 // Global error handler
@@ -154,6 +158,108 @@ app.get('/stats', async (c) => {
     });
   } catch {
     return c.json({ userCount: 0, hallOfFame: [] });
+  }
+});
+
+// Deployment status endpoint - for the deployment monitor widget
+app.get('/deploy-status', async (c) => {
+  try {
+    // Fetch latest workflow run from GitHub Actions
+    const response = await fetch(
+      `https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/deploy.yml/runs?per_page=1`,
+      {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'Spotify-Genre-Sorter',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      // If GitHub API fails, return just the version info
+      return c.json({
+        version: APP_VERSION,
+        deployment: null,
+        error: 'Could not fetch deployment status',
+      });
+    }
+
+    const data = await response.json() as {
+      workflow_runs: Array<{
+        id: number;
+        status: string;
+        conclusion: string | null;
+        created_at: string;
+        updated_at: string;
+        head_sha: string;
+        actor: {
+          login: string;
+          avatar_url: string;
+        };
+      }>;
+    };
+
+    const latestRun = data.workflow_runs?.[0];
+
+    if (!latestRun) {
+      return c.json({
+        version: APP_VERSION,
+        deployment: null,
+      });
+    }
+
+    // If deployment is in progress, try to get current step
+    let currentStep = null;
+    if (latestRun.status === 'in_progress') {
+      try {
+        const jobsResponse = await fetch(
+          `https://api.github.com/repos/${GITHUB_REPO}/actions/runs/${latestRun.id}/jobs`,
+          {
+            headers: {
+              'Accept': 'application/vnd.github.v3+json',
+              'User-Agent': 'Spotify-Genre-Sorter',
+            },
+          }
+        );
+        if (jobsResponse.ok) {
+          const jobsData = await jobsResponse.json() as {
+            jobs: Array<{
+              name: string;
+              status: string;
+              steps?: Array<{ name: string; status: string }>;
+            }>;
+          };
+          const activeJob = jobsData.jobs?.find(j => j.status === 'in_progress');
+          const activeStep = activeJob?.steps?.find(s => s.status === 'in_progress');
+          currentStep = activeStep?.name || activeJob?.name || 'Deploying...';
+        }
+      } catch {
+        // Ignore errors fetching job details
+      }
+    }
+
+    return c.json({
+      version: APP_VERSION,
+      deployment: {
+        id: latestRun.id,
+        status: latestRun.status,
+        conclusion: latestRun.conclusion,
+        startedAt: latestRun.created_at,
+        updatedAt: latestRun.updated_at,
+        commit: latestRun.head_sha.substring(0, 7),
+        author: {
+          name: latestRun.actor.login,
+          avatar: latestRun.actor.avatar_url,
+        },
+        currentStep,
+      },
+    });
+  } catch {
+    return c.json({
+      version: APP_VERSION,
+      deployment: null,
+      error: 'Failed to check deployment status',
+    });
   }
 });
 
@@ -733,6 +839,105 @@ function getHtml(): string {
       color: #fff;
     }
 
+    /* Deployment Monitor Widget */
+    .deploy-widget {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      opacity: 0.8;
+      transition: opacity 0.2s, transform 0.2s;
+      cursor: pointer;
+    }
+
+    .deploy-widget:hover {
+      opacity: 1;
+      transform: translateY(-2px);
+    }
+
+    .deploy-widget.deploying {
+      border-color: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .deploy-widget.success {
+      border-color: var(--success);
+    }
+
+    .deploy-widget.failure {
+      border-color: var(--danger);
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.4); }
+      50% { box-shadow: 0 0 0 4px rgba(29, 185, 84, 0); }
+    }
+
+    .deploy-widget .avatar {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+    }
+
+    .deploy-widget .spinner-small {
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--surface-2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .deploy-widget .step {
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .deploy-refresh-prompt {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      z-index: 2000;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+
+    .deploy-refresh-prompt h3 {
+      margin-bottom: 0.5rem;
+      color: var(--accent);
+    }
+
+    .deploy-refresh-prompt p {
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+
+    .deploy-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 1999;
+    }
+
     /* Hall of Fame */
     .hall-of-fame {
       margin-top: 2rem;
@@ -832,6 +1037,12 @@ function getHtml(): string {
   </style>
 </head>
 <body>
+  <!-- Deployment Monitor Widget -->
+  <div class="deploy-widget" id="deploy-widget" style="display: none;" onclick="showDeployDetails()">
+    <span class="status-icon"></span>
+    <span class="deploy-text">Checking...</span>
+  </div>
+
   <!-- SVG Gradient Definition for Swedish mode -->
   <svg style="position:absolute;width:0;height:0;">
     <defs>
@@ -902,6 +1113,119 @@ function getHtml(): string {
     // Swedish anthem sound (short piano melody in base64 - plays "Du gamla, Du fria" opening)
     const swedishChime = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYZNYW9jAAAAAAAAAAAAAAAAAAAAAP/7kGQAAAAAADSAAAAAAAAANIAAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/+5JkDw/wAABpAAAACAAADSAAAAEAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
 
+    // Deployment Monitor
+    let deployStatus = null;
+    let clientVersion = null;
+    let deployPollInterval = null;
+
+    async function checkDeployStatus() {
+      try {
+        const response = await fetch('/deploy-status');
+        const data = await response.json();
+
+        // Store client version on first load
+        if (!clientVersion) {
+          clientVersion = data.version;
+        }
+
+        deployStatus = data;
+        updateDeployWidget(data);
+
+        // Check for version mismatch
+        if (clientVersion && data.version && clientVersion !== data.version) {
+          showVersionMismatchPrompt(data.version);
+        }
+      } catch {
+        // Silently fail - widget just stays hidden
+      }
+    }
+
+    function updateDeployWidget(data) {
+      const widget = document.getElementById('deploy-widget');
+      if (!widget) return;
+
+      const deployment = data.deployment;
+      const statusIcon = widget.querySelector('.status-icon');
+      const deployText = widget.querySelector('.deploy-text');
+
+      widget.style.display = 'flex';
+      widget.classList.remove('deploying', 'success', 'failure');
+
+      if (!deployment) {
+        widget.style.display = 'none';
+        return;
+      }
+
+      if (deployment.status === 'in_progress' || deployment.status === 'queued') {
+        widget.classList.add('deploying');
+        statusIcon.innerHTML = '<div class="spinner-small"></div>';
+        deployText.textContent = deployment.currentStep || 'Deploying...';
+      } else if (deployment.conclusion === 'success') {
+        widget.classList.add('success');
+        statusIcon.innerHTML = \`<img class="avatar" src="\${deployment.author.avatar}" alt="">\`;
+        const updatedAt = new Date(deployment.updatedAt);
+        const timeAgo = formatTimeAgo(updatedAt);
+        deployText.textContent = \`v\${data.version} • \${timeAgo}\`;
+      } else if (deployment.conclusion === 'failure') {
+        widget.classList.add('failure');
+        statusIcon.textContent = '❌';
+        deployText.textContent = 'Deploy failed';
+      } else {
+        widget.style.display = 'none';
+      }
+    }
+
+    function formatTimeAgo(date) {
+      const now = new Date();
+      const diff = Math.floor((now - date) / 1000);
+      if (diff < 60) return 'just now';
+      if (diff < 3600) return \`\${Math.floor(diff / 60)}m ago\`;
+      if (diff < 86400) return \`\${Math.floor(diff / 3600)}h ago\`;
+      return \`\${Math.floor(diff / 86400)}d ago\`;
+    }
+
+    function showVersionMismatchPrompt(newVersion) {
+      // Don't show multiple times
+      if (document.querySelector('.deploy-overlay')) return;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'deploy-overlay';
+
+      const prompt = document.createElement('div');
+      prompt.className = 'deploy-refresh-prompt';
+      prompt.innerHTML = \`
+        <h3>🚀 New Version Available!</h3>
+        <p>Version \${newVersion} has been deployed. Refresh to get the latest features.</p>
+        <button onclick="location.reload(true)" class="btn btn-primary">Refresh Now</button>
+        <button onclick="dismissVersionPrompt()" class="btn btn-secondary" style="margin-left: 0.5rem;">Later</button>
+      \`;
+
+      document.body.appendChild(overlay);
+      document.body.appendChild(prompt);
+    }
+
+    function dismissVersionPrompt() {
+      document.querySelector('.deploy-overlay')?.remove();
+      document.querySelector('.deploy-refresh-prompt')?.remove();
+    }
+
+    function showDeployDetails() {
+      if (!deployStatus?.deployment) return;
+      const d = deployStatus.deployment;
+      const msg = \`Deployment Info:
+Version: \${deployStatus.version}
+Status: \${d.status}
+Commit: \${d.commit}
+Author: \${d.author.name}
+Started: \${new Date(d.startedAt).toLocaleString()}\`;
+      showNotification(msg.replace(/\\n/g, ' | '), 'info');
+    }
+
+    // Start deployment polling
+    function startDeployMonitor() {
+      checkDeployStatus();
+      deployPollInterval = setInterval(checkDeployStatus, 10000); // Poll every 10s
+    }
 
     // Swedish translations
     const i18n = {
@@ -1470,6 +1794,9 @@ function getHtml(): string {
 
     // Initialize
     init();
+
+    // Start deployment monitor
+    startDeployMonitor();
   </script>
 </body>
 </html>`;
