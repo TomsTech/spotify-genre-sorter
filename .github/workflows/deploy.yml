@@ -428,7 +428,13 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ needs.get-account-id.outputs.account_id }}
-        run: npx wrangler delete ${{ env.STAGING_WORKER }} --force || true
+        run: |
+          # Use Cloudflare API to delete staging worker (wrangler reads name from toml)
+          curl -s -X DELETE \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/${{ env.STAGING_WORKER }}" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" || true
+          echo "Staging worker cleanup completed"
         continue-on-error: true
 
   report:
