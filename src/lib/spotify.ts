@@ -341,8 +341,9 @@ export async function getUserPlaylists(
   const allPlaylists: SpotifyPlaylist[] = [];
   let offset = 0;
   const limit = 50;
+  let hasMore = true;
 
-  do {
+  while (hasMore && offset < 200) {
     const response = await spotifyFetch<{
       items: SpotifyPlaylist[];
       total: number;
@@ -351,10 +352,8 @@ export async function getUserPlaylists(
 
     allPlaylists.push(...response.items);
     offset += limit;
-
-    // Limit to first 200 playlists to avoid too many requests
-    if (offset >= 200 || !response.next) break;
-  } while (true);
+    hasMore = !!response.next;
+  }
 
   return allPlaylists;
 }
