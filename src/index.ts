@@ -1778,7 +1778,7 @@ function getHtml(): string {
         statusIcon.innerHTML = \`<img class="avatar" src="\${deployment.author.avatar}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
         const updatedAt = new Date(deployment.updatedAt);
         const timeAgo = formatTimeAgo(updatedAt);
-        deployText.textContent = \`v\${data.version} • \${timeAgo}\`;
+        deployText.textContent = \`v\${data.version} • \${timeAgo} by @\${deployment.author.name}\`;
       } else if (deployment.conclusion === 'failure') {
         widget.classList.add('failure');
         statusIcon.textContent = '❌';
