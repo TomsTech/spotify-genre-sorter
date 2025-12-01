@@ -55,7 +55,8 @@ export function getHtml(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spotify Genre Sorter</title>
+  <title>Genre Genie - Organise Your Spotify by Genre</title>
+  <meta name="description" content="Automatically sort your Spotify liked songs into genre-based playlists with one click. Free, open source, and privacy-focused.">
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <style>

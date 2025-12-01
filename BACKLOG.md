@@ -1,1050 +1,1107 @@
 # Spotify Genre Sorter - Backlog
 
-> **Automated Implementation**: Run `/backlog all` or `/backlog 16-20` to implement tasks automatically.
-> Each task includes validation steps for CI integration.
+> **v2.0 Release Scope** - Major feature expansion
 
 ---
 
-## Status Legend
-- ✅ **DONE** - Implemented and deployed
-- 🔄 **PARTIAL** - Started but incomplete
-- ⏳ **PENDING** - Not started
-- 🔥 **CRITICAL** - Blocking issue, fix ASAP
+## Effort Legend
+- **XS** = Trivial (< few lines)
+- **S** = Small (single file, straightforward)
+- **M** = Medium (multiple files, some complexity)
+- **L** = Large (significant feature, testing needed)
+- **XL** = Extra Large (architectural change, multiple systems)
+
+## Priority Legend
+- **P0** = Critical (blocking/broken)
+- **P1** = High (core functionality)
+- **P2** = Medium (important enhancement)
+- **P3** = Low (nice to have)
+- **P4** = Backlog (future consideration)
 
 ---
 
-## ✅ Completed Tasks
+## v1.x Completed Tasks ✅
 
-### ✅ 0. Genre Caching in KV
-**Status:** DONE (v1.2.0)
-- Cache in KV with 1-hour TTL
-- Refresh button in UI
-- Invalidates on playlist creation
+<details>
+<summary>Click to expand completed tasks from v1.0-v1.4</summary>
 
-### ✅ 3. Playlist Naming Customisation
-**Status:** DONE (v1.2.0)
-- Template input with `{genre}` placeholder
-- Saved in localStorage
-- Preview in UI
+- ✅ Genre caching in KV (v1.2.0)
+- ✅ Playlist naming customisation (v1.2.0)
+- ✅ Genre filtering/exclusion (v1.2.0)
+- ✅ Dark/light theme toggle (v1.2.0)
+- ✅ Mobile responsive improvements (v1.2.0)
+- ✅ Export/import genre data (v1.2.0)
+- ✅ Genre statistics dashboard (v1.2.0)
+- ✅ Progressive loading for large libraries (v1.2.1)
+- ✅ Real-time deployment monitor (v1.3.0)
+- ✅ Duplicate playlist detection (v1.3.0)
+- ✅ Swedish Easter eggs (v1.0.0)
+- ✅ Hall of Fame (first 10 users) (v1.0.0)
+- ✅ Security headers & CSP (v1.1.0)
+- ✅ Keyboard shortcuts (v1.4.0)
+- ✅ Accessibility improvements (v1.4.0)
+- ✅ PDF documentation (v1.3.0)
 
-### ✅ 4. Genre Filtering/Exclusion
-**Status:** DONE (v1.2.0)
-- Hide button per genre
-- "Show hidden" toggle
-- "Hide small genres" bulk action
-- localStorage persistence
-
-### ✅ 5. Dark/Light Theme Toggle
-**Status:** DONE (v1.2.0)
-- Toggle button in header
-- System preference detection
-- localStorage persistence
-- Works with Swedish mode
-
-### ✅ 6. Mobile Responsive Improvements
-**Status:** DONE (v1.2.0)
-- Larger touch targets
-- Better card layout
-- Toolbar improvements
-
-### ✅ 7. Export/Import Genre Data
-**Status:** DONE (v1.2.0)
-- JSON export with full data
-- CSV export for spreadsheets
-
-### ✅ 8. Genre Statistics Dashboard
-**Status:** DONE (v1.2.0)
-- Top 10 bar chart
-- Diversity score (Shannon index)
-- Stats boxes
+</details>
 
 ---
 
-## 🔥 Critical Issues
+## v2.0 Key Decisions ✅
 
-### ✅ 16. Fix Broken Embedded Images/Links
-**Status:** DONE
-**Priority:** P0 - Fixed
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **App Name** | Genre Genie ✨ | Playful, memorable, magic theme |
+| **Loading Animation** | Actual album art | Personal touch, uses user's real tracks |
+| **Recent Playlists Feed** | Public | Anyone can see, encourages discovery |
+| **Implementation** | Full v2.0 | All 25 tasks in sprint order |
+
+---
+
+## v2.0 Backlog
+
+### 🔧 Bug Fixes & Polish
+
+#### 28. Light Mode Accessibility Fix
+**Priority:** P0 | **Effort:** S | **Status:** ⏳ PENDING
 
 ```
 PROBLEM:
-Multiple embedded images and links are returning 404s in production.
-This has been broken for the last 5 deployments.
-Shields.io badges, GitHub avatars, and other external resources failing intermittently.
-
-AFFECTED RESOURCES (verify each):
-1. GitHub stars badge: img.shields.io/github/stars/TomsTech/spotify-genre-sorter
-2. Uptime badge: img.shields.io/badge/uptime-100%25-1DB954
-3. GitHub avatar URLs in deployment widget
-4. Any other src="" attributes in index.ts
-
-ROOT CAUSE INVESTIGATION:
-- Check if URLs are correctly encoded (special chars like %)
-- Check if shields.io rate limiting is occurring
-- Check if GitHub API returns valid avatar URLs
-- Check CSP headers aren't blocking external images
-
-FILES TO MODIFY:
-- src/index.ts (all img src attributes)
-- src/routes/api.ts (if serving image URLs)
-
-REQUIREMENTS:
-1. Audit ALL external URLs in src/index.ts
-2. Add fallback images for when external resources fail
-3. Add onerror handlers: <img onerror="this.src='fallback.png'" ...>
-4. Consider proxying external images through worker
-5. Add loading="lazy" for non-critical images
-
-VALIDATION:
-- [ ] npm run build succeeds
-- [ ] npm test passes
-- [ ] All images load in browser (manual check)
-- [ ] No 404s in browser console
-- [ ] CSP headers don't block images
-```
-
-### ✅ 17. Add Link/Image Validation to CI Pipeline
-**Status:** DONE
-**Priority:** P0 - Fixed
-
-```
-PROBLEM:
-No automated validation that embedded URLs are valid.
-Broken images ship to production repeatedly.
-
-IMPLEMENTATION:
-Add a CI job that extracts and validates all URLs before deployment.
-
-FILES TO CREATE/MODIFY:
-- .github/workflows/ci.yml (add new job)
-- scripts/validate-links.mjs (new script)
-
-REQUIREMENTS:
-1. Create scripts/validate-links.mjs:
-   - Parse src/index.ts for all URLs (regex: https?://[^\s"'<>]+)
-   - HEAD request each URL to verify 200 response
-   - Allow configurable whitelist for known-flaky URLs
-   - Exit 1 if any critical URL fails
-
-2. Add CI job in ci.yml:
-   - name: Validate embedded links
-   - runs-after: build
-   - runs: node scripts/validate-links.mjs
-   - allow-failure: false (blocks deployment)
-
-3. Create .link-whitelist.json for URLs that may flake:
-   - shields.io (rate limited sometimes)
-   - GitHub avatars (dynamic)
-
-VALIDATION:
-- [ ] scripts/validate-links.mjs exists and is executable
-- [ ] Running it locally shows all URLs checked
-- [ ] CI workflow includes link validation step
-- [ ] Intentionally breaking a URL causes CI failure
-```
-
----
-
-## ⏳ Pending High Priority
-
-### ✅ 18. Progressive Loading for Unlimited Library Sizes
-**Status:** DONE
-**Priority:** P1 - Implemented
-
-```
-PROBLEM:
-Cloudflare Workers free tier has 50 subrequest limit.
-Users with >1000 tracks hit "Too many subrequests" error.
-Current workaround limits to 1000 tracks (truncated).
-
-ARCHITECTURE:
-Client-side progressive loading across multiple requests.
-Each request stays under 50 subrequests.
-
-FILES TO MODIFY:
-- src/routes/api.ts (add /api/genres/chunk endpoint)
-- src/index.ts (add progressive loading UI)
-- src/lib/spotify.ts (add chunked fetching)
-
-NEW API ENDPOINT:
-GET /api/genres/chunk?offset=0&limit=500
-
-Response:
-{
-  "chunk": {
-    "genres": [...],
-    "trackCount": 500
-  },
-  "pagination": {
-    "offset": 0,
-    "limit": 500,
-    "hasMore": true,
-    "nextOffset": 500,
-    "totalInLibrary": 2500
-  },
-  "progress": 20
-}
-
-REQUIREMENTS:
-1. Add /api/genres/chunk endpoint:
-   - Accept offset and limit query params
-   - Fetch only requested track range
-   - Get artists only for those tracks
-   - Return pagination metadata
-   - Stay under 50 subrequests (~15 track + ~15 artist calls)
-
-2. Update frontend:
-   - Add loadGenresProgressively() function
-   - Show progress bar during loading
-   - Merge genres from each chunk
-   - Handle errors gracefully (retry individual chunks)
-   - Remove "truncated" warning once complete
-
-3. Add chunk caching:
-   - Cache each chunk in KV: genre_chunk_{userId}_{offset}
-   - Merge cached chunks on subsequent loads
-   - Show "cached" indicator per chunk
-
-SUBREQUEST BUDGET PER CHUNK (limit=500):
-- Get 500 tracks: 10 requests (50 per page)
-- Get ~200 artists: 4 requests (50 per batch)
-- Get user info: 1 request
-- Total: ~15 requests (well under 50)
-
-VALIDATION:
-- [ ] /api/genres/chunk endpoint exists
-- [ ] Returns correct pagination metadata
-- [ ] Progress bar shows in UI during load
-- [ ] Large library (2000+ tracks) loads fully
-- [ ] Each chunk request stays under 50 subrequests
-- [ ] Cached chunks load instantly
-```
-
-### ✅ 1. Real-time GitHub Deployment Monitor
-**Status:** DONE
-**Priority:** P1 - Implemented
-
-```
-CURRENT STATE:
-- Widget exists in top-right
-- Shows version and polls every 10s
-- Detects version mismatch
-
-MISSING:
-- Active deployment progress (step name, percentage)
-- Circular progress indicator during deploy
-- Author avatar on idle state
-
-FILES TO MODIFY:
-- src/index.ts (deployment widget section)
-
-REQUIREMENTS:
-1. During active deployment:
-   - Show circular progress spinner
-   - Display current step name from GitHub API
-   - Show "Deploying v1.2.3..." text
-
-2. On idle:
-   - Show last deploy time
-   - Show deployer's GitHub avatar
-   - Show "v1.2.3 • 2h ago by @user"
-
-3. Use GitHub API:
-   - GET /repos/{owner}/{repo}/actions/runs?status=in_progress
-   - Parse workflow run steps for progress
-
-VALIDATION:
-- [ ] Widget shows progress during deployment
-- [ ] Circular spinner animates
-- [ ] Step names display correctly
-- [ ] Avatar shows on idle state
-```
-
-### ✅ 2. Progress Indicator for Large Libraries
-**Status:** DONE (implemented in #18)
-**Priority:** P2 - Implemented
-
-```
-PROBLEM:
-Even with progressive loading, users see no feedback during each chunk.
-
-REQUIREMENTS:
-1. Show "Loading tracks... 150/2000" during fetch
-2. Show artist fetching progress: "Fetching artists... 45/200"
-3. Animate smoothly between steps
-4. Swedish translations
-
-This integrates with #18 Progressive Loading.
-
-FILES TO MODIFY:
-- src/index.ts (progress UI components)
-
-VALIDATION:
-- [ ] Progress text updates during load
-- [ ] Numbers increment smoothly
-- [ ] Swedish mode shows Swedish text
-```
-
----
-
-## ⏳ Pending Medium Priority
-
-### ✅ 9. Duplicate Playlist Detection
-**Status:** DONE
-**Priority:** P2 - Implemented
-
-```
-PROBLEM:
-Users accidentally create duplicate playlists.
-
-IMPLEMENTATION:
-Check existing playlists before creation.
-
-FILES TO MODIFY:
-- src/lib/spotify.ts (add getUserPlaylists function)
-- src/routes/api.ts (check before create)
-- src/index.ts (warning UI)
-
-REQUIREMENTS:
-1. Add getUserPlaylists() to spotify.ts:
-   - GET /me/playlists
-   - Return playlist names
-
-2. Before playlist creation:
-   - Check if "{genre} (from Likes)" exists
-   - Return warning in API response
-
-3. UI shows warning modal:
-   - "A playlist named 'rock (from Likes)' already exists"
-   - Options: Skip, Rename, Create Anyway
-
-VALIDATION:
-- [ ] API returns warning when duplicate detected
-- [ ] UI shows warning modal
-- [ ] Skip/Rename/Create options work
-- [ ] Bulk create handles per-genre
-```
-
-### ✅ 10. More Swedish Easter Eggs
-**Status:** DONE
-**Priority:** P3 - Implemented
-
-```
-IDEAS:
-- Midsommar theme in June (flowers, maypole)
-- Swedish Chef mode ("Bork bork bork!")
-- Random Swedish facts tooltip
-- Dalahäst cursor in Swedish mode
-- ABBA lyrics in loading messages
-- Fika break reminder after 25 mins
-
-FILES TO MODIFY:
-- src/index.ts
-
-REQUIREMENTS:
-1. Add date check for June → Midsommar theme
-2. Add Swedish facts array, show random on hover
-3. Add cursor: url(dalahast.cur) in Swedish mode CSS
-4. Add ABBA quotes to loading messages array
-5. Add 25-minute timer → "Dags för fika!" popup
-
-VALIDATION:
-- [ ] Each easter egg triggers correctly
-- [ ] Doesn't break normal functionality
-- [ ] Fika reminder can be dismissed
-```
-
----
-
-## ⏳ Pending Low Priority
-
-### ✅ 11. Extract Embedded HTML/CSS/JS
-**Status:** DONE
-**Priority:** P3 - Technical debt
-
-```
-PROBLEM:
-src/index.ts is 2500+ lines with embedded HTML, CSS, and JS.
-Hard to maintain and edit.
-
-IMPLEMENTATION:
-Separate into files, combine at build time.
-
-FILES TO CREATE:
-- src/frontend/index.html
-- src/frontend/styles.css
-- src/frontend/app.js
-- scripts/build-frontend.mjs
-
-REQUIREMENTS:
-1. Extract HTML template to index.html
-2. Extract CSS to styles.css
-3. Extract JS to app.js
-4. Build script combines and inlines them
-5. Output goes to src/generated/frontend.ts
-6. index.ts imports from generated
-
-VALIDATION:
-- [ ] npm run build succeeds
-- [ ] Output identical to current embedded version
-- [ ] Hot reload works in dev
-- [ ] No increase in bundle size
-```
-
-### ✅ 12. Add More Unit Tests
-**Status:** DONE
-**Priority:** P3 - Quality
-
-```
-CURRENT COVERAGE:
-- spotify.ts: Basic tests
-- session.ts: Basic tests
-- api.ts: Response format tests
-- frontend.test.ts: UI logic tests
-
-MISSING:
-- Retry logic with mocked failures
-- Session expiry handling
-- Token refresh edge cases
-- Bulk playlist partial failures
-- Rate limiting behaviour
-
-FILES TO MODIFY:
-- tests/*.test.ts
-
-REQUIREMENTS:
-1. Add tests for fetchWithRetry():
-   - 429 response triggers retry
-   - 500 response triggers retry
-   - Retry-After header respected
-   - Max retries exhausted
-
-2. Add tests for session refresh:
-   - Token refresh on expiry
-   - Refresh token missing
-   - Refresh fails → logout
-
-3. Add tests for bulk playlist:
-   - Partial failures handled
-   - Results array correct
-
-VALIDATION:
-- [ ] npm test passes
-- [ ] Coverage > 80%
-- [ ] All edge cases covered
-```
-
-### ✅ 13. Add E2E Tests
-**Status:** DONE
-**Priority:** P4 - Nice to have
-
-```
-IMPLEMENTATION:
-Add Playwright tests with mocked OAuth.
-
-FILES TO CREATE:
-- tests/e2e/login.spec.ts
-- tests/e2e/genres.spec.ts
-- tests/e2e/playlist.spec.ts
-- playwright.config.ts
-
-REQUIREMENTS:
-1. Mock Spotify OAuth responses
-2. Test login flow
-3. Test genre loading
-4. Test playlist creation
-5. Test Swedish mode toggle
-6. Run in CI
-
-VALIDATION:
-- [ ] npx playwright test passes
-- [ ] CI runs E2E tests
-- [ ] Tests don't require real Spotify account
-```
-
-### ✅ 14. API Documentation
-**Status:** DONE
-**Priority:** P4
-
-```
-CREATE:
-- docs/api.md or openapi.yaml
-
-REQUIREMENTS:
-1. Document all endpoints
-2. Request/response examples
-3. Error codes
-4. Auth requirements
-5. Add link to README
-
-VALIDATION:
-- [ ] docs/api.md exists
-- [ ] All endpoints documented
-- [ ] Examples are accurate
-```
-
-### ✅ 15. Architecture Diagram
-**Status:** DONE (already in README)
-**Priority:** P4
-
-```
-CREATE:
-- Mermaid diagram in README
-
-REQUIREMENTS:
-1. Show OAuth flow
-2. Show data flow
-3. Show KV usage
-4. Show Spotify API calls
-
-VALIDATION:
-- [ ] Diagram renders in GitHub
-- [ ] Accurately represents system
-```
-
----
-
-## Automation Command
-
-Run tasks automatically with the `/backlog` command:
-
-```bash
-# Implement single task
-/backlog 16
-
-# Implement range
-/backlog 16-18
-
-# Implement specific tasks
-/backlog 16,17,18
-
-# Implement ALL pending tasks
-/backlog all
-```
-
-The command will:
-1. Parse task numbers from BACKLOG.md
-2. Skip already-completed tasks (✅)
-3. Implement each task following requirements
-4. Run validation checks
-5. Commit changes
-6. Update this file to mark complete
-7. Continue to next task without interaction
-
----
-
-## Task Dependencies
-
-```
-#16 (Fix Images) ──┐
-                   ├──► #17 (CI Validation) ──► Can deploy safely
-#18 (Progressive) ─┴──► #2 (Progress UI) ──► #1 (Deploy Monitor)
-
-#11 (Extract Files) ──► Makes all other UI tasks easier
-
-#9 (Duplicates) ──► Standalone
-
-#10 (Easter Eggs) ──► Fun, do whenever
-```
-
----
-
-## ⏳ New Issues from Testing
-
-### ✅ 19. Fix Version/Release Management
-**Status:** DONE
-**Priority:** P1 - Critical for traceability
-
-```
-PROBLEM:
-Versions and releases are not being pushed with proper version numbers.
-This causes:
-- Incorrect versioning on GitHub releases
-- App showing v1.1 instead of current version
-- No clear changelog/patch history mermaid diagram
+Light mode has poor text contrast - users report they "can't read anything".
+Multiple elements invisible or hard to see.
 
 ROOT CAUSE:
-1. Version in src/index.ts not updated before tagging
-2. Tags created but not pushed to remote
-3. No automated version bump in CI
-4. No changelog generation from commits
+- --text-muted too light (#6c757d)
+- --surface-2 and --bg too similar
+- Missing borders on cards/buttons
+- Some elements don't adapt to light mode
 
 FILES TO MODIFY:
-- src/index.ts (APP_VERSION constant)
-- package.json (version field)
-- .github/workflows/release.yml
-- README.md (add mermaid changelog)
+- src/frontend/styles.css (light mode CSS variables + specific overrides)
 
 REQUIREMENTS:
-1. Ensure APP_VERSION in src/index.ts matches package.json
-2. Add pre-release hook to sync versions:
-   - Extract version from package.json
-   - Update APP_VERSION in src/index.ts automatically
-3. Update release workflow to:
-   - Bump version in both files
-   - Generate changelog from conventional commits
-   - Create annotated tag with changelog
-   - Push tag to remote
-4. Add mermaid diagram to README showing version history:
-   ```mermaid
-   gitGraph
-     commit id: "v1.0.0"
-     commit id: "v1.1.0"
-     commit id: "v1.2.0"
-     commit id: "v1.2.1"
-   ```
-5. Auto-generate changelog.md from git-cliff
+1. Increase contrast for --text-muted (use #495057 or darker)
+2. Add visible borders to cards, buttons, inputs in light mode
+3. Ensure all interactive elements have visible focus states
+4. Test WCAG AA compliance (4.5:1 contrast ratio)
+5. Verify all components render correctly:
+   - Genre cards
+   - Stats boxes
+   - Buttons (primary, secondary, ghost)
+   - Search input
+   - Progress bars
+   - Modals
 
 VALIDATION:
 - [ ] npm run build succeeds
-- [ ] Version in UI matches package.json
-- [ ] git tag -l shows all versions
-- [ ] GitHub releases page shows correct versions
-- [ ] Mermaid diagram renders in README
+- [ ] All text readable at 4.5:1 contrast
+- [ ] No invisible elements
+- [ ] Feature parity with dark mode
 ```
 
-### ✅ 20. Interactive Changelog Timeline in Deploy Widget
-**Status:** DONE
-**Priority:** P2 - UX Enhancement
+---
 
-```
-PROBLEM:
-Deploy widget shows version but no history/context.
-Users can't see what changed between versions.
-
-IMPLEMENTATION:
-Add clickable changelog timeline that expands on widget click.
-
-FILES TO MODIFY:
-- src/index.ts (deployment widget section)
-- src/routes/api.ts (add /api/changelog endpoint)
-
-REQUIREMENTS:
-1. Store changelog data in KV:
-   - Key: changelog
-   - Value: JSON array of { version, date, changes[] }
-
-2. Add /api/changelog endpoint:
-   - Returns last 10 versions with changes
-   - Include commit hashes for linking
-
-3. Update deploy widget UI:
-   - On click: expand to show timeline
-   - Show version → date → bullet points
-   - Link each version to GitHub release
-   - Smooth expand/collapse animation
-
-4. Timeline design:
-   - Vertical timeline with version dots
-   - Latest version at top
-   - Click version to expand changes
-   - "View all on GitHub" link at bottom
-
-5. Swedish mode translations
-
-VALIDATION:
-- [ ] Widget expands on click
-- [ ] Shows version history
-- [ ] Links work to GitHub releases
-- [ ] Swedish translations present
-- [ ] Smooth animation
-```
-
-### ✅ 21. Smooth Progressive Loading UX
-**Status:** DONE
-**Priority:** P1 - User Experience
+#### 29. Theme Toggle Position Consistency
+**Priority:** P1 | **Effort:** XS | **Status:** ⏳ PENDING
 
 ```
 PROBLEM:
-Loading between chunks looks like progress is lost.
-Each chunk appears to reset, not accumulate.
-Not a smooth, continuous loading experience.
+Sun/moon theme toggle moves from top header (pre-login) to middle
+cache-status area (post-login). Inconsistent UX.
 
 CURRENT BEHAVIOUR:
-- Chunk loads → genres display
-- Next chunk starts → feels like reset
-- No visual continuity between chunks
-
-DESIRED BEHAVIOUR:
-- Single progress bar fills continuously
-- Genre cards accumulate smoothly
-- No visual "reset" between chunks
-- Clear indication of total progress
-
-FILES TO MODIFY:
-- src/index.ts (progressive loading UI)
-- src/frontend/app.js (if extracted)
-
-REQUIREMENTS:
-1. Unified progress bar:
-   - Show "Loading tracks: 500/2500 (20%)"
-   - Single bar that fills across ALL chunks
-   - Never resets, only increases
-
-2. Genre card accumulation:
-   - Keep existing cards visible
-   - New genres slide in smoothly
-   - Update existing genre counts in place
-   - Sort animation for reordering
-
-3. Loading state persistence:
-   - Store partial results in memory
-   - Merge new chunk with existing
-   - Update counts without full re-render
-
-4. Visual feedback:
-   - Pulsing glow on loading cards
-   - "Loading more..." indicator
-   - Disable actions during load
-   - Success animation on complete
-
-5. Error recovery:
-   - If chunk fails, show retry for that chunk
-   - Don't lose already-loaded data
-   - "Retry chunk 3/5" button
-
-VALIDATION:
-- [ ] Progress bar never resets
-- [ ] Genre counts accumulate visibly
-- [ ] Large library (2000+ tracks) loads smoothly
-- [ ] No jarring visual resets
-- [ ] Error retry works for individual chunks
-```
-
-### ✅ 22. Theme Toggle Before Login
-**Status:** DONE
-**Priority:** P2 - Accessibility
-
-```
-PROBLEM:
-Dark/light mode toggle only visible after Spotify login.
-Users should be able to set theme preference immediately.
-Dark mode should be default (easier on eyes).
-
-CURRENT:
-- Landing page has no theme toggle
-- Toggle appears only after authentication
-- No system preference detection on landing
+- Pre-login: Theme toggle in #header-actions (top right)
+- Post-login: Theme toggle moves to .cache-status (middle)
 
 DESIRED:
-- Theme toggle visible on landing page
-- Detect system preference (prefers-color-scheme)
-- Dark mode as default if no preference
-- Persist choice in localStorage before login
+- Theme toggle ALWAYS in header, same position
+- User info appears next to it after login
 
 FILES TO MODIFY:
-- src/index.ts (landing page HTML)
+- src/frontend/app.js (renderHeaderUser function, ~line 571)
 
 REQUIREMENTS:
-1. Add theme toggle to landing page header:
-   - Same design as authenticated header
-   - Position: top-right corner
-   - Icon: sun/moon toggle
-
-2. System preference detection:
-   - Check window.matchMedia('(prefers-color-scheme: dark)')
-   - Listen for changes
-   - Apply immediately on page load
-
-3. Default to dark mode:
-   - If no localStorage preference
-   - If no system preference
-   - Default: dark
-
-4. Persist before login:
-   - Store in localStorage: theme
-   - Read on page load
-   - Apply before render (prevent flash)
-
-5. Carry preference through OAuth:
-   - Preference survives login redirect
-   - Same theme on return from Spotify
+1. Keep theme toggle in #header-actions always
+2. Modify renderHeaderUser to ADD user info, not replace
+3. Layout: [Theme Toggle] [Avatar] [Username] [Logout]
 
 VALIDATION:
-- [ ] Toggle visible on landing page
-- [ ] System preference detected
-- [ ] Dark mode is default
-- [ ] Preference persists through login
-- [ ] No white flash on dark mode load
-```
-
-### ✅ 23. Fix README Status Badge Image
-**Status:** DONE
-**Priority:** P2 - Professional appearance
-
-```
-PROBLEM:
-README status badge shows hyperlink text instead of embedded image.
-Unprofessional appearance on GitHub repo page.
-
-ROOT CAUSE:
-- Incorrect markdown syntax
-- Missing alt text
-- Or shields.io URL issue
-
-FILES TO MODIFY:
-- README.md
-
-REQUIREMENTS:
-1. Audit all badges in README:
-   - GitHub stars badge
-   - CI status badge
-   - Deploy status badge
-   - Any other badges
-
-2. Fix markdown syntax:
-   - Correct: ![Alt](https://img.shields.io/...)
-   - Incorrect: [Alt](https://img.shields.io/...)
-
-3. Test each badge URL:
-   - Open in browser
-   - Verify returns SVG image
-   - Check for rate limiting
-
-4. Add fallback images:
-   - Static badge SVGs in /docs/badges/
-   - Use if shields.io fails
-
-5. Consider badge alternatives:
-   - GitHub native badges where possible
-   - Reduce external dependencies
-
-VALIDATION:
-- [ ] All badges render as images
-- [ ] No raw URLs visible
-- [ ] Badges load within 2 seconds
-- [ ] Works in GitHub dark/light mode
-```
-
-### ✅ 24. Security Architecture Review
-**Status:** DONE
-**Priority:** P1 - Security
-
-```
-REVIEW AREAS:
-
-1. OAuth Token Storage:
-   - Are tokens encrypted in KV?
-   - Session ID entropy sufficient?
-   - Token refresh handling secure?
-
-2. CORS Configuration:
-   - Only allow required origins
-   - No wildcard in production
-   - Preflight handling correct?
-
-3. Content Security Policy:
-   - Review current CSP headers
-   - Ensure no unsafe-inline where avoidable
-   - Block unexpected script sources
-
-4. Input Validation:
-   - All user inputs sanitised?
-   - SQL injection (N/A but check patterns)
-   - XSS prevention in rendered content
-
-5. Rate Limiting:
-   - Per-IP rate limits?
-   - Per-session rate limits?
-   - Spotify API rate limit handling?
-
-6. Secret Management:
-   - No secrets in code
-   - Secrets rotation plan
-   - Minimum required permissions
-
-7. Dependency Security:
-   - npm audit clean?
-   - Snyk findings addressed?
-   - Outdated packages?
-
-FILES TO REVIEW:
-- src/index.ts (headers, sanitisation)
-- src/lib/session.ts (token storage)
-- src/routes/auth.ts (OAuth flow)
-- src/routes/api.ts (input validation)
-- package.json (dependencies)
-
-REQUIREMENTS:
-1. Document current security posture
-2. Identify gaps
-3. Create remediation tasks
-4. Add security.md with threat model
-
-VALIDATION:
-- [ ] Security review document created
-- [ ] All high-priority issues addressed
-- [ ] npm audit shows 0 high/critical
-- [ ] CSP headers verified
-```
-
-### ✅ 25. Operational Efficiency & Caching Review
-**Status:** DONE
-**Priority:** P2 - Performance
-
-```
-REVIEW AREAS:
-
-1. KV Caching Strategy:
-   - What's cached? (genres, sessions, user data)
-   - TTL appropriate? (1 hour for genres)
-   - Cache invalidation correct?
-   - Cache hit rate tracking?
-
-2. User Data Storage:
-   - What user data stored in KV?
-   - Is it necessary?
-   - GDPR compliance?
-   - Data retention policy?
-
-3. API Call Efficiency:
-   - Unnecessary Spotify API calls?
-   - Batch operations used where possible?
-   - Parallel requests where appropriate?
-
-4. Bundle Size:
-   - Current size of worker?
-   - Dead code elimination?
-   - Tree shaking working?
-
-5. Cold Start Performance:
-   - Time to first byte?
-   - Initialisation overhead?
-
-6. Memory Usage:
-   - Large arrays in memory?
-   - Streaming possible for large data?
-
-FILES TO REVIEW:
-- src/routes/api.ts (caching logic)
-- src/lib/session.ts (session storage)
-- src/lib/spotify.ts (API efficiency)
-- wrangler.toml (KV configuration)
-
-REQUIREMENTS:
-1. Document current caching strategy
-2. Measure cache hit rates
-3. Review user data storage necessity
-4. Optimise API call patterns
-5. Add cache metrics to /health endpoint
-
-VALIDATION:
-- [ ] Cache strategy documented
-- [ ] Unnecessary data storage removed
-- [ ] API calls minimised
-- [ ] Health endpoint shows cache metrics
-```
-
-### ✅ 26. High Availability During Deployments
-**Status:** DONE
-**Priority:** P1 - Reliability
-
-```
-PROBLEM:
-Need zero-downtime deployments.
-Current pipeline deploys to production directly.
-
-REVIEW AREAS:
-
-1. Blue-Green Deployment:
-   - Is staging worker used correctly?
-   - Health checks before traffic switch?
-   - Rollback mechanism?
-
-2. DNS Cutover:
-   - TTL appropriate for fast rollback?
-   - CNAME vs A record implications?
-   - Cloudflare proxy settings?
-
-3. KV Data Compatibility:
-   - Schema changes handled?
-   - Old sessions work with new code?
-   - Migration strategy?
-
-4. Graceful Degradation:
-   - Spotify API down → what happens?
-   - KV down → what happens?
-   - Partial failures handled?
-
-5. Health Check Coverage:
-   - /health endpoint comprehensive?
-   - Checks Spotify connectivity?
-   - Checks KV connectivity?
-
-FILES TO REVIEW:
-- .github/workflows/deploy.yml
-- src/index.ts (/health endpoint)
-
-REQUIREMENTS:
-1. Review current deployment pipeline
-2. Add comprehensive health checks
-3. Implement proper blue-green with health gates
-4. Add rollback automation
-5. Document incident response
-
-VALIDATION:
-- [ ] Zero-downtime deployment tested
-- [ ] Health checks pass before traffic switch
-- [ ] Rollback completes in <1 minute
-- [ ] Graceful degradation works
-```
-
-### ✅ 27. BetterStack Monitoring Review
-**Status:** DONE
-**Priority:** P2 - Observability
-
-```
-CURRENT STATE:
-Unknown what monitoring exists.
-Need comprehensive monitoring strategy.
-
-REQUIREMENTS:
-
-1. Heartbeat Monitor:
-   - Set up heartbeat endpoint
-   - BetterStack cron checks every 1 minute
-   - Alert on 3 consecutive failures
-
-2. HTTP Status Monitoring:
-   - Monitor /health endpoint
-   - Track response times
-   - Alert on >2s response time
-   - Alert on non-200 status
-
-3. Health Check Validation:
-   - /health must verify:
-     - Worker responsive
-     - KV accessible
-     - Spotify API reachable (cached check)
-   - Return JSON with component status
-
-4. Custom Metrics:
-   - Track: requests/minute
-   - Track: playlist creations
-   - Track: error rate
-   - Track: cache hit rate
-
-5. Alerting Strategy:
-   - Critical: Service down > 5 minutes
-   - Warning: Error rate > 5%
-   - Info: Deployment completed
-
-6. Status Page:
-   - Public status page URL
-   - Show uptime history
-   - Incident history
-
-FILES TO CREATE/MODIFY:
-- src/index.ts (/health endpoint enhancement)
-- docs/monitoring.md (monitoring setup guide)
-
-VALIDATION:
-- [ ] BetterStack monitors configured
-- [ ] /health returns comprehensive status
-- [ ] Alerts trigger correctly (test)
-- [ ] Status page accessible
+- [ ] Toggle stays in same position before/after login
+- [ ] User info displays correctly after login
+- [ ] Mobile responsive layout works
 ```
 
 ---
 
-*Last updated: 2025-12-01*
+#### 30. Swedish Mode State Management Fix
+**Priority:** P2 | **Effort:** M | **Status:** ⏳ PENDING
+
+```
+PROBLEM:
+Toggling Swedish mode causes GUI/buttons/loading to enter "weird states".
+Some elements don't update correctly, state inconsistencies.
+
+SYMPTOMS:
+- Donation button text may not update
+- Loading messages may not change
+- Stats labels may be wrong language
+- Button states may be incorrect
+
+ROOT CAUSE:
+- State changes scattered across multiple functions
+- No centralised mode switching
+- Some elements not in the re-render cycle
+
+FILES TO MODIFY:
+- src/frontend/app.js (toggleSwedishMode and related functions)
+
+REQUIREMENTS:
+1. Create centralised applySwedishMode(enabled) function
+2. Move ALL Swedish-specific updates into this function
+3. Add state validation after toggle
+4. Ensure these components update:
+   - Donation button (durry ↔ snus)
+   - All [data-i18n] elements
+   - Loading messages
+   - Stats labels
+   - Button labels
+   - Hall of Fame title
+   - Placeholder text
+5. Test toggle in all app states:
+   - Welcome screen
+   - Loading screen
+   - Genre list screen
+   - Results screen
+
+VALIDATION:
+- [ ] No visual glitches on toggle
+- [ ] All text updates correctly
+- [ ] State persists on reload
+- [ ] Works in combination with light/dark mode
+```
+
+---
+
+#### 31. Version Widget Reliability
+**Priority:** P2 | **Effort:** S | **Status:** ⏳ PENDING
+
+```
+PROBLEM:
+GitHub version widget "randomly disappears" and doesn't show release name.
+Users want it always visible and drill-downable.
+
+ISSUES:
+1. Widget hidden when GitHub API fails/slow
+2. No release name shown (just version number)
+3. Not clear it's clickable
+
+FILES TO MODIFY:
+- src/frontend/app.js (updateDeployWidget, ~line 145)
+- src/frontend/styles.css (widget styling)
+
+REQUIREMENTS:
+1. ALWAYS show widget (even if API fails)
+2. Cache last known status in localStorage
+3. Show release name from /api/changelog
+4. Format: "v1.4.0 • Keyboard Shortcuts • 2h ago"
+5. Add visual indicator that it's clickable (hover effect)
+6. Fallback when offline: show cached version
+
+VALIDATION:
+- [ ] Widget visible on every page load
+- [ ] Shows release name
+- [ ] Clickable indication obvious
+- [ ] Works offline (cached)
+```
+
+---
+
+### 🏆 Leaderboard & Scoreboard System
+
+#### 32. Expanded User Statistics Schema
+**Priority:** P1 | **Effort:** M | **Status:** ⏳ PENDING
+
+```
+PROBLEM:
+Current user tracking only stores basic info. Need to track:
+- Genres discovered per user
+- Artists analysed
+- Tracks scanned
+- Playlists created
+
+NEW KV SCHEMA:
+user_stats:{spotifyId} -> {
+  spotifyId: string,
+  spotifyName: string,
+  spotifyAvatar: string,
+  totalGenresDiscovered: number,
+  totalArtistsDiscovered: number,
+  totalTracksAnalysed: number,
+  playlistsCreated: number,
+  firstSeen: ISO string,
+  lastActive: ISO string,
+  createdPlaylistIds: string[]  // For future features
+}
+
+FILES TO MODIFY:
+- src/routes/auth.ts (initialise stats on new user)
+- src/routes/api.ts (update stats on genre fetch & playlist create)
+- src/lib/session.ts (add helper functions)
+
+REQUIREMENTS:
+1. Update registerUser() to create initial stats
+2. Update /api/genres to increment stats after analysis
+3. Update /api/playlist to increment playlistsCreated
+4. Add getUserStats(spotifyId) helper
+5. Add updateUserStats(spotifyId, updates) helper
+
+VALIDATION:
+- [ ] New users get stats record
+- [ ] Stats update on genre fetch
+- [ ] Stats update on playlist creation
+- [ ] Stats persist across sessions
+```
+
+---
+
+#### 33. Scoreboard API Endpoint
+**Priority:** P1 | **Effort:** M | **Status:** ⏳ PENDING
+
+```
+IMPLEMENTATION:
+Create /api/scoreboard endpoint returning top users by category.
+
+ENDPOINT: GET /api/scoreboard
+
+RESPONSE:
+{
+  byGenres: [{ rank, spotifyId, spotifyName, spotifyAvatar, count }],
+  byArtists: [...],
+  byTracks: [...],
+  byPlaylists: [...],
+  totalUsers: number,
+  updatedAt: ISO string
+}
+
+CACHING:
+- Cache result in KV: scoreboard_cache
+- TTL: 5 minutes
+- Invalidate on significant changes
+
+FILES TO CREATE/MODIFY:
+- src/routes/api.ts (new endpoint)
+
+REQUIREMENTS:
+1. Create /api/scoreboard endpoint
+2. Query all user_stats:* keys
+3. Sort and rank by each category
+4. Return top 20 per category
+5. Cache results in KV
+6. Add cache headers for browser caching
+
+VALIDATION:
+- [ ] Endpoint returns correct rankings
+- [ ] Rankings update when stats change
+- [ ] Cache works correctly
+- [ ] Performance acceptable (<500ms)
+```
+
+---
+
+#### 34. Leaderboard API Endpoint
+**Priority:** P1 | **Effort:** S | **Status:** ⏳ PENDING
+
+```
+IMPLEMENTATION:
+Create /api/leaderboard endpoint returning pioneers + new users.
+
+ENDPOINT: GET /api/leaderboard
+
+RESPONSE:
+{
+  pioneers: [{ position, spotifyId, spotifyName, spotifyAvatar, joinedAt }],
+  newUsers: [{ spotifyId, spotifyName, spotifyAvatar, joinedAt }],
+  totalUsers: number
+}
+
+FILES TO MODIFY:
+- src/routes/api.ts (new endpoint, can reuse existing /stats logic)
+
+REQUIREMENTS:
+1. Pioneers: First 10 users (from hof:* keys)
+2. New Users: Last 10 registered (sorted by joinedAt desc)
+3. Include avatar URLs for display
+
+VALIDATION:
+- [ ] Returns correct pioneers
+- [ ] Returns recent users
+- [ ] Avatars load correctly
+```
+
+---
+
+#### 35. Left Sidebar UI Component
+**Priority:** P1 | **Effort:** L | **Status:** ⏳ PENDING
+
+```
+IMPLEMENTATION:
+Add left sidebar showing leaderboard, new users, recent playlists.
+
+LAYOUT CHANGE:
++------------------+-------------------------+
+|  LEFT SIDEBAR    |     MAIN CONTENT        |
+|  (300px fixed)   |     (flex: 1)           |
+|                  |                         |
+|  🏆 Pioneers     |  [Current Content]      |
+|  #1 @user ⭐     |                         |
+|  #2 @user        |                         |
+|  #3 @user        |                         |
+|                  |                         |
+|  👋 New Users    |                         |
+|  @user - just now|                         |
+|                  |                         |
+|  🎵 Recent       |                         |
+|  indie by @user  |                         |
+|                  |                         |
++------------------+-------------------------+
+
+FILES TO MODIFY:
+- src/frontend/body.html (layout structure)
+- src/frontend/styles.css (sidebar styles)
+- src/frontend/app.js (sidebar logic)
+
+REQUIREMENTS:
+1. Create sidebar container in HTML
+2. Fetch /api/leaderboard on load
+3. Display pioneers with gold/silver/bronze styling
+4. Display new users with "X ago" timestamps
+5. Link to full scoreboard
+6. Collapsible on mobile (hamburger or bottom sheet)
+7. Smooth animations for updates
+
+VALIDATION:
+- [ ] Sidebar displays correctly
+- [ ] Pioneers show with regalia
+- [ ] New users update in real-time
+- [ ] Mobile responsive (collapsible)
+- [ ] No layout shift on load
+```
+
+---
+
+#### 36. Scoreboard Modal/Page
+**Priority:** P2 | **Effort:** M | **Status:** ⏳ PENDING
+
+```
+IMPLEMENTATION:
+Full scoreboard view with all categories.
+
+UI DESIGN:
++-----------------------------------------------+
+|  🏆 Scoreboard                           [X]  |
++-----------------------------------------------+
+| [Genres] [Artists] [Tracks] [Playlists]       |
++-----------------------------------------------+
+|  #1  👤 @username     1,234 genres            |
+|  #2  👤 @username       987 genres            |
+|  #3  👤 @username       654 genres            |
+|  ...                                          |
+|  #15 👤 YOU ⭐          123 genres            |
++-----------------------------------------------+
+
+FILES TO MODIFY:
+- src/frontend/app.js (scoreboard modal)
+- src/frontend/styles.css (scoreboard styles)
+
+REQUIREMENTS:
+1. Tab navigation for categories
+2. Top 20 per category
+3. Highlight current user's position
+4. Profile pics + names
+5. Smooth animations
+6. Swedish translations
+
+VALIDATION:
+- [ ] All categories display
+- [ ] Current user highlighted
+- [ ] Animations smooth
+- [ ] Swedish mode works
+```
+
+---
+
+### 🎵 Recent Playlists Feed
+
+#### 37. Recent Playlists KV Storage
+**Priority:** P2 | **Effort:** S | **Status:** ⏳ PENDING
+
+```
+IMPLEMENTATION:
+Store recently created playlists for social feed.
+
+KV SCHEMA:
+recent_playlists -> [
+  {
+    playlistId: string,
+    playlistName: string,
+    genre: string,
+    trackCount: number,
+    createdBy: { spotifyId, spotifyName, spotifyAvatar },
+    createdAt: ISO string,
+    spotifyUrl: string
+  }
+] (max 20 entries, FIFO)
+
+FILES TO MODIFY:
+- src/routes/api.ts (update POST /api/playlist)
+
+REQUIREMENTS:
+1. After playlist creation, add to recent_playlists
+2. Keep max 20 entries (remove oldest)
+3. Include all display data
+4. Handle race conditions (use KV atomic operations)
+
+VALIDATION:
+- [ ] Playlists added to feed
+- [ ] Max 20 entries maintained
+- [ ] Data structure correct
+```
+
+---
+
+#### 38. Recent Playlists API Endpoint
+**Priority:** P2 | **Effort:** XS | **Status:** ⏳ PENDING
+
+```
+ENDPOINT: GET /api/recent-playlists
+
+RESPONSE:
+{
+  playlists: [
+    {
+      playlistId: "...",
+      playlistName: "indie (from Likes)",
+      genre: "indie",
+      trackCount: 42,
+      createdBy: { spotifyId, spotifyName, spotifyAvatar },
+      createdAt: "2025-12-02T10:30:00Z",
+      spotifyUrl: "https://open.spotify.com/playlist/..."
+    }
+  ]
+}
+
+FILES TO MODIFY:
+- src/routes/api.ts
+
+VALIDATION:
+- [ ] Returns recent playlists
+- [ ] Correct format
+- [ ] Auth not required (public feed)
+```
+
+---
+
+#### 39. Recent Playlists UI Component
+**Priority:** P2 | **Effort:** M | **Status:** ⏳ PENDING
+
+```
+IMPLEMENTATION:
+Display recent playlists in left sidebar with auto-refresh.
+
+UI:
+🎵 Recent Playlists
+┌─────────────────────────┐
+│ 🎸 indie                │
+│ by @username • just now │
+│ [Save]                  │
+├─────────────────────────┤
+│ 🎤 pop                  │
+│ by @otheruser • 5m ago  │
+│ [Save]                  │
+└─────────────────────────┘
+
+FILES TO MODIFY:
+- src/frontend/app.js
+- src/frontend/styles.css
+
+REQUIREMENTS:
+1. Poll /api/recent-playlists every 30 seconds
+2. Animate new entries sliding in
+3. Show genre emoji + name
+4. Show creator avatar + name
+5. "Save" button opens Spotify follow URL
+6. Smooth scroll for new entries
+
+VALIDATION:
+- [ ] Feed updates automatically
+- [ ] New entries animate in
+- [ ] Save button works
+- [ ] No memory leaks from polling
+```
+
+---
+
+### 🎬 Loading Experience Overhaul
+
+#### 40. Vinyl/Album Flip Animation
+**Priority:** P2 | **Effort:** L | **Status:** ⏳ PENDING
+
+```
+PROBLEM:
+Current loading UX is functional but not engaging.
+User wants vinyl/album art flipping animation.
+
+CONCEPT:
+- Album covers flip like a Rolodex
+- Genre names cycle below
+- Smooth 3D flip effect
+
+IMPLEMENTATION OPTIONS:
+A) Use actual album art from track data
+   - Pro: Personalised
+   - Con: Need to extract during load
+
+B) Generic vinyl/record images
+   - Pro: Simpler, consistent
+   - Con: Less personal
+
+C) CSS-only abstract animation
+   - Pro: Fast, no images needed
+   - Con: Less visually interesting
+
+FILES TO MODIFY:
+- src/frontend/app.js (renderProgressLoading)
+- src/frontend/styles.css (animation keyframes)
+
+REQUIREMENTS:
+1. Create flipAnimation component
+2. Cycle through genre names during load
+3. Smooth 3D CSS transforms
+4. Show album art if available
+5. Fallback to vinyl graphic
+
+CSS ANIMATION SKETCH:
+@keyframes vinylFlip {
+  0% { transform: rotateY(0deg); }
+  50% { transform: rotateY(90deg); }
+  100% { transform: rotateY(0deg); }
+}
+
+VALIDATION:
+- [ ] Animation smooth (60fps)
+- [ ] Genre names cycle
+- [ ] Works on mobile
+- [ ] Doesn't block loading
+```
+
+---
+
+#### 41. Dynamic Completion Messages
+**Priority:** P3 | **Effort:** S | **Status:** ⏳ PENDING
+
+```
+IMPLEMENTATION:
+Generate funny/personalised message based on user's top genres.
+
+MESSAGES BY GENRE:
+{
+  'rock': "You're a certified rockstar! 🎸",
+  'pop': "Pop goes your playlist! 🎤",
+  'hip hop': "Straight outta your library! 🎧",
+  'electronic': "You've got the beats! 🎹",
+  'metal': "Heavy metal thunder! 🤘",
+  'indie': "Too cool for mainstream! 🎪",
+  'jazz': "Smooth as butter! 🎷",
+  'classical': "A person of culture! 🎻",
+  'country': "Yeehaw! 🤠",
+  'k-pop': "Annyeonghaseyo! 🇰🇷",
+  'default': "Your taste is uniquely yours! ✨"
+}
+
+FILES TO MODIFY:
+- src/frontend/app.js
+
+REQUIREMENTS:
+1. Analyse top 3 genres after load complete
+2. Select appropriate message
+3. Display with celebration animation
+4. Add Swedish translations
+
+VALIDATION:
+- [ ] Message relevant to top genres
+- [ ] Swedish translations work
+- [ ] Displays after load complete
+```
+
+---
+
+#### 42. Celebration Animation
+**Priority:** P3 | **Effort:** M | **Status:** ⏳ PENDING
+
+```
+IMPLEMENTATION:
+Confetti/fireworks animation on load complete.
+
+OPTIONS:
+A) CSS-only particles
+B) Canvas-based confetti (e.g., canvas-confetti)
+C) SVG animation
+
+RECOMMENDED: CSS-only for simplicity
+
+FILES TO MODIFY:
+- src/frontend/styles.css
+- src/frontend/app.js
+
+REQUIREMENTS:
+1. Trigger on 100% load complete
+2. ~2 second duration
+3. Colours match theme (Spotify green, Swedish blue/yellow)
+4. Smooth transition to results view
+5. Respects prefers-reduced-motion
+
+VALIDATION:
+- [ ] Animation triggers correctly
+- [ ] Doesn't block interaction
+- [ ] Respects reduced motion preference
+- [ ] Theme-appropriate colours
+```
+
+---
+
+### 📝 Playlist Creation UX
+
+#### 43. Enhanced Playlist Create Modal
+**Priority:** P2 | **Effort:** L | **Status:** ⏳ PENDING
+
+```
+CURRENT:
+Single "Create" button, no customisation before creation.
+
+DESIRED:
+Modal with preview and customisation options.
+
+UI:
++----------------------------------------+
+|  Create "emo" Playlist              [X] |
++----------------------------------------+
+|  🖤 Title:                              |
+|  [Emo (from Likes)           ]          |
+|                                         |
+|  📝 Description:                        |
+|  [Your emo tracks since 2019 from...]   |
+|                                         |
+|  🖼️ Cover: [Upload] [URL] [Default]     |
+|  [Preview Image]                        |
+|                                         |
+|  ℹ️ 42 tracks will be added             |
+|                                         |
+|  [Cancel]         [Create Playlist]     |
++----------------------------------------+
+
+FILES TO MODIFY:
+- src/frontend/app.js (new modal component)
+- src/frontend/styles.css (modal styles)
+- src/routes/api.ts (accept description/cover)
+
+REQUIREMENTS:
+1. Modal opens on "Create" click
+2. Pre-fill title with template
+3. Editable description with smart default
+4. Optional cover image (URL or upload)
+5. Track count preview
+6. Swedish translations
+
+VALIDATION:
+- [ ] Modal opens correctly
+- [ ] Title customisable
+- [ ] Description customisable
+- [ ] Cover upload works
+- [ ] Creates correct playlist
+```
+
+---
+
+#### 44. Genre Merge Feature
+**Priority:** P3 | **Effort:** L | **Status:** ⏳ PENDING
+
+```
+IMPLEMENTATION:
+Allow selecting multiple genres and merging into one playlist.
+
+UI:
+1. Select multiple genres (existing checkbox system)
+2. New button: "Merge Selected into One"
+3. Opens modal with combined track list
+4. Custom name: "Rock + Metal + Punk"
+
+FILES TO MODIFY:
+- src/frontend/app.js
+- src/routes/api.ts (new endpoint or modify existing)
+
+REQUIREMENTS:
+1. Combine track IDs from selected genres
+2. Deduplicate tracks
+3. Custom playlist name
+4. Description lists included genres
+5. Show combined track count
+
+VALIDATION:
+- [ ] Tracks combined correctly
+- [ ] No duplicates
+- [ ] Description accurate
+- [ ] Works with 2+ genres
+```
+
+---
+
+#### 45. Custom Playlist Thumbnail
+**Priority:** P3 | **Effort:** M | **Status:** ⏳ PENDING
+
+```
+IMPLEMENTATION:
+Allow setting custom cover image before playlist creation.
+
+SPOTIFY API:
+PUT /playlists/{playlist_id}/images
+Body: Base64 JPEG image (max 256KB)
+
+UI:
+- Upload button in create modal
+- URL input option
+- Preview before create
+- Convert to base64 on client
+
+FILES TO MODIFY:
+- src/frontend/app.js (upload/preview logic)
+- src/routes/api.ts (pass image to Spotify)
+- src/lib/spotify.ts (add setPlaylistImage function)
+
+REQUIREMENTS:
+1. Accept image upload or URL
+2. Validate size (<256KB) and format (JPEG)
+3. Convert to base64
+4. Send to Spotify after playlist creation
+5. Preview in modal
+
+VALIDATION:
+- [ ] Upload works
+- [ ] URL input works
+- [ ] Preview displays
+- [ ] Image appears on Spotify playlist
+```
+
+---
+
+### 📊 Monitoring & Infrastructure
+
+#### 46. BetterStack Monitor Configuration
+**Priority:** P1 | **Effort:** M | **Status:** ⏳ PENDING
+
+```
+IMPLEMENTATION:
+Configure BetterStack monitors using provided API tokens.
+
+API TOKENS:
+- Status Page: MKkrifmzXkVGfCaez6KHYQmy
+- Telemetry: SXdEYrG5Y1jCNjdN11PKBiHe
+
+10 MONITORS (FREE TIER):
+1. Primary Health - GET /health (1 min)
+2. Detailed Health - GET /health?detailed=true (5 min)
+3. Stats Endpoint - GET /stats (5 min)
+4. Session Check - GET /session (5 min)
+5. Deploy Status - GET /deploy-status (5 min)
+6. OAuth Redirect - GET /auth/spotify (10 min)
+7. API Response - GET /api/changelog (5 min)
+8. SSL Certificate - SSL expiry monitor
+9. DNS Resolution - DNS check
+10. Heartbeat - Custom heartbeat for cron jobs
+
+FILES TO CREATE:
+- docs/monitoring.md (setup guide)
+- scripts/setup-betterstack.mjs (optional automation)
+
+REQUIREMENTS:
+1. Create monitors via BetterStack API
+2. Configure alert thresholds
+3. Set up status page
+4. Document setup process
+5. Add status page link to UI
+
+VALIDATION:
+- [ ] All monitors active
+- [ ] Alerts working
+- [ ] Status page accessible
+- [ ] Documentation complete
+```
+
+---
+
+#### 47. Uptime Badge Integration
+**Priority:** P2 | **Effort:** XS | **Status:** ⏳ PENDING
+
+```
+IMPLEMENTATION:
+Update uptime badge to link to BetterStack status page.
+
+CURRENT:
+Static badge linking to uptimerobot
+
+DESIRED:
+Dynamic badge from BetterStack status page
+
+FILES TO MODIFY:
+- src/frontend/app.js (renderWelcome function)
+
+REQUIREMENTS:
+1. Create BetterStack status page
+2. Get badge embed URL
+3. Replace current badge
+4. Link to public status page
+
+VALIDATION:
+- [ ] Badge displays correctly
+- [ ] Links to status page
+- [ ] Status page shows real data
+```
+
+---
+
+#### 48. Star Badge Prominence
+**Priority:** P3 | **Effort:** XS | **Status:** ⏳ PENDING
+
+```
+IMPLEMENTATION:
+Make GitHub star badge more noticeable as "thank you" option.
+
+CURRENT:
+Static badge, easy to miss
+
+DESIRED:
+- Pulsing glow on hover
+- Tooltip: "Love this? Star us! ⭐"
+- Slightly larger
+
+FILES TO MODIFY:
+- src/frontend/styles.css
+
+REQUIREMENTS:
+1. Add hover animation
+2. Add tooltip
+3. Increase size slightly
+4. Position prominently
+
+VALIDATION:
+- [ ] Animation works
+- [ ] Tooltip displays
+- [ ] Not annoying/intrusive
+```
+
+---
+
+### 📚 Documentation & DR
+
+#### 49. Backup & Disaster Recovery Documentation
+**Priority:** P1 | **Effort:** M | **Status:** ⏳ PENDING
+
+```
+IMPLEMENTATION:
+Create comprehensive backup/DR documentation.
+
+FILE: docs/backup-dr.md
+
+CONTENTS:
+1. KV Data Inventory
+   - What data is stored
+   - Criticality levels
+   - Data ownership
+
+2. Backup Strategy
+   - Automated backup script
+   - GitHub Actions workflow
+   - Backup frequency
+   - Retention policy
+
+3. Restore Procedure
+   - Step-by-step restore
+   - Verification steps
+   - Rollback plan
+
+4. Recovery Objectives
+   - RTO: 30 minutes
+   - RPO: 1 week
+
+5. DR Testing
+   - Test schedule
+   - Test procedure
+   - Success criteria
+
+6. Diagrams
+   - Data flow diagram
+   - Backup architecture
+   - Recovery sequence
+
+REQUIREMENTS:
+1. Document all KV keys and purpose
+2. Create backup script
+3. Document restore process
+4. Include Mermaid diagrams
+5. Add testing checklist
+
+VALIDATION:
+- [ ] Documentation complete
+- [ ] Backup script works
+- [ ] Restore tested
+- [ ] Diagrams render
+```
+
+---
+
+#### 50. KV Backup Script
+**Priority:** P2 | **Effort:** M | **Status:** ⏳ PENDING
+
+```
+IMPLEMENTATION:
+Automated KV backup to GitHub or R2.
+
+FILE: scripts/backup-kv.mjs
+
+FUNCTIONALITY:
+1. List all KV keys
+2. Export values
+3. Create timestamped backup
+4. Push to backup location
+5. Verify integrity
+
+OPTIONS:
+A) GitHub Repo (free, version controlled)
+B) Cloudflare R2 (more storage, cost)
+C) Both (redundancy)
+
+GITHUB ACTION:
+- Run weekly
+- On-demand trigger
+- Notification on failure
+
+REQUIREMENTS:
+1. Create backup script
+2. Add GitHub workflow
+3. Configure secrets
+4. Add integrity checks
+5. Document restore process
+
+VALIDATION:
+- [ ] Script exports all data
+- [ ] Backup stored securely
+- [ ] Restore works
+- [ ] Workflow runs successfully
+```
+
+---
+
+### 🎨 Branding & Polish
+
+#### 51. Branding Decision
+**Priority:** P3 | **Effort:** S | **Status:** ✅ DECIDED
+
+```
+DECISION: "Genre Genie ✨"
+
+Playful, memorable, magic theme.
+
+IMPLEMENTATION:
+- Update page title to "Genre Genie ✨"
+- Update meta tags
+- Update README
+- Update CLAUDE.md
+- Update header text
+- Add genie/magic styling
+- Keep Swedish Easter egg (for Heidi)
+```
+
+---
+
+#### 52. Favicon Update
+**Priority:** P4 | **Effort:** S | **Status:** ⏳ PENDING
+
+```
+CURRENT:
+Swedish-themed Spotify logo (blue/yellow gradient)
+
+OPTIONS:
+A) Keep Swedish theme (for Heidi)
+B) New custom logo
+C) Simple music note
+D) Text-based logo
+
+NOTE:
+User expressed frustration with previous base64 favicon work.
+Keep implementation simple.
+
+FILES TO MODIFY:
+- src/index.ts (favicon endpoints)
+
+REQUIREMENTS:
+1. Decide on design
+2. Create SVG version
+3. Generate PNG fallbacks
+4. Update favicon endpoints
+5. Test across browsers
+
+VALIDATION:
+- [ ] Favicon displays correctly
+- [ ] Works in all browsers
+- [ ] Matches branding
+```
+
+---
+
+## Summary: v2.0 Scope
+
+| Category | Tasks | Total Effort |
+|----------|-------|--------------|
+| Bug Fixes | 28-31 | S + XS + M + S = M |
+| Leaderboard | 32-36 | M + M + S + L + M = XL |
+| Recent Playlists | 37-39 | S + XS + M = M |
+| Loading UX | 40-42 | L + S + M = L |
+| Playlist UX | 43-45 | L + L + M = XL |
+| Monitoring | 46-48 | M + XS + XS = M |
+| Documentation | 49-50 | M + M = L |
+| Branding | 51-52 | S + S = S |
+
+**Total: ~25 tasks across 8 categories**
+
+### Recommended Implementation Order
+
+**Sprint 1: Foundation** (Tasks 28-31)
+- Fix critical bugs first
+- Establish stable base
+
+**Sprint 2: Data Layer** (Tasks 32-34, 37-38)
+- KV schema updates
+- API endpoints
+
+**Sprint 3: UI Components** (Tasks 35-36, 39)
+- Sidebar implementation
+- Scoreboard modal
+
+**Sprint 4: Playlist Features** (Tasks 43-45)
+- Enhanced create modal
+- Genre merging
+
+**Sprint 5: Loading Polish** (Tasks 40-42)
+- Vinyl animation
+- Celebration effects
+
+**Sprint 6: Infrastructure** (Tasks 46-50)
+- BetterStack setup
+- Backup/DR
+
+**Sprint 7: Finishing** (Tasks 51-52)
+- Branding decisions
+- Final polish
+
+---
+
+*Backlog updated: 2025-12-02*
+*Target: v2.0.0 Release*
