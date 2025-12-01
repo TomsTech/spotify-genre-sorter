@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BetterUptime Setup - Spotify Genre Sorter</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.4;
+      color: #1a1a1a;
+      max-width: 750px;
+      margin: 0 auto;
+      padding: 1.25rem;
+      background: #fff;
+    }
+    h1 {
+      font-size: 1.3rem;
+      color: #1db954;
+      border-bottom: 3px solid #1db954;
+      padding-bottom: 0.3rem;
+      margin-bottom: 0.75rem;
+    }
+    h2 {
+      font-size: 0.95rem;
+      color: #333;
+      margin: 0.75rem 0 0.3rem;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 0.15rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-left: 3px solid #1db954;
+      border-radius: 3px;
+      padding: 0.4rem 0.5rem;
+      font-size: 0.8rem;
+    }
+    .card.internal { border-left-color: #888; }
+    .card strong { color: #1db954; }
+    .card.internal strong { color: #666; }
+    .row { display: flex; gap: 0.5rem; margin-top: 0.2rem; }
+    .label { color: #666; font-size: 0.7rem; }
+    code {
+      background: #f0f0f0;
+      padding: 0.05rem 0.25rem;
+      border-radius: 2px;
+      font-family: monospace;
+      font-size: 0.75rem;
+    }
+    .status {
+      background: #e8f5e9;
+      color: #2e7d32;
+      padding: 0.1rem 0.3rem;
+      border-radius: 2px;
+      font-weight: 600;
+      font-size: 0.7rem;
+    }
+    .status.auth { background: #fff3e0; color: #e65100; }
+    .status.redirect { background: #e3f2fd; color: #1565c0; }
+    .keyword {
+      background: #fce4ec;
+      color: #c2185b;
+      padding: 0.1rem 0.3rem;
+      border-radius: 2px;
+      font-family: monospace;
+      font-size: 0.7rem;
+    }
+    .url {
+      font-family: monospace;
+      font-size: 0.7rem;
+      color: #555;
+      word-break: break-all;
+    }
+    .url-box {
+      background: #f8f8f8;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      padding: 0.4rem;
+      font-family: monospace;
+      font-size: 0.7rem;
+      columns: 2;
+      column-gap: 0.75rem;
+    }
+    .url-box div { break-inside: avoid; margin: 0.1rem 0; }
+    .checklist {
+      list-style: none;
+      columns: 2;
+      font-size: 0.8rem;
+    }
+    .checklist li {
+      padding: 0.2rem 0 0.2rem 1.4rem;
+      position: relative;
+      break-inside: avoid;
+    }
+    .checklist li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0.3rem;
+      width: 0.85rem;
+      height: 0.85rem;
+      border: 2px solid #1db954;
+      border-radius: 2px;
+    }
+    footer {
+      margin-top: 0.75rem;
+      padding-top: 0.4rem;
+      border-top: 1px solid #ddd;
+      color: #666;
+      font-size: 0.7rem;
+      text-align: center;
+    }
+    @media print {
+      body { padding: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>BetterUptime Setup - Spotify Genre Sorter</h1>
+
+<h2>Public Monitors (show on status page)</h2>
+<div class="grid">
+  <div class="card">
+    <strong>1. Health</strong>
+    <div class="url">spotify.houstons.tech/health</div>
+    <div class="row">
+      <span class="status">200</span>
+      <span class="keyword">"ok"</span>
+    </div>
+  </div>
+  <div class="card">
+    <strong>2. Application</strong>
+    <div class="url">spotify.houstons.tech/</div>
+    <div class="row">
+      <span class="status">200</span>
+      <span class="keyword">Spotify Genre Sorter</span>
+    </div>
+  </div>
+  <div class="card">
+    <strong>3. Database</strong>
+    <div class="url">spotify.houstons.tech/stats</div>
+    <div class="row">
+      <span class="status">200</span>
+      <span class="keyword">"userCount"</span>
+    </div>
+  </div>
+  <div class="card">
+    <strong>4. Config</strong>
+    <div class="url">spotify.houstons.tech/setup</div>
+    <div class="row">
+      <span class="status">200</span>
+      <span class="keyword">"configured":true</span>
+    </div>
+  </div>
+  <div class="card">
+    <strong>5. Session</strong>
+    <div class="url">spotify.houstons.tech/session</div>
+    <div class="row">
+      <span class="status">200</span>
+      <span class="keyword">"authenticated"</span>
+    </div>
+  </div>
+</div>
+
+<h2>Internal Monitors (hide from status page)</h2>
+<div class="grid">
+  <div class="card internal">
+    <strong>6. API Genres</strong>
+    <div class="url">spotify.houstons.tech/api/genres</div>
+    <div class="row">
+      <span class="status auth">401</span>
+      <span class="keyword">Not authenticated</span>
+    </div>
+  </div>
+  <div class="card internal">
+    <strong>7. API Me</strong>
+    <div class="url">spotify.houstons.tech/api/me</div>
+    <div class="row">
+      <span class="status auth">401</span>
+      <span class="keyword">Not authenticated</span>
+    </div>
+  </div>
+  <div class="card internal">
+    <strong>8. Deploy Status</strong>
+    <div class="url">spotify.houstons.tech/deploy-status</div>
+    <div class="row">
+      <span class="status">200</span>
+      <span class="keyword">"version"</span>
+    </div>
+  </div>
+  <div class="card internal">
+    <strong>9. Spotify Auth</strong>
+    <div class="url">spotify.houstons.tech/auth/spotify</div>
+    <div class="row">
+      <span class="status redirect">302</span>
+      <span class="label">redirects to Spotify</span>
+    </div>
+  </div>
+  <div class="card internal">
+    <strong>10. Logout</strong>
+    <div class="url">spotify.houstons.tech/auth/logout</div>
+    <div class="row">
+      <span class="status redirect">302</span>
+      <span class="label">redirects to /</span>
+    </div>
+  </div>
+</div>
+
+<h2>Quick Copy URLs</h2>
+<div class="url-box">
+  <div>https://spotify.houstons.tech/health</div>
+  <div>https://spotify.houstons.tech/</div>
+  <div>https://spotify.houstons.tech/stats</div>
+  <div>https://spotify.houstons.tech/setup</div>
+  <div>https://spotify.houstons.tech/session</div>
+  <div>https://spotify.houstons.tech/api/genres</div>
+  <div>https://spotify.houstons.tech/api/me</div>
+  <div>https://spotify.houstons.tech/deploy-status</div>
+  <div>https://spotify.houstons.tech/auth/spotify</div>
+  <div>https://spotify.houstons.tech/auth/logout</div>
+</div>
+
+<h2>Checklist</h2>
+<ul class="checklist">
+  <li>Health monitor</li>
+  <li>Application monitor</li>
+  <li>Database monitor</li>
+  <li>Config monitor</li>
+  <li>Session monitor</li>
+  <li>API Genres monitor</li>
+  <li>API Me monitor</li>
+  <li>Deploy Status monitor</li>
+  <li>Spotify Auth monitor</li>
+  <li>Logout monitor</li>
+  <li>Status Page created</li>
+  <li>Badge URL copied</li>
+</ul>
+
+<footer>
+  Spotify Genre Sorter v1.1.1 | Ctrl+P to save as PDF
+</footer>
+
+</body>
+</html>
