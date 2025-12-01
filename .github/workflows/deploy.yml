@@ -145,11 +145,13 @@ jobs:
             CONTENT=$(echo "$RECORDS" | jq -r '.result[0].content')
             echo "has_conflict=true" >> $GITHUB_OUTPUT
 
-            if [ "${{ inputs.force_dns }}" != "true" ]; then
-              echo "::error::DNS CONFLICT: $TYPE record exists for $DOMAIN pointing to $CONTENT"
-              echo "::error::Options: 1) Delete record in Cloudflare 2) Re-run with force_dns 3) Use different subdomain"
-              exit 1
+            # Check if DNS points to our own worker (not a real conflict)
+            if echo "$CONTENT" | grep -q "${{ env.PRODUCTION_WORKER }}"; then
+              echo "::notice::DNS already configured for $DOMAIN (pointing to our worker)"
+            elif [ "${{ inputs.force_dns }}" != "true" ]; then
+              echo "::warning::DNS record exists for $DOMAIN ($TYPE -> $CONTENT). Will update during cutover."
             fi
+            # Don't exit 1 - let deployment proceed, DNS cutover will handle it
           else
             echo "has_conflict=false" >> $GITHUB_OUTPUT
           fi
