@@ -95,7 +95,11 @@ auth.get('/github', async (c) => {
   await storeState(c.env.SESSIONS, state, { provider: 'github' });
 
   const redirectUri = new URL('/auth/github/callback', c.req.url).toString();
-  const url = getGitHubAuthUrl(c.env.GITHUB_CLIENT_ID!, redirectUri, state);
+  const clientId = c.env.GITHUB_CLIENT_ID;
+  if (!clientId) {
+    return c.json({ error: 'GitHub OAuth not configured' }, 500);
+  }
+  const url = getGitHubAuthUrl(clientId, redirectUri, state);
 
   return c.redirect(url);
 });
@@ -123,12 +127,14 @@ auth.get('/github/callback', async (c) => {
     return c.redirect('/?error=invalid_state');
   }
 
+  const clientId = c.env.GITHUB_CLIENT_ID;
+  const clientSecret = c.env.GITHUB_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    return c.redirect('/?error=auth_failed');
+  }
+
   try {
-    const accessToken = await exchangeGitHubCode(
-      code,
-      c.env.GITHUB_CLIENT_ID!,
-      c.env.GITHUB_CLIENT_SECRET!
-    );
+    const accessToken = await exchangeGitHubCode(code, clientId, clientSecret);
 
     const user = await getGitHubUser(accessToken);
 
