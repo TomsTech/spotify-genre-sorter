@@ -1,0 +1,63 @@
+  <!-- Deployment Monitor Widget -->
+  <div class="deploy-widget" id="deploy-widget" style="display: none;" onclick="showDeployDetails()">
+    <span class="status-icon"></span>
+    <span class="deploy-text">Checking...</span>
+  </div>
+
+  <!-- SVG Gradient Definition for Swedish mode -->
+  <svg style="position:absolute;width:0;height:0;">
+    <defs>
+      <linearGradient id="swedish-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#006AA7"/>
+        <stop offset="50%" style="stop-color:#FECC00"/>
+        <stop offset="100%" style="stop-color:#006AA7"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <!-- Viking ship Easter egg (only in Swedish mode) -->
+  <div class="viking-ship" title="Vikingaskepp!">⛵</div>
+
+  <div class="container">
+    <header style="position: relative;">
+      <h1>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 01-.277-1.215c3.809-.87 7.076-.496 9.712 1.115.293.18.386.563.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.972c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.071zm.105-2.835c-3.223-1.914-8.54-2.09-11.618-1.156a.935.935 0 11-.543-1.79c3.533-1.072 9.404-.865 13.115 1.338a.935.935 0 11-.954 1.608z"/>
+        </svg>
+        <span data-i18n="title">Genre Sorter</span>
+      </h1>
+      <span class="swedish-crowns" title="Tre Kronor - Three Crowns of Sweden">
+        <span class="crown">👑</span>
+        <span class="crown">👑</span>
+        <span class="crown">👑</span>
+      </span>
+      <div id="header-actions"></div>
+    </header>
+
+    <main id="app">
+      <div class="loading">
+        <div class="spinner"></div>
+        <span data-i18n="loading">Loading...</span>
+      </div>
+    </main>
+  </div>
+
+  <!-- Shout me a durry button (Aussie style) / Snus button (Swedish mode) -->
+  <a href="https://buymeacoffee.com/tomstech" target="_blank" class="durry-btn" id="donation-btn" title="Chuck us a dart, legend">
+    <span class="icon">🚬</span>
+    <span class="text">Shout me a durry</span>
+  </a>
+
+  <!-- Heidi Easter Egg Badge -->
+  <div class="heidi-badge" onclick="toggleSwedishMode()" title="Click for a Swedish surprise!">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
+      <path d="M9 4c1-2 5-2 6 0" stroke="#FECC00"/>
+    </svg>
+    <span class="heidi-text">
+      <span>Made with inspiration from</span>
+      <span><strong>Heidi</strong> <span class="heart">♥</span></span>
+    </span>
+  </div>
+
