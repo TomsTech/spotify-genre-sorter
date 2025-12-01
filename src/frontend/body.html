@@ -18,28 +18,67 @@
   <!-- Viking ship Easter egg (only in Swedish mode) -->
   <div class="viking-ship" title="Vikingaskepp!">⛵</div>
 
-  <div class="container">
-    <header style="position: relative;">
-      <h1>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 01-.277-1.215c3.809-.87 7.076-.496 9.712 1.115.293.18.386.563.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.972c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.071zm.105-2.835c-3.223-1.914-8.54-2.09-11.618-1.156a.935.935 0 11-.543-1.79c3.533-1.072 9.404-.865 13.115 1.338a.935.935 0 11-.954 1.608z"/>
-        </svg>
-        <span data-i18n="title">Genre Sorter</span>
-      </h1>
-      <span class="swedish-crowns" title="Tre Kronor - Three Crowns of Sweden">
-        <span class="crown">👑</span>
-        <span class="crown">👑</span>
-        <span class="crown">👑</span>
-      </span>
-      <div id="header-actions"></div>
+  <div class="app-wrapper">
+    <header class="app-header">
+      <div class="header-content">
+        <h1>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 01-.277-1.215c3.809-.87 7.076-.496 9.712 1.115.293.18.386.563.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.972c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.071zm.105-2.835c-3.223-1.914-8.54-2.09-11.618-1.156a.935.935 0 11-.543-1.79c3.533-1.072 9.404-.865 13.115 1.338a.935.935 0 11-.954 1.608z"/>
+          </svg>
+          <span data-i18n="title">Genre Genie</span>
+          <span class="genie-sparkle">✨</span>
+        </h1>
+        <span class="swedish-crowns" title="Tre Kronor - Three Crowns of Sweden">
+          <span class="crown">👑</span>
+          <span class="crown">👑</span>
+          <span class="crown">👑</span>
+        </span>
+        <div id="header-actions"></div>
+      </div>
     </header>
 
-    <main id="app">
-      <div class="loading">
-        <div class="spinner"></div>
-        <span data-i18n="loading">Loading...</span>
-      </div>
-    </main>
+    <div class="content-wrapper">
+      <!-- Left Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">🏆 <span data-i18n="pioneers">Pioneers</span></h3>
+          <div class="pioneers-list" id="pioneers-list">
+            <div class="sidebar-loading">Loading...</div>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">👋 <span data-i18n="newUsers">New Users</span></h3>
+          <div class="new-users-list" id="new-users-list">
+            <div class="sidebar-loading">Loading...</div>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">🎵 <span data-i18n="recentPlaylists">Recent Playlists</span></h3>
+          <div class="recent-playlists-list" id="recent-playlists-list">
+            <div class="sidebar-loading">Loading...</div>
+          </div>
+        </div>
+
+        <button class="btn btn-secondary sidebar-scoreboard-btn" onclick="showScoreboard()">
+          📊 <span data-i18n="viewScoreboard">View Scoreboard</span>
+        </button>
+      </aside>
+
+      <!-- Mobile sidebar toggle -->
+      <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+        <span class="toggle-icon">◀</span>
+      </button>
+
+      <!-- Main Content -->
+      <main id="app" class="main-content">
+        <div class="loading">
+          <div class="spinner"></div>
+          <span data-i18n="loading">Loading...</span>
+        </div>
+      </main>
+    </div>
   </div>
 
   <!-- Shout me a durry button (Aussie style) / Snus button (Swedish mode) -->

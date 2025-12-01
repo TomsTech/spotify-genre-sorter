@@ -18,6 +18,7 @@ import {
   generateState,
   storeState,
   verifyState,
+  createOrUpdateUserStats,
 } from '../lib/session';
 
 const auth = new Hono<{ Bindings: Env }>();
@@ -27,7 +28,7 @@ function isSpotifyOnlyMode(env: Env): boolean {
   return env.SPOTIFY_ONLY_AUTH === 'true' || !env.GITHUB_CLIENT_ID;
 }
 
-// Helper to register/update user in the hall of fame
+// Helper to register/update user in the hall of fame and initialize stats
 async function registerUser(
   kv: KVNamespace,
   spotifyId: string,
@@ -54,6 +55,12 @@ async function registerUser(
     if (spotifyAvatar) data.spotifyAvatar = spotifyAvatar;
     if (githubUser) data.githubUser = githubUser;
     await kv.put(key, JSON.stringify(data));
+
+    // Update user stats (name/avatar might have changed)
+    await createOrUpdateUserStats(kv, spotifyId, {
+      spotifyName,
+      spotifyAvatar,
+    });
   } else {
     // New user registration
     const registration = {
@@ -82,6 +89,12 @@ async function registerUser(
         registeredAt: now,
       }));
     }
+
+    // Initialize user stats for scoreboard
+    await createOrUpdateUserStats(kv, spotifyId, {
+      spotifyName,
+      spotifyAvatar,
+    });
   }
 }
 

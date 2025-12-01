@@ -16,7 +16,8 @@ export function getHtml(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spotify Genre Sorter</title>
+  <title>Genre Genie - Organise Your Spotify by Genre</title>
+  <meta name="description" content="Automatically sort your Spotify liked songs into genre-based playlists with one click. Free, open source, and privacy-focused.">
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <style>
@@ -34,14 +35,118 @@ export function getHtml(): string {
       --swedish-yellow: #FECC00;
     }
 
-    /* Light mode theme */
+    /* Light mode theme - WCAG AA compliant */
     body.light-mode {
-      --bg: #f8f9fa;
+      --bg: #f5f5f5;
       --surface: #ffffff;
-      --surface-2: #f0f2f5;
-      --border: #dee2e6;
-      --text: #212529;
-      --text-muted: #6c757d;
+      --surface-2: #e9ecef;
+      --border: #ced4da;
+      --text: #1a1a1a;
+      --text-muted: #495057;
+    }
+
+    /* Light mode specific overrides for accessibility */
+    body.light-mode .stat {
+      border: 1px solid var(--border);
+    }
+
+    body.light-mode .genre-item {
+      border: 1px solid var(--border);
+    }
+
+    body.light-mode .genre-count {
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    body.light-mode .btn-ghost {
+      color: var(--text);
+    }
+
+    body.light-mode .btn-ghost:hover {
+      background: var(--surface-2);
+    }
+
+    body.light-mode .btn-secondary {
+      background: var(--surface);
+    }
+
+    body.light-mode .search-input {
+      border: 2px solid var(--border);
+    }
+
+    body.light-mode .search-input:focus {
+      border-color: var(--accent);
+    }
+
+    body.light-mode .template-settings {
+      border: 1px solid var(--border);
+    }
+
+    body.light-mode .hidden-toolbar {
+      border: 1px solid var(--border);
+    }
+
+    body.light-mode .stats-dashboard {
+      border: 1px solid var(--border);
+    }
+
+    body.light-mode .deploy-widget {
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    body.light-mode .heidi-badge {
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    body.light-mode .user-counter {
+      border: 1px solid var(--border);
+    }
+
+    body.light-mode .hof-entry {
+      border: 1px solid var(--border);
+    }
+
+    body.light-mode .loading-stat {
+      border: 1px solid var(--border);
+    }
+
+    body.light-mode .live-genre-card {
+      border: 1px solid var(--border);
+    }
+
+    body.light-mode .progress-bar,
+    body.light-mode .progress-bar-full {
+      border: 1px solid var(--border);
+    }
+
+    body.light-mode .modal {
+      background: var(--surface);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    body.light-mode .keyboard-help-panel {
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    body.light-mode .changelog-panel {
+      background: var(--surface);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    body.light-mode .stat-box {
+      border: 1px solid var(--border);
+    }
+
+    body.light-mode .genre-bar-track,
+    body.light-mode .genre-bar-container {
+      border: 1px solid var(--border);
+    }
+
+    body.light-mode .durry-btn {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
 
     body.swedish-mode {
@@ -1708,10 +1813,9 @@ export function getHtml(): string {
 
     /* Theme Toggle in Header */
     #header-actions {
-      position: absolute;
-      top: 50%;
-      right: 0;
-      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
     }
 
     .theme-toggle-btn {
@@ -1719,6 +1823,7 @@ export function getHtml(): string {
       padding: 0.5rem;
       border-radius: 8px;
       transition: transform 0.2s ease, background 0.2s ease;
+      flex-shrink: 0;
     }
 
     .theme-toggle-btn:hover {
@@ -2030,6 +2135,716 @@ export function getHtml(): string {
     .skip-link:focus {
       top: 0;
     }
+
+    /* =========================================
+       SIDEBAR LAYOUT
+       ========================================= */
+
+    .app-wrapper {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .app-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .header-content h1 {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .genie-sparkle {
+      animation: sparkle 2s ease-in-out infinite;
+    }
+
+    @keyframes sparkle {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    .swedish-crowns {
+      display: none;
+      gap: 0.25rem;
+      margin-left: 0.5rem;
+    }
+
+    body.swedish-mode .swedish-crowns {
+      display: flex;
+    }
+
+    body.swedish-mode .genie-sparkle {
+      display: none;
+    }
+
+    .swedish-crowns .crown {
+      font-size: 0.9rem;
+      animation: crownBounce 1.5s ease-in-out infinite;
+    }
+
+    .swedish-crowns .crown:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .swedish-crowns .crown:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes crownBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+
+    .content-wrapper {
+      display: flex;
+      flex: 1;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* === Sidebar === */
+    .sidebar {
+      width: 280px;
+      min-width: 280px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      overflow-y: auto;
+      max-height: calc(100vh - 80px);
+      position: sticky;
+      top: 80px;
+    }
+
+    .sidebar-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .sidebar-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .sidebar-loading {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 0.5rem;
+    }
+
+    /* === Pioneer/User List Items === */
+    .user-list-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+
+    .user-list-item:hover {
+      background: var(--surface-2);
+    }
+
+    .user-list-item .position {
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--accent);
+      min-width: 24px;
+    }
+
+    .user-list-item .position.gold {
+      color: #FFD700;
+    }
+
+    .user-list-item .position.silver {
+      color: #C0C0C0;
+    }
+
+    .user-list-item .position.bronze {
+      color: #CD7F32;
+    }
+
+    .user-list-item .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--surface-2);
+    }
+
+    .user-list-item .user-avatar-placeholder {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    .user-list-item .user-name {
+      flex: 1;
+      font-size: 0.9rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .user-list-item .regalia {
+      font-size: 0.85rem;
+    }
+
+    /* Pioneer regalia badges */
+    .pioneer-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.75rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      background: linear-gradient(135deg, #FFD700, #FFA500);
+      color: #000;
+      font-weight: 600;
+    }
+
+    .pioneer-badge.first {
+      background: linear-gradient(135deg, #FFD700, #FF6B00);
+      animation: pulseGlow 2s ease-in-out infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
+      50% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.8); }
+    }
+
+    /* === Recent Playlists === */
+    .playlist-list-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem;
+      border-radius: 8px;
+      transition: background 0.2s;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .playlist-list-item:hover {
+      background: var(--surface-2);
+    }
+
+    .playlist-list-item .playlist-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    .playlist-list-item .playlist-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .playlist-list-item .playlist-name {
+      font-size: 0.85rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .playlist-list-item .playlist-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .playlist-list-item .playlist-creator {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .playlist-list-item .creator-avatar {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+    }
+
+    /* === Sidebar Toggle (Mobile) === */
+    .sidebar-toggle {
+      display: none;
+      position: fixed;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: none;
+      border-radius: 0 8px 8px 0;
+      padding: 0.75rem 0.5rem;
+      cursor: pointer;
+      z-index: 99;
+      transition: background 0.2s;
+    }
+
+    .sidebar-toggle:hover {
+      background: var(--surface-2);
+    }
+
+    .sidebar-toggle .toggle-icon {
+      font-size: 0.9rem;
+      transition: transform 0.3s;
+    }
+
+    .sidebar.collapsed + .sidebar-toggle .toggle-icon {
+      transform: rotate(180deg);
+    }
+
+    /* === Main Content with Sidebar === */
+    .main-content {
+      flex: 1;
+      padding: 1.5rem;
+      min-width: 0;
+    }
+
+    /* === Scoreboard Button === */
+    .sidebar-scoreboard-btn {
+      width: 100%;
+      justify-content: center;
+      margin-top: auto;
+    }
+
+    /* === Scoreboard Modal === */
+    .scoreboard-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1100;
+      padding: 1rem;
+    }
+
+    .scoreboard-modal.active {
+      display: flex;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .scoreboard-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .scoreboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .scoreboard-header h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .scoreboard-tabs {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    .scoreboard-tab {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      background: var(--surface-2);
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .scoreboard-tab:hover {
+      background: var(--surface-2);
+      color: var(--text);
+    }
+
+    .scoreboard-tab.active {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .scoreboard-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem;
+    }
+
+    .scoreboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .scoreboard-entry {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem;
+      border-radius: 8px;
+      background: var(--surface-2);
+    }
+
+    .scoreboard-entry .rank {
+      font-weight: 700;
+      font-size: 1rem;
+      min-width: 32px;
+      text-align: center;
+    }
+
+    .scoreboard-entry .rank.gold { color: #FFD700; }
+    .scoreboard-entry .rank.silver { color: #C0C0C0; }
+    .scoreboard-entry .rank.bronze { color: #CD7F32; }
+
+    .scoreboard-entry .entry-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--surface);
+    }
+
+    .scoreboard-entry .entry-info {
+      flex: 1;
+    }
+
+    .scoreboard-entry .entry-name {
+      font-weight: 500;
+    }
+
+    .scoreboard-entry .entry-count {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .scoreboard-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* === Responsive Sidebar === */
+    @media (max-width: 1024px) {
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 80px;
+        bottom: 0;
+        z-index: 98;
+        transform: translateX(0);
+        transition: transform 0.3s ease;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+      }
+
+      .sidebar.collapsed {
+        transform: translateX(-100%);
+      }
+
+      .sidebar-toggle {
+        display: block;
+      }
+
+      .main-content {
+        margin-left: 0;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .app-header {
+        padding: 0.75rem 1rem;
+      }
+
+      .header-content h1 {
+        font-size: 1.25rem;
+      }
+
+      .sidebar {
+        width: 260px;
+        min-width: 260px;
+        padding: 1rem;
+      }
+
+      .scoreboard-panel {
+        border-radius: 12px;
+      }
+
+      .scoreboard-tabs {
+        padding: 0.75rem 1rem;
+      }
+    }
+
+    /* === Light Mode Sidebar Overrides === */
+    body.light-mode .sidebar {
+      background: #ffffff;
+      border-right-color: #dee2e6;
+    }
+
+    body.light-mode .user-list-item:hover,
+    body.light-mode .playlist-list-item:hover {
+      background: #f1f3f4;
+    }
+
+    body.light-mode .sidebar-toggle {
+      background: #ffffff;
+      border-color: #dee2e6;
+    }
+
+    body.light-mode .sidebar-toggle:hover {
+      background: #f1f3f4;
+    }
+
+    body.light-mode .scoreboard-entry {
+      background: #f1f3f4;
+    }
+
+    body.light-mode .scoreboard-tab {
+      background: #e9ecef;
+      color: #495057;
+    }
+
+    body.light-mode .scoreboard-tab:hover {
+      background: #dee2e6;
+    }
+
+    /* === Swedish Mode Sidebar === */
+    body.swedish-mode .pioneer-badge {
+      background: linear-gradient(135deg, #FECC00, #006AA7);
+      color: #fff;
+    }
+
+    body.swedish-mode .user-list-item .position {
+      color: #006AA7;
+    }
+
+    body.swedish-mode .scoreboard-tab.active {
+      background: #006AA7;
+      color: #FECC00;
+    }
+
+    /* =========================================
+       ALBUM ART LOADING ANIMATION
+       ========================================= */
+
+    .playlist-loading-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1200;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .album-carousel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      perspective: 800px;
+    }
+
+    .album-art {
+      width: 100px;
+      height: 100px;
+      border-radius: 8px;
+      object-fit: cover;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      animation: albumFlip 2s ease-in-out infinite;
+      transform-style: preserve-3d;
+    }
+
+    .album-art:nth-child(1) { animation-delay: 0s; }
+    .album-art:nth-child(2) { animation-delay: 0.2s; }
+    .album-art:nth-child(3) { animation-delay: 0.4s; }
+    .album-art:nth-child(4) { animation-delay: 0.6s; }
+    .album-art:nth-child(5) { animation-delay: 0.8s; }
+
+    @keyframes albumFlip {
+      0%, 100% {
+        transform: rotateY(0deg) scale(1);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      }
+      25% {
+        transform: rotateY(180deg) scale(1.1);
+        box-shadow: 0 12px 32px rgba(29, 185, 84, 0.4);
+      }
+      50% {
+        transform: rotateY(360deg) scale(1);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      }
+    }
+
+    .album-art.vinyl-mode {
+      animation: vinylSpin 3s linear infinite;
+      border-radius: 50%;
+    }
+
+    @keyframes vinylSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 1.25rem;
+      font-weight: 500;
+      margin-bottom: 1rem;
+      text-align: center;
+      min-height: 2rem;
+    }
+
+    .loading-progress {
+      width: 300px;
+      max-width: 80%;
+      height: 4px;
+      background: var(--surface-2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .loading-progress-bar {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    .loading-stats {
+      margin-top: 1.5rem;
+      display: flex;
+      gap: 2rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .loading-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .loading-stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* Celebration overlay */
+    .celebration-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1300;
+    }
+
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: var(--accent);
+      animation: confettiFall 3s ease-out forwards;
+    }
+
+    @keyframes confettiFall {
+      0% {
+        opacity: 1;
+        transform: translateY(-100px) rotate(0deg);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(100vh) rotate(720deg);
+      }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 640px) {
+      .album-art {
+        width: 60px;
+        height: 60px;
+      }
+
+      .album-carousel {
+        gap: 0.25rem;
+      }
+
+      .loading-text {
+        font-size: 1rem;
+      }
+
+      .loading-stats {
+        gap: 1rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -2053,28 +2868,67 @@ export function getHtml(): string {
   <!-- Viking ship Easter egg (only in Swedish mode) -->
   <div class="viking-ship" title="Vikingaskepp!">⛵</div>
 
-  <div class="container">
-    <header style="position: relative;">
-      <h1>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 01-.277-1.215c3.809-.87 7.076-.496 9.712 1.115.293.18.386.563.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.972c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.071zm.105-2.835c-3.223-1.914-8.54-2.09-11.618-1.156a.935.935 0 11-.543-1.79c3.533-1.072 9.404-.865 13.115 1.338a.935.935 0 11-.954 1.608z"/>
-        </svg>
-        <span data-i18n="title">Genre Sorter</span>
-      </h1>
-      <span class="swedish-crowns" title="Tre Kronor - Three Crowns of Sweden">
-        <span class="crown">👑</span>
-        <span class="crown">👑</span>
-        <span class="crown">👑</span>
-      </span>
-      <div id="header-actions"></div>
+  <div class="app-wrapper">
+    <header class="app-header">
+      <div class="header-content">
+        <h1>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 01-.277-1.215c3.809-.87 7.076-.496 9.712 1.115.293.18.386.563.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.972c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.071zm.105-2.835c-3.223-1.914-8.54-2.09-11.618-1.156a.935.935 0 11-.543-1.79c3.533-1.072 9.404-.865 13.115 1.338a.935.935 0 11-.954 1.608z"/>
+          </svg>
+          <span data-i18n="title">Genre Genie</span>
+          <span class="genie-sparkle">✨</span>
+        </h1>
+        <span class="swedish-crowns" title="Tre Kronor - Three Crowns of Sweden">
+          <span class="crown">👑</span>
+          <span class="crown">👑</span>
+          <span class="crown">👑</span>
+        </span>
+        <div id="header-actions"></div>
+      </div>
     </header>
 
-    <main id="app">
-      <div class="loading">
-        <div class="spinner"></div>
-        <span data-i18n="loading">Loading...</span>
-      </div>
-    </main>
+    <div class="content-wrapper">
+      <!-- Left Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">🏆 <span data-i18n="pioneers">Pioneers</span></h3>
+          <div class="pioneers-list" id="pioneers-list">
+            <div class="sidebar-loading">Loading...</div>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">👋 <span data-i18n="newUsers">New Users</span></h3>
+          <div class="new-users-list" id="new-users-list">
+            <div class="sidebar-loading">Loading...</div>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">🎵 <span data-i18n="recentPlaylists">Recent Playlists</span></h3>
+          <div class="recent-playlists-list" id="recent-playlists-list">
+            <div class="sidebar-loading">Loading...</div>
+          </div>
+        </div>
+
+        <button class="btn btn-secondary sidebar-scoreboard-btn" onclick="showScoreboard()">
+          📊 <span data-i18n="viewScoreboard">View Scoreboard</span>
+        </button>
+      </aside>
+
+      <!-- Mobile sidebar toggle -->
+      <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+        <span class="toggle-icon">◀</span>
+      </button>
+
+      <!-- Main Content -->
+      <main id="app" class="main-content">
+        <div class="loading">
+          <div class="spinner"></div>
+          <span data-i18n="loading">Loading...</span>
+        </div>
+      </main>
+    </div>
   </div>
 
   <!-- Shout me a durry button (Aussie style) / Snus button (Swedish mode) -->
@@ -2218,6 +3072,24 @@ export function getHtml(): string {
     let deployStatus = null;
     let clientVersion = null;
     let deployPollInterval = null;
+    const DEPLOY_CACHE_KEY = 'genreGenie_deployCache';
+
+    // Load cached deploy status
+    function loadCachedDeployStatus() {
+      try {
+        const cached = localStorage.getItem(DEPLOY_CACHE_KEY);
+        return cached ? JSON.parse(cached) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    // Save deploy status to cache
+    function cacheDeployStatus(data) {
+      try {
+        localStorage.setItem(DEPLOY_CACHE_KEY, JSON.stringify(data));
+      } catch {}
+    }
 
     async function checkDeployStatus() {
       try {
@@ -2230,6 +3102,7 @@ export function getHtml(): string {
         }
 
         deployStatus = data;
+        cacheDeployStatus(data);
         updateDeployWidget(data);
 
         // Check for version mismatch
@@ -2237,42 +3110,60 @@ export function getHtml(): string {
           showVersionMismatchPrompt(data.version);
         }
       } catch {
-        // Silently fail - widget just stays hidden
+        // Use cached data if API fails
+        const cached = loadCachedDeployStatus();
+        if (cached) {
+          deployStatus = cached;
+          updateDeployWidget(cached, true);
+        } else {
+          // Show minimal fallback widget
+          updateDeployWidget({ version: '?.?.?', deployment: null }, true);
+        }
       }
     }
 
-    function updateDeployWidget(data) {
+    function updateDeployWidget(data, isOffline = false) {
       const widget = document.getElementById('deploy-widget');
       if (!widget) return;
 
-      const deployment = data.deployment;
+      const deployment = data?.deployment;
       const statusIcon = widget.querySelector('.status-icon');
       const deployText = widget.querySelector('.deploy-text');
 
+      // ALWAYS show the widget
       widget.style.display = 'flex';
       widget.classList.remove('deploying', 'success', 'failure');
 
-      if (!deployment) {
-        widget.style.display = 'none';
-        return;
-      }
+      // Get release name from changelog cache if available
+      const releaseName = changelogCache?.changelog?.[0]?.changes?.[0] || '';
+      const shortReleaseName = releaseName.length > 20 ? releaseName.substring(0, 20) + '...' : releaseName;
 
-      if (deployment.status === 'in_progress' || deployment.status === 'queued') {
+      if (deployment?.status === 'in_progress' || deployment?.status === 'queued') {
         widget.classList.add('deploying');
         statusIcon.innerHTML = '<div class="spinner-small"></div>';
         deployText.textContent = deployment.currentStep || 'Deploying...';
-      } else if (deployment.conclusion === 'success') {
+      } else if (deployment?.conclusion === 'success') {
         widget.classList.add('success');
-        statusIcon.innerHTML = \`<img class="avatar" src="\${deployment.author.avatar}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
+        statusIcon.innerHTML = \`<img class="avatar" src="\${deployment.author?.avatar || ''}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
         const updatedAt = new Date(deployment.updatedAt);
         const timeAgo = formatTimeAgo(updatedAt);
-        deployText.textContent = \`v\${data.version} • \${timeAgo} by @\${deployment.author.name}\`;
-      } else if (deployment.conclusion === 'failure') {
+        // Show version, release hint if available, and time
+        let text = \`v\${data.version}\`;
+        if (shortReleaseName) text += \` • \${shortReleaseName}\`;
+        text += \` • \${timeAgo}\`;
+        if (isOffline) text += ' (cached)';
+        deployText.textContent = text;
+      } else if (deployment?.conclusion === 'failure') {
         widget.classList.add('failure');
         statusIcon.textContent = '❌';
         deployText.textContent = 'Deploy failed';
       } else {
-        widget.style.display = 'none';
+        // Fallback: show version only
+        statusIcon.textContent = '✨';
+        let text = \`v\${data?.version || '?.?.?'}\`;
+        if (shortReleaseName) text += \` • \${shortReleaseName}\`;
+        if (isOffline) text += ' (offline)';
+        deployText.textContent = text;
       }
     }
 
@@ -2403,7 +3294,7 @@ export function getHtml(): string {
     // Swedish translations
     const i18n = {
       en: {
-        title: 'Genre Sorter',
+        title: 'Genre Genie',
         loading: 'Loading...',
         organiseMusic: 'Organise Your Music',
         organiseDesc: 'Automatically sort your Spotify liked songs into genre-based playlists with one click.',
@@ -2440,9 +3331,13 @@ export function getHtml(): string {
         hallOfFame: 'First Users - Hall of Fame',
         musicLoversJoined: 'music lovers have joined',
         signInSpotify: 'Sign in with Spotify',
+        pioneers: 'Pioneers',
+        newUsers: 'New Users',
+        recentPlaylists: 'Recent Playlists',
+        viewScoreboard: 'View Scoreboard',
       },
       sv: {
-        title: 'Genresorterare',
+        title: 'Genre Genie',
         loading: 'Laddar...',
         organiseMusic: 'Organisera Din Musik',
         organiseDesc: 'Sortera automatiskt dina gillade Spotify-låtar i genrebaserade spellistor med ett klick.',
@@ -2479,6 +3374,10 @@ export function getHtml(): string {
         hallOfFame: 'Första Användarna',
         musicLoversJoined: 'musikälskare har gått med',
         signInSpotify: 'Logga in med Spotify',
+        pioneers: 'Pionjärer',
+        newUsers: 'Nya Användare',
+        recentPlaylists: 'Senaste Spellistor',
+        viewScoreboard: 'Visa Resultattavla',
       }
     };
 
@@ -2487,13 +3386,13 @@ export function getHtml(): string {
       return i18n[lang][key] || i18n.en[key] || key;
     }
 
-    function toggleSwedishMode() {
-      swedishMode = !swedishMode;
-      localStorage.setItem('swedishMode', swedishMode);
-      document.body.classList.toggle('swedish-mode', swedishMode);
+    // Centralised Swedish mode application - handles ALL state changes
+    function applySwedishMode(enabled, options = {}) {
+      const { playSound = false, showNotif = false } = options;
 
-      // Add Midsommar mode in June
-      if (swedishMode && isMidsommarSeason) {
+      // Update body classes
+      document.body.classList.toggle('swedish-mode', enabled);
+      if (enabled && isMidsommarSeason) {
         document.body.classList.add('midsommar');
       } else {
         document.body.classList.remove('midsommar');
@@ -2509,58 +3408,88 @@ export function getHtml(): string {
       if (donationBtn) {
         const icon = donationBtn.querySelector('.icon');
         const text = donationBtn.querySelector('.text');
-        if (swedishMode) {
-          icon.textContent = '🫙';
-          text.textContent = 'Bjud mig på snus';
+        if (enabled) {
+          if (icon) icon.textContent = '🫙';
+          if (text) text.textContent = 'Bjud mig på snus';
           donationBtn.title = 'Tack för stödet, kompis!';
         } else {
-          icon.textContent = '🚬';
-          text.textContent = 'Shout me a durry';
+          if (icon) icon.textContent = '🚬';
+          if (text) text.textContent = 'Shout me a durry';
           donationBtn.title = 'Chuck us a dart, legend';
         }
       }
 
-      // Play Swedish chime when entering Swedish mode
-      if (swedishMode) {
+      // Update Heidi badge
+      const heidiBadge = document.querySelector('.heidi-badge');
+      if (heidiBadge) {
+        const heidiText = heidiBadge.querySelector('.heidi-text span');
+        if (heidiText) {
+          heidiText.textContent = enabled ? 'För Heidi' : 'For Heidi';
+        }
+      }
+
+      // Update placeholder text in search inputs
+      const searchInput = document.querySelector('.search-input');
+      if (searchInput) {
+        searchInput.placeholder = enabled ? 'Sök genrer... (/ för att fokusera)' : 'Search genres... (/ to focus)';
+      }
+
+      // Update Hall of Fame title if visible
+      const hofTitle = document.querySelector('.hall-of-fame h3');
+      if (hofTitle) {
+        hofTitle.textContent = enabled ? '🏆 Hedersvägg' : '🏆 Hall of Fame';
+      }
+
+      // Update loading messages if loading is in progress
+      const loadingMessage = document.querySelector('.progress-message, .loading span');
+      if (loadingMessage && loadingMessage.textContent) {
+        // Loading messages will be updated by the loading functions
+      }
+
+      // Play sound and show notification only on toggle (not on page load)
+      if (playSound && enabled) {
         try {
           const audio = new Audio(swedishChime);
           audio.volume = 0.3;
-          audio.play().catch(() => {}); // Ignore autoplay restrictions
+          audio.play().catch(() => {});
         } catch {}
-        showNotification('🇸🇪 Välkommen till svenskt läge! Tack Heidi! 👑', 'success');
-        // Start fika timer
+      }
+
+      if (showNotif) {
+        if (enabled) {
+          showNotification('🇸🇪 Välkommen till svenskt läge! Tack Heidi! 👑', 'success');
+        } else {
+          showNotification('Back to normal mode!', 'success');
+        }
+      }
+
+      // Start/stop fika timer
+      if (enabled) {
         startFikaTimer();
-        // Update badge tooltip
         updateHeidiBadgeFact();
-      } else {
-        showNotification('Back to normal mode!', 'success');
       }
 
       // Re-render current view to update all text
       if (genreData) {
         renderGenres();
       }
+
+      // Re-render sidebar content with updated language
+      if (typeof renderPioneers === 'function') renderPioneers();
+      if (typeof renderNewUsers === 'function') renderNewUsers();
+      if (typeof renderRecentPlaylists === 'function') renderRecentPlaylists();
+    }
+
+    function toggleSwedishMode() {
+      swedishMode = !swedishMode;
+      localStorage.setItem('swedishMode', swedishMode);
+      applySwedishMode(swedishMode, { playSound: true, showNotif: true });
     }
 
     // Apply Swedish mode on load if previously enabled
     if (swedishMode) {
-      document.body.classList.add('swedish-mode');
-      // Add Midsommar mode in June
-      if (isMidsommarSeason) {
-        document.body.classList.add('midsommar');
-      }
-      // Also update the donation button on load
-      const donationBtn = document.getElementById('donation-btn');
-      if (donationBtn) {
-        const icon = donationBtn.querySelector('.icon');
-        const text = donationBtn.querySelector('.text');
-        if (icon) icon.textContent = '🫙';
-        if (text) text.textContent = 'Bjud mig på snus';
-        donationBtn.title = 'Tack för stödet, kompis!';
-      }
-      // Start fika timer and update tooltip
-      startFikaTimer();
-      updateHeidiBadgeFact();
+      // Defer to ensure DOM is ready
+      setTimeout(() => applySwedishMode(true, { playSound: false, showNotif: false }), 0);
     }
 
     async function init() {
@@ -2667,7 +3596,12 @@ export function getHtml(): string {
     function renderHeaderUser(session) {
       const avatar = session.avatar || session.spotifyAvatar || session.githubAvatar;
       const user = session.user || session.spotifyUser || session.githubUser;
+      const lightMode = document.body.classList.contains('light-mode');
+      // Keep theme toggle in header, add user info next to it
       headerActions.innerHTML = \`
+        <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
+          \${lightMode ? '🌙' : '☀️'}
+        </button>
         <div class="user-info">
           \${avatar ? \`<img src="\${avatar}" alt="" class="avatar" onerror="this.style.display='none'">\` : ''}
           <span>\${user || 'User'}</span>
@@ -3586,16 +4520,147 @@ export function getHtml(): string {
       createPlaylist(genreName, true);
     }
 
+    // ================== LOADING ANIMATION ==================
+
+    // Get random album art from genre tracks (uses Spotify album images)
+    function getAlbumArtForGenre(genreName) {
+      // Default album art placeholder
+      const defaultArt = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="#282828" width="100" height="100"/><circle cx="50" cy="50" r="40" fill="#1DB954"/><circle cx="50" cy="50" r="15" fill="#282828"/></svg>');
+
+      // If we have track album art in genreData, use it
+      const genre = genreData?.genres?.find(g => g.name === genreName);
+      if (genre?.albumArts && genre.albumArts.length > 0) {
+        // Get up to 5 random album arts
+        const shuffled = [...genre.albumArts].sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, 5);
+      }
+
+      // Return default placeholders
+      return [defaultArt, defaultArt, defaultArt, defaultArt, defaultArt];
+    }
+
+    // Dynamic completion messages
+    const completionMessages = {
+      en: [
+        "Your playlists are ready! Time to vibe 🎵",
+        "Boom! Genre magic complete ✨",
+        "Playlists created! Your music, organised 🎧",
+        "Done! Your Spotify just got an upgrade 🚀",
+        "Nailed it! Happy listening 🎶",
+        "All sorted! Your ears will thank you 👂",
+        "Genre Genie has worked their magic! 🧞",
+        "Playlist perfection achieved! 💯",
+      ],
+      sv: [
+        "Dina spellistor är klara! Dags att njuta 🎵",
+        "Klart! Genre-magi slutförd ✨",
+        "Spellistor skapade! Din musik, organiserad 🎧",
+        "Klart! Din Spotify blev just uppgraderad 🚀",
+        "Perfekt! Trevlig lyssning 🎶",
+        "Allt sorterat! Dina öron tackar dig 👂",
+        "Genre Genie har trollat! 🧞",
+        "Spellistperfektion uppnådd! 💯",
+      ]
+    };
+
+    function getRandomCompletionMessage() {
+      const messages = swedishMode ? completionMessages.sv : completionMessages.en;
+      return messages[Math.floor(Math.random() * messages.length)];
+    }
+
+    // Show loading modal with album art animation
+    function showLoadingModal(total) {
+      // Collect album art from all selected genres
+      const allAlbumArts = [];
+      for (const genreName of selectedGenres) {
+        const arts = getAlbumArtForGenre(genreName);
+        allAlbumArts.push(...arts);
+      }
+      // Shuffle and take up to 5
+      const shuffled = [...new Set(allAlbumArts)].sort(() => 0.5 - Math.random()).slice(0, 5);
+
+      const modal = document.createElement('div');
+      modal.className = 'playlist-loading-modal';
+      modal.id = 'loading-modal';
+      modal.innerHTML = \`
+        <div class="album-carousel">
+          \${shuffled.map(art => \`<img class="album-art" src="\${art}" alt="" onerror="this.style.background='var(--surface-2)'">\`).join('')}
+        </div>
+        <div class="loading-text" id="loading-text">\${swedishMode ? 'Skapar spellistor...' : 'Creating playlists...'}</div>
+        <div class="loading-progress">
+          <div class="loading-progress-bar" id="loading-progress-bar" style="width: 0%"></div>
+        </div>
+        <div class="loading-stats">
+          <div class="loading-stat">
+            <span class="loading-stat-value" id="loading-completed">0</span>
+            <span>\${swedishMode ? 'Skapade' : 'Created'}</span>
+          </div>
+          <div class="loading-stat">
+            <span class="loading-stat-value">\${total}</span>
+            <span>\${swedishMode ? 'Totalt' : 'Total'}</span>
+          </div>
+        </div>
+      \`;
+      document.body.appendChild(modal);
+    }
+
+    // Update loading progress
+    function updateLoadingProgress(completed, total, currentGenre) {
+      const progressBar = document.getElementById('loading-progress-bar');
+      const completedEl = document.getElementById('loading-completed');
+      const textEl = document.getElementById('loading-text');
+
+      if (progressBar) progressBar.style.width = \`\${(completed / total) * 100}%\`;
+      if (completedEl) completedEl.textContent = completed;
+      if (textEl && currentGenre) {
+        textEl.textContent = swedishMode
+          ? \`Skapar: \${currentGenre}...\`
+          : \`Creating: \${currentGenre}...\`;
+      }
+    }
+
+    // Hide loading modal
+    function hideLoadingModal() {
+      document.getElementById('loading-modal')?.remove();
+    }
+
+    // Show celebration animation
+    function showCelebration(successful) {
+      if (successful === 0) return;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'celebration-overlay';
+
+      // Create confetti pieces
+      const colors = ['#1DB954', '#FFD700', '#FF6B6B', '#4ECDC4', '#9B59B6'];
+      for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = \`\${Math.random() * 100}%\`;
+        confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.animationDelay = \`\${Math.random() * 0.5}s\`;
+        confetti.style.transform = \`rotate(\${Math.random() * 360}deg)\`;
+        overlay.appendChild(confetti);
+      }
+
+      document.body.appendChild(overlay);
+
+      // Remove after animation
+      setTimeout(() => overlay.remove(), 3500);
+    }
+
     async function createSelectedPlaylists() {
       if (selectedGenres.size === 0) return;
 
       const btn = document.getElementById('create-btn');
       btn.disabled = true;
-      btn.textContent = \`\${t('creating').replace('...', '')} \${selectedGenres.size} \${t('playlists')}...\`;
 
       const genres = genreData.genres
         .filter(g => selectedGenres.has(g.name))
         .map(g => ({ name: g.name, trackIds: g.trackIds }));
+
+      // Show loading modal with album art animation
+      showLoadingModal(genres.length);
 
       try {
         const response = await fetch('/api/playlists/bulk', {
@@ -3606,13 +4671,25 @@ export function getHtml(): string {
 
         const result = await response.json();
 
+        // Hide loading modal
+        hideLoadingModal();
+
+        // Show celebration if playlists were created
+        if (result.successful > 0) {
+          showCelebration(result.successful);
+        }
+
         const skippedText = result.skipped > 0
           ? \` (\${result.skipped} \${swedishMode ? 'hoppades över - finns redan' : 'skipped - already exist'})\`
           : '';
 
+        // Show dynamic completion message
+        const completionMessage = result.successful > 0 ? getRandomCompletionMessage() : '';
+
         document.getElementById('results').innerHTML = \`
           <div class="card">
             <h2 class="card-title" data-i18n="results">\${t('results')}</h2>
+            \${completionMessage ? \`<p style="margin-bottom: 1rem; font-size: 1.1rem; color: var(--accent);">\${completionMessage}</p>\` : ''}
             <p style="margin-bottom: 1rem;">
               \${t('successCreated')} \${result.successful} \${t('of')} \${result.total} \${t('playlists')}\${skippedText}.
             </p>
@@ -3635,7 +4712,13 @@ export function getHtml(): string {
         selectedGenres.clear();
         updateSelectedCount();
         renderGenreList(filterGenres(''));
+
+        // Reload recent playlists to show the new ones
+        if (typeof loadRecentPlaylists === 'function') {
+          loadRecentPlaylists();
+        }
       } catch (error) {
+        hideLoadingModal();
         showNotification(\`\${t('failed')}: \${error.message}\`, 'error');
       }
 
@@ -3827,11 +4910,297 @@ export function getHtml(): string {
       }
     };
 
+    // ================== SIDEBAR FUNCTIONS ==================
+
+    let sidebarData = {
+      pioneers: [],
+      newUsers: [],
+      recentPlaylists: []
+    };
+    let scoreboardData = null;
+    let sidebarPollInterval = null;
+
+    // Load leaderboard data (pioneers + new users)
+    async function loadLeaderboard() {
+      try {
+        const response = await fetch('/api/leaderboard');
+        if (!response.ok) return;
+        const data = await response.json();
+        sidebarData.pioneers = data.pioneers || [];
+        sidebarData.newUsers = data.newUsers || [];
+        renderPioneers();
+        renderNewUsers();
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to load leaderboard:', err);
+      }
+    }
+
+    // Load recent playlists
+    async function loadRecentPlaylists() {
+      try {
+        const response = await fetch('/api/recent-playlists');
+        if (!response.ok) return;
+        const data = await response.json();
+        sidebarData.recentPlaylists = data.playlists || [];
+        renderRecentPlaylists();
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to load recent playlists:', err);
+      }
+    }
+
+    // Render pioneers list in sidebar
+    function renderPioneers() {
+      const container = document.getElementById('pioneers-list');
+      if (!container) return;
+
+      if (sidebarData.pioneers.length === 0) {
+        container.innerHTML = '<div class="sidebar-loading">' + (swedishMode ? 'Inga pionjärer än' : 'No pioneers yet') + '</div>';
+        return;
+      }
+
+      container.innerHTML = sidebarData.pioneers.map((user, i) => {
+        const posClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+        const regalia = i === 0 ? '<span class="pioneer-badge first">👑 First!</span>' :
+                        i < 3 ? '<span class="pioneer-badge">🏆</span>' :
+                        i < 10 ? '<span class="regalia">⭐</span>' : '';
+
+        return \`
+          <div class="user-list-item" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
+            <span class="position \${posClass}">#\${i + 1}</span>
+            \${user.spotifyAvatar
+              ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+              : '<div class="user-avatar-placeholder">👤</div>'}
+            <span class="user-name">\${escapeHtml(user.spotifyName)}</span>
+            \${regalia}
+          </div>
+        \`;
+      }).join('');
+    }
+
+    // Render new users list in sidebar
+    function renderNewUsers() {
+      const container = document.getElementById('new-users-list');
+      if (!container) return;
+
+      if (sidebarData.newUsers.length === 0) {
+        container.innerHTML = '<div class="sidebar-loading">' + (swedishMode ? 'Inga nya användare' : 'No new users') + '</div>';
+        return;
+      }
+
+      container.innerHTML = sidebarData.newUsers.map(user => {
+        return \`
+          <div class="user-list-item">
+            \${user.spotifyAvatar
+              ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+              : '<div class="user-avatar-placeholder">👤</div>'}
+            <span class="user-name">\${escapeHtml(user.spotifyName)}</span>
+            <span class="regalia">\${formatTimeAgo(new Date(user.registeredAt))}</span>
+          </div>
+        \`;
+      }).join('');
+    }
+
+    // Render recent playlists in sidebar
+    function renderRecentPlaylists() {
+      const container = document.getElementById('recent-playlists-list');
+      if (!container) return;
+
+      if (sidebarData.recentPlaylists.length === 0) {
+        container.innerHTML = '<div class="sidebar-loading">' + (swedishMode ? 'Inga spellistor än' : 'No playlists yet') + '</div>';
+        return;
+      }
+
+      container.innerHTML = sidebarData.recentPlaylists.slice(0, 10).map(playlist => {
+        const genreEmoji = getGenreEmoji(playlist.genre);
+        return \`
+          <a href="\${playlist.spotifyUrl}" target="_blank" class="playlist-list-item" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
+            <div class="playlist-icon">\${genreEmoji}</div>
+            <div class="playlist-info">
+              <div class="playlist-name">\${escapeHtml(playlist.playlistName)}</div>
+              <div class="playlist-meta">
+                <span class="playlist-creator">
+                  \${playlist.createdBy.spotifyAvatar
+                    ? \`<img class="creator-avatar" src="\${playlist.createdBy.spotifyAvatar}" alt="">\`
+                    : ''}
+                  \${escapeHtml(playlist.createdBy.spotifyName)}
+                </span>
+                <span>•</span>
+                <span>\${formatTimeAgo(new Date(playlist.createdAt))}</span>
+              </div>
+            </div>
+          </a>
+        \`;
+      }).join('');
+    }
+
+    // Escape HTML for safe display
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text || '';
+      return div.innerHTML;
+    }
+
+    // Get emoji for genre (reuse existing or provide fallback)
+    function getGenreEmoji(genre) {
+      const emojiMap = {
+        'rock': '🎸', 'pop': '🎤', 'hip hop': '🎧', 'rap': '🎤', 'jazz': '🎷',
+        'classical': '🎻', 'electronic': '🎹', 'dance': '💃', 'country': '🤠',
+        'r&b': '🎵', 'soul': '💜', 'blues': '🎺', 'metal': '🤘', 'punk': '⚡',
+        'folk': '🪕', 'indie': '🌟', 'alternative': '🎸', 'reggae': '🌴',
+        'latin': '💃', 'k-pop': '🇰🇷', 'j-pop': '🇯🇵', 'anime': '🎌'
+      };
+      const lowerGenre = (genre || '').toLowerCase();
+      for (const [key, emoji] of Object.entries(emojiMap)) {
+        if (lowerGenre.includes(key)) return emoji;
+      }
+      return '🎵';
+    }
+
+    // Toggle sidebar visibility (mobile)
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const toggle = document.getElementById('sidebar-toggle');
+      if (!sidebar) return;
+
+      sidebar.classList.toggle('collapsed');
+      const isCollapsed = sidebar.classList.contains('collapsed');
+
+      if (toggle) {
+        toggle.querySelector('.toggle-icon').textContent = isCollapsed ? '▶' : '◀';
+        toggle.setAttribute('aria-expanded', !isCollapsed);
+      }
+    }
+    // Make toggleSidebar globally accessible
+    window.toggleSidebar = toggleSidebar;
+
+    // Show scoreboard modal
+    async function showScoreboard() {
+      // Fetch scoreboard data
+      try {
+        const response = await fetch('/api/scoreboard');
+        if (!response.ok) throw new Error('Failed to fetch');
+        scoreboardData = await response.json();
+      } catch (err) {
+        showNotification(swedishMode ? 'Kunde inte ladda resultattavlan' : 'Failed to load scoreboard', 'error');
+        return;
+      }
+
+      // Create modal
+      const modal = document.createElement('div');
+      modal.className = 'scoreboard-modal active';
+      modal.id = 'scoreboard-modal';
+      modal.onclick = (e) => {
+        if (e.target === modal) closeScoreboard();
+      };
+
+      modal.innerHTML = \`
+        <div class="scoreboard-panel">
+          <div class="scoreboard-header">
+            <h2>📊 \${swedishMode ? 'Resultattavla' : 'Scoreboard'}</h2>
+            <button class="btn btn-ghost" onclick="closeScoreboard()">✕</button>
+          </div>
+          <div class="scoreboard-tabs">
+            <button class="scoreboard-tab active" data-tab="playlists">🎵 \${swedishMode ? 'Spellistor' : 'Playlists'}</button>
+            <button class="scoreboard-tab" data-tab="genres">🎸 \${swedishMode ? 'Genrer' : 'Genres'}</button>
+            <button class="scoreboard-tab" data-tab="artists">🎤 \${swedishMode ? 'Artister' : 'Artists'}</button>
+            <button class="scoreboard-tab" data-tab="tracks">📀 \${swedishMode ? 'Låtar' : 'Tracks'}</button>
+          </div>
+          <div class="scoreboard-content" id="scoreboard-content">
+            \${renderScoreboardTab('playlists')}
+          </div>
+          <div class="scoreboard-footer">
+            \${scoreboardData.totalUsers} \${swedishMode ? 'användare totalt' : 'total users'} •
+            \${swedishMode ? 'Uppdaterad' : 'Updated'} \${formatTimeAgo(new Date(scoreboardData.updatedAt))}
+          </div>
+        </div>
+      \`;
+
+      document.body.appendChild(modal);
+
+      // Add tab click handlers
+      modal.querySelectorAll('.scoreboard-tab').forEach(tab => {
+        tab.onclick = () => {
+          modal.querySelectorAll('.scoreboard-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          document.getElementById('scoreboard-content').innerHTML = renderScoreboardTab(tab.dataset.tab);
+        };
+      });
+    }
+    // Make showScoreboard globally accessible
+    window.showScoreboard = showScoreboard;
+
+    // Render a scoreboard tab
+    function renderScoreboardTab(tab) {
+      if (!scoreboardData) return '';
+
+      const tabMap = {
+        playlists: { data: scoreboardData.byPlaylists, label: swedishMode ? 'spellistor' : 'playlists' },
+        genres: { data: scoreboardData.byGenres, label: swedishMode ? 'genrer' : 'genres' },
+        artists: { data: scoreboardData.byArtists, label: swedishMode ? 'artister' : 'artists' },
+        tracks: { data: scoreboardData.byTracks, label: swedishMode ? 'låtar' : 'tracks' }
+      };
+
+      const { data, label } = tabMap[tab] || tabMap.playlists;
+
+      if (!data || data.length === 0) {
+        return \`<div class="sidebar-loading">\${swedishMode ? 'Inga data än' : 'No data yet'}</div>\`;
+      }
+
+      return \`
+        <div class="scoreboard-list">
+          \${data.map(entry => {
+            const rankClass = entry.rank === 1 ? 'gold' : entry.rank === 2 ? 'silver' : entry.rank === 3 ? 'bronze' : '';
+            return \`
+              <div class="scoreboard-entry">
+                <span class="rank \${rankClass}">#\${entry.rank}</span>
+                \${entry.spotifyAvatar
+                  ? \`<img class="entry-avatar" src="\${entry.spotifyAvatar}" alt="" onerror="this.style.display='none'">\`
+                  : '<div class="entry-avatar" style="background:var(--surface-2);display:flex;align-items:center;justify-content:center">👤</div>'}
+                <div class="entry-info">
+                  <div class="entry-name">\${escapeHtml(entry.spotifyName)}</div>
+                </div>
+                <span class="entry-count">\${entry.count.toLocaleString()} \${label}</span>
+              </div>
+            \`;
+          }).join('')}
+        </div>
+      \`;
+    }
+
+    // Close scoreboard modal
+    function closeScoreboard() {
+      document.getElementById('scoreboard-modal')?.remove();
+    }
+    window.closeScoreboard = closeScoreboard;
+
+    // Initialize sidebar
+    function initSidebar() {
+      // Load initial data
+      loadLeaderboard();
+      loadRecentPlaylists();
+
+      // Poll for recent playlists every 30 seconds
+      sidebarPollInterval = setInterval(() => {
+        loadRecentPlaylists();
+      }, 30000);
+
+      // On mobile, start with sidebar collapsed
+      if (window.innerWidth <= 1024) {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) sidebar.classList.add('collapsed');
+      }
+    }
+
     // Initialize
     init();
 
     // Start deployment monitor
     startDeployMonitor();
+
+    // Initialize sidebar
+    initSidebar();
   </script>
 </body>
 </html>`;

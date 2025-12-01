@@ -119,6 +119,24 @@
     let deployStatus = null;
     let clientVersion = null;
     let deployPollInterval = null;
+    const DEPLOY_CACHE_KEY = 'genreGenie_deployCache';
+
+    // Load cached deploy status
+    function loadCachedDeployStatus() {
+      try {
+        const cached = localStorage.getItem(DEPLOY_CACHE_KEY);
+        return cached ? JSON.parse(cached) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    // Save deploy status to cache
+    function cacheDeployStatus(data) {
+      try {
+        localStorage.setItem(DEPLOY_CACHE_KEY, JSON.stringify(data));
+      } catch {}
+    }
 
     async function checkDeployStatus() {
       try {
@@ -131,6 +149,7 @@
         }
 
         deployStatus = data;
+        cacheDeployStatus(data);
         updateDeployWidget(data);
 
         // Check for version mismatch
@@ -138,42 +157,60 @@
           showVersionMismatchPrompt(data.version);
         }
       } catch {
-        // Silently fail - widget just stays hidden
+        // Use cached data if API fails
+        const cached = loadCachedDeployStatus();
+        if (cached) {
+          deployStatus = cached;
+          updateDeployWidget(cached, true);
+        } else {
+          // Show minimal fallback widget
+          updateDeployWidget({ version: '?.?.?', deployment: null }, true);
+        }
       }
     }
 
-    function updateDeployWidget(data) {
+    function updateDeployWidget(data, isOffline = false) {
       const widget = document.getElementById('deploy-widget');
       if (!widget) return;
 
-      const deployment = data.deployment;
+      const deployment = data?.deployment;
       const statusIcon = widget.querySelector('.status-icon');
       const deployText = widget.querySelector('.deploy-text');
 
+      // ALWAYS show the widget
       widget.style.display = 'flex';
       widget.classList.remove('deploying', 'success', 'failure');
 
-      if (!deployment) {
-        widget.style.display = 'none';
-        return;
-      }
+      // Get release name from changelog cache if available
+      const releaseName = changelogCache?.changelog?.[0]?.changes?.[0] || '';
+      const shortReleaseName = releaseName.length > 20 ? releaseName.substring(0, 20) + '...' : releaseName;
 
-      if (deployment.status === 'in_progress' || deployment.status === 'queued') {
+      if (deployment?.status === 'in_progress' || deployment?.status === 'queued') {
         widget.classList.add('deploying');
         statusIcon.innerHTML = '<div class="spinner-small"></div>';
         deployText.textContent = deployment.currentStep || 'Deploying...';
-      } else if (deployment.conclusion === 'success') {
+      } else if (deployment?.conclusion === 'success') {
         widget.classList.add('success');
-        statusIcon.innerHTML = \`<img class="avatar" src="\${deployment.author.avatar}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
+        statusIcon.innerHTML = \`<img class="avatar" src="\${deployment.author?.avatar || ''}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
         const updatedAt = new Date(deployment.updatedAt);
         const timeAgo = formatTimeAgo(updatedAt);
-        deployText.textContent = \`v\${data.version} • \${timeAgo} by @\${deployment.author.name}\`;
-      } else if (deployment.conclusion === 'failure') {
+        // Show version, release hint if available, and time
+        let text = \`v\${data.version}\`;
+        if (shortReleaseName) text += \` • \${shortReleaseName}\`;
+        text += \` • \${timeAgo}\`;
+        if (isOffline) text += ' (cached)';
+        deployText.textContent = text;
+      } else if (deployment?.conclusion === 'failure') {
         widget.classList.add('failure');
         statusIcon.textContent = '❌';
         deployText.textContent = 'Deploy failed';
       } else {
-        widget.style.display = 'none';
+        // Fallback: show version only
+        statusIcon.textContent = '✨';
+        let text = \`v\${data?.version || '?.?.?'}\`;
+        if (shortReleaseName) text += \` • \${shortReleaseName}\`;
+        if (isOffline) text += ' (offline)';
+        deployText.textContent = text;
       }
     }
 
@@ -304,7 +341,7 @@
     // Swedish translations
     const i18n = {
       en: {
-        title: 'Genre Sorter',
+        title: 'Genre Genie',
         loading: 'Loading...',
         organiseMusic: 'Organise Your Music',
         organiseDesc: 'Automatically sort your Spotify liked songs into genre-based playlists with one click.',
@@ -341,9 +378,13 @@
         hallOfFame: 'First Users - Hall of Fame',
         musicLoversJoined: 'music lovers have joined',
         signInSpotify: 'Sign in with Spotify',
+        pioneers: 'Pioneers',
+        newUsers: 'New Users',
+        recentPlaylists: 'Recent Playlists',
+        viewScoreboard: 'View Scoreboard',
       },
       sv: {
-        title: 'Genresorterare',
+        title: 'Genre Genie',
         loading: 'Laddar...',
         organiseMusic: 'Organisera Din Musik',
         organiseDesc: 'Sortera automatiskt dina gillade Spotify-låtar i genrebaserade spellistor med ett klick.',
@@ -380,6 +421,10 @@
         hallOfFame: 'Första Användarna',
         musicLoversJoined: 'musikälskare har gått med',
         signInSpotify: 'Logga in med Spotify',
+        pioneers: 'Pionjärer',
+        newUsers: 'Nya Användare',
+        recentPlaylists: 'Senaste Spellistor',
+        viewScoreboard: 'Visa Resultattavla',
       }
     };
 
@@ -388,13 +433,13 @@
       return i18n[lang][key] || i18n.en[key] || key;
     }
 
-    function toggleSwedishMode() {
-      swedishMode = !swedishMode;
-      localStorage.setItem('swedishMode', swedishMode);
-      document.body.classList.toggle('swedish-mode', swedishMode);
+    // Centralised Swedish mode application - handles ALL state changes
+    function applySwedishMode(enabled, options = {}) {
+      const { playSound = false, showNotif = false } = options;
 
-      // Add Midsommar mode in June
-      if (swedishMode && isMidsommarSeason) {
+      // Update body classes
+      document.body.classList.toggle('swedish-mode', enabled);
+      if (enabled && isMidsommarSeason) {
         document.body.classList.add('midsommar');
       } else {
         document.body.classList.remove('midsommar');
@@ -410,58 +455,88 @@
       if (donationBtn) {
         const icon = donationBtn.querySelector('.icon');
         const text = donationBtn.querySelector('.text');
-        if (swedishMode) {
-          icon.textContent = '🫙';
-          text.textContent = 'Bjud mig på snus';
+        if (enabled) {
+          if (icon) icon.textContent = '🫙';
+          if (text) text.textContent = 'Bjud mig på snus';
           donationBtn.title = 'Tack för stödet, kompis!';
         } else {
-          icon.textContent = '🚬';
-          text.textContent = 'Shout me a durry';
+          if (icon) icon.textContent = '🚬';
+          if (text) text.textContent = 'Shout me a durry';
           donationBtn.title = 'Chuck us a dart, legend';
         }
       }
 
-      // Play Swedish chime when entering Swedish mode
-      if (swedishMode) {
+      // Update Heidi badge
+      const heidiBadge = document.querySelector('.heidi-badge');
+      if (heidiBadge) {
+        const heidiText = heidiBadge.querySelector('.heidi-text span');
+        if (heidiText) {
+          heidiText.textContent = enabled ? 'För Heidi' : 'For Heidi';
+        }
+      }
+
+      // Update placeholder text in search inputs
+      const searchInput = document.querySelector('.search-input');
+      if (searchInput) {
+        searchInput.placeholder = enabled ? 'Sök genrer... (/ för att fokusera)' : 'Search genres... (/ to focus)';
+      }
+
+      // Update Hall of Fame title if visible
+      const hofTitle = document.querySelector('.hall-of-fame h3');
+      if (hofTitle) {
+        hofTitle.textContent = enabled ? '🏆 Hedersvägg' : '🏆 Hall of Fame';
+      }
+
+      // Update loading messages if loading is in progress
+      const loadingMessage = document.querySelector('.progress-message, .loading span');
+      if (loadingMessage && loadingMessage.textContent) {
+        // Loading messages will be updated by the loading functions
+      }
+
+      // Play sound and show notification only on toggle (not on page load)
+      if (playSound && enabled) {
         try {
           const audio = new Audio(swedishChime);
           audio.volume = 0.3;
-          audio.play().catch(() => {}); // Ignore autoplay restrictions
+          audio.play().catch(() => {});
         } catch {}
-        showNotification('🇸🇪 Välkommen till svenskt läge! Tack Heidi! 👑', 'success');
-        // Start fika timer
+      }
+
+      if (showNotif) {
+        if (enabled) {
+          showNotification('🇸🇪 Välkommen till svenskt läge! Tack Heidi! 👑', 'success');
+        } else {
+          showNotification('Back to normal mode!', 'success');
+        }
+      }
+
+      // Start/stop fika timer
+      if (enabled) {
         startFikaTimer();
-        // Update badge tooltip
         updateHeidiBadgeFact();
-      } else {
-        showNotification('Back to normal mode!', 'success');
       }
 
       // Re-render current view to update all text
       if (genreData) {
         renderGenres();
       }
+
+      // Re-render sidebar content with updated language
+      if (typeof renderPioneers === 'function') renderPioneers();
+      if (typeof renderNewUsers === 'function') renderNewUsers();
+      if (typeof renderRecentPlaylists === 'function') renderRecentPlaylists();
+    }
+
+    function toggleSwedishMode() {
+      swedishMode = !swedishMode;
+      localStorage.setItem('swedishMode', swedishMode);
+      applySwedishMode(swedishMode, { playSound: true, showNotif: true });
     }
 
     // Apply Swedish mode on load if previously enabled
     if (swedishMode) {
-      document.body.classList.add('swedish-mode');
-      // Add Midsommar mode in June
-      if (isMidsommarSeason) {
-        document.body.classList.add('midsommar');
-      }
-      // Also update the donation button on load
-      const donationBtn = document.getElementById('donation-btn');
-      if (donationBtn) {
-        const icon = donationBtn.querySelector('.icon');
-        const text = donationBtn.querySelector('.text');
-        if (icon) icon.textContent = '🫙';
-        if (text) text.textContent = 'Bjud mig på snus';
-        donationBtn.title = 'Tack för stödet, kompis!';
-      }
-      // Start fika timer and update tooltip
-      startFikaTimer();
-      updateHeidiBadgeFact();
+      // Defer to ensure DOM is ready
+      setTimeout(() => applySwedishMode(true, { playSound: false, showNotif: false }), 0);
     }
 
     async function init() {
@@ -568,7 +643,12 @@
     function renderHeaderUser(session) {
       const avatar = session.avatar || session.spotifyAvatar || session.githubAvatar;
       const user = session.user || session.spotifyUser || session.githubUser;
+      const lightMode = document.body.classList.contains('light-mode');
+      // Keep theme toggle in header, add user info next to it
       headerActions.innerHTML = \`
+        <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
+          \${lightMode ? '🌙' : '☀️'}
+        </button>
         <div class="user-info">
           \${avatar ? \`<img src="\${avatar}" alt="" class="avatar" onerror="this.style.display='none'">\` : ''}
           <span>\${user || 'User'}</span>
@@ -1487,16 +1567,147 @@
       createPlaylist(genreName, true);
     }
 
+    // ================== LOADING ANIMATION ==================
+
+    // Get random album art from genre tracks (uses Spotify album images)
+    function getAlbumArtForGenre(genreName) {
+      // Default album art placeholder
+      const defaultArt = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="#282828" width="100" height="100"/><circle cx="50" cy="50" r="40" fill="#1DB954"/><circle cx="50" cy="50" r="15" fill="#282828"/></svg>');
+
+      // If we have track album art in genreData, use it
+      const genre = genreData?.genres?.find(g => g.name === genreName);
+      if (genre?.albumArts && genre.albumArts.length > 0) {
+        // Get up to 5 random album arts
+        const shuffled = [...genre.albumArts].sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, 5);
+      }
+
+      // Return default placeholders
+      return [defaultArt, defaultArt, defaultArt, defaultArt, defaultArt];
+    }
+
+    // Dynamic completion messages
+    const completionMessages = {
+      en: [
+        "Your playlists are ready! Time to vibe 🎵",
+        "Boom! Genre magic complete ✨",
+        "Playlists created! Your music, organised 🎧",
+        "Done! Your Spotify just got an upgrade 🚀",
+        "Nailed it! Happy listening 🎶",
+        "All sorted! Your ears will thank you 👂",
+        "Genre Genie has worked their magic! 🧞",
+        "Playlist perfection achieved! 💯",
+      ],
+      sv: [
+        "Dina spellistor är klara! Dags att njuta 🎵",
+        "Klart! Genre-magi slutförd ✨",
+        "Spellistor skapade! Din musik, organiserad 🎧",
+        "Klart! Din Spotify blev just uppgraderad 🚀",
+        "Perfekt! Trevlig lyssning 🎶",
+        "Allt sorterat! Dina öron tackar dig 👂",
+        "Genre Genie har trollat! 🧞",
+        "Spellistperfektion uppnådd! 💯",
+      ]
+    };
+
+    function getRandomCompletionMessage() {
+      const messages = swedishMode ? completionMessages.sv : completionMessages.en;
+      return messages[Math.floor(Math.random() * messages.length)];
+    }
+
+    // Show loading modal with album art animation
+    function showLoadingModal(total) {
+      // Collect album art from all selected genres
+      const allAlbumArts = [];
+      for (const genreName of selectedGenres) {
+        const arts = getAlbumArtForGenre(genreName);
+        allAlbumArts.push(...arts);
+      }
+      // Shuffle and take up to 5
+      const shuffled = [...new Set(allAlbumArts)].sort(() => 0.5 - Math.random()).slice(0, 5);
+
+      const modal = document.createElement('div');
+      modal.className = 'playlist-loading-modal';
+      modal.id = 'loading-modal';
+      modal.innerHTML = \`
+        <div class="album-carousel">
+          \${shuffled.map(art => \`<img class="album-art" src="\${art}" alt="" onerror="this.style.background='var(--surface-2)'">\`).join('')}
+        </div>
+        <div class="loading-text" id="loading-text">\${swedishMode ? 'Skapar spellistor...' : 'Creating playlists...'}</div>
+        <div class="loading-progress">
+          <div class="loading-progress-bar" id="loading-progress-bar" style="width: 0%"></div>
+        </div>
+        <div class="loading-stats">
+          <div class="loading-stat">
+            <span class="loading-stat-value" id="loading-completed">0</span>
+            <span>\${swedishMode ? 'Skapade' : 'Created'}</span>
+          </div>
+          <div class="loading-stat">
+            <span class="loading-stat-value">\${total}</span>
+            <span>\${swedishMode ? 'Totalt' : 'Total'}</span>
+          </div>
+        </div>
+      \`;
+      document.body.appendChild(modal);
+    }
+
+    // Update loading progress
+    function updateLoadingProgress(completed, total, currentGenre) {
+      const progressBar = document.getElementById('loading-progress-bar');
+      const completedEl = document.getElementById('loading-completed');
+      const textEl = document.getElementById('loading-text');
+
+      if (progressBar) progressBar.style.width = \`\${(completed / total) * 100}%\`;
+      if (completedEl) completedEl.textContent = completed;
+      if (textEl && currentGenre) {
+        textEl.textContent = swedishMode
+          ? \`Skapar: \${currentGenre}...\`
+          : \`Creating: \${currentGenre}...\`;
+      }
+    }
+
+    // Hide loading modal
+    function hideLoadingModal() {
+      document.getElementById('loading-modal')?.remove();
+    }
+
+    // Show celebration animation
+    function showCelebration(successful) {
+      if (successful === 0) return;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'celebration-overlay';
+
+      // Create confetti pieces
+      const colors = ['#1DB954', '#FFD700', '#FF6B6B', '#4ECDC4', '#9B59B6'];
+      for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = \`\${Math.random() * 100}%\`;
+        confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.animationDelay = \`\${Math.random() * 0.5}s\`;
+        confetti.style.transform = \`rotate(\${Math.random() * 360}deg)\`;
+        overlay.appendChild(confetti);
+      }
+
+      document.body.appendChild(overlay);
+
+      // Remove after animation
+      setTimeout(() => overlay.remove(), 3500);
+    }
+
     async function createSelectedPlaylists() {
       if (selectedGenres.size === 0) return;
 
       const btn = document.getElementById('create-btn');
       btn.disabled = true;
-      btn.textContent = \`\${t('creating').replace('...', '')} \${selectedGenres.size} \${t('playlists')}...\`;
 
       const genres = genreData.genres
         .filter(g => selectedGenres.has(g.name))
         .map(g => ({ name: g.name, trackIds: g.trackIds }));
+
+      // Show loading modal with album art animation
+      showLoadingModal(genres.length);
 
       try {
         const response = await fetch('/api/playlists/bulk', {
@@ -1507,13 +1718,25 @@
 
         const result = await response.json();
 
+        // Hide loading modal
+        hideLoadingModal();
+
+        // Show celebration if playlists were created
+        if (result.successful > 0) {
+          showCelebration(result.successful);
+        }
+
         const skippedText = result.skipped > 0
           ? \` (\${result.skipped} \${swedishMode ? 'hoppades över - finns redan' : 'skipped - already exist'})\`
           : '';
 
+        // Show dynamic completion message
+        const completionMessage = result.successful > 0 ? getRandomCompletionMessage() : '';
+
         document.getElementById('results').innerHTML = \`
           <div class="card">
             <h2 class="card-title" data-i18n="results">\${t('results')}</h2>
+            \${completionMessage ? \`<p style="margin-bottom: 1rem; font-size: 1.1rem; color: var(--accent);">\${completionMessage}</p>\` : ''}
             <p style="margin-bottom: 1rem;">
               \${t('successCreated')} \${result.successful} \${t('of')} \${result.total} \${t('playlists')}\${skippedText}.
             </p>
@@ -1536,7 +1759,13 @@
         selectedGenres.clear();
         updateSelectedCount();
         renderGenreList(filterGenres(''));
+
+        // Reload recent playlists to show the new ones
+        if (typeof loadRecentPlaylists === 'function') {
+          loadRecentPlaylists();
+        }
       } catch (error) {
+        hideLoadingModal();
         showNotification(\`\${t('failed')}: \${error.message}\`, 'error');
       }
 
@@ -1728,8 +1957,294 @@
       }
     };
 
+    // ================== SIDEBAR FUNCTIONS ==================
+
+    let sidebarData = {
+      pioneers: [],
+      newUsers: [],
+      recentPlaylists: []
+    };
+    let scoreboardData = null;
+    let sidebarPollInterval = null;
+
+    // Load leaderboard data (pioneers + new users)
+    async function loadLeaderboard() {
+      try {
+        const response = await fetch('/api/leaderboard');
+        if (!response.ok) return;
+        const data = await response.json();
+        sidebarData.pioneers = data.pioneers || [];
+        sidebarData.newUsers = data.newUsers || [];
+        renderPioneers();
+        renderNewUsers();
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to load leaderboard:', err);
+      }
+    }
+
+    // Load recent playlists
+    async function loadRecentPlaylists() {
+      try {
+        const response = await fetch('/api/recent-playlists');
+        if (!response.ok) return;
+        const data = await response.json();
+        sidebarData.recentPlaylists = data.playlists || [];
+        renderRecentPlaylists();
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to load recent playlists:', err);
+      }
+    }
+
+    // Render pioneers list in sidebar
+    function renderPioneers() {
+      const container = document.getElementById('pioneers-list');
+      if (!container) return;
+
+      if (sidebarData.pioneers.length === 0) {
+        container.innerHTML = '<div class="sidebar-loading">' + (swedishMode ? 'Inga pionjärer än' : 'No pioneers yet') + '</div>';
+        return;
+      }
+
+      container.innerHTML = sidebarData.pioneers.map((user, i) => {
+        const posClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+        const regalia = i === 0 ? '<span class="pioneer-badge first">👑 First!</span>' :
+                        i < 3 ? '<span class="pioneer-badge">🏆</span>' :
+                        i < 10 ? '<span class="regalia">⭐</span>' : '';
+
+        return \`
+          <div class="user-list-item" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
+            <span class="position \${posClass}">#\${i + 1}</span>
+            \${user.spotifyAvatar
+              ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+              : '<div class="user-avatar-placeholder">👤</div>'}
+            <span class="user-name">\${escapeHtml(user.spotifyName)}</span>
+            \${regalia}
+          </div>
+        \`;
+      }).join('');
+    }
+
+    // Render new users list in sidebar
+    function renderNewUsers() {
+      const container = document.getElementById('new-users-list');
+      if (!container) return;
+
+      if (sidebarData.newUsers.length === 0) {
+        container.innerHTML = '<div class="sidebar-loading">' + (swedishMode ? 'Inga nya användare' : 'No new users') + '</div>';
+        return;
+      }
+
+      container.innerHTML = sidebarData.newUsers.map(user => {
+        return \`
+          <div class="user-list-item">
+            \${user.spotifyAvatar
+              ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+              : '<div class="user-avatar-placeholder">👤</div>'}
+            <span class="user-name">\${escapeHtml(user.spotifyName)}</span>
+            <span class="regalia">\${formatTimeAgo(new Date(user.registeredAt))}</span>
+          </div>
+        \`;
+      }).join('');
+    }
+
+    // Render recent playlists in sidebar
+    function renderRecentPlaylists() {
+      const container = document.getElementById('recent-playlists-list');
+      if (!container) return;
+
+      if (sidebarData.recentPlaylists.length === 0) {
+        container.innerHTML = '<div class="sidebar-loading">' + (swedishMode ? 'Inga spellistor än' : 'No playlists yet') + '</div>';
+        return;
+      }
+
+      container.innerHTML = sidebarData.recentPlaylists.slice(0, 10).map(playlist => {
+        const genreEmoji = getGenreEmoji(playlist.genre);
+        return \`
+          <a href="\${playlist.spotifyUrl}" target="_blank" class="playlist-list-item" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
+            <div class="playlist-icon">\${genreEmoji}</div>
+            <div class="playlist-info">
+              <div class="playlist-name">\${escapeHtml(playlist.playlistName)}</div>
+              <div class="playlist-meta">
+                <span class="playlist-creator">
+                  \${playlist.createdBy.spotifyAvatar
+                    ? \`<img class="creator-avatar" src="\${playlist.createdBy.spotifyAvatar}" alt="">\`
+                    : ''}
+                  \${escapeHtml(playlist.createdBy.spotifyName)}
+                </span>
+                <span>•</span>
+                <span>\${formatTimeAgo(new Date(playlist.createdAt))}</span>
+              </div>
+            </div>
+          </a>
+        \`;
+      }).join('');
+    }
+
+    // Escape HTML for safe display
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text || '';
+      return div.innerHTML;
+    }
+
+    // Get emoji for genre (reuse existing or provide fallback)
+    function getGenreEmoji(genre) {
+      const emojiMap = {
+        'rock': '🎸', 'pop': '🎤', 'hip hop': '🎧', 'rap': '🎤', 'jazz': '🎷',
+        'classical': '🎻', 'electronic': '🎹', 'dance': '💃', 'country': '🤠',
+        'r&b': '🎵', 'soul': '💜', 'blues': '🎺', 'metal': '🤘', 'punk': '⚡',
+        'folk': '🪕', 'indie': '🌟', 'alternative': '🎸', 'reggae': '🌴',
+        'latin': '💃', 'k-pop': '🇰🇷', 'j-pop': '🇯🇵', 'anime': '🎌'
+      };
+      const lowerGenre = (genre || '').toLowerCase();
+      for (const [key, emoji] of Object.entries(emojiMap)) {
+        if (lowerGenre.includes(key)) return emoji;
+      }
+      return '🎵';
+    }
+
+    // Toggle sidebar visibility (mobile)
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const toggle = document.getElementById('sidebar-toggle');
+      if (!sidebar) return;
+
+      sidebar.classList.toggle('collapsed');
+      const isCollapsed = sidebar.classList.contains('collapsed');
+
+      if (toggle) {
+        toggle.querySelector('.toggle-icon').textContent = isCollapsed ? '▶' : '◀';
+        toggle.setAttribute('aria-expanded', !isCollapsed);
+      }
+    }
+    // Make toggleSidebar globally accessible
+    window.toggleSidebar = toggleSidebar;
+
+    // Show scoreboard modal
+    async function showScoreboard() {
+      // Fetch scoreboard data
+      try {
+        const response = await fetch('/api/scoreboard');
+        if (!response.ok) throw new Error('Failed to fetch');
+        scoreboardData = await response.json();
+      } catch (err) {
+        showNotification(swedishMode ? 'Kunde inte ladda resultattavlan' : 'Failed to load scoreboard', 'error');
+        return;
+      }
+
+      // Create modal
+      const modal = document.createElement('div');
+      modal.className = 'scoreboard-modal active';
+      modal.id = 'scoreboard-modal';
+      modal.onclick = (e) => {
+        if (e.target === modal) closeScoreboard();
+      };
+
+      modal.innerHTML = \`
+        <div class="scoreboard-panel">
+          <div class="scoreboard-header">
+            <h2>📊 \${swedishMode ? 'Resultattavla' : 'Scoreboard'}</h2>
+            <button class="btn btn-ghost" onclick="closeScoreboard()">✕</button>
+          </div>
+          <div class="scoreboard-tabs">
+            <button class="scoreboard-tab active" data-tab="playlists">🎵 \${swedishMode ? 'Spellistor' : 'Playlists'}</button>
+            <button class="scoreboard-tab" data-tab="genres">🎸 \${swedishMode ? 'Genrer' : 'Genres'}</button>
+            <button class="scoreboard-tab" data-tab="artists">🎤 \${swedishMode ? 'Artister' : 'Artists'}</button>
+            <button class="scoreboard-tab" data-tab="tracks">📀 \${swedishMode ? 'Låtar' : 'Tracks'}</button>
+          </div>
+          <div class="scoreboard-content" id="scoreboard-content">
+            \${renderScoreboardTab('playlists')}
+          </div>
+          <div class="scoreboard-footer">
+            \${scoreboardData.totalUsers} \${swedishMode ? 'användare totalt' : 'total users'} •
+            \${swedishMode ? 'Uppdaterad' : 'Updated'} \${formatTimeAgo(new Date(scoreboardData.updatedAt))}
+          </div>
+        </div>
+      \`;
+
+      document.body.appendChild(modal);
+
+      // Add tab click handlers
+      modal.querySelectorAll('.scoreboard-tab').forEach(tab => {
+        tab.onclick = () => {
+          modal.querySelectorAll('.scoreboard-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          document.getElementById('scoreboard-content').innerHTML = renderScoreboardTab(tab.dataset.tab);
+        };
+      });
+    }
+    // Make showScoreboard globally accessible
+    window.showScoreboard = showScoreboard;
+
+    // Render a scoreboard tab
+    function renderScoreboardTab(tab) {
+      if (!scoreboardData) return '';
+
+      const tabMap = {
+        playlists: { data: scoreboardData.byPlaylists, label: swedishMode ? 'spellistor' : 'playlists' },
+        genres: { data: scoreboardData.byGenres, label: swedishMode ? 'genrer' : 'genres' },
+        artists: { data: scoreboardData.byArtists, label: swedishMode ? 'artister' : 'artists' },
+        tracks: { data: scoreboardData.byTracks, label: swedishMode ? 'låtar' : 'tracks' }
+      };
+
+      const { data, label } = tabMap[tab] || tabMap.playlists;
+
+      if (!data || data.length === 0) {
+        return \`<div class="sidebar-loading">\${swedishMode ? 'Inga data än' : 'No data yet'}</div>\`;
+      }
+
+      return \`
+        <div class="scoreboard-list">
+          \${data.map(entry => {
+            const rankClass = entry.rank === 1 ? 'gold' : entry.rank === 2 ? 'silver' : entry.rank === 3 ? 'bronze' : '';
+            return \`
+              <div class="scoreboard-entry">
+                <span class="rank \${rankClass}">#\${entry.rank}</span>
+                \${entry.spotifyAvatar
+                  ? \`<img class="entry-avatar" src="\${entry.spotifyAvatar}" alt="" onerror="this.style.display='none'">\`
+                  : '<div class="entry-avatar" style="background:var(--surface-2);display:flex;align-items:center;justify-content:center">👤</div>'}
+                <div class="entry-info">
+                  <div class="entry-name">\${escapeHtml(entry.spotifyName)}</div>
+                </div>
+                <span class="entry-count">\${entry.count.toLocaleString()} \${label}</span>
+              </div>
+            \`;
+          }).join('')}
+        </div>
+      \`;
+    }
+
+    // Close scoreboard modal
+    function closeScoreboard() {
+      document.getElementById('scoreboard-modal')?.remove();
+    }
+    window.closeScoreboard = closeScoreboard;
+
+    // Initialize sidebar
+    function initSidebar() {
+      // Load initial data
+      loadLeaderboard();
+      loadRecentPlaylists();
+
+      // Poll for recent playlists every 30 seconds
+      sidebarPollInterval = setInterval(() => {
+        loadRecentPlaylists();
+      }, 30000);
+
+      // On mobile, start with sidebar collapsed
+      if (window.innerWidth <= 1024) {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) sidebar.classList.add('collapsed');
+      }
+    }
+
     // Initialize
     init();
 
     // Start deployment monitor
-    startDeployMonitor();
+    startDeployMonitor();
+
+    // Initialize sidebar
+    initSidebar();

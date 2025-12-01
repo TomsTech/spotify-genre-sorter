@@ -111,3 +111,211 @@ export async function verifyState(
   const parsed: Record<string, string> = JSON.parse(data);
   return parsed;
 }
+
+// ================== User Statistics ==================
+
+export interface UserStats {
+  spotifyId: string;
+  spotifyName: string;
+  spotifyAvatar?: string;
+  totalGenresDiscovered: number;
+  totalArtistsDiscovered: number;
+  totalTracksAnalysed: number;
+  playlistsCreated: number;
+  firstSeen: string;
+  lastActive: string;
+  createdPlaylistIds: string[];
+}
+
+export async function getUserStats(
+  kv: KVNamespace,
+  spotifyId: string
+): Promise<UserStats | null> {
+  const data = await kv.get(`user_stats:${spotifyId}`);
+  if (!data) return null;
+  return JSON.parse(data) as UserStats;
+}
+
+export async function createOrUpdateUserStats(
+  kv: KVNamespace,
+  spotifyId: string,
+  updates: Partial<UserStats>
+): Promise<UserStats> {
+  const existing = await getUserStats(kv, spotifyId);
+  const now = new Date().toISOString();
+
+  if (existing) {
+    const updated: UserStats = {
+      ...existing,
+      ...updates,
+      lastActive: now,
+    };
+    await kv.put(`user_stats:${spotifyId}`, JSON.stringify(updated));
+    return updated;
+  } else {
+    const newStats: UserStats = {
+      spotifyId,
+      spotifyName: updates.spotifyName || 'Unknown',
+      spotifyAvatar: updates.spotifyAvatar,
+      totalGenresDiscovered: updates.totalGenresDiscovered || 0,
+      totalArtistsDiscovered: updates.totalArtistsDiscovered || 0,
+      totalTracksAnalysed: updates.totalTracksAnalysed || 0,
+      playlistsCreated: updates.playlistsCreated || 0,
+      firstSeen: now,
+      lastActive: now,
+      createdPlaylistIds: updates.createdPlaylistIds || [],
+    };
+    await kv.put(`user_stats:${spotifyId}`, JSON.stringify(newStats));
+    return newStats;
+  }
+}
+
+export async function incrementUserStats(
+  kv: KVNamespace,
+  spotifyId: string,
+  field: 'totalGenresDiscovered' | 'totalArtistsDiscovered' | 'totalTracksAnalysed' | 'playlistsCreated',
+  amount: number = 1
+): Promise<void> {
+  const existing = await getUserStats(kv, spotifyId);
+  if (!existing) return;
+
+  existing[field] += amount;
+  existing.lastActive = new Date().toISOString();
+  await kv.put(`user_stats:${spotifyId}`, JSON.stringify(existing));
+}
+
+export async function addPlaylistToUser(
+  kv: KVNamespace,
+  spotifyId: string,
+  playlistId: string
+): Promise<void> {
+  const existing = await getUserStats(kv, spotifyId);
+  if (!existing) return;
+
+  if (!existing.createdPlaylistIds.includes(playlistId)) {
+    existing.createdPlaylistIds.push(playlistId);
+    existing.playlistsCreated += 1;
+    existing.lastActive = new Date().toISOString();
+    await kv.put(`user_stats:${spotifyId}`, JSON.stringify(existing));
+  }
+}
+
+// ================== Recent Playlists Feed ==================
+
+export interface RecentPlaylist {
+  playlistId: string;
+  playlistName: string;
+  genre: string;
+  trackCount: number;
+  createdBy: {
+    spotifyId: string;
+    spotifyName: string;
+    spotifyAvatar?: string;
+  };
+  createdAt: string;
+  spotifyUrl: string;
+}
+
+const RECENT_PLAYLISTS_KEY = 'recent_playlists';
+const MAX_RECENT_PLAYLISTS = 20;
+
+export async function getRecentPlaylists(kv: KVNamespace): Promise<RecentPlaylist[]> {
+  const data = await kv.get(RECENT_PLAYLISTS_KEY);
+  if (!data) return [];
+  return JSON.parse(data) as RecentPlaylist[];
+}
+
+export async function addRecentPlaylist(
+  kv: KVNamespace,
+  playlist: RecentPlaylist
+): Promise<void> {
+  const existing = await getRecentPlaylists(kv);
+
+  // Add to front of array
+  existing.unshift(playlist);
+
+  // Keep only max entries
+  const trimmed = existing.slice(0, MAX_RECENT_PLAYLISTS);
+
+  await kv.put(RECENT_PLAYLISTS_KEY, JSON.stringify(trimmed));
+}
+
+// ================== Scoreboard ==================
+
+export interface ScoreboardEntry {
+  rank: number;
+  spotifyId: string;
+  spotifyName: string;
+  spotifyAvatar?: string;
+  count: number;
+}
+
+export interface Scoreboard {
+  byGenres: ScoreboardEntry[];
+  byArtists: ScoreboardEntry[];
+  byTracks: ScoreboardEntry[];
+  byPlaylists: ScoreboardEntry[];
+  totalUsers: number;
+  updatedAt: string;
+}
+
+const SCOREBOARD_CACHE_KEY = 'scoreboard_cache';
+const SCOREBOARD_CACHE_TTL = 300; // 5 minutes
+
+export async function getScoreboard(kv: KVNamespace): Promise<Scoreboard | null> {
+  const cached = await kv.get(SCOREBOARD_CACHE_KEY);
+  if (cached) {
+    const data = JSON.parse(cached) as Scoreboard;
+    // Check if cache is still valid
+    const cacheTime = new Date(data.updatedAt).getTime();
+    if (Date.now() - cacheTime < SCOREBOARD_CACHE_TTL * 1000) {
+      return data;
+    }
+  }
+  return null;
+}
+
+export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
+  // List all user_stats keys
+  const list = await kv.list({ prefix: 'user_stats:' });
+  const allStats: UserStats[] = [];
+
+  for (const key of list.keys) {
+    const data = await kv.get(key.name);
+    if (data) {
+      allStats.push(JSON.parse(data) as UserStats);
+    }
+  }
+
+  // Sort and rank for each category
+  const makeRanking = (
+    stats: UserStats[],
+    field: keyof Pick<UserStats, 'totalGenresDiscovered' | 'totalArtistsDiscovered' | 'totalTracksAnalysed' | 'playlistsCreated'>
+  ): ScoreboardEntry[] => {
+    return stats
+      .filter(s => s[field] > 0)
+      .sort((a, b) => b[field] - a[field])
+      .slice(0, 20)
+      .map((s, i) => ({
+        rank: i + 1,
+        spotifyId: s.spotifyId,
+        spotifyName: s.spotifyName,
+        spotifyAvatar: s.spotifyAvatar,
+        count: s[field],
+      }));
+  };
+
+  const scoreboard: Scoreboard = {
+    byGenres: makeRanking(allStats, 'totalGenresDiscovered'),
+    byArtists: makeRanking(allStats, 'totalArtistsDiscovered'),
+    byTracks: makeRanking(allStats, 'totalTracksAnalysed'),
+    byPlaylists: makeRanking(allStats, 'playlistsCreated'),
+    totalUsers: allStats.length,
+    updatedAt: new Date().toISOString(),
+  };
+
+  // Cache the scoreboard
+  await kv.put(SCOREBOARD_CACHE_KEY, JSON.stringify(scoreboard), { expirationTtl: SCOREBOARD_CACHE_TTL });
+
+  return scoreboard;
+}
