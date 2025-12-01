@@ -21,6 +21,8 @@ interface GenreCacheData {
   totalGenres: number;
   totalArtists: number;
   cachedAt: number;
+  truncated?: boolean;
+  totalInLibrary?: number;
 }
 
 // Helper to invalidate genre cache for a user
@@ -169,10 +171,10 @@ api.get('/genres', async (c) => {
 
     console.log(`Cache miss for user ${user.id}, fetching fresh data...`);
 
-    // Step 1: Get all liked tracks
-    let likedTracks;
+    // Step 1: Get all liked tracks (limited to avoid subrequest limits)
+    let tracksResult;
     try {
-      likedTracks = await getAllLikedTracks(session.spotifyAccessToken);
+      tracksResult = await getAllLikedTracks(session.spotifyAccessToken);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       console.error('Error fetching liked tracks:', message);
@@ -182,6 +184,8 @@ api.get('/genres', async (c) => {
         step: 'fetching_tracks'
       }, 500);
     }
+
+    const { tracks: likedTracks, totalInLibrary, truncated } = tracksResult;
 
     if (!likedTracks || likedTracks.length === 0) {
       return c.json({
@@ -260,6 +264,8 @@ api.get('/genres', async (c) => {
       totalArtists: artistIds.size,
       genres,
       cachedAt: Date.now(),
+      truncated,
+      totalInLibrary: truncated ? totalInLibrary : undefined,
     };
 
     // Store in cache

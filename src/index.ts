@@ -6,7 +6,7 @@ import api from './routes/api';
 import { getSession } from './lib/session';
 
 // App version - increment on each deployment
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.2.1';
 const GITHUB_REPO = 'TomsTech/spotify-genre-sorter';
 
 const app = new Hono<{ Bindings: Env }>();
@@ -505,6 +505,21 @@ function getHtml(): string {
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
+    }
+
+    .truncation-warning {
+      background: rgba(255, 193, 7, 0.15);
+      border: 1px solid rgba(255, 193, 7, 0.4);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      font-size: 0.85rem;
+      color: var(--text);
+      text-align: center;
+    }
+
+    body.light-mode .truncation-warning {
+      background: rgba(255, 193, 7, 0.2);
     }
 
     .cache-status {
@@ -2407,6 +2422,14 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
             <div class="stat-label" data-i18n="selected">\${t('selected')}</div>
           </div>
         </div>
+
+        \${genreData.truncated ? \`
+        <div class="truncation-warning">
+          ⚠️ \${swedishMode
+            ? \`Visar \${genreData.totalTracks.toLocaleString()} av \${genreData.totalInLibrary?.toLocaleString()} låtar (begränsning för gratis Cloudflare Workers)\`
+            : \`Showing \${genreData.totalTracks.toLocaleString()} of \${genreData.totalInLibrary?.toLocaleString()} tracks (Cloudflare Workers free tier limit)\`}
+        </div>
+        \` : ''}
 
         <div class="cache-status">
           \${cacheInfo}

@@ -185,24 +185,51 @@ export async function getLikedTracks(
   );
 }
 
+// Cloudflare Workers free plan has 50 subrequest limit
+// With ~20 requests for tracks + ~15 for artists, limit to ~1000 tracks
+const MAX_TRACKS_FREE_TIER = 1000;
+const MAX_TRACK_REQUESTS = 20; // 20 * 50 = 1000 tracks
+
+export interface LikedTracksResult {
+  tracks: LikedTrack[];
+  totalInLibrary: number;
+  truncated: boolean;
+}
+
 export async function getAllLikedTracks(
   accessToken: string,
-  onProgress?: (loaded: number, total: number) => void
-): Promise<LikedTrack[]> {
+  onProgress?: (loaded: number, total: number) => void,
+  maxTracks?: number
+): Promise<LikedTracksResult> {
   const allTracks: LikedTrack[] = [];
   let offset = 0;
   const limit = 50;
-  let total = 0;
+  let totalInLibrary = 0;
+  const trackLimit = maxTracks || MAX_TRACKS_FREE_TIER;
+  let requestCount = 0;
 
   do {
     const response = await getLikedTracks(accessToken, limit, offset);
     allTracks.push(...response.items);
-    total = response.total;
+    totalInLibrary = response.total;
     offset += limit;
-    onProgress?.(allTracks.length, total);
-  } while (offset < total);
+    requestCount++;
+    onProgress?.(allTracks.length, totalInLibrary);
 
-  return allTracks;
+    // Stop if we've hit our limits to avoid subrequest errors
+    if (requestCount >= MAX_TRACK_REQUESTS || allTracks.length >= trackLimit) {
+      if (totalInLibrary > allTracks.length) {
+        console.log(`Stopped at ${allTracks.length}/${totalInLibrary} tracks to stay within subrequest limits`);
+      }
+      break;
+    }
+  } while (offset < totalInLibrary);
+
+  return {
+    tracks: allTracks,
+    totalInLibrary,
+    truncated: allTracks.length < totalInLibrary,
+  };
 }
 
 export async function getArtists(
@@ -232,7 +259,7 @@ export async function getArtists(
 export async function getTracksWithGenres(
   accessToken: string
 ): Promise<Map<string, { track: SpotifyTrack; genres: string[]; addedAt: string }>> {
-  const likedTracks = await getAllLikedTracks(accessToken);
+  const { tracks: likedTracks } = await getAllLikedTracks(accessToken);
 
   // Collect unique artist IDs
   const artistIds = new Set<string>();
