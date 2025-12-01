@@ -2199,6 +2199,7 @@ export function getHtml(): string {
       justify-content: space-between;
       max-width: 1600px;
       margin: 0 auto;
+      padding-left: 280px; /* Account for fixed sidebar */
     }
 
     .header-content h1 {
@@ -2253,9 +2254,8 @@ export function getHtml(): string {
     .content-wrapper {
       display: flex;
       flex: 1;
-      max-width: 1600px;
-      margin: 0 auto;
       width: 100%;
+      justify-content: center;
     }
 
     /* === Sidebar === */
@@ -2269,9 +2269,11 @@ export function getHtml(): string {
       flex-direction: column;
       gap: 1.5rem;
       overflow-y: auto;
-      max-height: calc(100vh - 80px);
-      position: sticky;
+      height: calc(100vh - 80px);
+      position: fixed;
+      left: 0;
       top: 80px;
+      z-index: 50;
     }
 
     .sidebar-section {
@@ -2481,7 +2483,10 @@ export function getHtml(): string {
     .main-content {
       flex: 1;
       padding: 1.5rem;
+      padding-left: calc(280px + 1.5rem); /* Account for fixed sidebar */
       min-width: 0;
+      max-width: 1000px;
+      margin: 0 auto;
     }
 
     /* === Scoreboard Button === */
@@ -2651,7 +2656,12 @@ export function getHtml(): string {
       }
 
       .main-content {
-        margin-left: 0;
+        padding-left: 1.5rem;
+        max-width: 100%;
+      }
+
+      .header-content {
+        padding-left: 0;
       }
     }
 
@@ -3619,8 +3629,8 @@ export function getHtml(): string {
             <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank">
               <img src="https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=for-the-badge&logo=github&logoColor=white&label=Star&color=1DB954&labelColor=191414" alt="Star on GitHub" loading="lazy" onerror="this.style.display='none'">
             </a>
-            <a href="https://stats.uptimerobot.com/tomstech" target="_blank">
-              <img src="https://img.shields.io/badge/uptime-100%25-1DB954?style=for-the-badge&logo=checkmarx&logoColor=white&labelColor=191414" alt="Uptime" loading="lazy" onerror="this.style.display='none'">
+            <a href="https://status.houstons.tech" target="_blank">
+              <img src="https://uptime.betterstack.com/status-badges/v3/monitor/3843047.svg" alt="Uptime" loading="lazy" onerror="this.style.display='none'">
             </a>
           </div>
         </div>
