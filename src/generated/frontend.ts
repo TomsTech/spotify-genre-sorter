@@ -638,7 +638,9 @@ export function getHtml(): string {
 
     .welcome {
       text-align: center;
-      padding: 4rem 2rem;
+      padding: 2rem 2rem;
+      max-width: 500px;
+      margin: 0 auto;
     }
 
     .welcome h2 {
@@ -877,14 +879,15 @@ export function getHtml(): string {
 
     /* User counter */
     .user-counter {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 0.5rem;
       padding: 0.5rem 1rem;
       background: var(--surface-2);
       border-radius: 20px;
-      font-size: 0.75rem;
+      font-size: 0.85rem;
       color: var(--text-muted);
+      margin-bottom: 1.5rem;
     }
 
     .user-counter .count {
@@ -1045,34 +1048,30 @@ export function getHtml(): string {
       font-weight: 700;
     }
 
-    /* Donation button - Aussie style */
-    .durry-btn {
-      position: fixed;
-      bottom: 1rem;
-      left: 1rem;
+    /* Donation button - in sidebar */
+    .sidebar-donate-btn {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 0.5rem;
-      padding: 0.5rem 0.75rem;
+      padding: 0.75rem 1rem;
       background: linear-gradient(135deg, #8B4513, #D2691E);
       border: none;
-      border-radius: 20px;
-      font-size: 0.7rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
       color: #fff;
       cursor: pointer;
       transition: all 0.3s ease;
       text-decoration: none;
-      z-index: 100;
-      opacity: 0.8;
+      margin-top: auto;
     }
 
-    .durry-btn:hover {
-      opacity: 1;
-      transform: scale(1.05);
+    .sidebar-donate-btn:hover {
+      transform: scale(1.02);
       box-shadow: 0 0 15px rgba(210, 105, 30, 0.4);
     }
 
-    .durry-btn .icon {
+    .sidebar-donate-btn .icon {
       animation: smoke 2s ease-in-out infinite;
     }
 
@@ -1082,12 +1081,51 @@ export function getHtml(): string {
     }
 
     /* Swedish mode snus styling */
-    body.swedish-mode .durry-btn {
+    body.swedish-mode .sidebar-donate-btn {
       background: linear-gradient(135deg, var(--swedish-blue), #004d7a);
     }
 
-    body.swedish-mode .durry-btn:hover {
+    body.swedish-mode .sidebar-donate-btn:hover {
       box-shadow: 0 0 15px rgba(0, 106, 167, 0.4);
+    }
+
+    /* Floating Genie Mascot */
+    .genie-mascot {
+      position: fixed;
+      bottom: 6rem;
+      right: 1.5rem;
+      font-size: 2.5rem;
+      cursor: pointer;
+      z-index: 90;
+      animation: genieFloat 4s ease-in-out infinite, genieWander 20s ease-in-out infinite;
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+      transition: transform 0.3s ease;
+    }
+
+    .genie-mascot:hover {
+      animation-play-state: paused;
+      transform: scale(1.2);
+    }
+
+    @keyframes genieFloat {
+      0%, 100% { transform: translateY(0) rotate(-5deg); }
+      50% { transform: translateY(-15px) rotate(5deg); }
+    }
+
+    @keyframes genieWander {
+      0%, 100% { right: 1.5rem; bottom: 6rem; }
+      25% { right: 3rem; bottom: 8rem; }
+      50% { right: 2rem; bottom: 5rem; }
+      75% { right: 4rem; bottom: 7rem; }
+    }
+
+    body.swedish-mode .genie-mascot {
+      display: none;
+    }
+
+    /* Swedish Viking replaces Genie */
+    body.swedish-mode .viking-ship {
+      display: block;
     }
 
     /* Footer badges */
@@ -2914,6 +2952,12 @@ export function getHtml(): string {
         <button class="btn btn-secondary sidebar-scoreboard-btn" onclick="showScoreboard()">
           📊 <span data-i18n="viewScoreboard">View Scoreboard</span>
         </button>
+
+        <!-- Donation button moved to sidebar -->
+        <a href="https://buymeacoffee.com/tomstech" target="_blank" class="sidebar-donate-btn" id="donation-btn" title="Chuck us a dart, legend">
+          <span class="icon">🚬</span>
+          <span class="text">Shout me a durry</span>
+        </a>
       </aside>
 
       <!-- Mobile sidebar toggle -->
@@ -2931,11 +2975,10 @@ export function getHtml(): string {
     </div>
   </div>
 
-  <!-- Shout me a durry button (Aussie style) / Snus button (Swedish mode) -->
-  <a href="https://buymeacoffee.com/tomstech" target="_blank" class="durry-btn" id="donation-btn" title="Chuck us a dart, legend">
-    <span class="icon">🚬</span>
-    <span class="text">Shout me a durry</span>
-  </a>
+  <!-- Floating Genie Mascot -->
+  <div class="genie-mascot" id="genie-mascot" title="Genre Genie at your service!">
+    🧞
+  </div>
 
   <!-- Heidi Easter Egg Badge -->
   <div class="heidi-badge" onclick="toggleSwedishMode()" title="Click for a Swedish surprise!">
@@ -3284,6 +3327,9 @@ export function getHtml(): string {
         setTimeout(() => overlay.remove(), 300);
       }
     }
+    // Make changelog functions globally accessible
+    window.showDeployDetails = showDeployDetails;
+    window.closeChangelog = closeChangelog;
 
     // Start deployment polling
     function startDeployMonitor() {
@@ -3485,6 +3531,8 @@ export function getHtml(): string {
       localStorage.setItem('swedishMode', swedishMode);
       applySwedishMode(swedishMode, { playSound: true, showNotif: true });
     }
+    // Make toggleSwedishMode globally accessible
+    window.toggleSwedishMode = toggleSwedishMode;
 
     // Apply Swedish mode on load if previously enabled
     if (swedishMode) {
@@ -3541,20 +3589,7 @@ export function getHtml(): string {
         </div>
       \` : '';
 
-      // Hall of fame HTML - using i18n
-      const hofHtml = statsData?.hallOfFame?.length ? \`
-        <div class="hall-of-fame">
-          <h3>🏆 \${t('hallOfFame')}</h3>
-          <div class="hof-list">
-            \${statsData.hallOfFame.map(u => \`
-              <div class="hof-entry">
-                <span class="position">#\${u.position}</span>
-                <span>\${u.spotifyName}</span>
-              </div>
-            \`).join('')}
-          </div>
-        </div>
-      \` : '';
+      // Hall of fame removed - now using sidebar Pioneers section
 
       // Different login button based on mode
       const loginButton = spotifyOnlyMode ? \`
@@ -3588,7 +3623,6 @@ export function getHtml(): string {
               <img src="https://img.shields.io/badge/uptime-100%25-1DB954?style=for-the-badge&logo=checkmarx&logoColor=white&labelColor=191414" alt="Uptime" loading="lazy" onerror="this.style.display='none'">
             </a>
           </div>
-          \${hofHtml}
         </div>
       \`;
     }
@@ -4032,6 +4066,7 @@ export function getHtml(): string {
       document.body.classList.toggle('light-mode', lightMode);
       updateThemeButton();
     }
+    window.toggleTheme = toggleTheme;
 
     function updateThemeButton() {
       const btn = document.getElementById('theme-toggle');

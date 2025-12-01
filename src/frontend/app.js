@@ -331,6 +331,9 @@
         setTimeout(() => overlay.remove(), 300);
       }
     }
+    // Make changelog functions globally accessible
+    window.showDeployDetails = showDeployDetails;
+    window.closeChangelog = closeChangelog;
 
     // Start deployment polling
     function startDeployMonitor() {
@@ -532,6 +535,8 @@
       localStorage.setItem('swedishMode', swedishMode);
       applySwedishMode(swedishMode, { playSound: true, showNotif: true });
     }
+    // Make toggleSwedishMode globally accessible
+    window.toggleSwedishMode = toggleSwedishMode;
 
     // Apply Swedish mode on load if previously enabled
     if (swedishMode) {
@@ -588,20 +593,7 @@
         </div>
       \` : '';
 
-      // Hall of fame HTML - using i18n
-      const hofHtml = statsData?.hallOfFame?.length ? \`
-        <div class="hall-of-fame">
-          <h3>🏆 \${t('hallOfFame')}</h3>
-          <div class="hof-list">
-            \${statsData.hallOfFame.map(u => \`
-              <div class="hof-entry">
-                <span class="position">#\${u.position}</span>
-                <span>\${u.spotifyName}</span>
-              </div>
-            \`).join('')}
-          </div>
-        </div>
-      \` : '';
+      // Hall of fame removed - now using sidebar Pioneers section
 
       // Different login button based on mode
       const loginButton = spotifyOnlyMode ? \`
@@ -635,7 +627,6 @@
               <img src="https://img.shields.io/badge/uptime-100%25-1DB954?style=for-the-badge&logo=checkmarx&logoColor=white&labelColor=191414" alt="Uptime" loading="lazy" onerror="this.style.display='none'">
             </a>
           </div>
-          \${hofHtml}
         </div>
       \`;
     }
@@ -1079,6 +1070,7 @@
       document.body.classList.toggle('light-mode', lightMode);
       updateThemeButton();
     }
+    window.toggleTheme = toggleTheme;
 
     function updateThemeButton() {
       const btn = document.getElementById('theme-toggle');
