@@ -1586,4 +1586,100 @@
 
     .changelog-footer a:hover {
       text-decoration: underline;
+    }
+
+    /* Progressive Loading */
+    .progressive-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 2rem;
+    }
+
+    .progress-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .progress-message {
+      color: var(--text);
+      font-size: 1.1rem;
+    }
+
+    .progress-container {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--spotify-green), #1ed760);
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .progress-text {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+
+    .partial-genres-container {
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .partial-genres-preview {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 1rem;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .preview-label {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .preview-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .preview-tag {
+      background: var(--bg);
+      color: var(--text);
+      padding: 0.35rem 0.7rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      animation: slideIn 0.3s ease;
+    }
+
+    .preview-more {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      padding: 0.35rem 0.5rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
     }

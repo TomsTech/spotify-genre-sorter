@@ -1609,6 +1609,102 @@ export function getHtml(): string {
     .changelog-footer a:hover {
       text-decoration: underline;
     }
+
+    /* Progressive Loading */
+    .progressive-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 2rem;
+    }
+
+    .progress-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .progress-message {
+      color: var(--text);
+      font-size: 1.1rem;
+    }
+
+    .progress-container {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--spotify-green), #1ed760);
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .progress-text {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+
+    .partial-genres-container {
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .partial-genres-preview {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 1rem;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .preview-label {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .preview-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .preview-tag {
+      background: var(--bg);
+      color: var(--text);
+      padding: 0.35rem 0.7rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      animation: slideIn 0.3s ease;
+    }
+
+    .preview-more {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      padding: 0.35rem 0.5rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
+    }
   </style>
 </head>
 <body>
@@ -2273,19 +2369,55 @@ export function getHtml(): string {
       \`;
     }
 
-    function renderProgressLoading(message, progress, loaded, total) {
-      app.innerHTML = \`
-        <div class="loading">
-          <div class="spinner"></div>
-          <span>\${message}</span>
-          <div class="progress-container">
-            <div class="progress-bar">
-              <div class="progress-fill" style="width: \${progress}%"></div>
+    function renderProgressLoading(message, progress, loaded, total, partialGenres = null) {
+      // Check if progress bar already exists
+      let progressContainer = document.getElementById('progressive-loading');
+
+      if (!progressContainer) {
+        // First call - create the progress UI
+        app.innerHTML = \`
+          <div id="progressive-loading" class="progressive-loading">
+            <div class="progress-header">
+              <div class="spinner"></div>
+              <span class="progress-message">\${message}</span>
             </div>
-            <div class="progress-text">\${loaded} / \${total} \${swedishMode ? 'låtar' : 'tracks'} (\${progress}%)</div>
+            <div class="progress-container">
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: \${progress}%"></div>
+              </div>
+              <div class="progress-text">\${loaded} / \${total} \${swedishMode ? 'låtar' : 'tracks'} (\${progress}%)</div>
+            </div>
+            <div class="partial-genres-container"></div>
           </div>
-        </div>
-      \`;
+        \`;
+        progressContainer = document.getElementById('progressive-loading');
+      } else {
+        // Update existing progress bar smoothly
+        const fill = progressContainer.querySelector('.progress-fill');
+        const text = progressContainer.querySelector('.progress-text');
+        const msg = progressContainer.querySelector('.progress-message');
+
+        if (fill) fill.style.width = \`\${progress}%\`;
+        if (text) text.textContent = \`\${loaded} / \${total} \${swedishMode ? 'låtar' : 'tracks'} (\${progress}%)\`;
+        if (msg) msg.textContent = message;
+      }
+
+      // Show partial genres preview if available
+      if (partialGenres && partialGenres.length > 0) {
+        const partialContainer = progressContainer.querySelector('.partial-genres-container');
+        if (partialContainer) {
+          const topGenres = partialGenres.slice(0, 8);
+          partialContainer.innerHTML = \`
+            <div class="partial-genres-preview">
+              <span class="preview-label">\${swedishMode ? 'Hittade genrer:' : 'Genres found:'}</span>
+              <div class="preview-tags">
+                \${topGenres.map(g => \`<span class="preview-tag">\${g.name} (\${g.count})</span>\`).join('')}
+                \${partialGenres.length > 8 ? \`<span class="preview-more">+\${partialGenres.length - 8} \${swedishMode ? 'fler' : 'more'}</span>\` : ''}
+              </div>
+            </div>
+          \`;
+        }
+      }
     }
 
     // Merge genre data from multiple chunks
@@ -2340,17 +2472,18 @@ export function getHtml(): string {
 
         totalInLibrary = data.pagination.totalInLibrary;
 
-        // Update progress UI
+        // Merge this chunk first so we can show preview
+        accumulated = mergeGenreChunks(accumulated, data.chunk);
+
+        // Update progress UI with accumulated genres preview
         const loaded = offset + data.chunk.trackCount;
         renderProgressLoading(
           swedishMode ? 'Laddar ditt bibliotek...' : 'Loading your library...',
           data.progress,
           loaded,
-          totalInLibrary
+          totalInLibrary,
+          accumulated?.genres || []
         );
-
-        // Merge this chunk
-        accumulated = mergeGenreChunks(accumulated, data.chunk);
 
         // Check if done
         if (!data.pagination.hasMore) {
