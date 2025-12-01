@@ -15,6 +15,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "check": "npm run lint && npm run typecheck",
     "setup": "node scripts/setup.mjs"
   },
@@ -23,6 +25,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250525.0",
+    "@playwright/test": "^1.57.0",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
     "@typescript-eslint/parser": "^8.15.0",
     "eslint": "^8.57.0",
