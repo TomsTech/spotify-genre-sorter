@@ -702,4 +702,72 @@ api.post('/playlists/bulk', async (c) => {
   }
 });
 
+// Changelog endpoint for deploy widget timeline
+api.get('/changelog', async (c) => {
+  // Static changelog data - updated during releases
+  const changelog = [
+    {
+      version: '1.2.3',
+      date: '2025-12-01',
+      changes: [
+        'Extract embedded HTML/CSS/JS',
+        'Add unit tests for retry logic',
+        'Add Playwright E2E tests',
+        'Add API documentation',
+      ],
+    },
+    {
+      version: '1.2.2',
+      date: '2025-11-30',
+      changes: [
+        'More Swedish easter eggs',
+        'Duplicate playlist detection',
+        'Progressive loading for large libraries',
+      ],
+    },
+    {
+      version: '1.2.1',
+      date: '2025-11-29',
+      changes: [
+        'Fix track limit for subrequest errors',
+        'Show truncation warning in UI',
+      ],
+    },
+    {
+      version: '1.2.0',
+      date: '2025-11-28',
+      changes: [
+        'Dark/light theme toggle',
+        'Hidden genres management',
+        'Genre statistics dashboard',
+        'Export to JSON/CSV',
+      ],
+    },
+    {
+      version: '1.1.0',
+      date: '2025-11-27',
+      changes: [
+        'Security headers (CSP, HSTS)',
+        'Retry logic with exponential backoff',
+        'Australian English spelling',
+      ],
+    },
+    {
+      version: '1.0.0',
+      date: '2025-11-26',
+      changes: [
+        'Initial release',
+        'Hall of Fame',
+        'Swedish Easter eggs',
+        'Spotify-only auth mode',
+      ],
+    },
+  ];
+
+  return c.json({
+    changelog: changelog.slice(0, 10),
+    repoUrl: 'https://github.com/TomsTech/spotify-genre-sorter',
+  });
+});
+
 export default api;
