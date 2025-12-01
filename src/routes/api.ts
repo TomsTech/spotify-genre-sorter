@@ -3,6 +3,7 @@ import { getSession, updateSession } from '../lib/session';
 import {
   refreshSpotifyToken,
   getAllLikedTracks,
+  getLikedTracks,
   getArtists,
   createPlaylist,
   addTracksToPlaylist,
@@ -14,6 +15,13 @@ const api = new Hono<{ Bindings: Env }>();
 // Cache constants
 const GENRE_CACHE_TTL = 3600; // 1 hour in seconds
 const GENRE_CACHE_PREFIX = 'genre_cache_';
+const CHUNK_CACHE_PREFIX = 'genre_chunk_';
+
+// Progressive loading constants - stay under 50 subrequests
+// ~10 track requests (50 per page = 500 tracks) + ~10 artist requests = ~20 total
+const CHUNK_SIZE = 500;
+const MAX_TRACK_REQUESTS_PER_CHUNK = 10;
+const MAX_ARTIST_REQUESTS_PER_CHUNK = 10;
 
 interface GenreCacheData {
   genres: { name: string; count: number; trackIds: string[] }[];
@@ -284,6 +292,179 @@ api.get('/genres', async (c) => {
       error: 'Failed to fetch genres',
       details: message,
       step: 'unknown'
+    }, 500);
+  }
+});
+
+// Chunk cache data interface
+interface ChunkCacheData {
+  genres: { name: string; count: number; trackIds: string[] }[];
+  trackCount: number;
+  artistCount: number;
+  cachedAt: number;
+}
+
+// Progressive loading: Get genres for a chunk of tracks
+// This endpoint stays under 50 subrequests by limiting track fetching per call
+api.get('/genres/chunk', async (c) => {
+  const session = await getSession(c);
+  if (!session?.spotifyAccessToken) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+
+  const offsetStr = c.req.query('offset') || '0';
+  const limitStr = c.req.query('limit') || String(CHUNK_SIZE);
+  const offset = parseInt(offsetStr, 10);
+  const limit = Math.min(parseInt(limitStr, 10), CHUNK_SIZE);
+
+  if (isNaN(offset) || offset < 0) {
+    return c.json({ error: 'Invalid offset' }, 400);
+  }
+
+  try {
+    const user = await getCurrentUser(session.spotifyAccessToken);
+    const chunkCacheKey = `${CHUNK_CACHE_PREFIX}${user.id}_${offset}_${limit}`;
+
+    // Check chunk cache
+    const cachedChunk = await c.env.SESSIONS.get<ChunkCacheData>(chunkCacheKey, 'json');
+    if (cachedChunk) {
+      // Get total from a quick /me/tracks call
+      const totalResponse = await getLikedTracks(session.spotifyAccessToken, 1, 0);
+      const totalInLibrary = totalResponse.total;
+      const hasMore = offset + limit < totalInLibrary;
+
+      return c.json({
+        chunk: cachedChunk,
+        pagination: {
+          offset,
+          limit,
+          hasMore,
+          nextOffset: hasMore ? offset + limit : null,
+          totalInLibrary,
+        },
+        progress: Math.min(100, Math.round(((offset + limit) / totalInLibrary) * 100)),
+        fromCache: true,
+      });
+    }
+
+    // Fetch tracks for this chunk
+    const allChunkTracks = [];
+    let currentOffset = offset;
+    let totalInLibrary = 0;
+    let requestCount = 0;
+
+    while (currentOffset < offset + limit && requestCount < MAX_TRACK_REQUESTS_PER_CHUNK) {
+      const pageLimit = Math.min(50, offset + limit - currentOffset);
+      const response = await getLikedTracks(session.spotifyAccessToken, pageLimit, currentOffset);
+      allChunkTracks.push(...response.items);
+      totalInLibrary = response.total;
+      currentOffset += pageLimit;
+      requestCount++;
+
+      // Stop if we've reached the end of the library
+      if (currentOffset >= response.total) break;
+    }
+
+    if (allChunkTracks.length === 0) {
+      // No more tracks at this offset
+      return c.json({
+        chunk: {
+          genres: [],
+          trackCount: 0,
+          artistCount: 0,
+          cachedAt: Date.now(),
+        },
+        pagination: {
+          offset,
+          limit,
+          hasMore: false,
+          nextOffset: null,
+          totalInLibrary,
+        },
+        progress: 100,
+        fromCache: false,
+      });
+    }
+
+    // Collect unique artist IDs from this chunk
+    const artistIds = new Set<string>();
+    for (const { track } of allChunkTracks) {
+      for (const artist of track.artists) {
+        artistIds.add(artist.id);
+      }
+    }
+
+    // Fetch artists (stay under subrequest limit)
+    const artistIdArray = [...artistIds].slice(0, MAX_ARTIST_REQUESTS_PER_CHUNK * 50);
+    const artists = await getArtists(session.spotifyAccessToken, artistIdArray);
+
+    const artistGenreMap = new Map<string, string[]>();
+    for (const artist of artists) {
+      artistGenreMap.set(artist.id, artist.genres);
+    }
+
+    // Build genre data for this chunk
+    const genreData = new Map<string, { count: number; trackIds: string[] }>();
+
+    for (const { track } of allChunkTracks) {
+      const trackGenres = new Set<string>();
+      for (const artist of track.artists) {
+        const genres = artistGenreMap.get(artist.id) || [];
+        genres.forEach(g => trackGenres.add(g));
+      }
+
+      for (const genre of trackGenres) {
+        let data = genreData.get(genre);
+        if (!data) {
+          data = { count: 0, trackIds: [] };
+          genreData.set(genre, data);
+        }
+        data.count++;
+        data.trackIds.push(track.id);
+      }
+    }
+
+    // Convert to array
+    const genres = [...genreData.entries()]
+      .map(([name, data]) => ({
+        name,
+        count: data.count,
+        trackIds: data.trackIds,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    const chunkData: ChunkCacheData = {
+      genres,
+      trackCount: allChunkTracks.length,
+      artistCount: artistIds.size,
+      cachedAt: Date.now(),
+    };
+
+    // Cache this chunk
+    await c.env.SESSIONS.put(chunkCacheKey, JSON.stringify(chunkData), {
+      expirationTtl: GENRE_CACHE_TTL,
+    });
+
+    const hasMore = offset + allChunkTracks.length < totalInLibrary;
+
+    return c.json({
+      chunk: chunkData,
+      pagination: {
+        offset,
+        limit,
+        hasMore,
+        nextOffset: hasMore ? offset + allChunkTracks.length : null,
+        totalInLibrary,
+      },
+      progress: Math.min(100, Math.round(((offset + allChunkTracks.length) / totalInLibrary) * 100)),
+      fromCache: false,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Error fetching genre chunk:', err);
+    return c.json({
+      error: 'Failed to fetch genre chunk',
+      details: message,
     }, 500);
   }
 });
