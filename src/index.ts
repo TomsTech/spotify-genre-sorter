@@ -38,8 +38,43 @@ app.use('*', async (c, next) => {
 });
 
 // Health check - FIRST route, no middleware dependency
-app.get('/health', (c) => {
-  return c.json({ status: 'ok' });
+// Enhanced with component status for monitoring
+app.get('/health', async (c) => {
+  const detailed = c.req.query('detailed') === 'true';
+
+  // Basic health check (fast)
+  if (!detailed) {
+    return c.json({ status: 'ok', version: APP_VERSION });
+  }
+
+  // Detailed health check with component status
+  const components: Record<string, { status: string; latency?: number }> = {};
+
+  // Check KV availability
+  const kvStart = Date.now();
+  try {
+    await c.env.SESSIONS.get('health_check_probe');
+    components.kv = { status: 'ok', latency: Date.now() - kvStart };
+  } catch {
+    components.kv = { status: 'error', latency: Date.now() - kvStart };
+  }
+
+  // Check secrets configured
+  const secretsConfigured = !!(
+    c.env.SPOTIFY_CLIENT_ID &&
+    c.env.SPOTIFY_CLIENT_SECRET
+  );
+  components.secrets = { status: secretsConfigured ? 'ok' : 'missing' };
+
+  // Overall status
+  const allOk = Object.values(components).every(c => c.status === 'ok');
+
+  return c.json({
+    status: allOk ? 'ok' : 'degraded',
+    version: APP_VERSION,
+    components,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Middleware (after health check so it doesn't block health)
