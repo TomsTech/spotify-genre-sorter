@@ -18,7 +18,10 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "check": "npm run lint && npm run typecheck",
-    "setup": "node scripts/setup.mjs"
+    "setup": "node scripts/setup.mjs",
+    "version:sync": "node scripts/sync-version.mjs",
+    "version:check": "node scripts/sync-version.mjs --check",
+    "version:set": "node scripts/sync-version.mjs"
   },
   "dependencies": {
     "hono": "^4.6.0"
