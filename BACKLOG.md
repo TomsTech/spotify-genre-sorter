@@ -711,8 +711,8 @@ VALIDATION:
 - [ ] Error retry works for individual chunks
 ```
 
-### ⏳ 22. Theme Toggle Before Login
-**Status:** PENDING
+### ✅ 22. Theme Toggle Before Login
+**Status:** DONE
 **Priority:** P2 - Accessibility
 
 ```
