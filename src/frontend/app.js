@@ -1,3 +1,73 @@
+    // === INTRO SEQUENCE ===
+    (function playIntro() {
+      // Only show intro once per session
+      if (sessionStorage.getItem('introShown')) return;
+      sessionStorage.setItem('introShown', 'true');
+
+      // Create intro overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'intro-overlay';
+      overlay.innerHTML = [
+        '<video id="intro-video" autoplay muted playsinline>',
+        '<source src="/assets/intro-video.mp4" type="video/mp4">',
+        '</video>',
+        '<div class="binoculars-mask">',
+        '<div class="binoculars-container">',
+        '<div class="binocular-hole"></div>',
+        '<div class="binocular-hole"></div>',
+        '</div>',
+        '</div>',
+        '<div class="intro-skip-hint">Click anywhere to skip</div>'
+      ].join('');
+      document.body.prepend(overlay);
+
+      const video = overlay.querySelector('#intro-video');
+      const binoculars = overlay.querySelector('.binoculars-mask');
+
+      // Skip on click
+      overlay.addEventListener('click', () => {
+        overlay.classList.add('fade-out');
+        setTimeout(() => overlay.remove(), 800);
+      });
+
+      // Skip on Escape key
+      const escHandler = (e) => {
+        if (e.key === 'Escape') {
+          overlay.classList.add('fade-out');
+          setTimeout(() => overlay.remove(), 800);
+          document.removeEventListener('keydown', escHandler);
+        }
+      };
+      document.addEventListener('keydown', escHandler);
+
+      // At 3.5 seconds, switch to binoculars
+      video.addEventListener('timeupdate', () => {
+        if (video.currentTime >= 3.5 && !binoculars.classList.contains('active')) {
+          video.style.display = 'none';
+          binoculars.classList.add('active');
+
+          // After 2 seconds of binoculars, fade out
+          setTimeout(() => {
+            overlay.classList.add('fade-out');
+            setTimeout(() => overlay.remove(), 800);
+          }, 2000);
+        }
+      });
+
+      // Fallback if video doesn't load
+      video.addEventListener('error', () => {
+        overlay.remove();
+      });
+
+      // Fallback timeout (max 8 seconds)
+      setTimeout(() => {
+        if (document.body.contains(overlay)) {
+          overlay.classList.add('fade-out');
+          setTimeout(() => overlay.remove(), 800);
+        }
+      }, 8000);
+    })();
+
     const app = document.getElementById('app');
     const headerActions = document.getElementById('header-actions');
 

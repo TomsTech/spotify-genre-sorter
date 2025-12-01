@@ -35,6 +35,95 @@ export function getHtml(): string {
       --swedish-yellow: #FECC00;
     }
 
+    /* === Intro Overlay === */
+    .intro-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .intro-overlay video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .intro-overlay .binoculars-mask {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .intro-overlay .binoculars-mask.active {
+      display: flex;
+    }
+
+    .intro-overlay .binoculars-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5vw;
+      animation: binocularWobble 0.3s ease-in-out infinite;
+    }
+
+    .intro-overlay .binocular-hole {
+      width: 38vmin;
+      height: 50vmin;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, transparent 0%, transparent 85%, rgba(0,0,0,0.3) 100%);
+      box-shadow:
+        0 0 0 3px rgba(50,50,50,0.5),
+        0 0 60px 30px rgba(0,0,0,0.8) inset,
+        0 0 0 9999px #000;
+      position: relative;
+    }
+
+    .intro-overlay .binocular-hole::before {
+      content: '';
+      position: absolute;
+      inset: 5%;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 50%);
+    }
+
+    @keyframes binocularWobble {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      20% { transform: translate(2px, -2px) rotate(0.3deg); }
+      40% { transform: translate(-1px, 1px) rotate(-0.2deg); }
+      60% { transform: translate(1px, 2px) rotate(0.2deg); }
+      80% { transform: translate(-2px, -1px) rotate(-0.3deg); }
+    }
+
+    .intro-overlay.fade-out {
+      animation: introFadeOut 0.8s ease-out forwards;
+    }
+
+    @keyframes introFadeOut {
+      0% { opacity: 1; }
+      100% { opacity: 0; pointer-events: none; }
+    }
+
+    .intro-skip-hint {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255,255,255,0.5);
+      font-size: 0.8rem;
+      pointer-events: none;
+    }
+
     /* Light mode theme - WCAG AA compliant */
     body.light-mode {
       --bg: #f5f5f5;
@@ -3002,6 +3091,76 @@ export function getHtml(): string {
   </div>
 
   <script>
+    // === INTRO SEQUENCE ===
+    (function playIntro() {
+      // Only show intro once per session
+      if (sessionStorage.getItem('introShown')) return;
+      sessionStorage.setItem('introShown', 'true');
+
+      // Create intro overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'intro-overlay';
+      overlay.innerHTML = [
+        '<video id="intro-video" autoplay muted playsinline>',
+        '<source src="/assets/intro-video.mp4" type="video/mp4">',
+        '</video>',
+        '<div class="binoculars-mask">',
+        '<div class="binoculars-container">',
+        '<div class="binocular-hole"></div>',
+        '<div class="binocular-hole"></div>',
+        '</div>',
+        '</div>',
+        '<div class="intro-skip-hint">Click anywhere to skip</div>'
+      ].join('');
+      document.body.prepend(overlay);
+
+      const video = overlay.querySelector('#intro-video');
+      const binoculars = overlay.querySelector('.binoculars-mask');
+
+      // Skip on click
+      overlay.addEventListener('click', () => {
+        overlay.classList.add('fade-out');
+        setTimeout(() => overlay.remove(), 800);
+      });
+
+      // Skip on Escape key
+      const escHandler = (e) => {
+        if (e.key === 'Escape') {
+          overlay.classList.add('fade-out');
+          setTimeout(() => overlay.remove(), 800);
+          document.removeEventListener('keydown', escHandler);
+        }
+      };
+      document.addEventListener('keydown', escHandler);
+
+      // At 3.5 seconds, switch to binoculars
+      video.addEventListener('timeupdate', () => {
+        if (video.currentTime >= 3.5 && !binoculars.classList.contains('active')) {
+          video.style.display = 'none';
+          binoculars.classList.add('active');
+
+          // After 2 seconds of binoculars, fade out
+          setTimeout(() => {
+            overlay.classList.add('fade-out');
+            setTimeout(() => overlay.remove(), 800);
+          }, 2000);
+        }
+      });
+
+      // Fallback if video doesn't load
+      video.addEventListener('error', () => {
+        overlay.remove();
+      });
+
+      // Fallback timeout (max 8 seconds)
+      setTimeout(() => {
+        if (document.body.contains(overlay)) {
+          overlay.classList.add('fade-out');
+          setTimeout(() => overlay.remove(), 800);
+        }
+      }, 8000);
+    })();
+
     const app = document.getElementById('app');
     const headerActions = document.getElementById('header-actions');
 
