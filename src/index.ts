@@ -24,7 +24,7 @@ app.use('*', async (c, next) => {
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https://flagcdn.com https://i.scdn.co https://avatars.githubusercontent.com",
+    "img-src 'self' data: https://flagcdn.com https://i.scdn.co https://avatars.githubusercontent.com https://img.shields.io",
     "connect-src 'self' https://api.spotify.com https://ko-fi.com",
     "frame-ancestors 'none'",
   ].join('; '));
@@ -1746,7 +1746,7 @@ function getHtml(): string {
         deployText.textContent = deployment.currentStep || 'Deploying...';
       } else if (deployment.conclusion === 'success') {
         widget.classList.add('success');
-        statusIcon.innerHTML = \`<img class="avatar" src="\${deployment.author.avatar}" alt="">\`;
+        statusIcon.innerHTML = \`<img class="avatar" src="\${deployment.author.avatar}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
         const updatedAt = new Date(deployment.updatedAt);
         const timeAgo = formatTimeAgo(updatedAt);
         deployText.textContent = \`v\${data.version} • \${timeAgo}\`;
@@ -2046,10 +2046,10 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
           \${loginButton}
           <div class="footer-badges">
             <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank">
-              <img src="https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=for-the-badge&logo=github&logoColor=white&label=Star&color=1DB954&labelColor=191414" alt="Star on GitHub">
+              <img src="https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=for-the-badge&logo=github&logoColor=white&label=Star&color=1DB954&labelColor=191414" alt="Star on GitHub" loading="lazy" onerror="this.style.display='none'">
             </a>
             <a href="https://stats.uptimerobot.com/tomstech" target="_blank">
-              <img src="https://img.shields.io/badge/uptime-100%25-1DB954?style=for-the-badge&logo=checkmarx&logoColor=white&labelColor=191414" alt="Uptime">
+              <img src="https://img.shields.io/badge/uptime-100%25-1DB954?style=for-the-badge&logo=checkmarx&logoColor=white&labelColor=191414" alt="Uptime" loading="lazy" onerror="this.style.display='none'">
             </a>
           </div>
           \${hofHtml}
@@ -2062,7 +2062,7 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
       const user = session.user || session.spotifyUser || session.githubUser;
       headerActions.innerHTML = \`
         <div class="user-info">
-          \${avatar ? \`<img src="\${avatar}" alt="" class="avatar">\` : ''}
+          \${avatar ? \`<img src="\${avatar}" alt="" class="avatar" onerror="this.style.display='none'">\` : ''}
           <span>\${user || 'User'}</span>
           <a href="/auth/logout" class="btn btn-ghost" data-i18n="logout">\${t('logout')}</a>
         </div>
