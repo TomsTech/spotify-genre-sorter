@@ -2230,9 +2230,8 @@
     .content-wrapper {
       display: flex;
       flex: 1;
-      max-width: 1600px;
-      margin: 0 auto;
       width: 100%;
+      justify-content: center;
     }
 
     /* === Sidebar === */
@@ -2247,8 +2246,10 @@
       gap: 1.5rem;
       overflow-y: auto;
       max-height: calc(100vh - 80px);
-      position: sticky;
+      position: fixed;
+      left: 0;
       top: 80px;
+      z-index: 50;
     }
 
     .sidebar-section {
@@ -2458,7 +2459,10 @@
     .main-content {
       flex: 1;
       padding: 1.5rem;
+      padding-left: calc(280px + 1.5rem); /* Account for fixed sidebar */
       min-width: 0;
+      max-width: 1000px;
+      margin: 0 auto;
     }
 
     /* === Scoreboard Button === */
@@ -2628,7 +2632,8 @@
       }
 
       .main-content {
-        margin-left: 0;
+        padding-left: 1.5rem;
+        max-width: 100%;
       }
     }
 
