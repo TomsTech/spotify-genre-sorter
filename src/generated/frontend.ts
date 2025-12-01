@@ -3110,13 +3110,24 @@ export function getHtml(): string {
     }
 
     // === Export Functions ===
-    // Sanitize genre name for safe export (handle unicode)
+    // Sanitize text for safe export - NO REGEX with escape sequences (they break in template literals)
     function sanitizeForExport(text) {
-      // Normalize unicode to NFC form and remove problematic characters
-      return text
-        .normalize('NFC')
-        .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
-        .trim();
+      if (!text || typeof text !== 'string') return '';
+
+      // Normalize unicode to NFC form
+      let result = text.normalize('NFC');
+
+      // Remove control characters manually (safer than regex escapes)
+      let cleaned = '';
+      for (let i = 0; i < result.length; i++) {
+        const code = result.charCodeAt(i);
+        // Skip control characters: 0x00-0x1F (C0) and 0x7F-0x9F (DEL + C1)
+        if ((code >= 0x20 && code <= 0x7E) || code >= 0xA0) {
+          cleaned += result[i];
+        }
+      }
+
+      return cleaned.trim();
     }
 
     function exportGenresJSON() {
