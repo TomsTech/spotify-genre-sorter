@@ -703,26 +703,17 @@ api.post('/playlists/bulk', async (c) => {
 });
 
 // Changelog endpoint for deploy widget timeline
-api.get('/changelog', async (c) => {
+api.get('/changelog', (c) => {
   // Static changelog data - updated during releases
   const changelog = [
     {
-      version: '1.2.3',
+      version: '1.3.0',
       date: '2025-12-01',
       changes: [
-        'Extract embedded HTML/CSS/JS',
-        'Add unit tests for retry logic',
-        'Add Playwright E2E tests',
-        'Add API documentation',
-      ],
-    },
-    {
-      version: '1.2.2',
-      date: '2025-11-30',
-      changes: [
-        'More Swedish easter eggs',
-        'Duplicate playlist detection',
-        'Progressive loading for large libraries',
+        'PDF documentation generation',
+        'SEO playlist descriptions',
+        'Enhanced health endpoint',
+        'All backlog tasks complete',
       ],
     },
     {
