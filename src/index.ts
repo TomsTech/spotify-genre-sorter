@@ -741,6 +741,55 @@ function getHtml(): string {
       margin-top: 0.5rem;
     }
 
+    /* Modal dialog styles */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      max-width: 400px;
+      width: 90%;
+      animation: slideUp 0.3s ease;
+    }
+
+    .modal h3 {
+      margin: 0 0 1rem;
+      color: var(--text);
+    }
+
+    .modal p {
+      margin: 0 0 1rem;
+      color: var(--text);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+      margin-top: 1.5rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
     .error {
       background: rgba(231, 76, 60, 0.1);
       border: 1px solid var(--danger);
@@ -834,6 +883,11 @@ function getHtml(): string {
 
     .result-error {
       color: var(--danger);
+    }
+
+    .result-skipped {
+      color: var(--text-muted);
+      font-style: italic;
     }
 
     /* Heidi Easter Egg Badge */
@@ -2775,41 +2829,89 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
       updateSelectedCount();
     }
 
-    async function createPlaylist(genreName) {
+    async function createPlaylist(genreName, force = false) {
       const genre = genreData.genres.find(g => g.name === genreName);
       if (!genre) return;
 
-      const btn = event.target;
-      btn.disabled = true;
-      btn.textContent = t('creating');
+      const btn = event?.target;
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = t('creating');
+      }
 
       try {
         const response = await fetch('/api/playlist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ genre: genre.name, trackIds: genre.trackIds }),
+          body: JSON.stringify({ genre: genre.name, trackIds: genre.trackIds, force }),
         });
 
         const result = await response.json();
 
         if (result.success) {
-          btn.textContent = t('created');
-          btn.style.color = 'var(--accent)';
+          if (btn) {
+            btn.textContent = t('created');
+            btn.style.color = 'var(--accent)';
+          }
           showNotification(\`\${swedishMode ? 'Skapade spellista' : 'Created playlist'}: \${genre.name} (\${genre.count} \${t('tracks')})\`, 'success');
+        } else if (result.duplicate) {
+          // Show duplicate confirmation dialog
+          showDuplicateDialog(genre, result);
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = t('create');
+          }
+          return;
         } else {
           throw new Error(result.error);
         }
       } catch (error) {
-        btn.textContent = t('failed');
-        btn.style.color = 'var(--danger)';
+        if (btn) {
+          btn.textContent = t('failed');
+          btn.style.color = 'var(--danger)';
+        }
         showNotification(\`\${t('failed')}: \${error.message}\`, 'error');
       }
 
-      setTimeout(() => {
-        btn.disabled = false;
-        btn.textContent = t('create');
-        btn.style.color = '';
-      }, 3000);
+      if (btn) {
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.textContent = t('create');
+          btn.style.color = '';
+        }, 3000);
+      }
+    }
+
+    function showDuplicateDialog(genre, result) {
+      const existingCount = result.existingPlaylist.trackCount;
+      const newCount = genre.count;
+
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.innerHTML = \`
+        <div class="modal">
+          <h3>\${swedishMode ? 'Spellista finns redan' : 'Playlist Already Exists'}</h3>
+          <p>\${result.message}</p>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">
+            \${swedishMode
+              ? \`Ny: \${newCount} låtar, Befintlig: \${existingCount} låtar\`
+              : \`New: \${newCount} tracks, Existing: \${existingCount} tracks\`}
+          </p>
+          <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">
+              \${swedishMode ? 'Avbryt' : 'Cancel'}
+            </button>
+            <button class="btn btn-primary" onclick="createPlaylistForce('\${genre.name.replace(/'/g, "\\\\'")}'); this.closest('.modal-overlay').remove();">
+              \${swedishMode ? 'Skapa ändå' : 'Create Anyway'}
+            </button>
+          </div>
+        </div>
+      \`;
+      document.body.appendChild(modal);
+    }
+
+    function createPlaylistForce(genreName) {
+      createPlaylist(genreName, true);
     }
 
     async function createSelectedPlaylists() {
@@ -2827,16 +2929,20 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
         const response = await fetch('/api/playlists/bulk', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ genres }),
+          body: JSON.stringify({ genres, skipDuplicates: true }),
         });
 
         const result = await response.json();
+
+        const skippedText = result.skipped > 0
+          ? \` (\${result.skipped} \${swedishMode ? 'hoppades över - finns redan' : 'skipped - already exist'})\`
+          : '';
 
         document.getElementById('results').innerHTML = \`
           <div class="card">
             <h2 class="card-title" data-i18n="results">\${t('results')}</h2>
             <p style="margin-bottom: 1rem;">
-              \${t('successCreated')} \${result.successful} \${t('of')} \${result.total} \${t('playlists')}.
+              \${t('successCreated')} \${result.successful} \${t('of')} \${result.total} \${t('playlists')}\${skippedText}.
             </p>
             <div class="results">
               \${result.results.map(r => \`
@@ -2844,7 +2950,9 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
                   <span>\${r.genre}</span>
                   \${r.success
                     ? \`<a href="\${r.url}" target="_blank" class="result-success" data-i18n="openSpotify">\${t('openSpotify')}</a>\`
-                    : \`<span class="result-error">\${r.error}</span>\`
+                    : r.skipped
+                      ? \`<span class="result-skipped">\${swedishMode ? 'Finns redan' : 'Already exists'}</span>\`
+                      : \`<span class="result-error">\${r.error}</span>\`
                   }
                 </div>
               \`).join('')}

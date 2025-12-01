@@ -8,6 +8,7 @@ import {
   createPlaylist,
   addTracksToPlaylist,
   getCurrentUser,
+  getUserPlaylists,
 } from '../lib/spotify';
 
 const api = new Hono<{ Bindings: Env }>();
@@ -517,8 +518,8 @@ api.post('/playlist', async (c) => {
   }
 
   try {
-    const body = await c.req.json<{ genre: string; trackIds: string[] }>();
-    const { genre, trackIds } = body;
+    const body = await c.req.json<{ genre: string; trackIds: string[]; force?: boolean }>();
+    const { genre, trackIds, force } = body;
 
     // Validate genre name
     const genreValidation = sanitiseGenreName(genre);
@@ -535,11 +536,32 @@ api.post('/playlist', async (c) => {
     const user = await getCurrentUser(session.spotifyAccessToken);
     const safeName = genreValidation.name!;
     const safeTrackIds = trackValidation.ids!;
+    const playlistName = `${safeName} (from Likes)`;
+
+    // Check for duplicate playlist unless force=true
+    if (!force) {
+      const existingPlaylists = await getUserPlaylists(session.spotifyAccessToken);
+      const duplicate = existingPlaylists.find(
+        p => p.name.toLowerCase() === playlistName.toLowerCase() && p.owner.id === user.id
+      );
+      if (duplicate) {
+        return c.json({
+          success: false,
+          duplicate: true,
+          existingPlaylist: {
+            id: duplicate.id,
+            name: duplicate.name,
+            trackCount: duplicate.tracks.total,
+          },
+          message: `A playlist named "${playlistName}" already exists with ${duplicate.tracks.total} tracks`,
+        });
+      }
+    }
 
     const playlist = await createPlaylist(
       session.spotifyAccessToken,
       user.id,
-      `${safeName} (from Likes)`,
+      playlistName,
       `Auto-generated playlist of ${safeName} tracks from your liked songs`,
       false
     );
@@ -555,7 +577,7 @@ api.post('/playlist', async (c) => {
       playlist: {
         id: playlist.id,
         url: playlist.external_urls.spotify,
-        name: `${safeName} (from Likes)`,
+        name: playlistName,
         trackCount: safeTrackIds.length,
       },
     });
@@ -573,8 +595,11 @@ api.post('/playlists/bulk', async (c) => {
   }
 
   try {
-    const body = await c.req.json<{ genres: { name: string; trackIds: string[] }[] }>();
-    const { genres } = body;
+    const body = await c.req.json<{
+      genres: { name: string; trackIds: string[] }[];
+      skipDuplicates?: boolean;
+    }>();
+    const { genres, skipDuplicates } = body;
 
     if (!Array.isArray(genres) || genres.length === 0) {
       return c.json({ error: 'Genres array required' }, 400);
@@ -585,7 +610,16 @@ api.post('/playlists/bulk', async (c) => {
     }
 
     const user = await getCurrentUser(session.spotifyAccessToken);
-    const results: { genre: string; success: boolean; url?: string; error?: string }[] = [];
+
+    // Fetch existing playlists once for duplicate checking
+    const existingPlaylists = await getUserPlaylists(session.spotifyAccessToken);
+    const existingNames = new Set(
+      existingPlaylists
+        .filter(p => p.owner.id === user.id)
+        .map(p => p.name.toLowerCase())
+    );
+
+    const results: { genre: string; success: boolean; url?: string; error?: string; skipped?: boolean }[] = [];
 
     for (const { name, trackIds } of genres) {
       // Validate each genre
@@ -601,20 +635,38 @@ api.post('/playlists/bulk', async (c) => {
         continue;
       }
 
+      const safeName = genreValidation.name!;
+      const playlistName = `${safeName} (from Likes)`;
+
+      // Check for duplicate
+      if (existingNames.has(playlistName.toLowerCase())) {
+        if (skipDuplicates) {
+          results.push({
+            genre: safeName,
+            success: false,
+            skipped: true,
+            error: 'Playlist already exists',
+          });
+          continue;
+        }
+      }
+
       try {
-        const safeName = genreValidation.name!;
         const safeTrackIds = trackValidation.ids!;
 
         const playlist = await createPlaylist(
           session.spotifyAccessToken,
           user.id,
-          `${safeName} (from Likes)`,
+          playlistName,
           `Auto-generated playlist of ${safeName} tracks from your liked songs`,
           false
         );
 
         const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
         await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
+
+        // Add to existing names to prevent duplicates within same batch
+        existingNames.add(playlistName.toLowerCase());
 
         results.push({
           genre: safeName,
@@ -624,7 +676,7 @@ api.post('/playlists/bulk', async (c) => {
       } catch {
         // Don't expose internal error details
         results.push({
-          genre: genreValidation.name!,
+          genre: safeName,
           success: false,
           error: 'Failed to create playlist',
         });
@@ -633,6 +685,7 @@ api.post('/playlists/bulk', async (c) => {
 
     // Invalidate cache if any playlists were created
     const successCount = results.filter(r => r.success).length;
+    const skippedCount = results.filter(r => r.skipped).length;
     if (successCount > 0) {
       await invalidateGenreCache(c.env.SESSIONS, user.id);
     }
@@ -640,6 +693,7 @@ api.post('/playlists/bulk', async (c) => {
     return c.json({
       total: genres.length,
       successful: successCount,
+      skipped: skippedCount,
       results,
     });
   } catch (err) {
