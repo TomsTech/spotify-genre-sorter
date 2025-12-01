@@ -38,7 +38,6 @@ interface GenreCacheData {
 async function invalidateGenreCache(kv: KVNamespace, spotifyUserId: string): Promise<void> {
   const cacheKey = `${GENRE_CACHE_PREFIX}${spotifyUserId}`;
   await kv.delete(cacheKey);
-  console.log(`Invalidated genre cache for user ${spotifyUserId}`);
 }
 
 // Security constants
@@ -170,15 +169,12 @@ api.get('/genres', async (c) => {
     if (!forceRefresh) {
       const cachedData = await c.env.SESSIONS.get<GenreCacheData>(cacheKey, 'json');
       if (cachedData) {
-        console.log(`Cache hit for user ${user.id}`);
         return c.json({
           ...cachedData,
           fromCache: true,
         });
       }
     }
-
-    console.log(`Cache miss for user ${user.id}, fetching fresh data...`);
 
     // Step 1: Get all liked tracks (limited to avoid subrequest limits)
     let tracksResult;
@@ -470,8 +466,13 @@ api.get('/genres/chunk', async (c) => {
   }
 });
 
+// Discriminated union types for validation results
+type ValidationSuccess<T> = { valid: true; value: T };
+type ValidationError = { valid: false; error: string };
+type ValidationResult<T> = ValidationSuccess<T> | ValidationError;
+
 // Helper to validate track IDs
-function validateTrackIds(trackIds: unknown): { valid: boolean; error?: string; ids?: string[] } {
+function validateTrackIds(trackIds: unknown): ValidationResult<string[]> {
   if (!Array.isArray(trackIds)) {
     return { valid: false, error: 'trackIds must be an array' };
   }
@@ -490,11 +491,11 @@ function validateTrackIds(trackIds: unknown): { valid: boolean; error?: string; 
     validIds.push(id);
   }
 
-  return { valid: true, ids: validIds };
+  return { valid: true, value: validIds };
 }
 
 // Helper to sanitise genre name
-function sanitiseGenreName(genre: unknown): { valid: boolean; error?: string; name?: string } {
+function sanitiseGenreName(genre: unknown): ValidationResult<string> {
   if (typeof genre !== 'string') {
     return { valid: false, error: 'Genre must be a string' };
   }
@@ -507,7 +508,7 @@ function sanitiseGenreName(genre: unknown): { valid: boolean; error?: string; na
   }
   // Remove any potentially dangerous characters (keep alphanumeric, spaces, hyphens, common chars)
   const sanitised = trimmed.replace(/[<>"'&]/g, '');
-  return { valid: true, name: sanitised };
+  return { valid: true, value: sanitised };
 }
 
 // Create a playlist for a specific genre
@@ -534,8 +535,8 @@ api.post('/playlist', async (c) => {
     }
 
     const user = await getCurrentUser(session.spotifyAccessToken);
-    const safeName = genreValidation.name!;
-    const safeTrackIds = trackValidation.ids!;
+    const safeName = genreValidation.value;
+    const safeTrackIds = trackValidation.value;
     const playlistName = `${safeName} (from Likes)`;
 
     // Check for duplicate playlist unless force=true
@@ -631,11 +632,11 @@ api.post('/playlists/bulk', async (c) => {
 
       const trackValidation = validateTrackIds(trackIds);
       if (!trackValidation.valid) {
-        results.push({ genre: genreValidation.name!, success: false, error: trackValidation.error });
+        results.push({ genre: genreValidation.value, success: false, error: trackValidation.error });
         continue;
       }
 
-      const safeName = genreValidation.name!;
+      const safeName = genreValidation.value;
       const playlistName = `${safeName} (from Likes)`;
 
       // Check for duplicate
@@ -652,7 +653,7 @@ api.post('/playlists/bulk', async (c) => {
       }
 
       try {
-        const safeTrackIds = trackValidation.ids!;
+        const safeTrackIds = trackValidation.value;
 
         const playlist = await createPlaylist(
           session.spotifyAccessToken,

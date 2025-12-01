@@ -218,9 +218,7 @@ export async function getAllLikedTracks(
 
     // Stop if we've hit our limits to avoid subrequest errors
     if (requestCount >= MAX_TRACK_REQUESTS || allTracks.length >= trackLimit) {
-      if (totalInLibrary > allTracks.length) {
-        console.log(`Stopped at ${allTracks.length}/${totalInLibrary} tracks to stay within subrequest limits`);
-      }
+      // Note: Truncation info is returned in the response for client-side display
       break;
     }
   } while (offset < totalInLibrary);
