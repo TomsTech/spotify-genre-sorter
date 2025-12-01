@@ -761,15 +761,13 @@ export function getHtml(): string {
     /* Swedish mode decorations - Three Crowns (Tre Kronor) */
     .swedish-crowns {
       display: none;
-      position: absolute;
-      top: -20px;
-      right: 10px;
+      gap: 0.25rem;
+      margin-left: 0.5rem;
       font-size: 1.2rem;
     }
 
     body.swedish-mode .swedish-crowns {
       display: flex;
-      gap: 0.25rem;
     }
 
     .swedish-crowns .crown {
