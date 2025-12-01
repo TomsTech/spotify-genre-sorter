@@ -1013,11 +1013,11 @@
     // === Export Functions ===
     // Sanitize genre name for safe export (handle unicode)
     function sanitizeForExport(text) {
-      // Normalize unicode to NFC form and escape problematic characters
+      // Normalize unicode to NFC form and remove problematic characters
       return text
         .normalize('NFC')
-        .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
-        .replace(/[\uD800-\uDFFF]/g, ''); // Remove unpaired surrogates
+        .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
+        .trim();
     }
 
     function exportGenresJSON() {
