@@ -1,315 +1,552 @@
 # Spotify Genre Sorter - Backlog
 
-> **How to use**: Copy any task below and paste it to Claude when you have spare credits.
-> Each task is self-contained with context so Claude can pick it up immediately.
+> **Automated Implementation**: Run `/backlog all` or `/backlog 16-20` to implement tasks automatically.
+> Each task includes validation steps for CI integration.
 
 ---
 
-## Priority: High (User-Facing Features)
-
-### 0. Genre Caching in KV
-```
-Implement genre caching in Cloudflare KV to reduce Spotify API calls.
-
-Context:
-- Currently we fetch all liked tracks + all artists on every /api/genres call
-- This is slow for large libraries and hits Spotify rate limits
-- Cache structure: user_genres_{spotify_user_id} -> { genres, timestamp, trackCount }
-- Cache TTL: 1 hour (user can force refresh)
-- Files: src/routes/api.ts, src/lib/session.ts
-
-Requirements:
-- Add cache check before fetching from Spotify
-- Add "last updated" indicator in UI
-- Add manual refresh button
-- Invalidate cache when user creates a playlist (library changed)
-```
-### 1. Real-time GitHub Deployment Monitor
-```
-Implement a minimalist floating widget to track GitHub Actions deployments and handle client-side version updates.
-
-Context:
-- Users are currently unaware when a deployment is in progress
-- Clients may remain on cached/old versions of the site after deployment
-- Requires integration with GitHub Actions/Runners API
-- Needs a polling mechanism (5s interval) to fetch current step/progress status
-
-Requirements:
-- **UI:** Minimalist "light" floating widget in the top-right corner
-- **Active State:** Show "New Deployment v1.1", circular progress indicator, and current step name
-- **Idle State:** Show "Last update at [time] by [name]" with author's GitHub profile picture
-- **Cache/Version Handling:** Detect version mismatch
-- **Auto-Refresh:** Automatically refresh/clear cache if possible; otherwise, prompt user to refresh
-- **Update Frequency:** Poll status every 5 seconds
-```
-
-
-### 2. Progress Indicator for Large Libraries
-```
-Add real-time progress indicator when fetching genres for large libraries.
-
-Context:
-- Users with 1000+ liked songs see a spinner for 30+ seconds with no feedback
-- Spotify API is paginated (50 tracks per request)
-- We already have onProgress callback in getAllLikedTracks()
-- Files: src/index.ts (frontend), src/lib/spotify.ts, src/routes/api.ts
-
-Requirements:
-- Show "Loading tracks... 150/2000" style progress
-- Show artist fetching progress separately
-- Use Server-Sent Events (SSE) or polling for real-time updates
-- Swedish translation for progress messages
-```
-
-
-
-
-
-
-### 3. Playlist Naming Customisation
-```
-Let users customise playlist names before creation.
-
-Context:
-- Currently hardcoded as "{genre} (from Likes)"
-- Users might want different formats or prefixes
-- Files: src/index.ts (UI), src/routes/api.ts
-
-Requirements:
-- Add template input: "{genre} - My Collection" etc
-- Preview what playlists will be named
-- Remember preference in localStorage
-- Swedish translation support
-```
+## Status Legend
+- ✅ **DONE** - Implemented and deployed
+- 🔄 **PARTIAL** - Started but incomplete
+- ⏳ **PENDING** - Not started
+- 🔥 **CRITICAL** - Blocking issue, fix ASAP
 
 ---
 
-## Priority: Medium (Quality of Life)
+## ✅ Completed Tasks
 
-### 4. Genre Filtering/Exclusion
-```
-Allow users to filter or exclude certain genres from results.
+### ✅ 0. Genre Caching in KV
+**Status:** DONE (v1.2.0)
+- Cache in KV with 1-hour TTL
+- Refresh button in UI
+- Invalidates on playlist creation
 
-Context:
-- Some users have 100+ genres, many are obscure sub-genres
-- Would be nice to hide/exclude unwanted genres
-- Files: src/index.ts
+### ✅ 3. Playlist Naming Customisation
+**Status:** DONE (v1.2.0)
+- Template input with `{genre}` placeholder
+- Saved in localStorage
+- Preview in UI
 
-Requirements:
-- Add "hide" button next to each genre
-- Hidden genres saved in localStorage
+### ✅ 4. Genre Filtering/Exclusion
+**Status:** DONE (v1.2.0)
+- Hide button per genre
 - "Show hidden" toggle
-- Bulk actions: hide all with <5 tracks, etc
+- "Hide small genres" bulk action
+- localStorage persistence
+
+### ✅ 5. Dark/Light Theme Toggle
+**Status:** DONE (v1.2.0)
+- Toggle button in header
+- System preference detection
+- localStorage persistence
+- Works with Swedish mode
+
+### ✅ 6. Mobile Responsive Improvements
+**Status:** DONE (v1.2.0)
+- Larger touch targets
+- Better card layout
+- Toolbar improvements
+
+### ✅ 7. Export/Import Genre Data
+**Status:** DONE (v1.2.0)
+- JSON export with full data
+- CSV export for spreadsheets
+
+### ✅ 8. Genre Statistics Dashboard
+**Status:** DONE (v1.2.0)
+- Top 10 bar chart
+- Diversity score (Shannon index)
+- Stats boxes
+
+---
+
+## 🔥 Critical Issues
+
+### 🔥 16. Fix Broken Embedded Images/Links
+**Status:** CRITICAL - Broken in last 5 deploys
+**Priority:** P0 - Fix immediately
+
+```
+PROBLEM:
+Multiple embedded images and links are returning 404s in production.
+This has been broken for the last 5 deployments.
+Shields.io badges, GitHub avatars, and other external resources failing intermittently.
+
+AFFECTED RESOURCES (verify each):
+1. GitHub stars badge: img.shields.io/github/stars/TomsTech/spotify-genre-sorter
+2. Uptime badge: img.shields.io/badge/uptime-100%25-1DB954
+3. GitHub avatar URLs in deployment widget
+4. Any other src="" attributes in index.ts
+
+ROOT CAUSE INVESTIGATION:
+- Check if URLs are correctly encoded (special chars like %)
+- Check if shields.io rate limiting is occurring
+- Check if GitHub API returns valid avatar URLs
+- Check CSP headers aren't blocking external images
+
+FILES TO MODIFY:
+- src/index.ts (all img src attributes)
+- src/routes/api.ts (if serving image URLs)
+
+REQUIREMENTS:
+1. Audit ALL external URLs in src/index.ts
+2. Add fallback images for when external resources fail
+3. Add onerror handlers: <img onerror="this.src='fallback.png'" ...>
+4. Consider proxying external images through worker
+5. Add loading="lazy" for non-critical images
+
+VALIDATION:
+- [ ] npm run build succeeds
+- [ ] npm test passes
+- [ ] All images load in browser (manual check)
+- [ ] No 404s in browser console
+- [ ] CSP headers don't block images
 ```
 
-### 5. Dark/Light Theme Toggle
+### 🔥 17. Add Link/Image Validation to CI Pipeline
+**Status:** CRITICAL - Prevent future broken links
+**Priority:** P0 - Must accompany #16
+
 ```
-Add proper theme toggle (currently dark-only).
+PROBLEM:
+No automated validation that embedded URLs are valid.
+Broken images ship to production repeatedly.
 
-Context:
-- App is dark theme only
-- Some users prefer light mode
-- CSS variables already set up for theming
-- Files: src/index.ts (CSS section)
+IMPLEMENTATION:
+Add a CI job that extracts and validates all URLs before deployment.
 
-Requirements:
-- Add theme toggle button in header
-- Save preference in localStorage
-- Respect system preference (prefers-color-scheme)
-- Swedish mode should still apply its blue/yellow on top
-```
+FILES TO CREATE/MODIFY:
+- .github/workflows/ci.yml (add new job)
+- scripts/validate-links.mjs (new script)
 
-### 6. Mobile Responsive Improvements
-```
-Improve mobile experience.
+REQUIREMENTS:
+1. Create scripts/validate-links.mjs:
+   - Parse src/index.ts for all URLs (regex: https?://[^\s"'<>]+)
+   - HEAD request each URL to verify 200 response
+   - Allow configurable whitelist for known-flaky URLs
+   - Exit 1 if any critical URL fails
 
-Context:
-- Basic responsive CSS exists but not optimised
-- Genre cards too small on mobile
-- Buttons hard to tap
-- Files: src/index.ts (CSS section)
+2. Add CI job in ci.yml:
+   - name: Validate embedded links
+   - runs-after: build
+   - runs: node scripts/validate-links.mjs
+   - allow-failure: false (blocks deployment)
 
-Requirements:
-- Larger touch targets (44px minimum)
-- Better genre card layout on mobile
-- Sticky header with user info
-- Bottom sheet for bulk actions on mobile
+3. Create .link-whitelist.json for URLs that may flake:
+   - shields.io (rate limited sometimes)
+   - GitHub avatars (dynamic)
+
+VALIDATION:
+- [ ] scripts/validate-links.mjs exists and is executable
+- [ ] Running it locally shows all URLs checked
+- [ ] CI workflow includes link validation step
+- [ ] Intentionally breaking a URL causes CI failure
 ```
 
 ---
 
-## Priority: Low (Nice to Have)
+## ⏳ Pending High Priority
 
-### 7. Export/Import Genre Data
+### ⏳ 18. Progressive Loading for Unlimited Library Sizes
+**Status:** PENDING - Architectural improvement
+**Priority:** P1 - Enables large libraries
+
 ```
-Let users export their genre analysis as JSON/CSV.
+PROBLEM:
+Cloudflare Workers free tier has 50 subrequest limit.
+Users with >1000 tracks hit "Too many subrequests" error.
+Current workaround limits to 1000 tracks (truncated).
 
-Context:
-- Users might want to analyse their music taste externally
-- Could be useful for sharing/comparison
-- Files: src/index.ts, src/routes/api.ts
+ARCHITECTURE:
+Client-side progressive loading across multiple requests.
+Each request stays under 50 subrequests.
 
-Requirements:
-- Export button that downloads JSON with all genre data
-- Include track details, not just IDs
-- CSV option for spreadsheet users
+FILES TO MODIFY:
+- src/routes/api.ts (add /api/genres/chunk endpoint)
+- src/index.ts (add progressive loading UI)
+- src/lib/spotify.ts (add chunked fetching)
+
+NEW API ENDPOINT:
+GET /api/genres/chunk?offset=0&limit=500
+
+Response:
+{
+  "chunk": {
+    "genres": [...],
+    "trackCount": 500
+  },
+  "pagination": {
+    "offset": 0,
+    "limit": 500,
+    "hasMore": true,
+    "nextOffset": 500,
+    "totalInLibrary": 2500
+  },
+  "progress": 20
+}
+
+REQUIREMENTS:
+1. Add /api/genres/chunk endpoint:
+   - Accept offset and limit query params
+   - Fetch only requested track range
+   - Get artists only for those tracks
+   - Return pagination metadata
+   - Stay under 50 subrequests (~15 track + ~15 artist calls)
+
+2. Update frontend:
+   - Add loadGenresProgressively() function
+   - Show progress bar during loading
+   - Merge genres from each chunk
+   - Handle errors gracefully (retry individual chunks)
+   - Remove "truncated" warning once complete
+
+3. Add chunk caching:
+   - Cache each chunk in KV: genre_chunk_{userId}_{offset}
+   - Merge cached chunks on subsequent loads
+   - Show "cached" indicator per chunk
+
+SUBREQUEST BUDGET PER CHUNK (limit=500):
+- Get 500 tracks: 10 requests (50 per page)
+- Get ~200 artists: 4 requests (50 per batch)
+- Get user info: 1 request
+- Total: ~15 requests (well under 50)
+
+VALIDATION:
+- [ ] /api/genres/chunk endpoint exists
+- [ ] Returns correct pagination metadata
+- [ ] Progress bar shows in UI during load
+- [ ] Large library (2000+ tracks) loads fully
+- [ ] Each chunk request stays under 50 subrequests
+- [ ] Cached chunks load instantly
 ```
 
-### 8. Genre Statistics Dashboard
+### 🔄 1. Real-time GitHub Deployment Monitor
+**Status:** PARTIAL - Polls but needs progress indicator
+**Priority:** P1 - UX improvement
+
 ```
-Add a stats view showing music taste analysis.
+CURRENT STATE:
+- Widget exists in top-right
+- Shows version and polls every 10s
+- Detects version mismatch
 
-Context:
-- Users love seeing data about their listening habits
-- We already have all the data, just not visualised
-- Files: src/index.ts
+MISSING:
+- Active deployment progress (step name, percentage)
+- Circular progress indicator during deploy
+- Author avatar on idle state
 
-Requirements:
-- Top 10 genres pie chart (use simple CSS, no libraries)
-- "Diversity score" - how spread out genres are
-- Average genres per track
-- Most common artist
+FILES TO MODIFY:
+- src/index.ts (deployment widget section)
+
+REQUIREMENTS:
+1. During active deployment:
+   - Show circular progress spinner
+   - Display current step name from GitHub API
+   - Show "Deploying v1.2.3..." text
+
+2. On idle:
+   - Show last deploy time
+   - Show deployer's GitHub avatar
+   - Show "v1.2.3 • 2h ago by @user"
+
+3. Use GitHub API:
+   - GET /repos/{owner}/{repo}/actions/runs?status=in_progress
+   - Parse workflow run steps for progress
+
+VALIDATION:
+- [ ] Widget shows progress during deployment
+- [ ] Circular spinner animates
+- [ ] Step names display correctly
+- [ ] Avatar shows on idle state
 ```
 
-### 9. Duplicate Playlist Detection
+### ⏳ 2. Progress Indicator for Large Libraries
+**Status:** PENDING (superseded by #18 but still useful)
+**Priority:** P2 - Enhanced after #18
+
 ```
-Warn if a genre playlist already exists.
+PROBLEM:
+Even with progressive loading, users see no feedback during each chunk.
 
-Context:
-- Users might accidentally create duplicate playlists
-- Spotify API can check existing playlists
-- Files: src/lib/spotify.ts, src/routes/api.ts
+REQUIREMENTS:
+1. Show "Loading tracks... 150/2000" during fetch
+2. Show artist fetching progress: "Fetching artists... 45/200"
+3. Animate smoothly between steps
+4. Swedish translations
 
-Requirements:
-- Before creating, check if "{genre} (from Likes)" exists
-- Show warning with options: skip, rename, or overwrite
-- Batch creation should handle this per-genre
+This integrates with #18 Progressive Loading.
+
+FILES TO MODIFY:
+- src/index.ts (progress UI components)
+
+VALIDATION:
+- [ ] Progress text updates during load
+- [ ] Numbers increment smoothly
+- [ ] Swedish mode shows Swedish text
 ```
 
-### 10. More Swedish Easter Eggs
+---
+
+## ⏳ Pending Medium Priority
+
+### ⏳ 9. Duplicate Playlist Detection
+**Status:** PENDING
+**Priority:** P2
+
 ```
-Add more Swedish-themed Easter eggs for Heidi.
+PROBLEM:
+Users accidentally create duplicate playlists.
 
-Context:
-- Heidi loves ancient history and Swedish culture
-- Current: three crowns, viking ship, snus button
-- Files: src/index.ts
+IMPLEMENTATION:
+Check existing playlists before creation.
 
-Ideas to implement:
+FILES TO MODIFY:
+- src/lib/spotify.ts (add getUserPlaylists function)
+- src/routes/api.ts (check before create)
+- src/index.ts (warning UI)
+
+REQUIREMENTS:
+1. Add getUserPlaylists() to spotify.ts:
+   - GET /me/playlists
+   - Return playlist names
+
+2. Before playlist creation:
+   - Check if "{genre} (from Likes)" exists
+   - Return warning in API response
+
+3. UI shows warning modal:
+   - "A playlist named 'rock (from Likes)' already exists"
+   - Options: Skip, Rename, Create Anyway
+
+VALIDATION:
+- [ ] API returns warning when duplicate detected
+- [ ] UI shows warning modal
+- [ ] Skip/Rename/Create options work
+- [ ] Bulk create handles per-genre
+```
+
+### ⏳ 10. More Swedish Easter Eggs
+**Status:** PENDING
+**Priority:** P3 - Fun feature
+
+```
+IDEAS:
 - Midsommar theme in June (flowers, maypole)
-- Swedish Chef mode (Bork bork bork!)
+- Swedish Chef mode ("Bork bork bork!")
 - Random Swedish facts tooltip
-- Dalahäst (Dala horse) cursor in Swedish mode
+- Dalahäst cursor in Swedish mode
 - ABBA lyrics in loading messages
-- Fika break reminder after 25 mins of use
+- Fika break reminder after 25 mins
+
+FILES TO MODIFY:
+- src/index.ts
+
+REQUIREMENTS:
+1. Add date check for June → Midsommar theme
+2. Add Swedish facts array, show random on hover
+3. Add cursor: url(dalahast.cur) in Swedish mode CSS
+4. Add ABBA quotes to loading messages array
+5. Add 25-minute timer → "Dags för fika!" popup
+
+VALIDATION:
+- [ ] Each easter egg triggers correctly
+- [ ] Doesn't break normal functionality
+- [ ] Fika reminder can be dismissed
 ```
 
 ---
 
-## Technical Debt
+## ⏳ Pending Low Priority
 
-### 11. Extract Embedded HTML/CSS/JS
+### ⏳ 11. Extract Embedded HTML/CSS/JS
+**Status:** PENDING
+**Priority:** P3 - Technical debt
+
 ```
-Refactor index.ts to separate concerns.
+PROBLEM:
+src/index.ts is 2500+ lines with embedded HTML, CSS, and JS.
+Hard to maintain and edit.
 
-Context:
-- index.ts is 1400+ lines with embedded HTML, CSS, and JS
-- Makes editing difficult
-- Files: src/index.ts
+IMPLEMENTATION:
+Separate into files, combine at build time.
 
-Requirements:
-- Move CSS to separate file (inlined at build time)
-- Move frontend JS to separate file
-- Use build step to combine (esbuild plugin?)
-- Keep single-file deployment benefit
-```
+FILES TO CREATE:
+- src/frontend/index.html
+- src/frontend/styles.css
+- src/frontend/app.js
+- scripts/build-frontend.mjs
 
-### 12. Add More Unit Tests
-```
-Expand test coverage.
+REQUIREMENTS:
+1. Extract HTML template to index.html
+2. Extract CSS to styles.css
+3. Extract JS to app.js
+4. Build script combines and inlines them
+5. Output goes to src/generated/frontend.ts
+6. index.ts imports from generated
 
-Context:
-- Currently have basic tests for spotify.ts, session.ts, api.ts
-- Missing edge cases and error paths
-- Files: tests/
-
-Requirements:
-- Test retry logic with mocked failures
-- Test session expiry handling
-- Test Swedish mode translations
-- Test bulk playlist creation with partial failures
-- Aim for 80%+ coverage
-```
-
-### 13. Add E2E Tests
-```
-Add end-to-end tests with Playwright or similar.
-
-Context:
-- No E2E tests currently
-- OAuth flow is tricky to test
-- Could use mock Spotify API
-
-Requirements:
-- Test login flow (mocked OAuth)
-- Test genre loading and display
-- Test playlist creation
-- Test Swedish mode toggle
-- Run in CI
+VALIDATION:
+- [ ] npm run build succeeds
+- [ ] Output identical to current embedded version
+- [ ] Hot reload works in dev
+- [ ] No increase in bundle size
 ```
 
----
+### ⏳ 12. Add More Unit Tests
+**Status:** PENDING
+**Priority:** P3 - Quality
 
-## Documentation
-
-### 14. API Documentation
 ```
-Create OpenAPI/Swagger documentation for the API.
+CURRENT COVERAGE:
+- spotify.ts: Basic tests
+- session.ts: Basic tests
+- api.ts: Response format tests
+- frontend.test.ts: UI logic tests
 
-Context:
-- No formal API docs
-- Would help if anyone forks the project
-- Files: create new docs/api.md or openapi.yaml
+MISSING:
+- Retry logic with mocked failures
+- Session expiry handling
+- Token refresh edge cases
+- Bulk playlist partial failures
+- Rate limiting behaviour
 
-Requirements:
-- Document all endpoints
-- Include request/response examples
-- Document error codes
-- Add to README
+FILES TO MODIFY:
+- tests/*.test.ts
+
+REQUIREMENTS:
+1. Add tests for fetchWithRetry():
+   - 429 response triggers retry
+   - 500 response triggers retry
+   - Retry-After header respected
+   - Max retries exhausted
+
+2. Add tests for session refresh:
+   - Token refresh on expiry
+   - Refresh token missing
+   - Refresh fails → logout
+
+3. Add tests for bulk playlist:
+   - Partial failures handled
+   - Results array correct
+
+VALIDATION:
+- [ ] npm test passes
+- [ ] Coverage > 80%
+- [ ] All edge cases covered
 ```
 
-### 15. Architecture Diagram
+### ⏳ 13. Add E2E Tests
+**Status:** PENDING
+**Priority:** P4 - Nice to have
+
 ```
-Create visual architecture documentation.
+IMPLEMENTATION:
+Add Playwright tests with mocked OAuth.
 
-Context:
-- Flow is: User → CF Worker → GitHub/Spotify OAuth → KV
-- Would help understanding
-- Files: README.md or docs/
+FILES TO CREATE:
+- tests/e2e/login.spec.ts
+- tests/e2e/genres.spec.ts
+- tests/e2e/playlist.spec.ts
+- playwright.config.ts
 
-Requirements:
+REQUIREMENTS:
+1. Mock Spotify OAuth responses
+2. Test login flow
+3. Test genre loading
+4. Test playlist creation
+5. Test Swedish mode toggle
+6. Run in CI
+
+VALIDATION:
+- [ ] npx playwright test passes
+- [ ] CI runs E2E tests
+- [ ] Tests don't require real Spotify account
+```
+
+### ⏳ 14. API Documentation
+**Status:** PENDING
+**Priority:** P4
+
+```
+CREATE:
+- docs/api.md or openapi.yaml
+
+REQUIREMENTS:
+1. Document all endpoints
+2. Request/response examples
+3. Error codes
+4. Auth requirements
+5. Add link to README
+
+VALIDATION:
+- [ ] docs/api.md exists
+- [ ] All endpoints documented
+- [ ] Examples are accurate
+```
+
+### ⏳ 15. Architecture Diagram
+**Status:** PENDING
+**Priority:** P4
+
+```
+CREATE:
 - Mermaid diagram in README
-- Show OAuth flow
-- Show data flow for genre analysis
-- Show KV storage usage
+
+REQUIREMENTS:
+1. Show OAuth flow
+2. Show data flow
+3. Show KV usage
+4. Show Spotify API calls
+
+VALIDATION:
+- [ ] Diagram renders in GitHub
+- [ ] Accurately represents system
 ```
 
 ---
 
-## How to Use This File
+## Automation Command
 
-When you have spare Claude credits, just:
+Run tasks automatically with the `/backlog` command:
 
-1. Pick a task number
-2. Copy the code block content
-3. Paste to Claude with "implement this"
-4. Claude will have full context to start immediately
+```bash
+# Implement single task
+/backlog 16
 
-Example prompt:
+# Implement range
+/backlog 16-18
+
+# Implement specific tasks
+/backlog 16,17,18
+
+# Implement ALL pending tasks
+/backlog all
 ```
-Implement task #1 from my BACKLOG.md - Genre Caching in KV
+
+The command will:
+1. Parse task numbers from BACKLOG.md
+2. Skip already-completed tasks (✅)
+3. Implement each task following requirements
+4. Run validation checks
+5. Commit changes
+6. Update this file to mark complete
+7. Continue to next task without interaction
+
+---
+
+## Task Dependencies
+
+```
+#16 (Fix Images) ──┐
+                   ├──► #17 (CI Validation) ──► Can deploy safely
+#18 (Progressive) ─┴──► #2 (Progress UI) ──► #1 (Deploy Monitor)
+
+#11 (Extract Files) ──► Makes all other UI tasks easier
+
+#9 (Duplicates) ──► Standalone
+
+#10 (Easter Eggs) ──► Fun, do whenever
 ```
 
 ---
 
-*Last updated: 2025-11-29*
+*Last updated: 2025-12-01*
