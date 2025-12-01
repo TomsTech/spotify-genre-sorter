@@ -200,16 +200,88 @@
       document.querySelector('.deploy-refresh-prompt')?.remove();
     }
 
-    function showDeployDetails() {
-      if (!deployStatus?.deployment) return;
-      const d = deployStatus.deployment;
-      const msg = \`Deployment Info:
-Version: \${deployStatus.version}
-Status: \${d.status}
-Commit: \${d.commit}
-Author: \${d.author.name}
-Started: \${new Date(d.startedAt).toLocaleString()}\`;
-      showNotification(msg.replace(/\\n/g, ' | '), 'info');
+    let changelogCache = null;
+
+    async function showDeployDetails() {
+      // Fetch changelog if not cached
+      if (!changelogCache) {
+        try {
+          const res = await fetch('/api/changelog');
+          changelogCache = await res.json();
+        } catch {
+          showNotification('Failed to load changelog', 'error');
+          return;
+        }
+      }
+
+      // Create overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'changelog-overlay';
+      overlay.onclick = (e) => {
+        if (e.target === overlay) closeChangelog();
+      };
+
+      // Create timeline panel
+      const panel = document.createElement('div');
+      panel.className = 'changelog-panel';
+
+      const header = document.createElement('div');
+      header.className = 'changelog-header';
+      header.innerHTML = \`
+        <h3>\${swedishMode ? 'Versionshistorik' : 'Version History'}</h3>
+        <button class="changelog-close" onclick="closeChangelog()">&times;</button>
+      \`;
+
+      const timeline = document.createElement('div');
+      timeline.className = 'changelog-timeline';
+
+      for (const release of changelogCache.changelog) {
+        const item = document.createElement('div');
+        item.className = 'changelog-item' + (release.version === deployStatus?.version ? ' current' : '');
+
+        const dot = document.createElement('div');
+        dot.className = 'changelog-dot';
+
+        const content = document.createElement('div');
+        content.className = 'changelog-content';
+        content.innerHTML = \`
+          <div class="changelog-version">v\${release.version}</div>
+          <div class="changelog-date">\${release.date}</div>
+          <ul class="changelog-changes">
+            \${release.changes.map(c => \`<li>\${c}</li>\`).join('')}
+          </ul>
+        \`;
+
+        item.appendChild(dot);
+        item.appendChild(content);
+        timeline.appendChild(item);
+      }
+
+      const footer = document.createElement('div');
+      footer.className = 'changelog-footer';
+      footer.innerHTML = \`<a href="\${changelogCache.repoUrl}/releases" target="_blank">\${swedishMode ? 'Visa alla utgåvor' : 'View all releases'} →</a>\`;
+
+      panel.appendChild(header);
+      panel.appendChild(timeline);
+      panel.appendChild(footer);
+      overlay.appendChild(panel);
+      document.body.appendChild(overlay);
+
+      // Animate in
+      requestAnimationFrame(() => {
+        overlay.classList.add('visible');
+        panel.classList.add('visible');
+      });
+    }
+
+    function closeChangelog() {
+      const overlay = document.querySelector('.changelog-overlay');
+      const panel = document.querySelector('.changelog-panel');
+      if (overlay) {
+        overlay.classList.remove('visible');
+        panel?.classList.remove('visible');
+        setTimeout(() => overlay.remove(), 300);
+      }
     }
 
     // Start deployment polling

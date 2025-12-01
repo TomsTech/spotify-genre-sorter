@@ -1432,4 +1432,158 @@
       .stat-value {
         font-size: 1.1rem;
       }
+    }
+
+    /* Changelog Timeline */
+    .changelog-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .changelog-overlay.visible {
+      opacity: 1;
+    }
+
+    .changelog-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      z-index: 1001;
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+
+    .changelog-panel.visible {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .changelog-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .changelog-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: var(--text);
+    }
+
+    .changelog-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .changelog-close:hover {
+      color: var(--text);
+    }
+
+    .changelog-timeline {
+      overflow-y: auto;
+      padding: 1rem 1.25rem;
+      flex: 1;
+    }
+
+    .changelog-item {
+      display: flex;
+      gap: 1rem;
+      position: relative;
+      padding-bottom: 1.25rem;
+    }
+
+    .changelog-item:last-child {
+      padding-bottom: 0;
+    }
+
+    .changelog-item:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 18px;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+
+    .changelog-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+
+    .changelog-item.current .changelog-dot {
+      background: var(--spotify-green);
+      box-shadow: 0 0 8px var(--spotify-green);
+    }
+
+    .changelog-content {
+      flex: 1;
+    }
+
+    .changelog-version {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    .changelog-item.current .changelog-version {
+      color: var(--spotify-green);
+    }
+
+    .changelog-date {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .changelog-changes {
+      margin: 0;
+      padding-left: 1.2rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .changelog-changes li {
+      margin-bottom: 0.25rem;
+    }
+
+    .changelog-footer {
+      padding: 0.75rem 1.25rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .changelog-footer a {
+      color: var(--spotify-green);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .changelog-footer a:hover {
+      text-decoration: underline;
     }
