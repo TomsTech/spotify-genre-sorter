@@ -712,6 +712,35 @@ function getHtml(): string {
       opacity: 0.7;
     }
 
+    /* Progressive loading progress bar */
+    .progress-container {
+      width: 100%;
+      max-width: 300px;
+      margin-top: 1rem;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    .progress-text {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
+
     .error {
       background: rgba(231, 76, 60, 0.1);
       border: 1px solid var(--danger);
@@ -2096,6 +2125,123 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
       \`;
     }
 
+    function renderProgressLoading(message, progress, loaded, total) {
+      app.innerHTML = \`
+        <div class="loading">
+          <div class="spinner"></div>
+          <span>\${message}</span>
+          <div class="progress-container">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: \${progress}%"></div>
+            </div>
+            <div class="progress-text">\${loaded} / \${total} \${swedishMode ? 'låtar' : 'tracks'} (\${progress}%)</div>
+          </div>
+        </div>
+      \`;
+    }
+
+    // Merge genre data from multiple chunks
+    function mergeGenreChunks(existing, newChunk) {
+      const merged = new Map();
+
+      // Add existing genres
+      if (existing?.genres) {
+        for (const g of existing.genres) {
+          merged.set(g.name, { count: g.count, trackIds: [...g.trackIds] });
+        }
+      }
+
+      // Merge new chunk genres
+      for (const g of newChunk.genres) {
+        if (merged.has(g.name)) {
+          const existing = merged.get(g.name);
+          existing.count += g.count;
+          existing.trackIds.push(...g.trackIds);
+        } else {
+          merged.set(g.name, { count: g.count, trackIds: [...g.trackIds] });
+        }
+      }
+
+      // Convert to sorted array
+      const genres = [...merged.entries()]
+        .map(([name, data]) => ({ name, count: data.count, trackIds: data.trackIds }))
+        .sort((a, b) => b.count - a.count);
+
+      return {
+        genres,
+        totalTracks: (existing?.totalTracks || 0) + newChunk.trackCount,
+        totalGenres: genres.length,
+        totalArtists: (existing?.totalArtists || 0) + newChunk.artistCount,
+        cachedAt: Date.now(),
+      };
+    }
+
+    // Progressive loading for large libraries
+    async function loadGenresProgressively() {
+      let offset = 0;
+      let accumulated = null;
+      let totalInLibrary = 0;
+
+      while (true) {
+        const response = await fetch(\`/api/genres/chunk?offset=\${offset}&limit=500\`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.details || data.error || 'Failed to load chunk');
+        }
+
+        totalInLibrary = data.pagination.totalInLibrary;
+
+        // Update progress UI
+        const loaded = offset + data.chunk.trackCount;
+        renderProgressLoading(
+          swedishMode ? 'Laddar ditt bibliotek...' : 'Loading your library...',
+          data.progress,
+          loaded,
+          totalInLibrary
+        );
+
+        // Merge this chunk
+        accumulated = mergeGenreChunks(accumulated, data.chunk);
+
+        // Check if done
+        if (!data.pagination.hasMore) {
+          break;
+        }
+
+        offset = data.pagination.nextOffset;
+      }
+
+      // Remove truncated flag since we loaded everything
+      accumulated.truncated = false;
+      accumulated.totalInLibrary = totalInLibrary;
+
+      return accumulated;
+    }
+
+    // Load full library using progressive loading
+    async function loadFullLibrary() {
+      try {
+        const fullData = await loadGenresProgressively();
+        genreData = fullData;
+        renderGenres();
+        showNotification(
+          swedishMode ? '✨ Hela biblioteket laddat!' : '✨ Full library loaded!',
+          'success'
+        );
+      } catch (error) {
+        console.error('Progressive load error:', error);
+        showNotification(
+          swedishMode ? 'Kunde inte ladda alla låtar' : 'Failed to load all tracks',
+          'error'
+        );
+        // Re-render with partial data
+        if (genreData) {
+          renderGenres();
+        }
+      }
+    }
+
     async function loadGenres() {
       try {
         renderLoading(
@@ -2103,6 +2249,7 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
           swedishMode ? 'Detta kan ta en stund för stora bibliotek' : 'This may take a moment for large libraries'
         );
 
+        // First, try the standard endpoint (fast for small libraries)
         const response = await fetch('/api/genres');
         const data = await response.json();
 
@@ -2426,8 +2573,11 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
         \${genreData.truncated ? \`
         <div class="truncation-warning">
           ⚠️ \${swedishMode
-            ? \`Visar \${genreData.totalTracks.toLocaleString()} av \${genreData.totalInLibrary?.toLocaleString()} låtar (begränsning för gratis Cloudflare Workers)\`
-            : \`Showing \${genreData.totalTracks.toLocaleString()} of \${genreData.totalInLibrary?.toLocaleString()} tracks (Cloudflare Workers free tier limit)\`}
+            ? \`Visar \${genreData.totalTracks.toLocaleString()} av \${genreData.totalInLibrary?.toLocaleString()} låtar\`
+            : \`Showing \${genreData.totalTracks.toLocaleString()} of \${genreData.totalInLibrary?.toLocaleString()} tracks\`}
+          <button onclick="loadFullLibrary()" class="btn btn-ghost btn-sm" style="margin-left: 0.5rem;">
+            \${swedishMode ? 'Ladda alla' : 'Load all'}
+          </button>
         </div>
         \` : ''}
 
