@@ -807,6 +807,19 @@ function getHtml(): string {
       color: var(--danger);
     }
 
+    /* Status Badge */
+    .status-badge {
+      position: fixed;
+      bottom: 1rem;
+      left: 1rem;
+      z-index: 100;
+      opacity: 0.7;
+      transition: opacity 0.3s ease;
+    }
+    .status-badge:hover {
+      opacity: 1;
+    }
+
     /* Heidi Easter Egg Badge */
     .heidi-badge {
       position: fixed;
@@ -1652,6 +1665,11 @@ function getHtml(): string {
   <a href="https://buymeacoffee.com/tomstech" target="_blank" class="durry-btn" id="donation-btn" title="Chuck us a dart, legend">
     <span class="icon">🚬</span>
     <span class="text">Shout me a durry</span>
+  </a>
+
+  <!-- Status Badge -->
+  <a href="https://status.houstons.tech" target="_blank" class="status-badge" title="System Status">
+    <iframe src="https://status.houstons.tech/badge?theme=dark" width="250" height="30" frameborder="0" scrolling="no" style="color-scheme: normal"></iframe>
   </a>
 
   <!-- Heidi Easter Egg Badge -->
