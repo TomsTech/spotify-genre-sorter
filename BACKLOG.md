@@ -483,8 +483,8 @@ VALIDATION:
 - [ ] Examples are accurate
 ```
 
-### ⏳ 15. Architecture Diagram
-**Status:** PENDING
+### ✅ 15. Architecture Diagram
+**Status:** DONE (already in README)
 **Priority:** P4
 
 ```
