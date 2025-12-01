@@ -999,6 +999,70 @@ function getHtml(): string {
       100% { left: calc(100% + 100px); }
     }
 
+    /* Fika reminder popup */
+    .fika-reminder {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .fika-content {
+      background: linear-gradient(135deg, #006AA7, #004d7a);
+      color: white;
+      padding: 2rem;
+      border-radius: 16px;
+      text-align: center;
+      animation: bounceIn 0.5s ease;
+    }
+
+    .fika-emoji {
+      font-size: 3rem;
+      display: block;
+      margin-bottom: 1rem;
+    }
+
+    .fika-content p {
+      margin: 0.5rem 0;
+      font-size: 1.2rem;
+    }
+
+    .fika-content button {
+      margin-top: 1rem;
+      background: #FECC00;
+      color: #006AA7;
+      font-weight: 600;
+    }
+
+    @keyframes bounceIn {
+      0% { transform: scale(0.3); opacity: 0; }
+      50% { transform: scale(1.05); }
+      70% { transform: scale(0.9); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Midsommar mode (June) */
+    body.swedish-mode.midsommar::before {
+      content: '🌸🌼🌷🌻🌺';
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.5rem;
+      letter-spacing: 0.5rem;
+      animation: float 3s ease-in-out infinite;
+      z-index: 1;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-10px); }
+    }
+
     /* User counter */
     .user-counter {
       display: flex;
@@ -1777,6 +1841,83 @@ function getHtml(): string {
     // Stats dashboard state
     let showStatsDashboard = localStorage.getItem('showStatsDashboard') === 'true';
 
+    // === SWEDISH EASTER EGGS ===
+
+    // ABBA quotes for loading messages
+    const abbaQuotes = [
+      'Take a chance on loading...',
+      'I have a dream... of your playlists!',
+      'Knowing me, knowing your music!',
+      'Money, money, money... but this is free!',
+      'Thank you for the music!',
+      'The winner takes it all!',
+      'Dancing queen, loading up the scene...',
+      'Gimme gimme gimme your liked songs!',
+      'Waterloo! We surrendered to your library!',
+      'Super trouper, lights are gonna blind ya!',
+    ];
+
+    // Swedish fun facts for tooltip
+    const swedishFacts = [
+      'Sweden invented the three-point seatbelt and gave it away for free!',
+      'IKEA sells about 2 billion Swedish meatballs every year!',
+      'In Sweden, there\\'s a hotel made entirely of ice!',
+      'Swedes love fika - coffee breaks are sacred!',
+      'Sweden has more islands than any other country!',
+      'The Nobel Prize was created by Swedish inventor Alfred Nobel!',
+      'Minecraft was created in Sweden!',
+      'Spotify was founded in Stockholm!',
+      'Sweden has a phone number anyone can call to talk to a random Swede!',
+      'Allemansrätten: Swedes can camp anywhere in nature!',
+    ];
+
+    // Midsommar check (June)
+    const isMidsommarSeason = new Date().getMonth() === 5; // June
+
+    // Fika reminder (25 minutes)
+    let fikaTimerStarted = false;
+    let fikaTimerId = null;
+
+    function startFikaTimer() {
+      if (fikaTimerStarted || !swedishMode) return;
+      fikaTimerStarted = true;
+      fikaTimerId = setTimeout(() => {
+        if (swedishMode) {
+          showFikaReminder();
+        }
+      }, 25 * 60 * 1000); // 25 minutes
+    }
+
+    function showFikaReminder() {
+      const reminder = document.createElement('div');
+      reminder.className = 'fika-reminder';
+      reminder.innerHTML = \`
+        <div class="fika-content">
+          <span class="fika-emoji">☕🍪</span>
+          <p>Dags för fika!</p>
+          <p style="font-size: 0.9rem; opacity: 0.8;">Time for a coffee break!</p>
+          <button class="btn btn-ghost" onclick="this.closest('.fika-reminder').remove()">Tack!</button>
+        </div>
+      \`;
+      document.body.appendChild(reminder);
+    }
+
+    function getRandomAbbaQuote() {
+      return abbaQuotes[Math.floor(Math.random() * abbaQuotes.length)];
+    }
+
+    function getRandomSwedishFact() {
+      return swedishFacts[Math.floor(Math.random() * swedishFacts.length)];
+    }
+
+    // Update Heidi badge tooltip with random fact
+    function updateHeidiBadgeFact() {
+      const badge = document.querySelector('.heidi-badge');
+      if (badge && swedishMode) {
+        badge.title = getRandomSwedishFact();
+      }
+    }
+
     // Swedish anthem sound (short piano melody in base64 - plays "Du gamla, Du fria" opening)
     const swedishChime = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYZNYW9jAAAAAAAAAAAAAAAAAAAAAP/7kGQAAAAAADSAAAAAAAAANIAAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/+5JkDw/wAABpAAAACAAADSAAAAEAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
 
@@ -1986,6 +2127,13 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
       localStorage.setItem('swedishMode', swedishMode);
       document.body.classList.toggle('swedish-mode', swedishMode);
 
+      // Add Midsommar mode in June
+      if (swedishMode && isMidsommarSeason) {
+        document.body.classList.add('midsommar');
+      } else {
+        document.body.classList.remove('midsommar');
+      }
+
       // Update all translatable elements
       document.querySelectorAll('[data-i18n]').forEach(el => {
         el.textContent = t(el.dataset.i18n);
@@ -2015,6 +2163,10 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
           audio.play().catch(() => {}); // Ignore autoplay restrictions
         } catch {}
         showNotification('🇸🇪 Välkommen till svenskt läge! Tack Heidi! 👑', 'success');
+        // Start fika timer
+        startFikaTimer();
+        // Update badge tooltip
+        updateHeidiBadgeFact();
       } else {
         showNotification('Back to normal mode!', 'success');
       }
@@ -2028,6 +2180,10 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
     // Apply Swedish mode on load if previously enabled
     if (swedishMode) {
       document.body.classList.add('swedish-mode');
+      // Add Midsommar mode in June
+      if (isMidsommarSeason) {
+        document.body.classList.add('midsommar');
+      }
       // Also update the donation button on load
       const donationBtn = document.getElementById('donation-btn');
       if (donationBtn) {
@@ -2037,6 +2193,9 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
         if (text) text.textContent = 'Bjud mig på snus';
         donationBtn.title = 'Tack för stödet, kompis!';
       }
+      // Start fika timer and update tooltip
+      startFikaTimer();
+      updateHeidiBadgeFact();
     }
 
     async function init() {
@@ -2170,10 +2329,12 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
     }
 
     function renderLoading(message, subMessage = '') {
+      // Use ABBA quotes in Swedish mode
+      const displayMessage = swedishMode ? getRandomAbbaQuote() : message;
       app.innerHTML = \`
         <div class="loading">
           <div class="spinner"></div>
-          <span>\${message}</span>
+          <span>\${displayMessage}</span>
           \${subMessage ? \`<span class="loading-sub">\${subMessage}</span>\` : ''}
         </div>
       \`;
