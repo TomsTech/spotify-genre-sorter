@@ -1455,6 +1455,160 @@ export function getHtml(): string {
         font-size: 1.1rem;
       }
     }
+
+    /* Changelog Timeline */
+    .changelog-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .changelog-overlay.visible {
+      opacity: 1;
+    }
+
+    .changelog-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      z-index: 1001;
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+
+    .changelog-panel.visible {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .changelog-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .changelog-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: var(--text);
+    }
+
+    .changelog-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .changelog-close:hover {
+      color: var(--text);
+    }
+
+    .changelog-timeline {
+      overflow-y: auto;
+      padding: 1rem 1.25rem;
+      flex: 1;
+    }
+
+    .changelog-item {
+      display: flex;
+      gap: 1rem;
+      position: relative;
+      padding-bottom: 1.25rem;
+    }
+
+    .changelog-item:last-child {
+      padding-bottom: 0;
+    }
+
+    .changelog-item:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 18px;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+
+    .changelog-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+
+    .changelog-item.current .changelog-dot {
+      background: var(--spotify-green);
+      box-shadow: 0 0 8px var(--spotify-green);
+    }
+
+    .changelog-content {
+      flex: 1;
+    }
+
+    .changelog-version {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    .changelog-item.current .changelog-version {
+      color: var(--spotify-green);
+    }
+
+    .changelog-date {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .changelog-changes {
+      margin: 0;
+      padding-left: 1.2rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .changelog-changes li {
+      margin-bottom: 0.25rem;
+    }
+
+    .changelog-footer {
+      padding: 0.75rem 1.25rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .changelog-footer a {
+      color: var(--spotify-green);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .changelog-footer a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -1724,16 +1878,88 @@ export function getHtml(): string {
       document.querySelector('.deploy-refresh-prompt')?.remove();
     }
 
-    function showDeployDetails() {
-      if (!deployStatus?.deployment) return;
-      const d = deployStatus.deployment;
-      const msg = \`Deployment Info:
-Version: \${deployStatus.version}
-Status: \${d.status}
-Commit: \${d.commit}
-Author: \${d.author.name}
-Started: \${new Date(d.startedAt).toLocaleString()}\`;
-      showNotification(msg.replace(/\\n/g, ' | '), 'info');
+    let changelogCache = null;
+
+    async function showDeployDetails() {
+      // Fetch changelog if not cached
+      if (!changelogCache) {
+        try {
+          const res = await fetch('/api/changelog');
+          changelogCache = await res.json();
+        } catch {
+          showNotification('Failed to load changelog', 'error');
+          return;
+        }
+      }
+
+      // Create overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'changelog-overlay';
+      overlay.onclick = (e) => {
+        if (e.target === overlay) closeChangelog();
+      };
+
+      // Create timeline panel
+      const panel = document.createElement('div');
+      panel.className = 'changelog-panel';
+
+      const header = document.createElement('div');
+      header.className = 'changelog-header';
+      header.innerHTML = \`
+        <h3>\${swedishMode ? 'Versionshistorik' : 'Version History'}</h3>
+        <button class="changelog-close" onclick="closeChangelog()">&times;</button>
+      \`;
+
+      const timeline = document.createElement('div');
+      timeline.className = 'changelog-timeline';
+
+      for (const release of changelogCache.changelog) {
+        const item = document.createElement('div');
+        item.className = 'changelog-item' + (release.version === deployStatus?.version ? ' current' : '');
+
+        const dot = document.createElement('div');
+        dot.className = 'changelog-dot';
+
+        const content = document.createElement('div');
+        content.className = 'changelog-content';
+        content.innerHTML = \`
+          <div class="changelog-version">v\${release.version}</div>
+          <div class="changelog-date">\${release.date}</div>
+          <ul class="changelog-changes">
+            \${release.changes.map(c => \`<li>\${c}</li>\`).join('')}
+          </ul>
+        \`;
+
+        item.appendChild(dot);
+        item.appendChild(content);
+        timeline.appendChild(item);
+      }
+
+      const footer = document.createElement('div');
+      footer.className = 'changelog-footer';
+      footer.innerHTML = \`<a href="\${changelogCache.repoUrl}/releases" target="_blank">\${swedishMode ? 'Visa alla utgåvor' : 'View all releases'} →</a>\`;
+
+      panel.appendChild(header);
+      panel.appendChild(timeline);
+      panel.appendChild(footer);
+      overlay.appendChild(panel);
+      document.body.appendChild(overlay);
+
+      // Animate in
+      requestAnimationFrame(() => {
+        overlay.classList.add('visible');
+        panel.classList.add('visible');
+      });
+    }
+
+    function closeChangelog() {
+      const overlay = document.querySelector('.changelog-overlay');
+      const panel = document.querySelector('.changelog-panel');
+      if (overlay) {
+        overlay.classList.remove('visible');
+        panel?.classList.remove('visible');
+        setTimeout(() => overlay.remove(), 300);
+      }
     }
 
     // Start deployment polling

@@ -603,8 +603,8 @@ VALIDATION:
 - [ ] Mermaid diagram renders in README
 ```
 
-### ⏳ 20. Interactive Changelog Timeline in Deploy Widget
-**Status:** PENDING
+### ✅ 20. Interactive Changelog Timeline in Deploy Widget
+**Status:** DONE
 **Priority:** P2 - UX Enhancement
 
 ```
