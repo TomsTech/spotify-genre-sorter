@@ -23,10 +23,10 @@ app.use('*', async (c, next) => {
   await next();
   c.header('Content-Security-Policy', [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
+    "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https://flagcdn.com https://i.scdn.co https://avatars.githubusercontent.com https://img.shields.io",
-    "connect-src 'self' https://api.spotify.com https://ko-fi.com",
+    "connect-src 'self' https://api.spotify.com https://ko-fi.com https://cloudflareinsights.com",
     "frame-ancestors 'none'",
   ].join('; '));
   c.header('X-Content-Type-Options', 'nosniff');
