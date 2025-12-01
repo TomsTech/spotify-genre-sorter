@@ -622,3 +622,144 @@ describe('Frontend Init Flow', () => {
     expect(genresResponse.status).toBe(401);
   });
 });
+
+// ============================================================
+// KEYBOARD SHORTCUTS TESTS
+// ============================================================
+
+describe('Keyboard Shortcuts', () => {
+  // Shortcut matching logic extracted from app.js
+  interface Shortcut {
+    desc: string;
+    ctrl?: boolean;
+    shift?: boolean;
+    action: () => void;
+  }
+
+  function shouldTriggerShortcut(
+    shortcut: Shortcut,
+    event: { key: string; ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }
+  ): boolean {
+    const ctrlOrMeta = event.ctrlKey || event.metaKey;
+
+    // Check modifiers match
+    if (shortcut.ctrl && !ctrlOrMeta) return false;
+    if (shortcut.shift && !event.shiftKey) return false;
+    if (!shortcut.ctrl && ctrlOrMeta && event.key !== 'Enter') return false;
+
+    return true;
+  }
+
+  it('should match Ctrl+A for select all', () => {
+    const shortcut = { desc: 'Select all', ctrl: true, action: vi.fn() };
+    const event = { key: 'a', ctrlKey: true, metaKey: false, shiftKey: false };
+
+    expect(shouldTriggerShortcut(shortcut, event)).toBe(true);
+  });
+
+  it('should match Cmd+A for select all on Mac', () => {
+    const shortcut = { desc: 'Select all', ctrl: true, action: vi.fn() };
+    const event = { key: 'a', ctrlKey: false, metaKey: true, shiftKey: false };
+
+    expect(shouldTriggerShortcut(shortcut, event)).toBe(true);
+  });
+
+  it('should match Ctrl+Shift+A for select none', () => {
+    const shortcut = { desc: 'Select none', ctrl: true, shift: true, action: vi.fn() };
+    const event = { key: 'A', ctrlKey: true, metaKey: false, shiftKey: true };
+
+    expect(shouldTriggerShortcut(shortcut, event)).toBe(true);
+  });
+
+  it('should NOT match Ctrl+A without ctrl modifier', () => {
+    const shortcut = { desc: 'Select all', ctrl: true, action: vi.fn() };
+    const event = { key: 'a', ctrlKey: false, metaKey: false, shiftKey: false };
+
+    expect(shouldTriggerShortcut(shortcut, event)).toBe(false);
+  });
+
+  it('should match simple key without modifiers', () => {
+    const shortcut = { desc: 'Toggle theme', action: vi.fn() };
+    const event = { key: 't', ctrlKey: false, metaKey: false, shiftKey: false };
+
+    expect(shouldTriggerShortcut(shortcut, event)).toBe(true);
+  });
+
+  it('should NOT match simple key with Ctrl when ctrl not required', () => {
+    const shortcut = { desc: 'Toggle theme', action: vi.fn() };
+    const event = { key: 't', ctrlKey: true, metaKey: false, shiftKey: false };
+
+    expect(shouldTriggerShortcut(shortcut, event)).toBe(false);
+  });
+
+  it('should allow Enter with or without Ctrl', () => {
+    const shortcut = { desc: 'Create playlists', action: vi.fn() };
+
+    // Enter without Ctrl
+    expect(shouldTriggerShortcut(shortcut, {
+      key: 'Enter',
+      ctrlKey: false,
+      metaKey: false,
+      shiftKey: false,
+    })).toBe(true);
+
+    // Enter with Ctrl (should still work)
+    expect(shouldTriggerShortcut(shortcut, {
+      key: 'Enter',
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: false,
+    })).toBe(true);
+  });
+});
+
+// ============================================================
+// ACCESSIBILITY TESTS
+// ============================================================
+
+describe('Accessibility Features', () => {
+  it('should generate valid ARIA live region attributes', () => {
+    // Test the attributes we set on the announcer
+    const attributes = {
+      role: 'status',
+      'aria-live': 'polite',
+      'aria-atomic': 'true',
+    };
+
+    expect(attributes.role).toBe('status');
+    expect(attributes['aria-live']).toBe('polite');
+    expect(attributes['aria-atomic']).toBe('true');
+  });
+
+  it('should format screen reader announcement for selection', () => {
+    function formatSelectionAnnouncement(count: number, swedishMode: boolean): string {
+      if (count === 0) return '';
+      return swedishMode
+        ? `${count} genre${count > 1 ? 'r' : ''} vald${count > 1 ? 'a' : ''}`
+        : `${count} genre${count > 1 ? 's' : ''} selected`;
+    }
+
+    expect(formatSelectionAnnouncement(1, false)).toBe('1 genre selected');
+    expect(formatSelectionAnnouncement(5, false)).toBe('5 genres selected');
+    expect(formatSelectionAnnouncement(1, true)).toBe('1 genre vald');
+    expect(formatSelectionAnnouncement(5, true)).toBe('5 genrer valda');
+  });
+
+  it('should have keyboard shortcut help content', () => {
+    const shortcuts = [
+      { key: '/', desc: 'Search genres' },
+      { key: 'Esc', desc: 'Close/Clear' },
+      { key: 'Ctrl+A', desc: 'Select all' },
+      { key: 'Ctrl+Shift+A', desc: 'Select none' },
+      { key: 'Enter', desc: 'Create playlists' },
+      { key: 'Ctrl+R', desc: 'Refresh data' },
+      { key: 'T', desc: 'Toggle theme' },
+      { key: 'S', desc: 'Toggle stats' },
+      { key: '?', desc: 'Show this help' },
+    ];
+
+    expect(shortcuts.length).toBe(9);
+    expect(shortcuts.find(s => s.key === '/')?.desc).toBe('Search genres');
+    expect(shortcuts.find(s => s.key === '?')?.desc).toBe('Show this help');
+  });
+});

@@ -1885,4 +1885,126 @@
       .live-genre-name {
         font-size: 0.75rem;
       }
+    }
+
+    /* === Keyboard Shortcuts Help === */
+    .keyboard-help-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1100;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .keyboard-help-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .keyboard-help-panel h3 {
+      margin-bottom: 1.5rem;
+      font-size: 1.25rem;
+      text-align: center;
+    }
+
+    .shortcuts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .shortcut-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .shortcut-item kbd {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.25rem 0.5rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      min-width: 80px;
+      text-align: center;
+      color: var(--accent);
+    }
+
+    .shortcut-item span {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .keyboard-help-panel button {
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* === Accessibility: Screen Reader Only === */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* === Focus Visible Styles === */
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 4px rgba(29, 185, 84, 0.2);
+    }
+
+    .genre-checkbox:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .search-input:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(29, 185, 84, 0.15);
+    }
+
+    /* Keyboard hint in search */
+    .search-input::placeholder {
+      opacity: 0.6;
+    }
+
+    /* Skip link for keyboard users */
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background: var(--accent);
+      color: #000;
+      padding: 0.5rem 1rem;
+      z-index: 9999;
+      border-radius: 0 0 8px 0;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .skip-link:focus {
+      top: 0;
     }
