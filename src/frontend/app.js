@@ -606,53 +606,132 @@
       \`;
     }
 
-    function renderProgressLoading(message, progress, loaded, total, partialGenres = null) {
+    // Genre emoji mapping for common genres
+    const genreEmojis = {
+      'rock': '🎸', 'pop': '🎤', 'hip hop': '🎧', 'rap': '🎤', 'jazz': '🎷',
+      'classical': '🎻', 'electronic': '🎹', 'dance': '💃', 'r&b': '🎵', 'soul': '💜',
+      'country': '🤠', 'folk': '🪕', 'blues': '🎺', 'metal': '🤘', 'punk': '⚡',
+      'indie': '🎪', 'alternative': '🔮', 'reggae': '🌴', 'latin': '💃', 'disco': '🪩',
+      'house': '🏠', 'techno': '🔊', 'ambient': '🌙', 'chill': '😌', 'lofi': '📻',
+      'k-pop': '🇰🇷', 'j-pop': '🇯🇵', 'swedish': '🇸🇪', 'australian': '🦘',
+      'punk rock': '🎸', 'hard rock': '🔥', 'soft rock': '🌸', 'classic rock': '🎸',
+      'death metal': '💀', 'black metal': '⬛', 'heavy metal': '🤘',
+      'trap': '🔥', 'drill': '🔫', 'grime': '🇬🇧', 'uk garage': '🇬🇧',
+      'edm': '🎆', 'dubstep': '📢', 'drum and bass': '🥁', 'trance': '🌀',
+      'gospel': '⛪', 'christian': '✝️', 'worship': '🙏',
+      'soundtrack': '🎬', 'video game': '🎮', 'anime': '🎌',
+      'christmas': '🎄', 'holiday': '🎁', 'summer': '☀️', 'winter': '❄️',
+      'workout': '💪', 'party': '🎉', 'sleep': '😴', 'focus': '🧠', 'study': '📚',
+      'romantic': '❤️', 'sad': '😢', 'happy': '😊', 'angry': '😠',
+    };
+
+    function getGenreEmoji(genreName) {
+      const lower = genreName.toLowerCase();
+      // Direct match
+      if (genreEmojis[lower]) return genreEmojis[lower];
+      // Partial match
+      for (const [key, emoji] of Object.entries(genreEmojis)) {
+        if (lower.includes(key) || key.includes(lower)) return emoji;
+      }
+      return '🎵'; // Default music note
+    }
+
+    // Escape text for safe HTML/JSON output
+    function escapeForHtml(text) {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function renderProgressLoading(message, progress, loaded, total, partialGenres = null, partialStats = null) {
       // Check if progress bar already exists
       let progressContainer = document.getElementById('progressive-loading');
 
+      // Calculate partial stats
+      const genreCount = partialGenres?.length || 0;
+      const artistCount = partialStats?.artistCount || 0;
+
       if (!progressContainer) {
-        // First call - create the progress UI
+        // First call - create the full interactive UI
         app.innerHTML = \`
-          <div id="progressive-loading" class="progressive-loading">
-            <div class="progress-header">
-              <div class="spinner"></div>
-              <span class="progress-message">\${message}</span>
+          <div id="progressive-loading" class="progressive-loading-full">
+            <div class="loading-header">
+              <h2>\${swedishMode ? '🎵 Laddar ditt bibliotek...' : '🎵 Loading your library...'}</h2>
+              <p class="loading-subtitle">\${swedishMode ? 'Du kan redan se dina genrer medan det laddar!' : 'You can already see your genres while loading!'}</p>
             </div>
-            <div class="progress-container">
-              <div class="progress-bar">
-                <div class="progress-fill" style="width: \${progress}%"></div>
+
+            <div class="loading-stats-row">
+              <div class="loading-stat">
+                <div class="loading-stat-value" id="stat-tracks">\${loaded.toLocaleString()}</div>
+                <div class="loading-stat-label">\${swedishMode ? 'låtar' : 'tracks'}</div>
               </div>
-              <div class="progress-text">\${loaded} / \${total} \${swedishMode ? 'låtar' : 'tracks'} (\${progress}%)</div>
+              <div class="loading-stat">
+                <div class="loading-stat-value" id="stat-genres">\${genreCount}</div>
+                <div class="loading-stat-label">\${swedishMode ? 'genrer' : 'genres'}</div>
+              </div>
+              <div class="loading-stat">
+                <div class="loading-stat-value" id="stat-artists">\${artistCount}</div>
+                <div class="loading-stat-label">\${swedishMode ? 'artister' : 'artists'}</div>
+              </div>
+              <div class="loading-stat">
+                <div class="loading-stat-value" id="stat-progress">\${progress}%</div>
+                <div class="loading-stat-label">\${swedishMode ? 'klart' : 'complete'}</div>
+              </div>
             </div>
-            <div class="partial-genres-container"></div>
+
+            <div class="progress-container-full">
+              <div class="progress-bar-full">
+                <div class="progress-fill-full" id="progress-fill" style="width: \${progress}%"></div>
+              </div>
+              <div class="progress-detail" id="progress-detail">
+                \${loaded.toLocaleString()} / \${total.toLocaleString()} \${swedishMode ? 'låtar' : 'tracks'}
+              </div>
+            </div>
+
+            <div class="live-genres-section">
+              <h3>\${swedishMode ? '🎸 Genrer hittade hittills' : '🎸 Genres found so far'}</h3>
+              <div class="live-genres-grid" id="live-genres-grid"></div>
+            </div>
           </div>
         \`;
         progressContainer = document.getElementById('progressive-loading');
       } else {
-        // Update existing progress bar smoothly
-        const fill = progressContainer.querySelector('.progress-fill');
-        const text = progressContainer.querySelector('.progress-text');
-        const msg = progressContainer.querySelector('.progress-message');
+        // Update existing stats smoothly
+        const statTracks = document.getElementById('stat-tracks');
+        const statGenres = document.getElementById('stat-genres');
+        const statArtists = document.getElementById('stat-artists');
+        const statProgress = document.getElementById('stat-progress');
+        const fill = document.getElementById('progress-fill');
+        const detail = document.getElementById('progress-detail');
 
+        if (statTracks) statTracks.textContent = loaded.toLocaleString();
+        if (statGenres) statGenres.textContent = genreCount;
+        if (statArtists) statArtists.textContent = artistCount;
+        if (statProgress) statProgress.textContent = \`\${progress}%\`;
         if (fill) fill.style.width = \`\${progress}%\`;
-        if (text) text.textContent = \`\${loaded} / \${total} \${swedishMode ? 'låtar' : 'tracks'} (\${progress}%)\`;
-        if (msg) msg.textContent = message;
+        if (detail) detail.textContent = \`\${loaded.toLocaleString()} / \${total.toLocaleString()} \${swedishMode ? 'låtar' : 'tracks'}\`;
       }
 
-      // Show partial genres preview if available
+      // Update live genres grid with emojis
       if (partialGenres && partialGenres.length > 0) {
-        const partialContainer = progressContainer.querySelector('.partial-genres-container');
-        if (partialContainer) {
-          const topGenres = partialGenres.slice(0, 8);
-          partialContainer.innerHTML = \`
-            <div class="partial-genres-preview">
-              <span class="preview-label">\${swedishMode ? 'Hittade genrer:' : 'Genres found:'}</span>
-              <div class="preview-tags">
-                \${topGenres.map(g => \`<span class="preview-tag">\${g.name} (\${g.count})</span>\`).join('')}
-                \${partialGenres.length > 8 ? \`<span class="preview-more">+\${partialGenres.length - 8} \${swedishMode ? 'fler' : 'more'}</span>\` : ''}
+        const grid = document.getElementById('live-genres-grid');
+        if (grid) {
+          // Show top genres with emojis, sorted by count
+          const sortedGenres = [...partialGenres].sort((a, b) => b.count - a.count).slice(0, 20);
+          grid.innerHTML = sortedGenres.map(g => {
+            const emoji = getGenreEmoji(g.name);
+            const safeName = escapeForHtml(g.name);
+            return \`
+              <div class="live-genre-card">
+                <span class="live-genre-emoji">\${emoji}</span>
+                <span class="live-genre-name">\${safeName}</span>
+                <span class="live-genre-count">\${g.count}</span>
               </div>
-            </div>
-          \`;
+            \`;
+          }).join('');
         }
       }
     }
@@ -713,13 +792,14 @@
         accumulated = mergeGenreChunks(accumulated, data.chunk);
 
         // Update progress UI with accumulated genres preview
-        const loaded = offset + data.chunk.trackCount;
+        const loadedTracks = offset + data.chunk.trackCount;
         renderProgressLoading(
           swedishMode ? 'Laddar ditt bibliotek...' : 'Loading your library...',
           data.progress,
-          loaded,
+          loadedTracks,
           totalInLibrary,
-          accumulated?.genres || []
+          accumulated?.genres || [],
+          { artistCount: accumulated?.totalArtists || 0 }
         );
 
         // Check if done
@@ -931,6 +1011,15 @@
     }
 
     // === Export Functions ===
+    // Sanitize genre name for safe export (handle unicode)
+    function sanitizeForExport(text) {
+      // Normalize unicode to NFC form and escape problematic characters
+      return text
+        .normalize('NFC')
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+        .replace(/[\uD800-\uDFFF]/g, ''); // Remove unpaired surrogates
+    }
+
     function exportGenresJSON() {
       if (!genreData) return;
       const exportData = {
@@ -939,12 +1028,14 @@
         totalGenres: genreData.totalGenres,
         totalArtists: genreData.totalArtists,
         genres: genreData.genres.map(g => ({
-          name: g.name,
+          name: sanitizeForExport(g.name),
           trackCount: g.count,
           trackIds: g.trackIds
         }))
       };
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      // Use UTF-8 BOM for better compatibility with Excel
+      const jsonString = JSON.stringify(exportData, null, 2);
+      const blob = new Blob(['\\uFEFF' + jsonString], { type: 'application/json;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -957,10 +1048,17 @@
       if (!genreData) return;
       const rows = [['Genre', 'Track Count', 'Track IDs']];
       genreData.genres.forEach(g => {
-        rows.push([g.name, g.count.toString(), g.trackIds.join(';')]);
+        // Sanitize genre name and escape for CSV
+        const safeName = sanitizeForExport(g.name);
+        rows.push([safeName, g.count.toString(), g.trackIds.join(';')]);
       });
-      const csv = rows.map(row => row.map(cell => '"' + cell.replace(/"/g, '""') + '"').join(',')).join('\\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
+      // Escape quotes and wrap in quotes, handle newlines
+      const csv = rows.map(row => row.map(cell => {
+        const escaped = String(cell).replace(/"/g, '""').replace(/\\r?\\n/g, ' ');
+        return '"' + escaped + '"';
+      }).join(',')).join('\\r\\n'); // Use CRLF for better compatibility
+      // Use UTF-8 BOM for better compatibility with Excel
+      const blob = new Blob(['\\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
