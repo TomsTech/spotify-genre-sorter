@@ -21,7 +21,9 @@
     "setup": "node scripts/setup.mjs",
     "version:sync": "node scripts/sync-version.mjs",
     "version:check": "node scripts/sync-version.mjs --check",
-    "version:set": "node scripts/sync-version.mjs"
+    "version:set": "node scripts/sync-version.mjs",
+    "docs:build": "node scripts/build-docs.mjs",
+    "docs:check": "node scripts/build-docs.mjs --check"
   },
   "dependencies": {
     "hono": "^4.6.0"
@@ -33,6 +35,7 @@
     "@typescript-eslint/parser": "^8.15.0",
     "eslint": "^8.57.0",
     "typescript": "^5.6.0",
+    "md-to-pdf": "^5.2.4",
     "vitest": "^2.1.0",
     "wrangler": "^4.51.0"
   },

@@ -562,7 +562,7 @@ api.post('/playlist', async (c) => {
       session.spotifyAccessToken,
       user.id,
       playlistName,
-      `Auto-generated playlist of ${safeName} tracks from your liked songs`,
+      `${safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`,
       false
     );
 
@@ -658,7 +658,7 @@ api.post('/playlists/bulk', async (c) => {
           session.spotifyAccessToken,
           user.id,
           playlistName,
-          `Auto-generated playlist of ${safeName} tracks from your liked songs`,
+          `${safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`,
           false
         );
 
