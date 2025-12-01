@@ -12,14 +12,25 @@
     let hiddenGenres = new Set(JSON.parse(localStorage.getItem('hiddenGenres') || '[]'));
     let showHiddenGenres = localStorage.getItem('showHiddenGenres') === 'true';
 
-    // Theme preference (respects system preference by default)
+    // Theme preference (respects system preference by default, defaults to dark)
     let lightMode = localStorage.getItem('lightMode');
     if (lightMode === null) {
+      // Default to dark mode unless system prefers light
       lightMode = window.matchMedia('(prefers-color-scheme: light)').matches;
+      if (!lightMode) localStorage.setItem('lightMode', 'false');
     } else {
       lightMode = lightMode === 'true';
     }
     if (lightMode) document.body.classList.add('light-mode');
+
+    // Add theme toggle to header immediately (visible before login)
+    if (headerActions) {
+      headerActions.innerHTML = \`
+        <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
+          \${lightMode ? '🌙' : '☀️'}
+        </button>
+      \`;
+    }
 
     // Stats dashboard state
     let showStatsDashboard = localStorage.getItem('showStatsDashboard') === 'true';
