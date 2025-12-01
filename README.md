@@ -365,14 +365,12 @@ gitGraph
    commit id: "v1.1.1" tag: "v1.1.1"
    commit id: "v1.2.0" tag: "v1.2.0"
    commit id: "v1.2.1" tag: "v1.2.1"
-   commit id: "v1.2.2" tag: "v1.2.2"
-   commit id: "v1.2.3" tag: "v1.2.3"
+   commit id: "v1.3.0" tag: "v1.3.0"
 ```
 
 | Version | Changes |
 |---------|---------|
-| v1.2.3 | Backlog tasks #11-15, E2E tests, API docs |
-| v1.2.2 | More Swedish easter eggs, duplicate detection |
+| v1.3.0 | PDF docs, SEO playlist descriptions, enhanced health endpoint, all backlog complete |
 | v1.2.1 | Track limit fix for subrequest limit |
 | v1.2.0 | Theme toggle, hidden genres, stats, export |
 | v1.1.0 | Security headers, retry logic, Australian English |
