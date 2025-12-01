@@ -85,10 +85,25 @@ jobs:
       - name: Run tests
         run: npm test
 
+  validate-links:
+    name: Validate Embedded Links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Validate embedded URLs
+        run: node scripts/validate-links.mjs
+
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint, test]
+    needs: [lint, test, validate-links]
     steps:
       - uses: actions/checkout@v4
 
