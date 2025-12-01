@@ -327,6 +327,16 @@ function getHtml(): string {
       --swedish-yellow: #FECC00;
     }
 
+    /* Light mode theme */
+    body.light-mode {
+      --bg: #f8f9fa;
+      --surface: #ffffff;
+      --surface-2: #f0f2f5;
+      --border: #dee2e6;
+      --text: #212529;
+      --text-muted: #6c757d;
+    }
+
     body.swedish-mode {
       --accent: #006AA7;
       --accent-hover: #0077b6;
@@ -334,6 +344,14 @@ function getHtml(): string {
       --surface: #002244;
       --surface-2: #003366;
       --border: #004488;
+    }
+
+    /* Swedish mode in light theme */
+    body.swedish-mode.light-mode {
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --surface-2: #e8f0f8;
+      --border: #b8d4e8;
     }
 
     body.swedish-mode .stat-value {
@@ -556,8 +574,52 @@ function getHtml(): string {
       transition: opacity 0.15s ease;
     }
 
-    .genre-item:hover .genre-create {
+    .genre-item:hover .genre-create,
+    .genre-item:hover .genre-hide {
       opacity: 1;
+    }
+
+    .genre-hide {
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+    }
+
+    .genre-item.hidden {
+      opacity: 0.5;
+      background: var(--surface);
+    }
+
+    .genre-item.hidden .genre-name {
+      text-decoration: line-through;
+    }
+
+    /* Hidden genres toolbar */
+    .hidden-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      background: var(--surface);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      align-items: center;
+    }
+
+    .hidden-toolbar label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .hidden-count {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-left: auto;
     }
 
     .actions {
@@ -1071,6 +1133,459 @@ function getHtml(): string {
     .footer-badges a:hover {
       opacity: 1;
     }
+
+    /* Stats Dashboard */
+    .stats-dashboard {
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      background: var(--surface);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .stats-toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .stats-toggle h3 {
+      margin: 0;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .stats-content {
+      margin-top: 1rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .stats-section {
+      background: var(--surface-2);
+      padding: 0.75rem;
+      border-radius: 6px;
+    }
+
+    .stats-section h4 {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin: 0 0 0.5rem 0;
+    }
+
+    .top-genres-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+
+    .genre-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .genre-bar-name {
+      font-size: 0.75rem;
+      width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .genre-bar-track {
+      flex: 1;
+      height: 16px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .genre-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+
+    .genre-bar-count {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      width: 35px;
+      text-align: right;
+    }
+
+    .diversity-meter {
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 0.5rem 0;
+    }
+
+    .diversity-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #e74c3c, #f39c12, #2ecc71);
+      border-radius: 4px;
+    }
+
+    .diversity-label {
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    .diversity-score {
+      font-size: 1.5rem;
+      font-weight: bold;
+      text-align: center;
+      color: var(--accent);
+    }
+
+    .avg-stat {
+      text-align: center;
+    }
+
+    .avg-stat .big-number {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+
+    .avg-stat .label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Toolbar Row */
+    .toolbar-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      justify-content: center;
+    }
+
+    /* Stats Dashboard - genre bars */
+    .genre-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .genre-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .genre-bar-row .genre-bar-name {
+      font-size: 0.75rem;
+      width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .genre-bar-container {
+      flex: 1;
+      height: 16px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .genre-bar-container .genre-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+
+    .genre-bar-row .genre-bar-count {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      width: 35px;
+      text-align: right;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .stat-box {
+      background: var(--surface-2);
+      padding: 1rem;
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    .stat-box-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+
+    .stat-box-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .diversity-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.5rem;
+    }
+
+    .diversity-info .diversity-score {
+      font-size: 1.25rem;
+    }
+
+    .diversity-info .diversity-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Mobile Responsive Styles */
+    @media (max-width: 768px) {
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        padding: 0.75rem 1rem;
+        backdrop-filter: blur(10px);
+        background: rgba(var(--bg), 0.95);
+      }
+
+      header h1 {
+        font-size: 1.25rem;
+      }
+
+      .user-info {
+        gap: 0.5rem;
+      }
+
+      .user-info span {
+        display: none;
+      }
+
+      .user-info .avatar {
+        width: 32px;
+        height: 32px;
+      }
+
+      main {
+        padding: 0.75rem;
+      }
+
+      .stats {
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+
+      .stat {
+        padding: 0.75rem;
+      }
+
+      .stat-label {
+        font-size: 0.7rem;
+      }
+
+      .stat-value {
+        font-size: 1.25rem;
+      }
+
+      .card {
+        padding: 1rem;
+      }
+
+      .card-title {
+        font-size: 1.25rem;
+      }
+
+      .genre-list {
+        max-height: 60vh;
+        gap: 0.375rem;
+      }
+
+      .genre-item {
+        padding: 0.875rem 0.75rem;
+        min-height: 48px;
+        flex-wrap: wrap;
+      }
+
+      .genre-checkbox {
+        width: 22px;
+        height: 22px;
+      }
+
+      .genre-name {
+        font-size: 0.85rem;
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .genre-count {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+      }
+
+      .genre-hide,
+      .genre-create {
+        opacity: 1;
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .btn {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+      }
+
+      .btn-sm {
+        min-height: 40px;
+        padding: 0.5rem 0.75rem;
+      }
+
+      .actions {
+        position: sticky;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--surface);
+        padding: 1rem;
+        margin: 1rem -1rem -1rem;
+        border-radius: 0;
+        border-top: 1px solid var(--border);
+        flex-wrap: wrap;
+        z-index: 50;
+      }
+
+      .actions .btn {
+        flex: 1;
+        min-width: 100px;
+      }
+
+      .template-settings {
+        padding: 0.75rem;
+      }
+
+      .template-input-row {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .template-input-row input {
+        width: 100%;
+      }
+
+      .hidden-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+      }
+
+      .hidden-toolbar label {
+        justify-content: center;
+      }
+
+      .hidden-toolbar button {
+        width: 100%;
+      }
+
+      .hidden-count {
+        margin-left: 0;
+        text-align: center;
+      }
+
+      .search-input {
+        font-size: 16px;
+        min-height: 44px;
+      }
+
+      .welcome {
+        padding: 1.5rem 1rem;
+      }
+
+      .welcome h2 {
+        font-size: 1.5rem;
+      }
+
+      .welcome p {
+        font-size: 0.9rem;
+      }
+
+      .cache-status {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: stretch;
+      }
+
+      .deploy-widget {
+        top: auto;
+        bottom: 60px;
+        right: 10px;
+        font-size: 0.7rem;
+        padding: 0.4rem 0.6rem;
+      }
+
+      .heidi-badge {
+        bottom: 10px;
+        right: 10px;
+        font-size: 0.65rem;
+        padding: 0.35rem 0.6rem;
+      }
+
+      .result-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+
+      .stats-content {
+        grid-template-columns: 1fr;
+      }
+
+      .genre-bar-name {
+        width: 80px;
+        font-size: 0.7rem;
+      }
+    }
+
+    @media (max-width: 400px) {
+      header h1 {
+        font-size: 1rem;
+      }
+
+      .btn {
+        padding: 0.625rem 0.75rem;
+        font-size: 0.85rem;
+      }
+
+      .genre-item {
+        padding: 0.75rem 0.5rem;
+      }
+
+      .stat-value {
+        font-size: 1.1rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1147,6 +1662,22 @@ function getHtml(): string {
     let spotifyOnlyMode = false;
     let statsData = null;
     let playlistTemplate = localStorage.getItem('playlistTemplate') || '{genre} (from Likes)';
+
+    // Hidden genres (stored in localStorage)
+    let hiddenGenres = new Set(JSON.parse(localStorage.getItem('hiddenGenres') || '[]'));
+    let showHiddenGenres = localStorage.getItem('showHiddenGenres') === 'true';
+
+    // Theme preference (respects system preference by default)
+    let lightMode = localStorage.getItem('lightMode');
+    if (lightMode === null) {
+      lightMode = window.matchMedia('(prefers-color-scheme: light)').matches;
+    } else {
+      lightMode = lightMode === 'true';
+    }
+    if (lightMode) document.body.classList.add('light-mode');
+
+    // Stats dashboard state
+    let showStatsDashboard = localStorage.getItem('showStatsDashboard') === 'true';
 
     // Swedish anthem sound (short piano melody in base64 - plays "Du gamla, Du fria" opening)
     const swedishChime = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYZNYW9jAAAAAAAAAAAAAAAAAAAAAP/7kGQAAAAAADSAAAAAAAAANIAAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/+5JkDw/wAABpAAAACAAADSAAAAEAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
@@ -1608,8 +2139,258 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
       }
     }
 
+    async function refreshGenres() {
+      try {
+        renderLoading(
+          swedishMode ? 'Uppdaterar från Spotify...' : 'Refreshing from Spotify...',
+          swedishMode ? 'Hämtar senaste data' : 'Fetching latest data'
+        );
+
+        const response = await fetch('/api/genres?refresh=true');
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.details || data.error || 'Failed to refresh');
+        }
+
+        genreData = data;
+        renderGenres();
+        showNotification(swedishMode ? '✨ Data uppdaterad!' : '✨ Data refreshed!', 'success');
+      } catch (error) {
+        console.error('Refresh error:', error);
+        showNotification(swedishMode ? 'Kunde inte uppdatera' : 'Failed to refresh', 'error');
+        // Re-render with existing data if we have it
+        if (genreData) {
+          renderGenres();
+        }
+      }
+    }
+
+    function formatCacheTime(cachedAt) {
+      if (!cachedAt) return '';
+      const now = Date.now();
+      const diff = Math.floor((now - cachedAt) / 1000);
+      if (diff < 60) return swedishMode ? 'Just nu' : 'Just now';
+      if (diff < 3600) {
+        const mins = Math.floor(diff / 60);
+        return swedishMode ? \`\${mins} min sedan\` : \`\${mins}m ago\`;
+      }
+      const hours = Math.floor(diff / 3600);
+      return swedishMode ? \`\${hours} tim sedan\` : \`\${hours}h ago\`;
+    }
+
+    // === Hidden Genres Functions ===
+    function toggleHideGenre(genre) {
+      if (hiddenGenres.has(genre)) {
+        hiddenGenres.delete(genre);
+      } else {
+        hiddenGenres.add(genre);
+      }
+      saveHiddenGenres();
+      filterAndRenderGenres(document.querySelector('.search-input')?.value || '');
+      updateHiddenCount();
+    }
+
+    function saveHiddenGenres() {
+      localStorage.setItem('hiddenGenres', JSON.stringify([...hiddenGenres]));
+    }
+
+    function toggleShowHidden() {
+      showHiddenGenres = !showHiddenGenres;
+      localStorage.setItem('showHiddenGenres', showHiddenGenres.toString());
+      filterAndRenderGenres(document.querySelector('.search-input')?.value || '');
+      updateHiddenCount();
+    }
+
+    function hideSmallGenres(minTracks) {
+      if (!genreData?.genres) return;
+      genreData.genres.forEach(g => {
+        if (g.count < minTracks) {
+          hiddenGenres.add(g.name);
+        }
+      });
+      saveHiddenGenres();
+      filterAndRenderGenres(document.querySelector('.search-input')?.value || '');
+      updateHiddenCount();
+    }
+
+    function unhideAllGenres() {
+      hiddenGenres.clear();
+      saveHiddenGenres();
+      filterAndRenderGenres(document.querySelector('.search-input')?.value || '');
+      updateHiddenCount();
+    }
+
+    function updateHiddenCount() {
+      const countEl = document.getElementById('hidden-count');
+      if (countEl) {
+        countEl.textContent = hiddenGenres.size.toString();
+      }
+      const toolbar = document.getElementById('hidden-toolbar');
+      if (toolbar) {
+        toolbar.style.display = hiddenGenres.size > 0 ? 'flex' : 'none';
+      }
+    }
+
+    // === Theme Toggle Functions ===
+    function toggleTheme() {
+      lightMode = !lightMode;
+      localStorage.setItem('lightMode', lightMode.toString());
+      document.body.classList.toggle('light-mode', lightMode);
+      updateThemeButton();
+    }
+
+    function updateThemeButton() {
+      const btn = document.getElementById('theme-toggle');
+      if (btn) {
+        btn.textContent = lightMode ? '🌙' : '☀️';
+        btn.title = lightMode
+          ? (swedishMode ? 'Byt till mörkt läge' : 'Switch to dark mode')
+          : (swedishMode ? 'Byt till ljust läge' : 'Switch to light mode');
+      }
+    }
+
+    // === Export Functions ===
+    function exportGenresJSON() {
+      if (!genreData) return;
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        totalTracks: genreData.totalTracks,
+        totalGenres: genreData.totalGenres,
+        totalArtists: genreData.totalArtists,
+        genres: genreData.genres.map(g => ({
+          name: g.name,
+          trackCount: g.count,
+          trackIds: g.trackIds
+        }))
+      };
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'spotify-genres-' + new Date().toISOString().slice(0, 10) + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportGenresCSV() {
+      if (!genreData) return;
+      const rows = [['Genre', 'Track Count', 'Track IDs']];
+      genreData.genres.forEach(g => {
+        rows.push([g.name, g.count.toString(), g.trackIds.join(';')]);
+      });
+      const csv = rows.map(row => row.map(cell => '"' + cell.replace(/"/g, '""') + '"').join(',')).join('\\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'spotify-genres-' + new Date().toISOString().slice(0, 10) + '.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // === Stats Dashboard Functions ===
+    function calculateDiversityScore(genres) {
+      if (!genres || genres.length === 0) return 0;
+      const total = genres.reduce((sum, g) => sum + g.count, 0);
+      if (total === 0) return 0;
+      // Shannon diversity index (normalized to 0-100)
+      let entropy = 0;
+      genres.forEach(g => {
+        const p = g.count / total;
+        if (p > 0) entropy -= p * Math.log(p);
+      });
+      const maxEntropy = Math.log(genres.length);
+      return maxEntropy > 0 ? Math.round((entropy / maxEntropy) * 100) : 0;
+    }
+
+    function getDiversityLabel(score) {
+      if (score >= 80) return swedishMode ? 'Mycket varierad!' : 'Very diverse!';
+      if (score >= 60) return swedishMode ? 'Varierad' : 'Diverse';
+      if (score >= 40) return swedishMode ? 'Måttlig' : 'Moderate';
+      if (score >= 20) return swedishMode ? 'Fokuserad' : 'Focused';
+      return swedishMode ? 'Mycket fokuserad' : 'Very focused';
+    }
+
+    function calculateAvgGenresPerTrack() {
+      if (!genreData?.genres || genreData.totalTracks === 0) return 0;
+      const totalGenreAssignments = genreData.genres.reduce((sum, g) => sum + g.count, 0);
+      return (totalGenreAssignments / genreData.totalTracks).toFixed(1);
+    }
+
+    function toggleStatsDashboard() {
+      showStatsDashboard = !showStatsDashboard;
+      localStorage.setItem('showStatsDashboard', showStatsDashboard.toString());
+      const dashboard = document.getElementById('stats-dashboard');
+      const toggleBtn = document.getElementById('stats-toggle');
+      if (dashboard) {
+        dashboard.style.display = showStatsDashboard ? 'block' : 'none';
+      }
+      if (toggleBtn) {
+        toggleBtn.textContent = showStatsDashboard
+          ? (swedishMode ? 'Dölj statistik' : 'Hide Stats')
+          : (swedishMode ? 'Visa statistik' : 'Show Stats');
+      }
+    }
+
+    function renderStatsDashboard() {
+      if (!genreData?.genres) return '';
+      const top10 = genreData.genres.slice(0, 10);
+      const maxCount = top10[0]?.count || 1;
+      const diversityScore = calculateDiversityScore(genreData.genres);
+      const avgGenres = calculateAvgGenresPerTrack();
+
+      return \`
+        <div class="stats-dashboard" id="stats-dashboard" style="display: \${showStatsDashboard ? 'block' : 'none'}">
+          <h3>\${swedishMode ? '📊 Musiksmak Analys' : '📊 Music Taste Analysis'}</h3>
+
+          <div class="stats-section">
+            <h4>\${swedishMode ? 'Topp 10 Genrer' : 'Top 10 Genres'}</h4>
+            <div class="genre-bars">
+              \${top10.map(g => \`
+                <div class="genre-bar-row">
+                  <span class="genre-bar-name">\${g.name}</span>
+                  <div class="genre-bar-container">
+                    <div class="genre-bar" style="width: \${(g.count / maxCount * 100)}%"></div>
+                  </div>
+                  <span class="genre-bar-count">\${g.count}</span>
+                </div>
+              \`).join('')}
+            </div>
+          </div>
+
+          <div class="stats-section">
+            <h4>\${swedishMode ? 'Mångfaldsmätare' : 'Diversity Score'}</h4>
+            <div class="diversity-meter">
+              <div class="diversity-fill" style="width: \${diversityScore}%"></div>
+            </div>
+            <div class="diversity-info">
+              <span class="diversity-score">\${diversityScore}%</span>
+              <span class="diversity-label">\${getDiversityLabel(diversityScore)}</span>
+            </div>
+          </div>
+
+          <div class="stats-section stats-grid">
+            <div class="stat-box">
+              <div class="stat-box-value">\${avgGenres}</div>
+              <div class="stat-box-label">\${swedishMode ? 'Genrer per låt (snitt)' : 'Avg genres per track'}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-box-value">\${genreData.totalArtists?.toLocaleString() || '—'}</div>
+              <div class="stat-box-label">\${swedishMode ? 'Unika artister' : 'Unique artists'}</div>
+            </div>
+          </div>
+        </div>
+      \`;
+    }
+
     function renderGenres() {
       const filteredGenres = filterGenres('');
+      const cacheInfo = genreData.cachedAt
+        ? \`<span class="cache-info" title="\${genreData.fromCache ? (swedishMode ? 'Från cache' : 'From cache') : (swedishMode ? 'Nyss hämtad' : 'Just fetched')}">
+            \${genreData.fromCache ? '⚡' : '✨'} \${formatCacheTime(genreData.cachedAt)}
+          </span>\`
+        : '';
 
       app.innerHTML = \`
         <div class="stats">
@@ -1625,6 +2406,43 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
             <div class="stat-value" id="selected-count">0</div>
             <div class="stat-label" data-i18n="selected">\${t('selected')}</div>
           </div>
+        </div>
+
+        <div class="cache-status">
+          \${cacheInfo}
+          <button onclick="refreshGenres()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Hämta ny data från Spotify' : 'Fetch fresh data from Spotify'}">
+            🔄 \${swedishMode ? 'Uppdatera' : 'Refresh'}
+          </button>
+          <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm" title="\${lightMode ? (swedishMode ? 'Byt till mörkt läge' : 'Switch to dark mode') : (swedishMode ? 'Byt till ljust läge' : 'Switch to light mode')}">
+            \${lightMode ? '🌙' : '☀️'}
+          </button>
+        </div>
+
+        <div class="toolbar-row">
+          <button onclick="toggleStatsDashboard()" class="btn btn-ghost btn-sm stats-toggle" id="stats-toggle">
+            \${showStatsDashboard ? (swedishMode ? '📊 Dölj statistik' : '📊 Hide Stats') : (swedishMode ? '📊 Visa statistik' : '📊 Show Stats')}
+          </button>
+          <button onclick="exportGenresJSON()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Exportera som JSON' : 'Export as JSON'}">
+            📥 JSON
+          </button>
+          <button onclick="exportGenresCSV()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Exportera som CSV' : 'Export as CSV'}">
+            📥 CSV
+          </button>
+        </div>
+
+        \${renderStatsDashboard()}
+
+        <div class="hidden-toolbar" id="hidden-toolbar" style="display: \${hiddenGenres.size > 0 ? 'flex' : 'none'}">
+          <span>\${swedishMode ? 'Dolda genrer:' : 'Hidden genres:'} <strong id="hidden-count">\${hiddenGenres.size}</strong></span>
+          <button onclick="toggleShowHidden()" class="btn btn-ghost btn-sm">
+            \${showHiddenGenres ? (swedishMode ? '🙈 Dölj dolda' : '🙈 Hide hidden') : (swedishMode ? '👁️ Visa dolda' : '👁️ Show hidden')}
+          </button>
+          <button onclick="unhideAllGenres()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Visa alla genrer' : 'Show all genres'}">
+            ↺ \${swedishMode ? 'Visa alla' : 'Unhide all'}
+          </button>
+          <button onclick="hideSmallGenres(5)" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Dölj genrer med färre än 5 låtar' : 'Hide genres with fewer than 5 tracks'}">
+            \${swedishMode ? 'Dölj små (<5)' : 'Hide small (<5)'}
+          </button>
         </div>
 
         <div class="card">
@@ -1672,9 +2490,20 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
     }
 
     function filterGenres(query) {
-      if (!query) return genreData.genres;
-      const lower = query.toLowerCase();
-      return genreData.genres.filter(g => g.name.toLowerCase().includes(lower));
+      let filtered = genreData.genres;
+
+      // Filter by search query
+      if (query) {
+        const lower = query.toLowerCase();
+        filtered = filtered.filter(g => g.name.toLowerCase().includes(lower));
+      }
+
+      // Filter hidden genres (unless showing hidden)
+      if (!showHiddenGenres) {
+        filtered = filtered.filter(g => !hiddenGenres.has(g.name));
+      }
+
+      return filtered;
     }
 
     function filterAndRenderGenres(query) {
@@ -1684,8 +2513,10 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
 
     function renderGenreList(genres) {
       const list = document.getElementById('genre-list');
-      list.innerHTML = genres.map(genre => \`
-        <label class="genre-item">
+      list.innerHTML = genres.map(genre => {
+        const isHidden = hiddenGenres.has(genre.name);
+        return \`
+        <label class="genre-item\${isHidden ? ' hidden' : ''}">
           <input
             type="checkbox"
             class="genre-checkbox"
@@ -1696,6 +2527,13 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
           <span class="genre-name">\${genre.name}</span>
           <span class="genre-count">\${genre.count} \${t('tracks')}</span>
           <button
+            class="btn btn-ghost genre-hide"
+            onclick="event.preventDefault(); toggleHideGenre('\${genre.name.replace(/'/g, "\\\\'")}')"
+            title="\${isHidden ? (swedishMode ? 'Visa' : 'Show') : (swedishMode ? 'Dölj' : 'Hide')}"
+          >
+            \${isHidden ? '👁️' : '🙈'}
+          </button>
+          <button
             class="btn btn-ghost genre-create"
             onclick="event.preventDefault(); createPlaylist('\${genre.name.replace(/'/g, "\\\\'")}')"
             data-i18n="create"
@@ -1703,7 +2541,7 @@ Started: \${new Date(d.startedAt).toLocaleString()}\`;
             \${t('create')}
           </button>
         </label>
-      \`).join('');
+      \`}).join('');
     }
 
     function toggleGenre(name, checked) {

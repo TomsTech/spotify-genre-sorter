@@ -7,7 +7,7 @@
 
 ## Priority: High (User-Facing Features)
 
-### 1. Genre Caching in KV
+### 0. Genre Caching in KV
 ```
 Implement genre caching in Cloudflare KV to reduce Spotify API calls.
 
@@ -24,6 +24,25 @@ Requirements:
 - Add manual refresh button
 - Invalidate cache when user creates a playlist (library changed)
 ```
+### 1. Real-time GitHub Deployment Monitor
+```
+Implement a minimalist floating widget to track GitHub Actions deployments and handle client-side version updates.
+
+Context:
+- Users are currently unaware when a deployment is in progress
+- Clients may remain on cached/old versions of the site after deployment
+- Requires integration with GitHub Actions/Runners API
+- Needs a polling mechanism (5s interval) to fetch current step/progress status
+
+Requirements:
+- **UI:** Minimalist "light" floating widget in the top-right corner
+- **Active State:** Show "New Deployment v1.1", circular progress indicator, and current step name
+- **Idle State:** Show "Last update at [time] by [name]" with author's GitHub profile picture
+- **Cache/Version Handling:** Detect version mismatch
+- **Auto-Refresh:** Automatically refresh/clear cache if possible; otherwise, prompt user to refresh
+- **Update Frequency:** Poll status every 5 seconds
+```
+
 
 ### 2. Progress Indicator for Large Libraries
 ```
@@ -41,6 +60,11 @@ Requirements:
 - Use Server-Sent Events (SSE) or polling for real-time updates
 - Swedish translation for progress messages
 ```
+
+
+
+
+
 
 ### 3. Playlist Naming Customisation
 ```
