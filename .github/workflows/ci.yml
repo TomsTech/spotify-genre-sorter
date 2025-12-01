@@ -100,10 +100,24 @@ jobs:
       - name: Validate embedded URLs
         run: node scripts/validate-links.mjs
 
+  version-check:
+    name: Version Sync Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check version sync
+        run: node scripts/sync-version.mjs --check
+
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint, test, validate-links]
+    needs: [lint, test, validate-links, version-check]
     steps:
       - uses: actions/checkout@v4
 
