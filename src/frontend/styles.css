@@ -2176,6 +2176,7 @@
       justify-content: space-between;
       max-width: 1600px;
       margin: 0 auto;
+      padding-left: 280px; /* Account for fixed sidebar */
     }
 
     .header-content h1 {
@@ -2245,7 +2246,7 @@
       flex-direction: column;
       gap: 1.5rem;
       overflow-y: auto;
-      max-height: calc(100vh - 80px);
+      height: calc(100vh - 80px);
       position: fixed;
       left: 0;
       top: 80px;
@@ -2634,6 +2635,10 @@
       .main-content {
         padding-left: 1.5rem;
         max-width: 100%;
+      }
+
+      .header-content {
+        padding-left: 0;
       }
     }
 
