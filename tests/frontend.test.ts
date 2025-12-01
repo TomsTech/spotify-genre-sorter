@@ -130,12 +130,24 @@ function escapeForHtml(text: string) {
     .replace(/'/g, '&#039;');
 }
 
-function sanitizeForExport(text: string) {
-  // Normalize unicode to NFC form and remove problematic characters
-  return text
-    .normalize('NFC')
-    .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
-    .trim();
+// Bulletproof sanitization - NO REGEX with escape sequences
+function sanitizeForExport(text: string): string {
+  if (!text || typeof text !== 'string') return '';
+
+  // Normalize unicode to NFC form
+  let result = text.normalize('NFC');
+
+  // Remove control characters manually (safer than regex escapes)
+  let cleaned = '';
+  for (let i = 0; i < result.length; i++) {
+    const code = result.charCodeAt(i);
+    // Skip control characters: 0x00-0x1F (C0) and 0x7F-0x9F (DEL + C1)
+    if ((code >= 0x20 && code <= 0x7E) || code >= 0xA0) {
+      cleaned += result[i];
+    }
+  }
+
+  return cleaned.trim();
 }
 
 const genreEmojis: Record<string, string> = {
@@ -356,6 +368,61 @@ describe('Export Feature', () => {
       expect(() => sanitizeForExport('hip-hop/rap')).not.toThrow();
       expect(() => sanitizeForExport('música latina')).not.toThrow();
       expect(() => sanitizeForExport('日本語')).not.toThrow();
+    });
+
+    // Additional bulletproof tests
+    it('should handle null and undefined inputs', () => {
+      expect(sanitizeForExport(null as unknown as string)).toBe('');
+      expect(sanitizeForExport(undefined as unknown as string)).toBe('');
+      expect(sanitizeForExport('')).toBe('');
+    });
+
+    it('should handle non-string inputs gracefully', () => {
+      expect(sanitizeForExport(123 as unknown as string)).toBe('');
+      expect(sanitizeForExport({} as unknown as string)).toBe('');
+      expect(sanitizeForExport([] as unknown as string)).toBe('');
+    });
+
+    it('should preserve normal ASCII characters', () => {
+      const text = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      expect(sanitizeForExport(text)).toBe(text);
+    });
+
+    it('should preserve common punctuation', () => {
+      const text = '!@#$%^&*()_+-=[]{}|;:\'",.<>/?';
+      expect(sanitizeForExport(text)).toBe(text);
+    });
+
+    it('should preserve extended unicode (non-ASCII)', () => {
+      expect(sanitizeForExport('café')).toBe('café');
+      expect(sanitizeForExport('naïve')).toBe('naïve');
+      expect(sanitizeForExport('über')).toBe('über');
+      expect(sanitizeForExport('日本語')).toBe('日本語');
+      expect(sanitizeForExport('한국어')).toBe('한국어');
+      expect(sanitizeForExport('العربية')).toBe('العربية');
+      expect(sanitizeForExport('🎵🎸🎤')).toBe('🎵🎸🎤');
+    });
+
+    it('should remove all C0 control characters (0x00-0x1F)', () => {
+      // Test each control character individually
+      for (let i = 0; i < 0x20; i++) {
+        const char = String.fromCharCode(i);
+        const result = sanitizeForExport('a' + char + 'b');
+        expect(result).toBe('ab');
+      }
+    });
+
+    it('should remove DEL and C1 control characters (0x7F-0x9F)', () => {
+      for (let i = 0x7F; i <= 0x9F; i++) {
+        const char = String.fromCharCode(i);
+        const result = sanitizeForExport('a' + char + 'b');
+        expect(result).toBe('ab');
+      }
+    });
+
+    it('should handle mixed content correctly', () => {
+      const text = 'rock\x00pop\x1Fjazz\x7Fblues';
+      expect(sanitizeForExport(text)).toBe('rockpopjazzblues');
     });
   });
 });
