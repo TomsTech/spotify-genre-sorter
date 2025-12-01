@@ -93,8 +93,17 @@ api.use('/*', async (c, next) => {
   await next();
 });
 
+// Public endpoints that don't require authentication
+const PUBLIC_ENDPOINTS = ['/scoreboard', '/leaderboard', '/recent-playlists', '/deploy-status'];
+
 // Auth middleware - check auth and refresh tokens if needed
 api.use('/*', async (c, next) => {
+  // Skip auth for public endpoints
+  const path = new URL(c.req.url).pathname.replace('/api', '');
+  if (PUBLIC_ENDPOINTS.includes(path)) {
+    return next();
+  }
+
   const session = await getSession(c);
 
   if (!session) {
