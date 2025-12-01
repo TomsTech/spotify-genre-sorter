@@ -1558,6 +1558,165 @@
       setTimeout(() => div.remove(), 5000);
     }
 
+    // === Keyboard Shortcuts ===
+    const SHORTCUTS = {
+      '/': { desc: 'Focus search', action: () => document.querySelector('.search-input')?.focus() },
+      'Escape': { desc: 'Clear search / close modal', action: handleEscape },
+      'a': { desc: 'Select all (with Ctrl/Cmd)', ctrl: true, action: selectAll },
+      'A': { desc: 'Select none (with Ctrl/Cmd+Shift)', ctrl: true, shift: true, action: selectNone },
+      'Enter': { desc: 'Create playlists', action: () => {
+        if (selectedGenres.size > 0 && !document.getElementById('create-btn')?.disabled) {
+          createSelectedPlaylists();
+        }
+      }},
+      'r': { desc: 'Refresh data', ctrl: true, action: (e) => { e.preventDefault(); refreshGenres(); }},
+      't': { desc: 'Toggle theme', action: toggleTheme },
+      's': { desc: 'Toggle stats', action: toggleStatsDashboard },
+      '?': { desc: 'Show keyboard shortcuts', action: showKeyboardHelp },
+    };
+
+    function handleEscape() {
+      // Close any modal first
+      const modal = document.querySelector('.modal-overlay, .changelog-overlay, .deploy-overlay');
+      if (modal) {
+        modal.remove();
+        document.querySelector('.changelog-panel, .deploy-refresh-prompt')?.remove();
+        return;
+      }
+      // Clear search input
+      const searchInput = document.querySelector('.search-input');
+      if (searchInput && searchInput.value) {
+        searchInput.value = '';
+        filterAndRenderGenres('');
+        searchInput.blur();
+      }
+    }
+
+    function showKeyboardHelp() {
+      const existingHelp = document.querySelector('.keyboard-help-overlay');
+      if (existingHelp) {
+        existingHelp.remove();
+        return;
+      }
+
+      const overlay = document.createElement('div');
+      overlay.className = 'keyboard-help-overlay';
+      overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+      const panel = document.createElement('div');
+      panel.className = 'keyboard-help-panel';
+      panel.setAttribute('role', 'dialog');
+      panel.setAttribute('aria-labelledby', 'keyboard-help-title');
+
+      const shortcuts = [
+        { key: '/', desc: swedishMode ? 'Sök genrer' : 'Search genres' },
+        { key: 'Esc', desc: swedishMode ? 'Stäng/Rensa' : 'Close/Clear' },
+        { key: 'Ctrl+A', desc: swedishMode ? 'Välj alla' : 'Select all' },
+        { key: 'Ctrl+Shift+A', desc: swedishMode ? 'Avmarkera alla' : 'Select none' },
+        { key: 'Enter', desc: swedishMode ? 'Skapa spellistor' : 'Create playlists' },
+        { key: 'Ctrl+R', desc: swedishMode ? 'Uppdatera data' : 'Refresh data' },
+        { key: 'T', desc: swedishMode ? 'Växla tema' : 'Toggle theme' },
+        { key: 'S', desc: swedishMode ? 'Växla statistik' : 'Toggle stats' },
+        { key: '?', desc: swedishMode ? 'Visa denna hjälp' : 'Show this help' },
+      ];
+
+      panel.innerHTML = \`
+        <h3 id="keyboard-help-title">\${swedishMode ? '⌨️ Tangentbordsgenvägar' : '⌨️ Keyboard Shortcuts'}</h3>
+        <div class="shortcuts-list">
+          \${shortcuts.map(s => \`
+            <div class="shortcut-item">
+              <kbd>\${s.key}</kbd>
+              <span>\${s.desc}</span>
+            </div>
+          \`).join('')}
+        </div>
+        <button class="btn btn-ghost" onclick="this.closest('.keyboard-help-overlay').remove()">
+          \${swedishMode ? 'Stäng' : 'Close'}
+        </button>
+      \`;
+
+      overlay.appendChild(panel);
+      document.body.appendChild(overlay);
+
+      // Focus the close button for accessibility
+      panel.querySelector('button')?.focus();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      // Don't trigger shortcuts when typing in inputs
+      const isInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
+
+      // Escape always works
+      if (e.key === 'Escape') {
+        handleEscape();
+        return;
+      }
+
+      // Skip other shortcuts if in input (except Ctrl combos)
+      if (isInput && !e.ctrlKey && !e.metaKey) return;
+
+      // Forward slash focuses search (unless already typing)
+      if (e.key === '/' && !isInput) {
+        e.preventDefault();
+        document.querySelector('.search-input')?.focus();
+        return;
+      }
+
+      // Check for matching shortcut
+      const key = e.key;
+      const shortcut = SHORTCUTS[key];
+      if (!shortcut) return;
+
+      const ctrlOrMeta = e.ctrlKey || e.metaKey;
+
+      // Check modifiers match
+      if (shortcut.ctrl && !ctrlOrMeta) return;
+      if (shortcut.shift && !e.shiftKey) return;
+      if (!shortcut.ctrl && ctrlOrMeta && key !== 'Enter') return;
+
+      // Execute the shortcut
+      e.preventDefault();
+      shortcut.action(e);
+    });
+
+    // === Accessibility Improvements ===
+
+    // Announce changes to screen readers
+    function announceToScreenReader(message) {
+      let announcer = document.getElementById('sr-announcer');
+      if (!announcer) {
+        announcer = document.createElement('div');
+        announcer.id = 'sr-announcer';
+        announcer.setAttribute('role', 'status');
+        announcer.setAttribute('aria-live', 'polite');
+        announcer.setAttribute('aria-atomic', 'true');
+        announcer.className = 'sr-only';
+        document.body.appendChild(announcer);
+      }
+      announcer.textContent = message;
+    }
+
+    // Enhanced notification with screen reader support
+    const originalShowNotification = showNotification;
+    showNotification = function(message, type) {
+      originalShowNotification(message, type);
+      announceToScreenReader(message);
+    };
+
+    // Announce selection changes
+    const originalUpdateSelectedCount = updateSelectedCount;
+    updateSelectedCount = function() {
+      originalUpdateSelectedCount();
+      const count = selectedGenres.size;
+      if (count > 0) {
+        announceToScreenReader(
+          swedishMode
+            ? \`\${count} genre\${count > 1 ? 'r' : ''} vald\${count > 1 ? 'a' : ''}\`
+            : \`\${count} genre\${count > 1 ? 's' : ''} selected\`
+        );
+      }
+    };
+
     // Initialize
     init();
 

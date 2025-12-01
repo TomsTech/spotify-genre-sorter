@@ -1908,6 +1908,128 @@ export function getHtml(): string {
         font-size: 0.75rem;
       }
     }
+
+    /* === Keyboard Shortcuts Help === */
+    .keyboard-help-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1100;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .keyboard-help-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .keyboard-help-panel h3 {
+      margin-bottom: 1.5rem;
+      font-size: 1.25rem;
+      text-align: center;
+    }
+
+    .shortcuts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .shortcut-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .shortcut-item kbd {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.25rem 0.5rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      min-width: 80px;
+      text-align: center;
+      color: var(--accent);
+    }
+
+    .shortcut-item span {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .keyboard-help-panel button {
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* === Accessibility: Screen Reader Only === */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* === Focus Visible Styles === */
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 4px rgba(29, 185, 84, 0.2);
+    }
+
+    .genre-checkbox:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .search-input:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(29, 185, 84, 0.15);
+    }
+
+    /* Keyboard hint in search */
+    .search-input::placeholder {
+      opacity: 0.6;
+    }
+
+    /* Skip link for keyboard users */
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background: var(--accent);
+      color: #000;
+      padding: 0.5rem 1rem;
+      z-index: 9999;
+      border-radius: 0 0 8px 0;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .skip-link:focus {
+      top: 0;
+    }
   </style>
 </head>
 <body>
@@ -2990,11 +3112,11 @@ export function getHtml(): string {
     // === Export Functions ===
     // Sanitize genre name for safe export (handle unicode)
     function sanitizeForExport(text) {
-      // Normalize unicode to NFC form and escape problematic characters
+      // Normalize unicode to NFC form and remove problematic characters
       return text
         .normalize('NFC')
-        .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
-        .replace(/[\uD800-\uDFFF]/g, ''); // Remove unpaired surrogates
+        .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
+        .trim();
     }
 
     function exportGenresJSON() {
@@ -3534,6 +3656,165 @@ export function getHtml(): string {
 
       setTimeout(() => div.remove(), 5000);
     }
+
+    // === Keyboard Shortcuts ===
+    const SHORTCUTS = {
+      '/': { desc: 'Focus search', action: () => document.querySelector('.search-input')?.focus() },
+      'Escape': { desc: 'Clear search / close modal', action: handleEscape },
+      'a': { desc: 'Select all (with Ctrl/Cmd)', ctrl: true, action: selectAll },
+      'A': { desc: 'Select none (with Ctrl/Cmd+Shift)', ctrl: true, shift: true, action: selectNone },
+      'Enter': { desc: 'Create playlists', action: () => {
+        if (selectedGenres.size > 0 && !document.getElementById('create-btn')?.disabled) {
+          createSelectedPlaylists();
+        }
+      }},
+      'r': { desc: 'Refresh data', ctrl: true, action: (e) => { e.preventDefault(); refreshGenres(); }},
+      't': { desc: 'Toggle theme', action: toggleTheme },
+      's': { desc: 'Toggle stats', action: toggleStatsDashboard },
+      '?': { desc: 'Show keyboard shortcuts', action: showKeyboardHelp },
+    };
+
+    function handleEscape() {
+      // Close any modal first
+      const modal = document.querySelector('.modal-overlay, .changelog-overlay, .deploy-overlay');
+      if (modal) {
+        modal.remove();
+        document.querySelector('.changelog-panel, .deploy-refresh-prompt')?.remove();
+        return;
+      }
+      // Clear search input
+      const searchInput = document.querySelector('.search-input');
+      if (searchInput && searchInput.value) {
+        searchInput.value = '';
+        filterAndRenderGenres('');
+        searchInput.blur();
+      }
+    }
+
+    function showKeyboardHelp() {
+      const existingHelp = document.querySelector('.keyboard-help-overlay');
+      if (existingHelp) {
+        existingHelp.remove();
+        return;
+      }
+
+      const overlay = document.createElement('div');
+      overlay.className = 'keyboard-help-overlay';
+      overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+      const panel = document.createElement('div');
+      panel.className = 'keyboard-help-panel';
+      panel.setAttribute('role', 'dialog');
+      panel.setAttribute('aria-labelledby', 'keyboard-help-title');
+
+      const shortcuts = [
+        { key: '/', desc: swedishMode ? 'Sök genrer' : 'Search genres' },
+        { key: 'Esc', desc: swedishMode ? 'Stäng/Rensa' : 'Close/Clear' },
+        { key: 'Ctrl+A', desc: swedishMode ? 'Välj alla' : 'Select all' },
+        { key: 'Ctrl+Shift+A', desc: swedishMode ? 'Avmarkera alla' : 'Select none' },
+        { key: 'Enter', desc: swedishMode ? 'Skapa spellistor' : 'Create playlists' },
+        { key: 'Ctrl+R', desc: swedishMode ? 'Uppdatera data' : 'Refresh data' },
+        { key: 'T', desc: swedishMode ? 'Växla tema' : 'Toggle theme' },
+        { key: 'S', desc: swedishMode ? 'Växla statistik' : 'Toggle stats' },
+        { key: '?', desc: swedishMode ? 'Visa denna hjälp' : 'Show this help' },
+      ];
+
+      panel.innerHTML = \`
+        <h3 id="keyboard-help-title">\${swedishMode ? '⌨️ Tangentbordsgenvägar' : '⌨️ Keyboard Shortcuts'}</h3>
+        <div class="shortcuts-list">
+          \${shortcuts.map(s => \`
+            <div class="shortcut-item">
+              <kbd>\${s.key}</kbd>
+              <span>\${s.desc}</span>
+            </div>
+          \`).join('')}
+        </div>
+        <button class="btn btn-ghost" onclick="this.closest('.keyboard-help-overlay').remove()">
+          \${swedishMode ? 'Stäng' : 'Close'}
+        </button>
+      \`;
+
+      overlay.appendChild(panel);
+      document.body.appendChild(overlay);
+
+      // Focus the close button for accessibility
+      panel.querySelector('button')?.focus();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      // Don't trigger shortcuts when typing in inputs
+      const isInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
+
+      // Escape always works
+      if (e.key === 'Escape') {
+        handleEscape();
+        return;
+      }
+
+      // Skip other shortcuts if in input (except Ctrl combos)
+      if (isInput && !e.ctrlKey && !e.metaKey) return;
+
+      // Forward slash focuses search (unless already typing)
+      if (e.key === '/' && !isInput) {
+        e.preventDefault();
+        document.querySelector('.search-input')?.focus();
+        return;
+      }
+
+      // Check for matching shortcut
+      const key = e.key;
+      const shortcut = SHORTCUTS[key];
+      if (!shortcut) return;
+
+      const ctrlOrMeta = e.ctrlKey || e.metaKey;
+
+      // Check modifiers match
+      if (shortcut.ctrl && !ctrlOrMeta) return;
+      if (shortcut.shift && !e.shiftKey) return;
+      if (!shortcut.ctrl && ctrlOrMeta && key !== 'Enter') return;
+
+      // Execute the shortcut
+      e.preventDefault();
+      shortcut.action(e);
+    });
+
+    // === Accessibility Improvements ===
+
+    // Announce changes to screen readers
+    function announceToScreenReader(message) {
+      let announcer = document.getElementById('sr-announcer');
+      if (!announcer) {
+        announcer = document.createElement('div');
+        announcer.id = 'sr-announcer';
+        announcer.setAttribute('role', 'status');
+        announcer.setAttribute('aria-live', 'polite');
+        announcer.setAttribute('aria-atomic', 'true');
+        announcer.className = 'sr-only';
+        document.body.appendChild(announcer);
+      }
+      announcer.textContent = message;
+    }
+
+    // Enhanced notification with screen reader support
+    const originalShowNotification = showNotification;
+    showNotification = function(message, type) {
+      originalShowNotification(message, type);
+      announceToScreenReader(message);
+    };
+
+    // Announce selection changes
+    const originalUpdateSelectedCount = updateSelectedCount;
+    updateSelectedCount = function() {
+      originalUpdateSelectedCount();
+      const count = selectedGenres.size;
+      if (count > 0) {
+        announceToScreenReader(
+          swedishMode
+            ? \`\${count} genre\${count > 1 ? 'r' : ''} vald\${count > 1 ? 'a' : ''}\`
+            : \`\${count} genre\${count > 1 ? 's' : ''} selected\`
+        );
+      }
+    };
 
     // Initialize
     init();
