@@ -810,14 +810,18 @@ function getHtml(): string {
     /* Status Badge */
     .status-badge {
       position: fixed;
-      bottom: 1rem;
+      top: 1rem;
       left: 1rem;
-      z-index: 100;
-      opacity: 0.7;
+      z-index: 99;
+      opacity: 0.5;
       transition: opacity 0.3s ease;
     }
     .status-badge:hover {
       opacity: 1;
+    }
+    .status-badge img {
+      height: 18px;
+      border-radius: 3px;
     }
 
     /* Heidi Easter Egg Badge */
@@ -1669,7 +1673,7 @@ function getHtml(): string {
 
   <!-- Status Badge -->
   <a href="https://status.houstons.tech" target="_blank" class="status-badge" title="System Status">
-    <iframe src="https://status.houstons.tech/badge?theme=dark" width="250" height="30" frameborder="0" scrolling="no" style="color-scheme: normal"></iframe>
+    <img src="https://status.houstons.tech/badge?theme=dark" alt="Status">
   </a>
 
   <!-- Heidi Easter Egg Badge -->
