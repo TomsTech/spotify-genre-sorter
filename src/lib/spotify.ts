@@ -327,3 +327,34 @@ export async function getCurrentUser(
 ): Promise<{ id: string; display_name: string; images: { url: string }[] }> {
   return spotifyFetch('/me', accessToken);
 }
+
+export interface SpotifyPlaylist {
+  id: string;
+  name: string;
+  owner: { id: string };
+  tracks: { total: number };
+}
+
+export async function getUserPlaylists(
+  accessToken: string
+): Promise<SpotifyPlaylist[]> {
+  const allPlaylists: SpotifyPlaylist[] = [];
+  let offset = 0;
+  const limit = 50;
+
+  do {
+    const response = await spotifyFetch<{
+      items: SpotifyPlaylist[];
+      total: number;
+      next: string | null;
+    }>(`/me/playlists?limit=${limit}&offset=${offset}`, accessToken);
+
+    allPlaylists.push(...response.items);
+    offset += limit;
+
+    // Limit to first 200 playlists to avoid too many requests
+    if (offset >= 200 || !response.next) break;
+  } while (true);
+
+  return allPlaylists;
+}
