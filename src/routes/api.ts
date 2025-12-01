@@ -1,5 +1,15 @@
 import { Hono } from 'hono';
-import { getSession, updateSession } from '../lib/session';
+import {
+  getSession,
+  updateSession,
+  createOrUpdateUserStats,
+  addPlaylistToUser,
+  getRecentPlaylists,
+  addRecentPlaylist,
+  getScoreboard,
+  buildScoreboard,
+  type RecentPlaylist,
+} from '../lib/session';
 import {
   refreshSpotifyToken,
   getAllLikedTracks,
@@ -277,6 +287,15 @@ api.get('/genres', async (c) => {
     await c.env.SESSIONS.put(cacheKey, JSON.stringify(responseData), {
       expirationTtl: GENRE_CACHE_TTL,
     });
+
+    // Update user stats with analysis results
+    if (session.spotifyUserId) {
+      await createOrUpdateUserStats(c.env.SESSIONS, session.spotifyUserId, {
+        totalGenresDiscovered: responseData.totalGenres,
+        totalArtistsDiscovered: responseData.totalArtists,
+        totalTracksAnalysed: responseData.totalTracks,
+      });
+    }
 
     return c.json({
       ...responseData,
@@ -573,6 +592,25 @@ api.post('/playlist', async (c) => {
     // Invalidate cache since library has changed
     await invalidateGenreCache(c.env.SESSIONS, user.id);
 
+    // Update user stats
+    await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id);
+
+    // Add to recent playlists feed
+    const recentPlaylist: RecentPlaylist = {
+      playlistId: playlist.id,
+      playlistName: playlistName,
+      genre: safeName,
+      trackCount: safeTrackIds.length,
+      createdBy: {
+        spotifyId: user.id,
+        spotifyName: user.display_name,
+        spotifyAvatar: user.images?.[0]?.url,
+      },
+      createdAt: new Date().toISOString(),
+      spotifyUrl: playlist.external_urls.spotify,
+    };
+    await addRecentPlaylist(c.env.SESSIONS, recentPlaylist);
+
     return c.json({
       success: true,
       playlist: {
@@ -669,6 +707,25 @@ api.post('/playlists/bulk', async (c) => {
         // Add to existing names to prevent duplicates within same batch
         existingNames.add(playlistName.toLowerCase());
 
+        // Update user stats
+        await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id);
+
+        // Add to recent playlists feed
+        const recentPlaylist: RecentPlaylist = {
+          playlistId: playlist.id,
+          playlistName: playlistName,
+          genre: safeName,
+          trackCount: safeTrackIds.length,
+          createdBy: {
+            spotifyId: user.id,
+            spotifyName: user.display_name,
+            spotifyAvatar: user.images?.[0]?.url,
+          },
+          createdAt: new Date().toISOString(),
+          spotifyUrl: playlist.external_urls.spotify,
+        };
+        await addRecentPlaylist(c.env.SESSIONS, recentPlaylist);
+
         results.push({
           genre: safeName,
           success: true,
@@ -760,6 +817,105 @@ api.get('/changelog', (c) => {
     changelog: changelog.slice(0, 10),
     repoUrl: 'https://github.com/TomsTech/spotify-genre-sorter',
   });
+});
+
+// ================== Leaderboard & Scoreboard Endpoints ==================
+
+// Get scoreboard (top users by category)
+api.get('/scoreboard', async (c) => {
+  try {
+    // Try to get cached scoreboard
+    let scoreboard = await getScoreboard(c.env.SESSIONS);
+
+    if (!scoreboard) {
+      // Build fresh scoreboard
+      scoreboard = await buildScoreboard(c.env.SESSIONS);
+    }
+
+    return c.json(scoreboard);
+  } catch (err) {
+    console.error('Error fetching scoreboard:', err);
+    return c.json({ error: 'Failed to fetch scoreboard' }, 500);
+  }
+});
+
+// Get leaderboard (pioneers + new users)
+api.get('/leaderboard', async (c) => {
+  try {
+    // Get pioneers (first 10 users)
+    const pioneers: Array<{
+      position: number;
+      spotifyId: string;
+      spotifyName: string;
+      spotifyAvatar?: string;
+      registeredAt: string;
+    }> = [];
+
+    for (let i = 1; i <= 10; i++) {
+      const hofKey = `hof:${String(i).padStart(3, '0')}`;
+      const data = await c.env.SESSIONS.get(hofKey);
+      if (data) {
+        const parsed = JSON.parse(data) as {
+          position: number;
+          spotifyId: string;
+          spotifyName: string;
+          spotifyAvatar?: string;
+          registeredAt: string;
+        };
+        pioneers.push(parsed);
+      }
+    }
+
+    // Get recent users (last 10 registered)
+    // We need to list all user: keys and sort by registeredAt
+    const userList = await c.env.SESSIONS.list({ prefix: 'user:' });
+    const recentUsers: Array<{
+      spotifyId: string;
+      spotifyName: string;
+      spotifyAvatar?: string;
+      registeredAt: string;
+    }> = [];
+
+    for (const key of userList.keys.slice(0, 100)) {
+      const data = await c.env.SESSIONS.get(key.name);
+      if (data) {
+        const user = JSON.parse(data) as {
+          spotifyId: string;
+          spotifyName: string;
+          spotifyAvatar?: string;
+          registeredAt: string;
+        };
+        recentUsers.push(user);
+      }
+    }
+
+    // Sort by registeredAt descending and take last 10
+    recentUsers.sort((a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime());
+
+    // Get total user count
+    const countStr = await c.env.SESSIONS.get('stats:user_count');
+    const totalUsers = countStr ? parseInt(countStr, 10) : 0;
+
+    return c.json({
+      pioneers,
+      newUsers: recentUsers.slice(0, 10),
+      totalUsers,
+    });
+  } catch (err) {
+    console.error('Error fetching leaderboard:', err);
+    return c.json({ error: 'Failed to fetch leaderboard' }, 500);
+  }
+});
+
+// Get recent playlists feed
+api.get('/recent-playlists', async (c) => {
+  try {
+    const playlists = await getRecentPlaylists(c.env.SESSIONS);
+    return c.json({ playlists });
+  } catch (err) {
+    console.error('Error fetching recent playlists:', err);
+    return c.json({ error: 'Failed to fetch recent playlists' }, 500);
+  }
 });
 
 export default api;
