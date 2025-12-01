@@ -180,12 +180,24 @@ describe('Retry Logic', () => {
         throw new Error('Network failure');
       });
 
+      // Start the fetch and immediately set up the rejection handler
       const responsePromise = fetchWithRetry(mockFetch, 3, 100);
 
+      // Store a reference to catch the rejection (prevents unhandled rejection warning)
+      let caughtError: Error | null = null;
+      const catchPromise = responsePromise.catch(err => {
+        caughtError = err;
+      });
+
+      // Advance timers for all retry delays: 100ms (attempt 0→1), 200ms (attempt 1→2)
       await vi.advanceTimersByTimeAsync(100);
       await vi.advanceTimersByTimeAsync(200);
 
-      await expect(responsePromise).rejects.toThrow('Network failure');
+      // Wait for the catch handler to complete
+      await catchPromise;
+
+      expect(caughtError).toBeInstanceOf(Error);
+      expect(caughtError?.message).toBe('Network failure');
       expect(mockFetch).toHaveBeenCalledTimes(3);
     });
   });
