@@ -4,6 +4,10 @@ dist/
 .dev.vars
 *.log
 
-# Claude context (local only)
+# AI context files (local only)
 CLAUDE.md
 .claude/
+.claude-context.md
+*-Gemini*.md
+*-Claude*.md
+*-GPT*.md
