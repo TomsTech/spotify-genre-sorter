@@ -141,7 +141,7 @@ api.get('/me', async (c) => {
   }
 });
 
-// Get all genres from liked tracks (with KV caching)
+// Get all genres from liked tracks (with caching)
 api.get('/genres', async (c) => {
   const session = await getSession(c);
   if (!session?.spotifyAccessToken) {
@@ -224,7 +224,7 @@ api.get('/genres', async (c) => {
     }
 
     // Step 4: Count tracks per genre and collect track IDs
-    const genreDataMap = new Map<string, { count: number; trackIds: string[] }>();
+    const genreData = new Map<string, { count: number; trackIds: string[] }>();
 
     for (const { track } of likedTracks) {
       const trackGenres = new Set<string>();
@@ -234,10 +234,10 @@ api.get('/genres', async (c) => {
       }
 
       for (const genre of trackGenres) {
-        let data = genreDataMap.get(genre);
+        let data = genreData.get(genre);
         if (!data) {
           data = { count: 0, trackIds: [] };
-          genreDataMap.set(genre, data);
+          genreData.set(genre, data);
         }
         data.count++;
         data.trackIds.push(track.id);
@@ -245,7 +245,7 @@ api.get('/genres', async (c) => {
     }
 
     // Convert to sorted array
-    const genres = [...genreDataMap.entries()]
+    const genres = [...genreData.entries()]
       .map(([name, data]) => ({
         name,
         count: data.count,
@@ -253,7 +253,7 @@ api.get('/genres', async (c) => {
       }))
       .sort((a, b) => b.count - a.count);
 
-    // Build response data for caching
+    // Build response data
     const responseData: GenreCacheData = {
       totalTracks: likedTracks.length,
       totalGenres: genres.length,
@@ -262,7 +262,7 @@ api.get('/genres', async (c) => {
       cachedAt: Date.now(),
     };
 
-    // Store in KV cache
+    // Store in cache
     await c.env.SESSIONS.put(cacheKey, JSON.stringify(responseData), {
       expirationTtl: GENRE_CACHE_TTL,
     });
@@ -360,7 +360,7 @@ api.post('/playlist', async (c) => {
     const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
     await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
 
-    // Invalidate genre cache (library has changed)
+    // Invalidate cache since library has changed
     await invalidateGenreCache(c.env.SESSIONS, user.id);
 
     return c.json({
