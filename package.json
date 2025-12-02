@@ -1,6 +1,6 @@
 {
   "name": "spotify-genre-sorter",
-  "version": "2.0.1",
+  "version": "2.2.0",
   "description": "Organise your Spotify liked songs into genre-based playlists",
   "type": "module",
   "scripts": {
