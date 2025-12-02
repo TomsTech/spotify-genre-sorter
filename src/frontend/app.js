@@ -1007,7 +1007,7 @@
         animateCounter(document.getElementById('stat-tracks'), loaded.toLocaleString());
         animateCounter(document.getElementById('stat-genres'), String(genreCount));
         animateCounter(document.getElementById('stat-artists'), String(artistCount));
-        animateCounter(document.getElementById('stat-progress'), `${progress}%`);
+        animateCounter(document.getElementById('stat-progress'), progress + '%');
 
         const fill = document.getElementById('progress-fill');
         const detail = document.getElementById('progress-detail');
