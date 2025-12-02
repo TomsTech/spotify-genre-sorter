@@ -44,34 +44,36 @@
     }
 
     .intro-overlay .binoculars-container {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5vw;
-      animation: binocularWobble 0.3s ease-in-out infinite;
-    }
-
-    .intro-overlay .binocular-hole {
-      width: 38vmin;
-      height: 50vmin;
-      border-radius: 50%;
-      background: radial-gradient(ellipse at center, transparent 0%, transparent 85%, rgba(0,0,0,0.3) 100%);
-      box-shadow:
-        0 0 0 3px rgba(50,50,50,0.5),
-        0 0 60px 30px rgba(0,0,0,0.8) inset,
-        0 0 0 9999px #000;
-      position: relative;
-    }
-
-    .intro-overlay .binocular-hole::before {
-      content: '';
       position: absolute;
-      inset: 5%;
+      inset: 0;
+      animation: binocularWobble 0.3s ease-in-out infinite;
+      /* SVG mask for proper binocular shape */
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 60'%3E%3Cdefs%3E%3Cmask id='b'%3E%3Crect width='100' height='60' fill='white'/%3E%3Cellipse cx='30' cy='30' rx='22' ry='26' fill='black'/%3E%3Cellipse cx='70' cy='30' rx='22' ry='26' fill='black'/%3E%3C/mask%3E%3C/defs%3E%3Crect width='100' height='60' mask='url(%23b)' fill='black'/%3E%3C/svg%3E") center/cover;
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 60'%3E%3Cdefs%3E%3Cmask id='b'%3E%3Crect width='100' height='60' fill='white'/%3E%3Cellipse cx='30' cy='30' rx='22' ry='26' fill='black'/%3E%3Cellipse cx='70' cy='30' rx='22' ry='26' fill='black'/%3E%3C/mask%3E%3C/defs%3E%3Crect width='100' height='60' mask='url(%23b)' fill='black'/%3E%3C/svg%3E") center/cover;
+      background: #000;
+    }
+
+    /* Lens glare effect */
+    .intro-overlay .binocular-hole {
+      position: absolute;
+      width: 30vmin;
+      height: 36vmin;
       border-radius: 50%;
-      background: radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .intro-overlay .binocular-hole:first-child {
+      left: calc(50% - 28vmin);
+      top: 50%;
+      transform: translateY(-50%);
+      background: radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.15) 0%, transparent 40%);
+    }
+
+    .intro-overlay .binocular-hole:last-child {
+      right: calc(50% - 28vmin);
+      top: 50%;
+      transform: translateY(-50%);
+      background: radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.15) 0%, transparent 40%);
     }
 
     @keyframes binocularWobble {

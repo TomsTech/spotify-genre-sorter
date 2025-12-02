@@ -1,6 +1,7 @@
 name = "spotify-genre-sorter"
 main = "src/index.ts"
 compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
 
 # Custom domain configuration (optional)
 # Uncomment and set your zone_id to enable custom domain
