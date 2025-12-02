@@ -1940,6 +1940,125 @@
       padding: 2rem 1rem;
     }
 
+    /* Album Art Carousel */
+    .album-art-carousel {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      height: 120px;
+      perspective: 1000px;
+    }
+
+    .album-art-item {
+      width: 100px;
+      height: 100px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 0;
+      transform: scale(0.8) rotateY(-15deg);
+    }
+
+    .album-art-item.visible {
+      opacity: 1;
+      transform: scale(1) rotateY(0deg);
+    }
+
+    .album-art-item.center {
+      width: 120px;
+      height: 120px;
+      box-shadow: 0 8px 25px rgba(29, 185, 84, 0.4);
+      z-index: 2;
+    }
+
+    .album-art-item.left {
+      transform: scale(0.85) rotateY(15deg) translateX(-10px);
+    }
+
+    .album-art-item.right {
+      transform: scale(0.85) rotateY(-15deg) translateX(10px);
+    }
+
+    .album-art-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .album-art-item.placeholder {
+      background: var(--surface-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+
+    /* Animated counter effect */
+    .loading-stat-value.counting {
+      animation: countPulse 0.3s ease;
+    }
+
+    @keyframes countPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); color: #1ed760; }
+      100% { transform: scale(1); }
+    }
+
+    /* Live bar chart */
+    .live-bar-chart {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .live-bar-chart h4 {
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .bar-chart-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      gap: 0.5rem;
+    }
+
+    .bar-chart-label {
+      width: 120px;
+      font-size: 0.8rem;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bar-chart-bar-container {
+      flex: 1;
+      height: 20px;
+      background: var(--surface-2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .bar-chart-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #1ed760);
+      border-radius: 4px;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      min-width: 2px;
+    }
+
+    .bar-chart-count {
+      width: 40px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-align: right;
+    }
+
     .loading-header {
       text-align: center;
       margin-bottom: 2rem;
@@ -2452,6 +2571,24 @@
       50% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.8); }
     }
 
+    /* Staggered fade-in animation for sidebar items */
+    @keyframes sidebarItemFadeIn {
+      from {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .user-list-item.animate-in,
+    .playlist-list-item.animate-in {
+      animation: sidebarItemFadeIn 0.3s ease-out forwards;
+      opacity: 0;
+    }
+
     /* === Recent Playlists === */
     .playlist-list-item {
       display: flex;
@@ -2955,5 +3092,90 @@
 
       .loading-stats {
         gap: 1rem;
+      }
+    }
+
+    /* === Fireworks Celebration === */
+    .fireworks-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10000;
+      overflow: hidden;
+    }
+
+    .firework {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      animation: fireworkExplode 1s ease-out forwards;
+    }
+
+    @keyframes fireworkExplode {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(0);
+        opacity: 0;
+      }
+    }
+
+    .firework-particle {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      animation: particleFly 1.2s ease-out forwards;
+    }
+
+    @keyframes particleFly {
+      0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+
+    .celebration-text {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 3rem;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 0 20px rgba(29, 185, 84, 0.8), 0 0 40px rgba(29, 185, 84, 0.6);
+      animation: celebrationPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      z-index: 10001;
+      pointer-events: none;
+    }
+
+    @keyframes celebrationPop {
+      0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.2);
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+    }
+
+    .celebration-text.fade-out {
+      animation: celebrationFade 0.5s ease-out forwards;
+    }
+
+    @keyframes celebrationFade {
+      to {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
       }
     }
