@@ -787,6 +787,165 @@
         .replace(/'/g, '&#039;');
     }
 
+    // Album art carousel state
+    let albumArtUrls = [];
+    let albumCarouselIndex = 0;
+    let albumCarouselInterval = null;
+
+    // Animated counter helper - adds pulse effect when value changes
+    function animateCounter(element, newValue) {
+      if (!element) return;
+      const oldValue = element.textContent;
+      if (oldValue !== newValue) {
+        element.classList.add('counting');
+        element.textContent = newValue;
+        setTimeout(() => element.classList.remove('counting'), 300);
+      }
+    }
+
+    // Rotate album carousel to show different covers
+    function rotateAlbumCarousel() {
+      if (albumArtUrls.length < 3) return;
+      albumCarouselIndex = (albumCarouselIndex + 1) % albumArtUrls.length;
+      updateAlbumCarousel();
+    }
+
+    // Update album carousel display
+    function updateAlbumCarousel() {
+      const carousel = document.getElementById('album-carousel');
+      if (!carousel || albumArtUrls.length < 3) return;
+
+      const len = albumArtUrls.length;
+      const leftIdx = (albumCarouselIndex - 1 + len) % len;
+      const centerIdx = albumCarouselIndex;
+      const rightIdx = (albumCarouselIndex + 1) % len;
+
+      carousel.innerHTML = [
+        '<div class="album-art-item left visible">',
+        '<img src="' + albumArtUrls[leftIdx] + '" alt="" loading="lazy">',
+        '</div>',
+        '<div class="album-art-item center visible">',
+        '<img src="' + albumArtUrls[centerIdx] + '" alt="" loading="lazy">',
+        '</div>',
+        '<div class="album-art-item right visible">',
+        '<img src="' + albumArtUrls[rightIdx] + '" alt="" loading="lazy">',
+        '</div>'
+      ].join('');
+    }
+
+    // Update bar chart with top genres
+    function updateBarChart(genres) {
+      const container = document.getElementById('bar-chart-items');
+      if (!container) return;
+
+      const sortedGenres = [...genres].sort((a, b) => b.count - a.count).slice(0, 8);
+      const maxCount = sortedGenres[0]?.count || 1;
+
+      container.innerHTML = sortedGenres.map(g => {
+        const percentage = (g.count / maxCount) * 100;
+        const safeName = escapeForHtml(g.name);
+        return [
+          '<div class="bar-chart-item">',
+          '<div class="bar-chart-label">' + safeName + '</div>',
+          '<div class="bar-chart-bar-container">',
+          '<div class="bar-chart-bar" style="width: ' + percentage + '%"></div>',
+          '</div>',
+          '<div class="bar-chart-count">' + g.count + '</div>',
+          '</div>'
+        ].join('');
+      }).join('');
+    }
+
+    // Clean up carousel interval when loading completes
+    function stopAlbumCarousel() {
+      if (albumCarouselInterval) {
+        clearInterval(albumCarouselInterval);
+        albumCarouselInterval = null;
+      }
+      albumArtUrls = [];
+      albumCarouselIndex = 0;
+    }
+
+    // Fireworks celebration effect
+    function triggerFireworks() {
+      const colors = ['#1DB954', '#1ed760', '#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'];
+      const container = document.createElement('div');
+      container.className = 'fireworks-container';
+      document.body.appendChild(container);
+
+      // Create celebration text
+      const celebText = document.createElement('div');
+      celebText.className = 'celebration-text';
+      celebText.textContent = swedishMode ? '🎉 Klart!' : '🎉 Done!';
+      document.body.appendChild(celebText);
+
+      // Launch multiple fireworks
+      for (let i = 0; i < 8; i++) {
+        setTimeout(() => launchFirework(container, colors), i * 150);
+      }
+
+      // Play a subtle celebration sound (optional, won't play if audio not allowed)
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+        oscillator.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+        oscillator.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); // G5
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.5);
+      } catch (e) {
+        // Audio not available, that's fine
+      }
+
+      // Clean up after animation
+      setTimeout(() => {
+        celebText.classList.add('fade-out');
+        setTimeout(() => {
+          container.remove();
+          celebText.remove();
+        }, 500);
+      }, 2000);
+    }
+
+    function launchFirework(container, colors) {
+      const x = Math.random() * window.innerWidth;
+      const y = Math.random() * (window.innerHeight * 0.6) + (window.innerHeight * 0.1);
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const particleCount = 20 + Math.floor(Math.random() * 15);
+
+      for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'firework-particle';
+        particle.style.left = x + 'px';
+        particle.style.top = y + 'px';
+        particle.style.backgroundColor = color;
+        particle.style.boxShadow = '0 0 6px ' + color;
+
+        const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
+        const velocity = 50 + Math.random() * 100;
+        const dx = Math.cos(angle) * velocity;
+        const dy = Math.sin(angle) * velocity;
+
+        particle.style.animation = 'none';
+        particle.animate([
+          { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+          { transform: 'translate(' + dx + 'px, ' + (dy + 30) + 'px) scale(0)', opacity: 0 }
+        ], {
+          duration: 1000 + Math.random() * 500,
+          easing: 'cubic-bezier(0, 0.5, 0.5, 1)'
+        });
+
+        container.appendChild(particle);
+
+        setTimeout(() => particle.remove(), 1500);
+      }
+    }
+
     function renderProgressLoading(message, progress, loaded, total, partialGenres = null, partialStats = null) {
       // Check if progress bar already exists
       let progressContainer = document.getElementById('progressive-loading');
@@ -799,7 +958,7 @@
         // First call - create the full interactive UI
         app.innerHTML = \`
           <div id="progressive-loading" class="progressive-loading-full">
-            <div class="loading-header">
+            <div class="album-art-carousel" id="album-carousel"><div class="album-art-item left placeholder visible">🎵</div><div class="album-art-item center placeholder visible">🎶</div><div class="album-art-item right placeholder visible">🎵</div></div><div class="loading-header">
               <h2>\${swedishMode ? '🎵 Laddar ditt bibliotek...' : '🎵 Loading your library...'}</h2>
               <p class="loading-subtitle">\${swedishMode ? 'Du kan redan se dina genrer medan det laddar!' : 'You can already see your genres while loading!'}</p>
             </div>
@@ -834,24 +993,23 @@
 
             <div class="live-genres-section">
               <h3>\${swedishMode ? '🎸 Genrer hittade hittills' : '🎸 Genres found so far'}</h3>
-              <div class="live-genres-grid" id="live-genres-grid"></div>
-            </div>
-          </div>
+              <div class="live-genres-grid" id="live-genres-grid"></div><div class="live-bar-chart" id="live-bar-chart"><h4>${swedishMode ? "📊 Topp genrer" : "📊 Top Genres"}</h4><div id="bar-chart-items"></div></div></div></div>
         \`;
         progressContainer = document.getElementById('progressive-loading');
+
+        // Start album carousel rotation
+        if (!albumCarouselInterval) {
+          albumCarouselInterval = setInterval(rotateAlbumCarousel, 1500);
+        }
       } else {
-        // Update existing stats smoothly
-        const statTracks = document.getElementById('stat-tracks');
-        const statGenres = document.getElementById('stat-genres');
-        const statArtists = document.getElementById('stat-artists');
-        const statProgress = document.getElementById('stat-progress');
+        // Update existing stats with animation
+        animateCounter(document.getElementById('stat-tracks'), loaded.toLocaleString());
+        animateCounter(document.getElementById('stat-genres'), String(genreCount));
+        animateCounter(document.getElementById('stat-artists'), String(artistCount));
+        animateCounter(document.getElementById('stat-progress'), `${progress}%`);
+
         const fill = document.getElementById('progress-fill');
         const detail = document.getElementById('progress-detail');
-
-        if (statTracks) statTracks.textContent = loaded.toLocaleString();
-        if (statGenres) statGenres.textContent = genreCount;
-        if (statArtists) statArtists.textContent = artistCount;
-        if (statProgress) statProgress.textContent = \`\${progress}%\`;
         if (fill) fill.style.width = \`\${progress}%\`;
         if (detail) detail.textContent = \`\${loaded.toLocaleString()} / \${total.toLocaleString()} \${swedishMode ? 'låtar' : 'tracks'}\`;
       }
@@ -874,6 +1032,9 @@
             \`;
           }).join('');
         }
+
+        // Update bar chart
+        updateBarChart(partialGenres);
       }
     }
 
@@ -962,7 +1123,9 @@
     async function loadFullLibrary() {
       try {
         const fullData = await loadGenresProgressively();
+        stopAlbumCarousel(); // Clean up carousel when loading completes
         genreData = fullData;
+        triggerFireworks(); // Celebrate completion!
         renderGenres();
         showNotification(
           swedishMode ? '✨ Hela biblioteket laddat!' : '✨ Full library loaded!',
@@ -970,6 +1133,7 @@
         );
       } catch (error) {
         console.error('Progressive load error:', error);
+        stopAlbumCarousel(); // Clean up carousel on error too
         showNotification(
           swedishMode ? 'Kunde inte ladda alla låtar' : 'Failed to load all tracks',
           'error'
@@ -1026,6 +1190,7 @@
         }
 
         genreData = data;
+        triggerFireworks(); // Celebrate completion!
         renderGenres();
       } catch (error) {
         console.error('Load genres error:', error);
@@ -2074,9 +2239,10 @@
         const regalia = i === 0 ? '<span class="pioneer-badge first">👑 First!</span>' :
                         i < 3 ? '<span class="pioneer-badge">🏆</span>' :
                         i < 10 ? '<span class="regalia">⭐</span>' : '';
+        const delay = i * 50; // Stagger by 50ms
 
         return \`
-          <div class="user-list-item" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
+          <div class="user-list-item animate-in" style="animation-delay: ${delay}ms" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
             <span class="position \${posClass}">#\${i + 1}</span>
             \${user.spotifyAvatar
               ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
@@ -2098,9 +2264,10 @@
         return;
       }
 
-      container.innerHTML = sidebarData.newUsers.map(user => {
+      container.innerHTML = sidebarData.newUsers.map((user, i) => {
+        const delay = i * 50; // Stagger by 50ms
         return \`
-          <div class="user-list-item">
+          <div class="user-list-item animate-in" style="animation-delay: ${delay}ms">
             \${user.spotifyAvatar
               ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
               : '<div class="user-avatar-placeholder">👤</div>'}
@@ -2121,10 +2288,11 @@
         return;
       }
 
-      container.innerHTML = sidebarData.recentPlaylists.slice(0, 10).map(playlist => {
+      container.innerHTML = sidebarData.recentPlaylists.slice(0, 10).map((playlist, i) => {
+        const delay = i * 50; // Stagger by 50ms
         const genreEmoji = getGenreEmoji(playlist.genre);
         return \`
-          <a href="\${playlist.spotifyUrl}" target="_blank" class="playlist-list-item" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
+          <a href="\${playlist.spotifyUrl}" target="_blank" class="playlist-list-item animate-in" style="animation-delay: ${delay}ms" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
             <div class="playlist-icon">\${genreEmoji}</div>
             <div class="playlist-info">
               <div class="playlist-name">\${escapeHtml(playlist.playlistName)}</div>

@@ -25,6 +25,8 @@ const api = new Hono<{ Bindings: Env }>();
 
 // Cache constants
 const GENRE_CACHE_TTL = 3600; // 1 hour in seconds
+const GENRE_CACHE_TTL_LARGE = 86400; // 24 hours for large libraries
+const LARGE_LIBRARY_THRESHOLD = 1000; // tracks
 const GENRE_CACHE_PREFIX = 'genre_cache_';
 const CHUNK_CACHE_PREFIX = 'genre_chunk_';
 
@@ -40,6 +42,7 @@ interface GenreCacheData {
   totalGenres: number;
   totalArtists: number;
   cachedAt: number;
+  cacheExpiresAt?: number;
   truncated?: boolean;
   totalInLibrary?: number;
 }
@@ -281,6 +284,11 @@ api.get('/genres', async (c) => {
       }))
       .sort((a, b) => b.count - a.count);
 
+    // Use extended TTL for large libraries (24h vs 1h)
+    const cacheTtl = likedTracks.length >= LARGE_LIBRARY_THRESHOLD
+      ? GENRE_CACHE_TTL_LARGE
+      : GENRE_CACHE_TTL;
+
     // Build response data
     const responseData: GenreCacheData = {
       totalTracks: likedTracks.length,
@@ -288,13 +296,14 @@ api.get('/genres', async (c) => {
       totalArtists: artistIds.size,
       genres,
       cachedAt: Date.now(),
+      cacheExpiresAt: Date.now() + (cacheTtl * 1000),
       truncated,
       totalInLibrary: truncated ? totalInLibrary : undefined,
     };
 
     // Store in cache
     await c.env.SESSIONS.put(cacheKey, JSON.stringify(responseData), {
-      expirationTtl: GENRE_CACHE_TTL,
+      expirationTtl: cacheTtl,
     });
 
     // Update user stats with analysis results
