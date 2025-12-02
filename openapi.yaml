@@ -1,0 +1,717 @@
+openapi: 3.1.0
+info:
+  title: Spotify Genre Sorter API
+  description: |
+    API for organising Spotify liked songs into genre-based playlists.
+
+    ## Authentication
+    Most endpoints require Spotify OAuth authentication via session cookie.
+    Public endpoints (scoreboard, leaderboard, recent-playlists) do not require auth.
+
+    ## Rate Limiting
+    - 30 requests per minute per IP address
+    - Returns 429 with Retry-After header when exceeded
+  version: 2.1.0
+  contact:
+    name: TomsTech
+    url: https://github.com/TomsTech/spotify-genre-sorter
+  license:
+    name: Personal Use License
+    url: https://github.com/TomsTech/spotify-genre-sorter/blob/main/LICENSE
+
+servers:
+  - url: https://spotify-genre-sorter.dev-playground-df5.workers.dev
+    description: Production
+
+tags:
+  - name: Authentication
+    description: OAuth authentication flows
+  - name: User
+    description: Current user information
+  - name: Genres
+    description: Genre analysis and retrieval
+  - name: Playlists
+    description: Playlist creation
+  - name: Public
+    description: Public endpoints (no auth required)
+  - name: Health
+    description: Health and status checks
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Returns service health status
+      responses:
+        '200':
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  version:
+                    type: string
+                    example: "2.1.0"
+
+  /session:
+    get:
+      tags: [Health]
+      summary: Check session status
+      description: Returns current authentication state
+      responses:
+        '200':
+          description: Session status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authenticated:
+                    type: boolean
+                  spotifyConnected:
+                    type: boolean
+                  githubConnected:
+                    type: boolean
+
+  /auth/spotify:
+    get:
+      tags: [Authentication]
+      summary: Start Spotify OAuth flow
+      description: Redirects to Spotify for authentication
+      responses:
+        '302':
+          description: Redirect to Spotify OAuth
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Spotify authorization URL
+
+  /auth/spotify/callback:
+    get:
+      tags: [Authentication]
+      summary: Spotify OAuth callback
+      description: Handles OAuth callback from Spotify
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Authorization code from Spotify
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+          description: CSRF state parameter
+      responses:
+        '302':
+          description: Redirect to app after successful auth
+        '400':
+          description: Invalid callback parameters
+
+  /auth/logout:
+    get:
+      tags: [Authentication]
+      summary: Logout
+      description: Clears session and logs out user
+      responses:
+        '302':
+          description: Redirect to home page
+
+  /api/me:
+    get:
+      tags: [User]
+      summary: Get current user
+      description: Returns authenticated user's Spotify and GitHub info
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: User information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/genres:
+    get:
+      tags: [Genres]
+      summary: Get all genres from liked songs
+      description: |
+        Analyses user's Spotify liked songs and returns genre breakdown.
+        Results are cached for 1 hour (small libraries) or 24 hours (1000+ tracks).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: refresh
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Force cache refresh
+      responses:
+        '200':
+          description: Genre analysis results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenreAnalysis'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/genres/chunk:
+    get:
+      tags: [Genres]
+      summary: Get genres progressively (chunked)
+      description: |
+        Fetches genres in chunks to stay under Cloudflare Workers subrequest limits.
+        Use for progressive loading UI.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Track offset to start from
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 500
+            maximum: 500
+          description: Maximum tracks to process in this chunk
+      responses:
+        '200':
+          description: Chunk of genre data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenreChunk'
+        '400':
+          description: Invalid parameters
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/playlist:
+    post:
+      tags: [Playlists]
+      summary: Create a genre playlist
+      description: Creates a new Spotify playlist with tracks from a specific genre
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePlaylistRequest'
+      responses:
+        '200':
+          description: Playlist created or duplicate detected
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/PlaylistCreated'
+                  - $ref: '#/components/schemas/PlaylistDuplicate'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /api/playlists/bulk:
+    post:
+      tags: [Playlists]
+      summary: Create multiple playlists
+      description: Creates playlists for multiple genres in a single request (max 50)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkCreateRequest'
+      responses:
+        '200':
+          description: Bulk creation results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkCreateResponse'
+        '400':
+          description: Invalid request
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/scoreboard:
+    get:
+      tags: [Public]
+      summary: Get scoreboard
+      description: Returns top users by various categories
+      responses:
+        '200':
+          description: Scoreboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scoreboard'
+
+  /api/leaderboard:
+    get:
+      tags: [Public]
+      summary: Get leaderboard
+      description: Returns pioneers (first 10 users) and recent users
+      responses:
+        '200':
+          description: Leaderboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leaderboard'
+
+  /api/recent-playlists:
+    get:
+      tags: [Public]
+      summary: Get recent playlists
+      description: Returns feed of recently created playlists
+      responses:
+        '200':
+          description: Recent playlists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  playlists:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RecentPlaylist'
+
+  /api/changelog:
+    get:
+      tags: [Public]
+      summary: Get changelog
+      description: Returns version history and changes
+      responses:
+        '200':
+          description: Changelog data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Changelog'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+      description: Session cookie set after Spotify OAuth
+
+  schemas:
+    UserInfo:
+      type: object
+      properties:
+        github:
+          type: object
+          nullable: true
+          properties:
+            username:
+              type: string
+            avatar:
+              type: string
+              format: uri
+        spotify:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            avatar:
+              type: string
+              format: uri
+
+    GenreAnalysis:
+      type: object
+      properties:
+        totalTracks:
+          type: integer
+          description: Number of tracks analysed
+        totalGenres:
+          type: integer
+          description: Number of unique genres found
+        totalArtists:
+          type: integer
+          description: Number of unique artists
+        genres:
+          type: array
+          items:
+            $ref: '#/components/schemas/Genre'
+        cachedAt:
+          type: integer
+          description: Unix timestamp when cached
+        cacheExpiresAt:
+          type: integer
+          description: Unix timestamp when cache expires
+        fromCache:
+          type: boolean
+        truncated:
+          type: boolean
+          description: True if library exceeded 1000 track limit
+        totalInLibrary:
+          type: integer
+          description: Total tracks in library (when truncated)
+
+    Genre:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "indie rock"
+        count:
+          type: integer
+          description: Number of tracks with this genre
+        trackIds:
+          type: array
+          items:
+            type: string
+            pattern: '^[a-zA-Z0-9]{22}$'
+          description: Spotify track IDs
+
+    GenreChunk:
+      type: object
+      properties:
+        chunk:
+          type: object
+          properties:
+            genres:
+              type: array
+              items:
+                $ref: '#/components/schemas/Genre'
+            trackCount:
+              type: integer
+            artistCount:
+              type: integer
+            cachedAt:
+              type: integer
+        pagination:
+          type: object
+          properties:
+            offset:
+              type: integer
+            limit:
+              type: integer
+            hasMore:
+              type: boolean
+            nextOffset:
+              type: integer
+              nullable: true
+            totalInLibrary:
+              type: integer
+        progress:
+          type: integer
+          description: Progress percentage (0-100)
+        fromCache:
+          type: boolean
+
+    CreatePlaylistRequest:
+      type: object
+      required:
+        - genre
+        - trackIds
+      properties:
+        genre:
+          type: string
+          maxLength: 100
+          description: Genre name
+        trackIds:
+          type: array
+          items:
+            type: string
+            pattern: '^[a-zA-Z0-9]{22}$'
+          maxItems: 10000
+          description: Spotify track IDs to add
+        force:
+          type: boolean
+          default: false
+          description: Create even if duplicate exists
+        customName:
+          type: string
+          maxLength: 100
+          description: Custom playlist name (optional)
+        customDescription:
+          type: string
+          maxLength: 300
+          description: Custom playlist description (optional)
+
+    PlaylistCreated:
+      type: object
+      properties:
+        success:
+          type: boolean
+          const: true
+        playlist:
+          type: object
+          properties:
+            id:
+              type: string
+            url:
+              type: string
+              format: uri
+            name:
+              type: string
+            trackCount:
+              type: integer
+
+    PlaylistDuplicate:
+      type: object
+      properties:
+        success:
+          type: boolean
+          const: false
+        duplicate:
+          type: boolean
+          const: true
+        existingPlaylist:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            trackCount:
+              type: integer
+        message:
+          type: string
+
+    BulkCreateRequest:
+      type: object
+      required:
+        - genres
+      properties:
+        genres:
+          type: array
+          maxItems: 50
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              trackIds:
+                type: array
+                items:
+                  type: string
+        skipDuplicates:
+          type: boolean
+          default: false
+
+    BulkCreateResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        successful:
+          type: integer
+        skipped:
+          type: integer
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              genre:
+                type: string
+              success:
+                type: boolean
+              url:
+                type: string
+                format: uri
+              error:
+                type: string
+              skipped:
+                type: boolean
+
+    Scoreboard:
+      type: object
+      properties:
+        mostPlaylists:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScoreboardEntry'
+        mostGenres:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScoreboardEntry'
+        mostTracks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScoreboardEntry'
+
+    ScoreboardEntry:
+      type: object
+      properties:
+        spotifyId:
+          type: string
+        spotifyName:
+          type: string
+        spotifyAvatar:
+          type: string
+          format: uri
+        value:
+          type: integer
+
+    Leaderboard:
+      type: object
+      properties:
+        pioneers:
+          type: array
+          items:
+            type: object
+            properties:
+              position:
+                type: integer
+              spotifyId:
+                type: string
+              spotifyName:
+                type: string
+              spotifyAvatar:
+                type: string
+              registeredAt:
+                type: string
+                format: date-time
+        newUsers:
+          type: array
+          items:
+            type: object
+            properties:
+              spotifyId:
+                type: string
+              spotifyName:
+                type: string
+              spotifyAvatar:
+                type: string
+              registeredAt:
+                type: string
+                format: date-time
+        totalUsers:
+          type: integer
+
+    RecentPlaylist:
+      type: object
+      properties:
+        playlistId:
+          type: string
+        playlistName:
+          type: string
+        genre:
+          type: string
+        trackCount:
+          type: integer
+        createdBy:
+          type: object
+          properties:
+            spotifyId:
+              type: string
+            spotifyName:
+              type: string
+            spotifyAvatar:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+        spotifyUrl:
+          type: string
+          format: uri
+
+    Changelog:
+      type: object
+      properties:
+        changelog:
+          type: array
+          items:
+            type: object
+            properties:
+              version:
+                type: string
+              date:
+                type: string
+                format: date
+              changes:
+                type: array
+                items:
+                  type: string
+        repoUrl:
+          type: string
+          format: uri
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: string
+        step:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Not authenticated"
+
+    RateLimited:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until rate limit resets
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Rate limit exceeded. Please try again later."
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
