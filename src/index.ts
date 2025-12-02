@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+import * as Sentry from '@sentry/cloudflare';
 import auth from './routes/auth';
 import api from './routes/api';
 import { getSession } from './lib/session';
@@ -12,9 +13,10 @@ const GITHUB_REPO = 'TomsTech/spotify-genre-sorter';
 
 const app = new Hono<{ Bindings: Env }>();
 
-// Global error handler
+// Global error handler with Sentry
 app.onError((err, c) => {
   console.error('Worker error:', err);
+  Sentry.captureException(err);
   return c.json({ error: err.message || 'Internal error' }, 500);
 });
 
@@ -356,4 +358,16 @@ app.get('/', (c) => {
 });
 
 
-export default app;
+// Better Stack error tracking DSN
+const SENTRY_DSN = 'https://ZBR7vpbVnb4KagFdJNnNn3uo@s1614340.eu-nbg-2.betterstackdata.com/1';
+
+// Export with Sentry wrapper
+export default Sentry.withSentry(
+  () => ({
+    dsn: SENTRY_DSN,
+    tracesSampleRate: 1.0,
+    release: `genre-genie@${APP_VERSION}`,
+  }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  { fetch: app.fetch } as any
+);
