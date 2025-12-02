@@ -23,5 +23,5 @@
     "@typescript-eslint/no-non-null-assertion": "warn",
     "no-console": ["warn", { "allow": ["error", "warn"] }]
   },
-  "ignorePatterns": ["dist/", "node_modules/", "*.js"]
+  "ignorePatterns": ["dist/", "node_modules/", "*.js", "src/generated/"]
 }

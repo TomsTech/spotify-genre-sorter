@@ -4517,7 +4517,7 @@ export function getHtml(): string {
 
             <div class="live-genres-section">
               <h3>\${swedishMode ? '🎸 Genrer hittade hittills' : '🎸 Genres found so far'}</h3>
-              <div class="live-genres-grid" id="live-genres-grid"></div><div class="live-bar-chart" id="live-bar-chart"><h4>${swedishMode ? "📊 Topp genrer" : "📊 Top Genres"}</h4><div id="bar-chart-items"></div></div></div></div>
+              <div class="live-genres-grid" id="live-genres-grid"></div><div class="live-bar-chart" id="live-bar-chart"><h4>\${swedishMode ? "📊 Topp genrer" : "📊 Top Genres"}</h4><div id="bar-chart-items"></div></div></div></div>
         \`;
         progressContainer = document.getElementById('progressive-loading');
 
@@ -5990,7 +5990,7 @@ export function getHtml(): string {
         const delay = i * 50; // Stagger by 50ms
 
         return \`
-          <div class="user-list-item animate-in" style="animation-delay: ${delay}ms" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
+          <div class="user-list-item animate-in" style="animation-delay: \${delay}ms" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
             <span class="position \${posClass}">#\${i + 1}</span>
             \${user.spotifyAvatar
               ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
@@ -6015,7 +6015,7 @@ export function getHtml(): string {
       container.innerHTML = sidebarData.newUsers.map((user, i) => {
         const delay = i * 50; // Stagger by 50ms
         return \`
-          <div class="user-list-item animate-in" style="animation-delay: ${delay}ms">
+          <div class="user-list-item animate-in" style="animation-delay: \${delay}ms">
             \${user.spotifyAvatar
               ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
               : '<div class="user-avatar-placeholder">👤</div>'}
@@ -6040,7 +6040,7 @@ export function getHtml(): string {
         const delay = i * 50; // Stagger by 50ms
         const genreEmoji = getGenreEmoji(playlist.genre);
         return \`
-          <a href="\${playlist.spotifyUrl}" target="_blank" class="playlist-list-item animate-in" style="animation-delay: ${delay}ms" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
+          <a href="\${playlist.spotifyUrl}" target="_blank" class="playlist-list-item animate-in" style="animation-delay: \${delay}ms" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
             <div class="playlist-icon">\${genreEmoji}</div>
             <div class="playlist-info">
               <div class="playlist-name">\${escapeHtml(playlist.playlistName)}</div>
