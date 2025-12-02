@@ -15,6 +15,7 @@
         '<div class="binoculars-container">',
         '<div class="binocular-hole"></div>',
         '<div class="binocular-hole"></div>',
+        '<div class="binoculars-frame"></div>',
         '</div>',
         '</div>',
         '<div class="intro-skip-hint">Click anywhere to skip</div>'

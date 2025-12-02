@@ -67,34 +67,64 @@ export function getHtml(): string {
     }
 
     .intro-overlay .binoculars-container {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5vw;
+      position: absolute;
+      inset: 0;
       animation: binocularWobble 0.3s ease-in-out infinite;
     }
 
+    /* Two binocular holes using positioned pseudo-transparent circles */
     .intro-overlay .binocular-hole {
-      width: 38vmin;
-      height: 50vmin;
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 35vmin;
+      height: 45vmin;
       border-radius: 50%;
-      background: radial-gradient(ellipse at center, transparent 0%, transparent 85%, rgba(0,0,0,0.3) 100%);
+      /* Transparent center with dark vignette edge */
+      background: radial-gradient(ellipse at center,
+        transparent 0%,
+        transparent 70%,
+        rgba(0,0,0,0.3) 85%,
+        rgba(0,0,0,0.7) 95%,
+        #000 100%
+      );
+      /* Thick black border to merge with frame */
       box-shadow:
-        0 0 0 3px rgba(50,50,50,0.5),
-        0 0 60px 30px rgba(0,0,0,0.8) inset,
-        0 0 0 9999px #000;
-      position: relative;
+        0 0 0 4px rgba(30,30,30,0.8),
+        0 0 40px 20px rgba(0,0,0,0.5) inset;
     }
 
+    .intro-overlay .binocular-hole:first-child {
+      left: calc(50% - 38vmin);
+    }
+
+    .intro-overlay .binocular-hole:last-child {
+      right: calc(50% - 38vmin);
+    }
+
+    /* Black frame around the binoculars */
+    .intro-overlay .binoculars-frame {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      /* Create frame by painting black everywhere except the holes */
+      background:
+        radial-gradient(ellipse 35vmin 45vmin at calc(50% - 20vmin) 50%, transparent 70%, #000 71%),
+        radial-gradient(ellipse 35vmin 45vmin at calc(50% + 20vmin) 50%, transparent 70%, #000 71%);
+      background-size: 100% 100%;
+    }
+
+    /* Lens glare reflections */
     .intro-overlay .binocular-hole::before {
       content: '';
       position: absolute;
-      inset: 5%;
+      top: 15%;
+      left: 20%;
+      width: 30%;
+      height: 25%;
       border-radius: 50%;
-      background: radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 50%);
+      background: radial-gradient(ellipse at center, rgba(255,255,255,0.2) 0%, transparent 70%);
+      transform: rotate(-20deg);
     }
 
     @keyframes binocularWobble {
@@ -1176,6 +1206,15 @@ export function getHtml(): string {
       box-shadow: 0 0 15px rgba(0, 106, 167, 0.4);
     }
 
+    /* Bryan tribute text */
+    .bryan-text {
+      font-size: 0.5rem;
+      opacity: 0.7;
+      font-style: italic;
+      vertical-align: super;
+      margin-left: 0.2rem;
+    }
+
     /* Floating Genie Mascot */
     .genie-mascot {
       position: fixed;
@@ -1963,6 +2002,125 @@ export function getHtml(): string {
       padding: 2rem 1rem;
     }
 
+    /* Album Art Carousel */
+    .album-art-carousel {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      height: 120px;
+      perspective: 1000px;
+    }
+
+    .album-art-item {
+      width: 100px;
+      height: 100px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 0;
+      transform: scale(0.8) rotateY(-15deg);
+    }
+
+    .album-art-item.visible {
+      opacity: 1;
+      transform: scale(1) rotateY(0deg);
+    }
+
+    .album-art-item.center {
+      width: 120px;
+      height: 120px;
+      box-shadow: 0 8px 25px rgba(29, 185, 84, 0.4);
+      z-index: 2;
+    }
+
+    .album-art-item.left {
+      transform: scale(0.85) rotateY(15deg) translateX(-10px);
+    }
+
+    .album-art-item.right {
+      transform: scale(0.85) rotateY(-15deg) translateX(10px);
+    }
+
+    .album-art-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .album-art-item.placeholder {
+      background: var(--surface-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+
+    /* Animated counter effect */
+    .loading-stat-value.counting {
+      animation: countPulse 0.3s ease;
+    }
+
+    @keyframes countPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); color: #1ed760; }
+      100% { transform: scale(1); }
+    }
+
+    /* Live bar chart */
+    .live-bar-chart {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .live-bar-chart h4 {
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .bar-chart-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      gap: 0.5rem;
+    }
+
+    .bar-chart-label {
+      width: 120px;
+      font-size: 0.8rem;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bar-chart-bar-container {
+      flex: 1;
+      height: 20px;
+      background: var(--surface-2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .bar-chart-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #1ed760);
+      border-radius: 4px;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      min-width: 2px;
+    }
+
+    .bar-chart-count {
+      width: 40px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-align: right;
+    }
+
     .loading-header {
       text-align: center;
       margin-bottom: 2rem;
@@ -2475,6 +2633,24 @@ export function getHtml(): string {
       50% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.8); }
     }
 
+    /* Staggered fade-in animation for sidebar items */
+    @keyframes sidebarItemFadeIn {
+      from {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .user-list-item.animate-in,
+    .playlist-list-item.animate-in {
+      animation: sidebarItemFadeIn 0.3s ease-out forwards;
+      opacity: 0;
+    }
+
     /* === Recent Playlists === */
     .playlist-list-item {
       display: flex;
@@ -2581,6 +2757,7 @@ export function getHtml(): string {
       width: 100%;
       justify-content: center;
       margin-top: auto;
+      margin-bottom: 0.5rem;
     }
 
     /* === Scoreboard Modal === */
@@ -2980,6 +3157,259 @@ export function getHtml(): string {
         gap: 1rem;
       }
     }
+
+    /* === Fireworks Celebration === */
+    .fireworks-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10000;
+      overflow: hidden;
+    }
+
+    .firework {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      animation: fireworkExplode 1s ease-out forwards;
+    }
+
+    @keyframes fireworkExplode {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(0);
+        opacity: 0;
+      }
+    }
+
+    .firework-particle {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      animation: particleFly 1.2s ease-out forwards;
+    }
+
+    @keyframes particleFly {
+      0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+
+    .celebration-text {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 3rem;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 0 20px rgba(29, 185, 84, 0.8), 0 0 40px rgba(29, 185, 84, 0.6);
+      animation: celebrationPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      z-index: 10001;
+      pointer-events: none;
+    }
+
+    @keyframes celebrationPop {
+      0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.2);
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+    }
+
+    .celebration-text.fade-out {
+      animation: celebrationFade 0.5s ease-out forwards;
+    }
+
+    @keyframes celebrationFade {
+      to {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+      }
+    }
+
+    /* === Playlist Customisation Modal === */
+    .customise-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      padding: 1rem;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .customise-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s ease;
+    }
+
+    .customise-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .customise-header h3 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .customise-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.25rem;
+      line-height: 1;
+    }
+
+    .customise-close:hover {
+      color: var(--text);
+    }
+
+    .customise-body {
+      padding: 1.5rem;
+    }
+
+    .customise-field {
+      margin-bottom: 1.25rem;
+    }
+
+    .customise-field label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .customise-field input,
+    .customise-field textarea {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    .customise-field input:focus,
+    .customise-field textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .customise-field textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .customise-field .field-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .customise-preview {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .customise-preview-title {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .customise-preview-name {
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .customise-preview-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      white-space: pre-wrap;
+    }
+
+    .customise-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
+    .customise-track-count {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--accent);
+      color: #000;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    /* Customise button in genre card */
+    .genre-customise {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.9rem;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .genre-customise:hover {
+      opacity: 1;
+    }
+
+    /* Genre tags for merge modal */
+    .genre-tag {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      background: var(--accent);
+      color: #000;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
   </style>
 </head>
 <body>
@@ -3053,7 +3483,7 @@ export function getHtml(): string {
         <!-- Donation button moved to sidebar -->
         <a href="https://buymeacoffee.com/tomstech" target="_blank" class="sidebar-donate-btn" id="donation-btn" title="Chuck us a dart, legend">
           <span class="icon">🚬</span>
-          <span class="text">Shout me a durry</span>
+          <span class="text">Shout me a durry <sup class="bryan-text">do it for bryan</sup></span>
         </a>
       </aside>
 
@@ -3108,6 +3538,7 @@ export function getHtml(): string {
         '<div class="binoculars-container">',
         '<div class="binocular-hole"></div>',
         '<div class="binocular-hole"></div>',
+        '<div class="binoculars-frame"></div>',
         '</div>',
         '</div>',
         '<div class="intro-skip-hint">Click anywhere to skip</div>'
@@ -3880,6 +4311,165 @@ export function getHtml(): string {
         .replace(/'/g, '&#039;');
     }
 
+    // Album art carousel state
+    let albumArtUrls = [];
+    let albumCarouselIndex = 0;
+    let albumCarouselInterval = null;
+
+    // Animated counter helper - adds pulse effect when value changes
+    function animateCounter(element, newValue) {
+      if (!element) return;
+      const oldValue = element.textContent;
+      if (oldValue !== newValue) {
+        element.classList.add('counting');
+        element.textContent = newValue;
+        setTimeout(() => element.classList.remove('counting'), 300);
+      }
+    }
+
+    // Rotate album carousel to show different covers
+    function rotateAlbumCarousel() {
+      if (albumArtUrls.length < 3) return;
+      albumCarouselIndex = (albumCarouselIndex + 1) % albumArtUrls.length;
+      updateAlbumCarousel();
+    }
+
+    // Update album carousel display
+    function updateAlbumCarousel() {
+      const carousel = document.getElementById('album-carousel');
+      if (!carousel || albumArtUrls.length < 3) return;
+
+      const len = albumArtUrls.length;
+      const leftIdx = (albumCarouselIndex - 1 + len) % len;
+      const centerIdx = albumCarouselIndex;
+      const rightIdx = (albumCarouselIndex + 1) % len;
+
+      carousel.innerHTML = [
+        '<div class="album-art-item left visible">',
+        '<img src="' + albumArtUrls[leftIdx] + '" alt="" loading="lazy">',
+        '</div>',
+        '<div class="album-art-item center visible">',
+        '<img src="' + albumArtUrls[centerIdx] + '" alt="" loading="lazy">',
+        '</div>',
+        '<div class="album-art-item right visible">',
+        '<img src="' + albumArtUrls[rightIdx] + '" alt="" loading="lazy">',
+        '</div>'
+      ].join('');
+    }
+
+    // Update bar chart with top genres
+    function updateBarChart(genres) {
+      const container = document.getElementById('bar-chart-items');
+      if (!container) return;
+
+      const sortedGenres = [...genres].sort((a, b) => b.count - a.count).slice(0, 8);
+      const maxCount = sortedGenres[0]?.count || 1;
+
+      container.innerHTML = sortedGenres.map(g => {
+        const percentage = (g.count / maxCount) * 100;
+        const safeName = escapeForHtml(g.name);
+        return [
+          '<div class="bar-chart-item">',
+          '<div class="bar-chart-label">' + safeName + '</div>',
+          '<div class="bar-chart-bar-container">',
+          '<div class="bar-chart-bar" style="width: ' + percentage + '%"></div>',
+          '</div>',
+          '<div class="bar-chart-count">' + g.count + '</div>',
+          '</div>'
+        ].join('');
+      }).join('');
+    }
+
+    // Clean up carousel interval when loading completes
+    function stopAlbumCarousel() {
+      if (albumCarouselInterval) {
+        clearInterval(albumCarouselInterval);
+        albumCarouselInterval = null;
+      }
+      albumArtUrls = [];
+      albumCarouselIndex = 0;
+    }
+
+    // Fireworks celebration effect
+    function triggerFireworks() {
+      const colors = ['#1DB954', '#1ed760', '#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'];
+      const container = document.createElement('div');
+      container.className = 'fireworks-container';
+      document.body.appendChild(container);
+
+      // Create celebration text
+      const celebText = document.createElement('div');
+      celebText.className = 'celebration-text';
+      celebText.textContent = swedishMode ? '🎉 Klart!' : '🎉 Done!';
+      document.body.appendChild(celebText);
+
+      // Launch multiple fireworks
+      for (let i = 0; i < 8; i++) {
+        setTimeout(() => launchFirework(container, colors), i * 150);
+      }
+
+      // Play a subtle celebration sound (optional, won't play if audio not allowed)
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+        oscillator.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+        oscillator.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); // G5
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.5);
+      } catch (e) {
+        // Audio not available, that's fine
+      }
+
+      // Clean up after animation
+      setTimeout(() => {
+        celebText.classList.add('fade-out');
+        setTimeout(() => {
+          container.remove();
+          celebText.remove();
+        }, 500);
+      }, 2000);
+    }
+
+    function launchFirework(container, colors) {
+      const x = Math.random() * window.innerWidth;
+      const y = Math.random() * (window.innerHeight * 0.6) + (window.innerHeight * 0.1);
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const particleCount = 20 + Math.floor(Math.random() * 15);
+
+      for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'firework-particle';
+        particle.style.left = x + 'px';
+        particle.style.top = y + 'px';
+        particle.style.backgroundColor = color;
+        particle.style.boxShadow = '0 0 6px ' + color;
+
+        const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
+        const velocity = 50 + Math.random() * 100;
+        const dx = Math.cos(angle) * velocity;
+        const dy = Math.sin(angle) * velocity;
+
+        particle.style.animation = 'none';
+        particle.animate([
+          { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+          { transform: 'translate(' + dx + 'px, ' + (dy + 30) + 'px) scale(0)', opacity: 0 }
+        ], {
+          duration: 1000 + Math.random() * 500,
+          easing: 'cubic-bezier(0, 0.5, 0.5, 1)'
+        });
+
+        container.appendChild(particle);
+
+        setTimeout(() => particle.remove(), 1500);
+      }
+    }
+
     function renderProgressLoading(message, progress, loaded, total, partialGenres = null, partialStats = null) {
       // Check if progress bar already exists
       let progressContainer = document.getElementById('progressive-loading');
@@ -3892,7 +4482,7 @@ export function getHtml(): string {
         // First call - create the full interactive UI
         app.innerHTML = \`
           <div id="progressive-loading" class="progressive-loading-full">
-            <div class="loading-header">
+            <div class="album-art-carousel" id="album-carousel"><div class="album-art-item left placeholder visible">🎵</div><div class="album-art-item center placeholder visible">🎶</div><div class="album-art-item right placeholder visible">🎵</div></div><div class="loading-header">
               <h2>\${swedishMode ? '🎵 Laddar ditt bibliotek...' : '🎵 Loading your library...'}</h2>
               <p class="loading-subtitle">\${swedishMode ? 'Du kan redan se dina genrer medan det laddar!' : 'You can already see your genres while loading!'}</p>
             </div>
@@ -3927,24 +4517,23 @@ export function getHtml(): string {
 
             <div class="live-genres-section">
               <h3>\${swedishMode ? '🎸 Genrer hittade hittills' : '🎸 Genres found so far'}</h3>
-              <div class="live-genres-grid" id="live-genres-grid"></div>
-            </div>
-          </div>
+              <div class="live-genres-grid" id="live-genres-grid"></div><div class="live-bar-chart" id="live-bar-chart"><h4>${swedishMode ? "📊 Topp genrer" : "📊 Top Genres"}</h4><div id="bar-chart-items"></div></div></div></div>
         \`;
         progressContainer = document.getElementById('progressive-loading');
+
+        // Start album carousel rotation
+        if (!albumCarouselInterval) {
+          albumCarouselInterval = setInterval(rotateAlbumCarousel, 1500);
+        }
       } else {
-        // Update existing stats smoothly
-        const statTracks = document.getElementById('stat-tracks');
-        const statGenres = document.getElementById('stat-genres');
-        const statArtists = document.getElementById('stat-artists');
-        const statProgress = document.getElementById('stat-progress');
+        // Update existing stats with animation
+        animateCounter(document.getElementById('stat-tracks'), loaded.toLocaleString());
+        animateCounter(document.getElementById('stat-genres'), String(genreCount));
+        animateCounter(document.getElementById('stat-artists'), String(artistCount));
+        animateCounter(document.getElementById('stat-progress'), `${progress}%`);
+
         const fill = document.getElementById('progress-fill');
         const detail = document.getElementById('progress-detail');
-
-        if (statTracks) statTracks.textContent = loaded.toLocaleString();
-        if (statGenres) statGenres.textContent = genreCount;
-        if (statArtists) statArtists.textContent = artistCount;
-        if (statProgress) statProgress.textContent = \`\${progress}%\`;
         if (fill) fill.style.width = \`\${progress}%\`;
         if (detail) detail.textContent = \`\${loaded.toLocaleString()} / \${total.toLocaleString()} \${swedishMode ? 'låtar' : 'tracks'}\`;
       }
@@ -3967,6 +4556,9 @@ export function getHtml(): string {
             \`;
           }).join('');
         }
+
+        // Update bar chart
+        updateBarChart(partialGenres);
       }
     }
 
@@ -4055,7 +4647,9 @@ export function getHtml(): string {
     async function loadFullLibrary() {
       try {
         const fullData = await loadGenresProgressively();
+        stopAlbumCarousel(); // Clean up carousel when loading completes
         genreData = fullData;
+        triggerFireworks(); // Celebrate completion!
         renderGenres();
         showNotification(
           swedishMode ? '✨ Hela biblioteket laddat!' : '✨ Full library loaded!',
@@ -4063,6 +4657,7 @@ export function getHtml(): string {
         );
       } catch (error) {
         console.error('Progressive load error:', error);
+        stopAlbumCarousel(); // Clean up carousel on error too
         showNotification(
           swedishMode ? 'Kunde inte ladda alla låtar' : 'Failed to load all tracks',
           'error'
@@ -4119,6 +4714,7 @@ export function getHtml(): string {
         }
 
         genreData = data;
+        triggerFireworks(); // Celebrate completion!
         renderGenres();
       } catch (error) {
         console.error('Load genres error:', error);
@@ -4591,6 +5187,10 @@ export function getHtml(): string {
     function updateSelectedCount() {
       document.getElementById('selected-count').textContent = selectedGenres.size;
       document.getElementById('create-btn').disabled = selectedGenres.size === 0;
+      const mergeBtn = document.getElementById('merge-btn');
+      if (mergeBtn) {
+        mergeBtn.disabled = selectedGenres.size < 2; // Need at least 2 to merge
+      }
     }
 
     // Playlist template functions
@@ -4635,6 +5235,226 @@ export function getHtml(): string {
       const checkboxes = document.querySelectorAll('.genre-checkbox');
       checkboxes.forEach(cb => cb.checked = false);
       updateSelectedCount();
+    }
+
+    // Show playlist customisation modal
+    function showCustomiseModal(genreName) {
+      const genre = genreData.genres.find(g => g.name === genreName);
+      if (!genre) return;
+
+      const defaultName = genreName + ' (from Likes)';
+      const defaultDesc = genreName + ' tracks from your liked songs';
+
+      const modal = document.createElement('div');
+      modal.className = 'customise-modal';
+      modal.innerHTML = [
+        '<div class="customise-panel">',
+        '  <div class="customise-header">',
+        '    <h3>' + (swedishMode ? '✏️ Anpassa spellista' : '✏️ Customise Playlist') + '</h3>',
+        '    <button class="customise-close" onclick="this.closest(\'.customise-modal\').remove()">&times;</button>',
+        '  </div>',
+        '  <div class="customise-body">',
+        '    <div class="customise-field">',
+        '      <label>' + (swedishMode ? 'Namn' : 'Name') + '</label>',
+        '      <input type="text" id="custom-name" value="' + escapeForHtml(defaultName) + '" maxlength="100">',
+        '    </div>',
+        '    <div class="customise-field">',
+        '      <label>' + (swedishMode ? 'Beskrivning' : 'Description') + '</label>',
+        '      <textarea id="custom-desc" maxlength="300">' + escapeForHtml(defaultDesc) + '</textarea>',
+        '      <div class="field-hint">' + (swedishMode ? 'Max 300 tecken' : 'Max 300 characters') + '</div>',
+        '    </div>',
+        '    <div class="customise-preview">',
+        '      <div class="customise-preview-title">' + (swedishMode ? 'Förhandsvisning' : 'Preview') + '</div>',
+        '      <div class="customise-preview-name" id="preview-name">' + escapeForHtml(defaultName) + '</div>',
+        '      <div class="customise-preview-desc" id="preview-desc">' + escapeForHtml(defaultDesc) + '</div>',
+        '    </div>',
+        '    <div style="display: flex; align-items: center; gap: 0.5rem;">',
+        '      <span class="customise-track-count">🎵 ' + genre.count + ' ' + (swedishMode ? 'låtar' : 'tracks') + '</span>',
+        '    </div>',
+        '  </div>',
+        '  <div class="customise-footer">',
+        '    <button class="btn btn-ghost" onclick="this.closest(\'.customise-modal\').remove()">',
+        '      ' + (swedishMode ? 'Avbryt' : 'Cancel'),
+        '    </button>',
+        '    <button class="btn btn-primary" id="create-custom-btn">',
+        '      ' + (swedishMode ? 'Skapa spellista' : 'Create Playlist'),
+        '    </button>',
+        '  </div>',
+        '</div>'
+      ].join('');
+
+      document.body.appendChild(modal);
+
+      // Update preview on input
+      const nameInput = document.getElementById('custom-name');
+      const descInput = document.getElementById('custom-desc');
+      const previewName = document.getElementById('preview-name');
+      const previewDesc = document.getElementById('preview-desc');
+
+      nameInput.addEventListener('input', () => {
+        previewName.textContent = nameInput.value || defaultName;
+      });
+
+      descInput.addEventListener('input', () => {
+        previewDesc.textContent = descInput.value || defaultDesc;
+      });
+
+      // Handle create button
+      document.getElementById('create-custom-btn').addEventListener('click', async () => {
+        const customName = nameInput.value.trim();
+        const customDesc = descInput.value.trim();
+        modal.remove();
+        await createPlaylistWithOptions(genreName, customName, customDesc);
+      });
+
+      // Close on backdrop click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+      });
+
+      // Focus name input
+      nameInput.focus();
+      nameInput.select();
+    }
+
+    // Create playlist with custom options
+    async function createPlaylistWithOptions(genreName, customName, customDescription, force = false) {
+      const genre = genreData.genres.find(g => g.name === genreName);
+      if (!genre) return;
+
+      try {
+        const response = await fetch('/api/playlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            genre: genre.name,
+            trackIds: genre.trackIds,
+            force,
+            customName: customName || undefined,
+            customDescription: customDescription || undefined
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showNotification(
+            (swedishMode ? 'Skapade spellista: ' : 'Created playlist: ') + result.playlist.name + ' (' + genre.count + ' ' + t('tracks') + ')',
+            'success'
+          );
+        } else if (result.duplicate) {
+          showNotification(swedishMode ? 'Spellista finns redan' : 'Playlist already exists', 'error');
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        showNotification(t('failed') + ': ' + error.message, 'error');
+      }
+    }
+
+    // Show merge modal for combining selected genres
+    function showMergeModal() {
+      if (selectedGenres.size < 2) return;
+
+      const genreNames = Array.from(selectedGenres);
+      const genres = genreNames.map(name => genreData.genres.find(g => g.name === name)).filter(Boolean);
+      const totalTracks = genres.reduce((sum, g) => sum + g.count, 0);
+      const uniqueTrackIds = [...new Set(genres.flatMap(g => g.trackIds))];
+
+      const defaultName = genreNames.slice(0, 3).join(' + ') + (genreNames.length > 3 ? ' +more' : '') + ' Mix';
+      const defaultDesc = 'Combined playlist: ' + genreNames.join(', ');
+
+      const modal = document.createElement('div');
+      modal.className = 'customise-modal';
+      modal.innerHTML = [
+        '<div class="customise-panel">',
+        '  <div class="customise-header">',
+        '    <h3>' + (swedishMode ? '🔗 Slå ihop genrer' : '🔗 Merge Genres') + '</h3>',
+        '    <button class="customise-close" onclick="this.closest(\'.customise-modal\').remove()">&times;</button>',
+        '  </div>',
+        '  <div class="customise-body">',
+        '    <div style="margin-bottom: 1rem; padding: 0.75rem; background: var(--bg); border-radius: 8px;">',
+        '      <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">' + (swedishMode ? 'Valda genrer:' : 'Selected genres:') + '</div>',
+        '      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">',
+        genreNames.map(name => '<span class="genre-tag">' + escapeForHtml(name) + '</span>').join(''),
+        '      </div>',
+        '    </div>',
+        '    <div class="customise-field">',
+        '      <label>' + (swedishMode ? 'Spellistans namn' : 'Playlist Name') + '</label>',
+        '      <input type="text" id="merge-name" value="' + escapeForHtml(defaultName) + '" maxlength="100">',
+        '    </div>',
+        '    <div class="customise-field">',
+        '      <label>' + (swedishMode ? 'Beskrivning' : 'Description') + '</label>',
+        '      <textarea id="merge-desc" maxlength="300">' + escapeForHtml(defaultDesc) + '</textarea>',
+        '    </div>',
+        '    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">',
+        '      <span class="customise-track-count">🎵 ' + uniqueTrackIds.length + ' ' + (swedishMode ? 'unika låtar' : 'unique tracks') + '</span>',
+        '      <span style="color: var(--text-muted); font-size: 0.85rem;">' + (swedishMode ? '(av ' + totalTracks + ' totalt)' : '(of ' + totalTracks + ' total)') + '</span>',
+        '    </div>',
+        '  </div>',
+        '  <div class="customise-footer">',
+        '    <button class="btn btn-ghost" onclick="this.closest(\'.customise-modal\').remove()">',
+        '      ' + (swedishMode ? 'Avbryt' : 'Cancel'),
+        '    </button>',
+        '    <button class="btn btn-primary" id="merge-create-btn">',
+        '      ' + (swedishMode ? '🔗 Skapa mix' : '🔗 Create Mix'),
+        '    </button>',
+        '  </div>',
+        '</div>'
+      ].join('');
+
+      document.body.appendChild(modal);
+
+      // Handle create button
+      document.getElementById('merge-create-btn').addEventListener('click', async () => {
+        const customName = document.getElementById('merge-name').value.trim();
+        const customDesc = document.getElementById('merge-desc').value.trim();
+        modal.remove();
+        await createMergedPlaylist(genreNames, uniqueTrackIds, customName, customDesc);
+      });
+
+      // Close on backdrop click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+      });
+
+      // Focus name input
+      document.getElementById('merge-name').focus();
+    }
+
+    // Create merged playlist from multiple genres
+    async function createMergedPlaylist(genreNames, trackIds, customName, customDescription) {
+      try {
+        const response = await fetch('/api/playlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            genre: genreNames[0], // Use first genre as base
+            trackIds: trackIds,
+            force: true, // Skip duplicate check for merged playlists
+            customName: customName || genreNames.join(' + ') + ' Mix',
+            customDescription: customDescription || 'Merged: ' + genreNames.join(', ')
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showNotification(
+            (swedishMode ? '🔗 Skapade mix: ' : '🔗 Created mix: ') + result.playlist.name + ' (' + trackIds.length + ' ' + t('tracks') + ')',
+            'success'
+          );
+          // Clear selection after successful merge
+          selectedGenres.clear();
+          updateSelectedCount();
+          const checkboxes = document.querySelectorAll('.genre-checkbox');
+          checkboxes.forEach(cb => cb.checked = false);
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        showNotification(t('failed') + ': ' + error.message, 'error');
+      }
     }
 
     async function createPlaylist(genreName, force = false) {
@@ -5167,9 +5987,10 @@ export function getHtml(): string {
         const regalia = i === 0 ? '<span class="pioneer-badge first">👑 First!</span>' :
                         i < 3 ? '<span class="pioneer-badge">🏆</span>' :
                         i < 10 ? '<span class="regalia">⭐</span>' : '';
+        const delay = i * 50; // Stagger by 50ms
 
         return \`
-          <div class="user-list-item" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
+          <div class="user-list-item animate-in" style="animation-delay: ${delay}ms" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
             <span class="position \${posClass}">#\${i + 1}</span>
             \${user.spotifyAvatar
               ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
@@ -5191,9 +6012,10 @@ export function getHtml(): string {
         return;
       }
 
-      container.innerHTML = sidebarData.newUsers.map(user => {
+      container.innerHTML = sidebarData.newUsers.map((user, i) => {
+        const delay = i * 50; // Stagger by 50ms
         return \`
-          <div class="user-list-item">
+          <div class="user-list-item animate-in" style="animation-delay: ${delay}ms">
             \${user.spotifyAvatar
               ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
               : '<div class="user-avatar-placeholder">👤</div>'}
@@ -5214,10 +6036,11 @@ export function getHtml(): string {
         return;
       }
 
-      container.innerHTML = sidebarData.recentPlaylists.slice(0, 10).map(playlist => {
+      container.innerHTML = sidebarData.recentPlaylists.slice(0, 10).map((playlist, i) => {
+        const delay = i * 50; // Stagger by 50ms
         const genreEmoji = getGenreEmoji(playlist.genre);
         return \`
-          <a href="\${playlist.spotifyUrl}" target="_blank" class="playlist-list-item" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
+          <a href="\${playlist.spotifyUrl}" target="_blank" class="playlist-list-item animate-in" style="animation-delay: ${delay}ms" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
             <div class="playlist-icon">\${genreEmoji}</div>
             <div class="playlist-info">
               <div class="playlist-name">\${escapeHtml(playlist.playlistName)}</div>
