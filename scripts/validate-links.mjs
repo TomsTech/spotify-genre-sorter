@@ -104,9 +104,17 @@ async function main() {
 
   for (const url of urls) {
     // Skip API endpoints - they're not static resources
-    if (url.includes('api.spotify.com') ||
-        url.includes('api.github.com') ||
-        url.includes('accounts.spotify.com')) {
+    // Use proper URL parsing to prevent bypass via query strings or subdomains
+    let hostname;
+    try {
+      hostname = new URL(url).hostname;
+    } catch {
+      // Invalid URL, will be caught by validation
+      hostname = '';
+    }
+
+    const apiHosts = ['api.spotify.com', 'api.github.com', 'accounts.spotify.com'];
+    if (apiHosts.includes(hostname)) {
       console.log(`⏭️  Skip (API): ${url}`);
       continue;
     }

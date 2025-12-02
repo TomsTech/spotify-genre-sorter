@@ -97,13 +97,25 @@ async function createKVNamespace(apiToken, accountId) {
 
   const namespaceName = 'spotify-genre-organiser-sessions';
 
+  // Validate accountId format to prevent command injection (must be 32 hex chars)
+  if (accountId && !/^[a-f0-9]{32}$/i.test(accountId)) {
+    log.error('Invalid account ID format');
+    process.exit(1);
+  }
+
   try {
     // First check if it already exists
-    const listCmd = apiToken
-      ? `curl -s -X GET "https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces" -H "Authorization: Bearer ${apiToken}"`
-      : 'npx wrangler kv:namespace list';
-
-    const existingOutput = execSync(listCmd, { encoding: 'utf8' });
+    let existingOutput;
+    if (apiToken) {
+      // Use fetch API instead of shell command to avoid injection
+      const response = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces`,
+        { headers: { Authorization: `Bearer ${apiToken}` } }
+      );
+      existingOutput = await response.text();
+    } else {
+      existingOutput = execSync('npx wrangler kv:namespace list', { encoding: 'utf8' });
+    }
 
     if (existingOutput.includes(namespaceName)) {
       log.info('KV namespace already exists');
