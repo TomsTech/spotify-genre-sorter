@@ -3178,4 +3178,172 @@
         opacity: 0;
         transform: translate(-50%, -50%) scale(0.8);
       }
+    }
+
+    /* === Playlist Customisation Modal === */
+    .customise-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      padding: 1rem;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .customise-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s ease;
+    }
+
+    .customise-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .customise-header h3 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .customise-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.25rem;
+      line-height: 1;
+    }
+
+    .customise-close:hover {
+      color: var(--text);
+    }
+
+    .customise-body {
+      padding: 1.5rem;
+    }
+
+    .customise-field {
+      margin-bottom: 1.25rem;
+    }
+
+    .customise-field label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .customise-field input,
+    .customise-field textarea {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    .customise-field input:focus,
+    .customise-field textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .customise-field textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .customise-field .field-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .customise-preview {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .customise-preview-title {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .customise-preview-name {
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .customise-preview-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      white-space: pre-wrap;
+    }
+
+    .customise-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
+    .customise-track-count {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--accent);
+      color: #000;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    /* Customise button in genre card */
+    .genre-customise {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.9rem;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .genre-customise:hover {
+      opacity: 1;
+    }
+
+    /* Genre tags for merge modal */
+    .genre-tag {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      background: var(--accent);
+      color: #000;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 500;
     }

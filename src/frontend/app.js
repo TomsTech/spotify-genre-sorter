@@ -1663,6 +1663,10 @@
     function updateSelectedCount() {
       document.getElementById('selected-count').textContent = selectedGenres.size;
       document.getElementById('create-btn').disabled = selectedGenres.size === 0;
+      const mergeBtn = document.getElementById('merge-btn');
+      if (mergeBtn) {
+        mergeBtn.disabled = selectedGenres.size < 2; // Need at least 2 to merge
+      }
     }
 
     // Playlist template functions
@@ -1707,6 +1711,226 @@
       const checkboxes = document.querySelectorAll('.genre-checkbox');
       checkboxes.forEach(cb => cb.checked = false);
       updateSelectedCount();
+    }
+
+    // Show playlist customisation modal
+    function showCustomiseModal(genreName) {
+      const genre = genreData.genres.find(g => g.name === genreName);
+      if (!genre) return;
+
+      const defaultName = genreName + ' (from Likes)';
+      const defaultDesc = genreName + ' tracks from your liked songs';
+
+      const modal = document.createElement('div');
+      modal.className = 'customise-modal';
+      modal.innerHTML = [
+        '<div class="customise-panel">',
+        '  <div class="customise-header">',
+        '    <h3>' + (swedishMode ? '✏️ Anpassa spellista' : '✏️ Customise Playlist') + '</h3>',
+        '    <button class="customise-close" onclick="this.closest(\'.customise-modal\').remove()">&times;</button>',
+        '  </div>',
+        '  <div class="customise-body">',
+        '    <div class="customise-field">',
+        '      <label>' + (swedishMode ? 'Namn' : 'Name') + '</label>',
+        '      <input type="text" id="custom-name" value="' + escapeForHtml(defaultName) + '" maxlength="100">',
+        '    </div>',
+        '    <div class="customise-field">',
+        '      <label>' + (swedishMode ? 'Beskrivning' : 'Description') + '</label>',
+        '      <textarea id="custom-desc" maxlength="300">' + escapeForHtml(defaultDesc) + '</textarea>',
+        '      <div class="field-hint">' + (swedishMode ? 'Max 300 tecken' : 'Max 300 characters') + '</div>',
+        '    </div>',
+        '    <div class="customise-preview">',
+        '      <div class="customise-preview-title">' + (swedishMode ? 'Förhandsvisning' : 'Preview') + '</div>',
+        '      <div class="customise-preview-name" id="preview-name">' + escapeForHtml(defaultName) + '</div>',
+        '      <div class="customise-preview-desc" id="preview-desc">' + escapeForHtml(defaultDesc) + '</div>',
+        '    </div>',
+        '    <div style="display: flex; align-items: center; gap: 0.5rem;">',
+        '      <span class="customise-track-count">🎵 ' + genre.count + ' ' + (swedishMode ? 'låtar' : 'tracks') + '</span>',
+        '    </div>',
+        '  </div>',
+        '  <div class="customise-footer">',
+        '    <button class="btn btn-ghost" onclick="this.closest(\'.customise-modal\').remove()">',
+        '      ' + (swedishMode ? 'Avbryt' : 'Cancel'),
+        '    </button>',
+        '    <button class="btn btn-primary" id="create-custom-btn">',
+        '      ' + (swedishMode ? 'Skapa spellista' : 'Create Playlist'),
+        '    </button>',
+        '  </div>',
+        '</div>'
+      ].join('');
+
+      document.body.appendChild(modal);
+
+      // Update preview on input
+      const nameInput = document.getElementById('custom-name');
+      const descInput = document.getElementById('custom-desc');
+      const previewName = document.getElementById('preview-name');
+      const previewDesc = document.getElementById('preview-desc');
+
+      nameInput.addEventListener('input', () => {
+        previewName.textContent = nameInput.value || defaultName;
+      });
+
+      descInput.addEventListener('input', () => {
+        previewDesc.textContent = descInput.value || defaultDesc;
+      });
+
+      // Handle create button
+      document.getElementById('create-custom-btn').addEventListener('click', async () => {
+        const customName = nameInput.value.trim();
+        const customDesc = descInput.value.trim();
+        modal.remove();
+        await createPlaylistWithOptions(genreName, customName, customDesc);
+      });
+
+      // Close on backdrop click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+      });
+
+      // Focus name input
+      nameInput.focus();
+      nameInput.select();
+    }
+
+    // Create playlist with custom options
+    async function createPlaylistWithOptions(genreName, customName, customDescription, force = false) {
+      const genre = genreData.genres.find(g => g.name === genreName);
+      if (!genre) return;
+
+      try {
+        const response = await fetch('/api/playlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            genre: genre.name,
+            trackIds: genre.trackIds,
+            force,
+            customName: customName || undefined,
+            customDescription: customDescription || undefined
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showNotification(
+            (swedishMode ? 'Skapade spellista: ' : 'Created playlist: ') + result.playlist.name + ' (' + genre.count + ' ' + t('tracks') + ')',
+            'success'
+          );
+        } else if (result.duplicate) {
+          showNotification(swedishMode ? 'Spellista finns redan' : 'Playlist already exists', 'error');
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        showNotification(t('failed') + ': ' + error.message, 'error');
+      }
+    }
+
+    // Show merge modal for combining selected genres
+    function showMergeModal() {
+      if (selectedGenres.size < 2) return;
+
+      const genreNames = Array.from(selectedGenres);
+      const genres = genreNames.map(name => genreData.genres.find(g => g.name === name)).filter(Boolean);
+      const totalTracks = genres.reduce((sum, g) => sum + g.count, 0);
+      const uniqueTrackIds = [...new Set(genres.flatMap(g => g.trackIds))];
+
+      const defaultName = genreNames.slice(0, 3).join(' + ') + (genreNames.length > 3 ? ' +more' : '') + ' Mix';
+      const defaultDesc = 'Combined playlist: ' + genreNames.join(', ');
+
+      const modal = document.createElement('div');
+      modal.className = 'customise-modal';
+      modal.innerHTML = [
+        '<div class="customise-panel">',
+        '  <div class="customise-header">',
+        '    <h3>' + (swedishMode ? '🔗 Slå ihop genrer' : '🔗 Merge Genres') + '</h3>',
+        '    <button class="customise-close" onclick="this.closest(\'.customise-modal\').remove()">&times;</button>',
+        '  </div>',
+        '  <div class="customise-body">',
+        '    <div style="margin-bottom: 1rem; padding: 0.75rem; background: var(--bg); border-radius: 8px;">',
+        '      <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">' + (swedishMode ? 'Valda genrer:' : 'Selected genres:') + '</div>',
+        '      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">',
+        genreNames.map(name => '<span class="genre-tag">' + escapeForHtml(name) + '</span>').join(''),
+        '      </div>',
+        '    </div>',
+        '    <div class="customise-field">',
+        '      <label>' + (swedishMode ? 'Spellistans namn' : 'Playlist Name') + '</label>',
+        '      <input type="text" id="merge-name" value="' + escapeForHtml(defaultName) + '" maxlength="100">',
+        '    </div>',
+        '    <div class="customise-field">',
+        '      <label>' + (swedishMode ? 'Beskrivning' : 'Description') + '</label>',
+        '      <textarea id="merge-desc" maxlength="300">' + escapeForHtml(defaultDesc) + '</textarea>',
+        '    </div>',
+        '    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">',
+        '      <span class="customise-track-count">🎵 ' + uniqueTrackIds.length + ' ' + (swedishMode ? 'unika låtar' : 'unique tracks') + '</span>',
+        '      <span style="color: var(--text-muted); font-size: 0.85rem;">' + (swedishMode ? '(av ' + totalTracks + ' totalt)' : '(of ' + totalTracks + ' total)') + '</span>',
+        '    </div>',
+        '  </div>',
+        '  <div class="customise-footer">',
+        '    <button class="btn btn-ghost" onclick="this.closest(\'.customise-modal\').remove()">',
+        '      ' + (swedishMode ? 'Avbryt' : 'Cancel'),
+        '    </button>',
+        '    <button class="btn btn-primary" id="merge-create-btn">',
+        '      ' + (swedishMode ? '🔗 Skapa mix' : '🔗 Create Mix'),
+        '    </button>',
+        '  </div>',
+        '</div>'
+      ].join('');
+
+      document.body.appendChild(modal);
+
+      // Handle create button
+      document.getElementById('merge-create-btn').addEventListener('click', async () => {
+        const customName = document.getElementById('merge-name').value.trim();
+        const customDesc = document.getElementById('merge-desc').value.trim();
+        modal.remove();
+        await createMergedPlaylist(genreNames, uniqueTrackIds, customName, customDesc);
+      });
+
+      // Close on backdrop click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+      });
+
+      // Focus name input
+      document.getElementById('merge-name').focus();
+    }
+
+    // Create merged playlist from multiple genres
+    async function createMergedPlaylist(genreNames, trackIds, customName, customDescription) {
+      try {
+        const response = await fetch('/api/playlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            genre: genreNames[0], // Use first genre as base
+            trackIds: trackIds,
+            force: true, // Skip duplicate check for merged playlists
+            customName: customName || genreNames.join(' + ') + ' Mix',
+            customDescription: customDescription || 'Merged: ' + genreNames.join(', ')
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showNotification(
+            (swedishMode ? '🔗 Skapade mix: ' : '🔗 Created mix: ') + result.playlist.name + ' (' + trackIds.length + ' ' + t('tracks') + ')',
+            'success'
+          );
+          // Clear selection after successful merge
+          selectedGenres.clear();
+          updateSelectedCount();
+          const checkboxes = document.querySelectorAll('.genre-checkbox');
+          checkboxes.forEach(cb => cb.checked = false);
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        showNotification(t('failed') + ': ' + error.message, 'error');
+      }
     }
 
     async function createPlaylist(genreName, force = false) {

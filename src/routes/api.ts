@@ -556,8 +556,14 @@ api.post('/playlist', async (c) => {
   }
 
   try {
-    const body = await c.req.json<{ genre: string; trackIds: string[]; force?: boolean }>();
-    const { genre, trackIds, force } = body;
+    const body = await c.req.json<{
+      genre: string;
+      trackIds: string[];
+      force?: boolean;
+      customName?: string;
+      customDescription?: string;
+    }>();
+    const { genre, trackIds, force, customName, customDescription } = body;
 
     // Validate genre name
     const genreValidation = sanitiseGenreName(genre);
@@ -571,10 +577,21 @@ api.post('/playlist', async (c) => {
       return c.json({ error: trackValidation.error }, 400);
     }
 
+    // Validate custom name if provided
+    let playlistName: string;
+    if (customName && customName.trim()) {
+      const nameValidation = sanitiseGenreName(customName.trim());
+      if (!nameValidation.valid) {
+        return c.json({ error: 'Invalid playlist name' }, 400);
+      }
+      playlistName = nameValidation.value;
+    } else {
+      playlistName = `${genreValidation.value} (from Likes)`;
+    }
+
     const user = await getCurrentUser(session.spotifyAccessToken);
     const safeName = genreValidation.value;
     const safeTrackIds = trackValidation.value;
-    const playlistName = `${safeName} (from Likes)`;
 
     // Check for duplicate playlist unless force=true
     if (!force) {
@@ -596,11 +613,16 @@ api.post('/playlist', async (c) => {
       }
     }
 
+    // Use custom description or default
+    const description = customDescription && customDescription.trim()
+      ? customDescription.trim().slice(0, 300) // Spotify has 300 char limit
+      : `${safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`;
+
     const playlist = await createPlaylist(
       session.spotifyAccessToken,
       user.id,
       playlistName,
-      `${safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`,
+      description,
       false
     );
 
