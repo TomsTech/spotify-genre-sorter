@@ -8,7 +8,7 @@ import { getSession } from './lib/session';
 import { getHtml } from './generated/frontend';
 
 // App version - increment on each deployment
-const APP_VERSION = '2.0.1';
+const APP_VERSION = '2.2.0';
 const GITHUB_REPO = 'TomsTech/spotify-genre-sorter';
 
 const app = new Hono<{ Bindings: Env }>();
