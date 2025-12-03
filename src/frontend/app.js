@@ -8,7 +8,7 @@
       const overlay = document.createElement('div');
       overlay.className = 'intro-overlay';
       overlay.innerHTML = [
-        '<video id="intro-video" autoplay muted playsinline>',
+        '<video id="intro-video" autoplay playsinline>',
         '<source src="/assets/intro-video.mp4" type="video/mp4">',
         '</video>',
         '<div class="binoculars-mask">',
