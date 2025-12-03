@@ -41,59 +41,13 @@
       display: block;
     }
 
-    /* Binoculars with circular lenses using mask-image */
-    .intro-overlay .binoculars-container {
+    /* SVG binoculars - simple and bulletproof */
+    .intro-overlay .binoculars-svg {
       position: absolute;
       inset: 0;
-      background: #000;
-      /* Create two circular transparent holes using radial gradients */
-      -webkit-mask-image:
-        radial-gradient(ellipse 30% 40% at 30% 50%, transparent 98%, black 100%),
-        radial-gradient(ellipse 30% 40% at 70% 50%, transparent 98%, black 100%);
-      -webkit-mask-composite: destination-out;
-      mask-image:
-        radial-gradient(ellipse 30% 40% at 30% 50%, transparent 98%, black 100%),
-        radial-gradient(ellipse 30% 40% at 70% 50%, transparent 98%, black 100%);
-      mask-composite: exclude;
+      width: 100%;
+      height: 100%;
       animation: binocularWobble 0.4s ease-in-out infinite;
-    }
-
-    /* Binocular lens borders - gives them that classic look */
-    .intro-overlay .binocular-hole:first-child {
-      position: absolute;
-      left: 5%;
-      top: 10%;
-      width: 40%;
-      height: 80%;
-      border-radius: 50%;
-      border: 8px solid #222;
-      box-shadow: inset 0 0 30px rgba(0,0,0,0.5), 0 0 20px rgba(0,0,0,0.8);
-      pointer-events: none;
-    }
-
-    .intro-overlay .binocular-hole:last-child {
-      position: absolute;
-      right: 5%;
-      top: 10%;
-      width: 40%;
-      height: 80%;
-      border-radius: 50%;
-      border: 8px solid #222;
-      box-shadow: inset 0 0 30px rgba(0,0,0,0.5), 0 0 20px rgba(0,0,0,0.8);
-      pointer-events: none;
-    }
-
-    /* Bridge between lenses */
-    .intro-overlay .binoculars-frame {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      width: 12%;
-      height: 15%;
-      background: #111;
-      border-radius: 4px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.8);
     }
 
     @keyframes binocularWobble {
