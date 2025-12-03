@@ -30,86 +30,77 @@
       object-fit: cover;
     }
 
+    /* Binoculars mask - hidden until video ends */
     .intro-overlay .binoculars-mask {
       position: absolute;
       inset: 0;
-      background: #000;
       display: none;
-      align-items: center;
-      justify-content: center;
     }
 
     .intro-overlay .binoculars-mask.active {
-      display: flex;
+      display: block;
     }
 
+    /* Binoculars with circular lenses using mask-image */
     .intro-overlay .binoculars-container {
       position: absolute;
       inset: 0;
-      animation: binocularWobble 0.3s ease-in-out infinite;
+      background: #000;
+      /* Create two circular transparent holes using radial gradients */
+      -webkit-mask-image:
+        radial-gradient(ellipse 30% 40% at 30% 50%, transparent 98%, black 100%),
+        radial-gradient(ellipse 30% 40% at 70% 50%, transparent 98%, black 100%);
+      -webkit-mask-composite: destination-out;
+      mask-image:
+        radial-gradient(ellipse 30% 40% at 30% 50%, transparent 98%, black 100%),
+        radial-gradient(ellipse 30% 40% at 70% 50%, transparent 98%, black 100%);
+      mask-composite: exclude;
+      animation: binocularWobble 0.4s ease-in-out infinite;
     }
 
-    /* Two binocular holes using positioned pseudo-transparent circles */
-    .intro-overlay .binocular-hole {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 35vmin;
-      height: 45vmin;
-      border-radius: 50%;
-      /* Transparent center with dark vignette edge */
-      background: radial-gradient(ellipse at center,
-        transparent 0%,
-        transparent 70%,
-        rgba(0,0,0,0.3) 85%,
-        rgba(0,0,0,0.7) 95%,
-        #000 100%
-      );
-      /* Thick black border to merge with frame */
-      box-shadow:
-        0 0 0 4px rgba(30,30,30,0.8),
-        0 0 40px 20px rgba(0,0,0,0.5) inset;
-    }
-
+    /* Binocular lens borders - gives them that classic look */
     .intro-overlay .binocular-hole:first-child {
-      left: calc(50% - 38vmin);
+      position: absolute;
+      left: 5%;
+      top: 10%;
+      width: 40%;
+      height: 80%;
+      border-radius: 50%;
+      border: 8px solid #222;
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.5), 0 0 20px rgba(0,0,0,0.8);
+      pointer-events: none;
     }
 
     .intro-overlay .binocular-hole:last-child {
-      right: calc(50% - 38vmin);
+      position: absolute;
+      right: 5%;
+      top: 10%;
+      width: 40%;
+      height: 80%;
+      border-radius: 50%;
+      border: 8px solid #222;
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.5), 0 0 20px rgba(0,0,0,0.8);
+      pointer-events: none;
     }
 
-    /* Black frame around the binoculars */
+    /* Bridge between lenses */
     .intro-overlay .binoculars-frame {
       position: absolute;
-      inset: 0;
-      pointer-events: none;
-      /* Create frame by painting black everywhere except the holes */
-      background:
-        radial-gradient(ellipse 35vmin 45vmin at calc(50% - 20vmin) 50%, transparent 70%, #000 71%),
-        radial-gradient(ellipse 35vmin 45vmin at calc(50% + 20vmin) 50%, transparent 70%, #000 71%);
-      background-size: 100% 100%;
-    }
-
-    /* Lens glare reflections */
-    .intro-overlay .binocular-hole::before {
-      content: '';
-      position: absolute;
-      top: 15%;
-      left: 20%;
-      width: 30%;
-      height: 25%;
-      border-radius: 50%;
-      background: radial-gradient(ellipse at center, rgba(255,255,255,0.2) 0%, transparent 70%);
-      transform: rotate(-20deg);
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 12%;
+      height: 15%;
+      background: #111;
+      border-radius: 4px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.8);
     }
 
     @keyframes binocularWobble {
       0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      20% { transform: translate(2px, -2px) rotate(0.3deg); }
-      40% { transform: translate(-1px, 1px) rotate(-0.2deg); }
-      60% { transform: translate(1px, 2px) rotate(0.2deg); }
-      80% { transform: translate(-2px, -1px) rotate(-0.3deg); }
+      25% { transform: translate(3px, -2px) rotate(0.5deg); }
+      50% { transform: translate(-2px, 2px) rotate(-0.3deg); }
+      75% { transform: translate(2px, 1px) rotate(0.3deg); }
     }
 
     .intro-overlay.fade-out {
@@ -2733,8 +2724,8 @@
     .sidebar-scoreboard-btn {
       width: 100%;
       justify-content: center;
-      margin-top: auto;
-      margin-bottom: 0.5rem;
+      margin-top: 1rem;
+      margin-bottom: 0;
     }
 
     /* === Scoreboard Modal === */
