@@ -53,86 +53,31 @@ export function getHtml(): string {
       object-fit: cover;
     }
 
+    /* Binoculars mask - hidden until video ends */
     .intro-overlay .binoculars-mask {
       position: absolute;
       inset: 0;
-      background: #000;
       display: none;
-      align-items: center;
-      justify-content: center;
     }
 
     .intro-overlay .binoculars-mask.active {
-      display: flex;
+      display: block;
     }
 
-    .intro-overlay .binoculars-container {
+    /* SVG binoculars - simple and bulletproof */
+    .intro-overlay .binoculars-svg {
       position: absolute;
       inset: 0;
-      animation: binocularWobble 0.3s ease-in-out infinite;
-    }
-
-    /* Two binocular holes using positioned pseudo-transparent circles */
-    .intro-overlay .binocular-hole {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 35vmin;
-      height: 45vmin;
-      border-radius: 50%;
-      /* Transparent center with dark vignette edge */
-      background: radial-gradient(ellipse at center,
-        transparent 0%,
-        transparent 70%,
-        rgba(0,0,0,0.3) 85%,
-        rgba(0,0,0,0.7) 95%,
-        #000 100%
-      );
-      /* Thick black border to merge with frame */
-      box-shadow:
-        0 0 0 4px rgba(30,30,30,0.8),
-        0 0 40px 20px rgba(0,0,0,0.5) inset;
-    }
-
-    .intro-overlay .binocular-hole:first-child {
-      left: calc(50% - 38vmin);
-    }
-
-    .intro-overlay .binocular-hole:last-child {
-      right: calc(50% - 38vmin);
-    }
-
-    /* Black frame around the binoculars */
-    .intro-overlay .binoculars-frame {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      /* Create frame by painting black everywhere except the holes */
-      background:
-        radial-gradient(ellipse 35vmin 45vmin at calc(50% - 20vmin) 50%, transparent 70%, #000 71%),
-        radial-gradient(ellipse 35vmin 45vmin at calc(50% + 20vmin) 50%, transparent 70%, #000 71%);
-      background-size: 100% 100%;
-    }
-
-    /* Lens glare reflections */
-    .intro-overlay .binocular-hole::before {
-      content: '';
-      position: absolute;
-      top: 15%;
-      left: 20%;
-      width: 30%;
-      height: 25%;
-      border-radius: 50%;
-      background: radial-gradient(ellipse at center, rgba(255,255,255,0.2) 0%, transparent 70%);
-      transform: rotate(-20deg);
+      width: 100%;
+      height: 100%;
+      animation: binocularWobble 0.4s ease-in-out infinite;
     }
 
     @keyframes binocularWobble {
       0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      20% { transform: translate(2px, -2px) rotate(0.3deg); }
-      40% { transform: translate(-1px, 1px) rotate(-0.2deg); }
-      60% { transform: translate(1px, 2px) rotate(0.2deg); }
-      80% { transform: translate(-2px, -1px) rotate(-0.3deg); }
+      25% { transform: translate(3px, -2px) rotate(0.5deg); }
+      50% { transform: translate(-2px, 2px) rotate(-0.3deg); }
+      75% { transform: translate(2px, 1px) rotate(0.3deg); }
     }
 
     .intro-overlay.fade-out {
@@ -2756,8 +2701,8 @@ export function getHtml(): string {
     .sidebar-scoreboard-btn {
       width: 100%;
       justify-content: center;
-      margin-top: auto;
-      margin-bottom: 0.5rem;
+      margin-top: 1rem;
+      margin-bottom: 0;
     }
 
     /* === Scoreboard Modal === */
@@ -3531,15 +3476,21 @@ export function getHtml(): string {
       const overlay = document.createElement('div');
       overlay.className = 'intro-overlay';
       overlay.innerHTML = [
-        '<video id="intro-video" autoplay muted playsinline>',
+        '<video id="intro-video" autoplay playsinline>',
         '<source src="/assets/intro-video.mp4" type="video/mp4">',
         '</video>',
         '<div class="binoculars-mask">',
-        '<div class="binoculars-container">',
-        '<div class="binocular-hole"></div>',
-        '<div class="binocular-hole"></div>',
-        '<div class="binoculars-frame"></div>',
-        '</div>',
+        '<svg class="binoculars-svg" viewBox="0 0 100 100" preserveAspectRatio="none">',
+        '<defs><mask id="bino-mask">',
+        '<rect width="100" height="100" fill="white"/>',
+        '<ellipse cx="28" cy="50" rx="20" ry="35" fill="black"/>',
+        '<ellipse cx="72" cy="50" rx="20" ry="35" fill="black"/>',
+        '</mask></defs>',
+        '<rect width="100" height="100" fill="black" mask="url(#bino-mask)"/>',
+        '<ellipse cx="28" cy="50" rx="20" ry="35" fill="none" stroke="#333" stroke-width="1.5"/>',
+        '<ellipse cx="72" cy="50" rx="20" ry="35" fill="none" stroke="#333" stroke-width="1.5"/>',
+        '<rect x="46" y="42" width="8" height="16" rx="2" fill="#222"/>',
+        '</svg>',
         '</div>',
         '<div class="intro-skip-hint">Click anywhere to skip</div>'
       ].join('');
