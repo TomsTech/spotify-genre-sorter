@@ -11,3 +11,6 @@ CLAUDE.md
 *-Gemini*.md
 *-Claude*.md
 *-GPT*.md
+
+# KV Backups (committed via GitHub Actions only)
+backups/
