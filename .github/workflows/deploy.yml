@@ -40,7 +40,7 @@ jobs:
     name: Start Maintenance Mode
     runs-on: ubuntu-latest
     outputs:
-      maintenance_id: ${{ steps.maintenance.outputs.id }}
+      paused: ${{ steps.maintenance.outputs.paused }}
     steps:
       - name: Get deployment info
         id: info
@@ -57,7 +57,7 @@ jobs:
           END_TIME=$(date -u -d "+30 minutes" +"%Y-%m-%dT%H:%M:%S.000Z")
           echo "end_time=$END_TIME" >> $GITHUB_OUTPUT
 
-      - name: Create Better Stack maintenance window
+      - name: Pause Better Stack monitors for deployment
         id: maintenance
         env:
           BETTERSTACK_API_TOKEN: ${{ secrets.BETTERSTACK_API_TOKEN }}
@@ -67,35 +67,31 @@ jobs:
             exit 0
           fi
 
-          TITLE="🚀 Deploying v${{ steps.info.outputs.version }}"
-          DESCRIPTION="Deployment in progress: ${{ steps.info.outputs.commit_msg }}
+          echo "🔧 Pausing all monitors for deployment..."
+          echo "📦 Deploying v${{ steps.info.outputs.version }}"
+          echo "💬 ${{ steps.info.outputs.commit_msg }}"
 
-          Commit: ${{ github.sha }}
-          Branch: ${{ github.ref_name }}
-          Triggered by: ${{ github.actor }}
-          Workflow: ${{ github.run_id }}"
-
-          RESPONSE=$(curl -s -X POST \
-            "https://uptime.betterstack.com/api/v2/status-pages/${{ env.BETTERSTACK_STATUS_PAGE_ID }}/maintenances" \
+          # Get all monitor IDs
+          MONITORS=$(curl -s -X GET "https://uptime.betterstack.com/api/v2/monitors" \
             -H "Authorization: Bearer $BETTERSTACK_API_TOKEN" \
-            -H "Content-Type: application/json" \
-            --data "{
-              \"title\": \"$TITLE\",
-              \"description\": \"$DESCRIPTION\",
-              \"starts_at\": \"$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")\",
-              \"ends_at\": \"${{ steps.info.outputs.end_time }}\",
-              \"maintenance_type\": \"scheduled\"
-            }")
+            -H "Content-Type: application/json")
 
-          MAINT_ID=$(echo "$RESPONSE" | jq -r '.data.id // empty')
+          MONITOR_IDS=$(echo "$MONITORS" | jq -r '.data[].id')
+          PAUSED_COUNT=0
 
-          if [ -n "$MAINT_ID" ]; then
-            echo "✅ Maintenance window created: $MAINT_ID"
-            echo "id=$MAINT_ID" >> $GITHUB_OUTPUT
-          else
-            echo "⚠️ Could not create maintenance window"
-            echo "$RESPONSE"
-          fi
+          for MONITOR_ID in $MONITOR_IDS; do
+            RESPONSE=$(curl -s -X PATCH "https://uptime.betterstack.com/api/v2/monitors/$MONITOR_ID" \
+              -H "Authorization: Bearer $BETTERSTACK_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data '{"paused": true}')
+
+            if echo "$RESPONSE" | jq -e '.data.attributes.paused' > /dev/null 2>&1; then
+              PAUSED_COUNT=$((PAUSED_COUNT + 1))
+            fi
+          done
+
+          echo "✅ Paused $PAUSED_COUNT monitors"
+          echo "paused=true" >> $GITHUB_OUTPUT
 
   quality:
     name: Code Quality
@@ -528,13 +524,13 @@ jobs:
     needs: [start-maintenance, report]
     if: always()
     steps:
-      - name: Delete Better Stack maintenance window
+      - name: Resume Better Stack monitors after deployment
         env:
           BETTERSTACK_API_TOKEN: ${{ secrets.BETTERSTACK_API_TOKEN }}
-          MAINTENANCE_ID: ${{ needs.start-maintenance.outputs.maintenance_id }}
+          WAS_PAUSED: ${{ needs.start-maintenance.outputs.paused }}
         run: |
-          if [ -z "$MAINTENANCE_ID" ]; then
-            echo "ℹ️ No maintenance window to close"
+          if [ "$WAS_PAUSED" != "true" ]; then
+            echo "ℹ️ Monitors were not paused, nothing to resume"
             exit 0
           fi
 
@@ -543,15 +539,25 @@ jobs:
             exit 0
           fi
 
-          echo "🔧 Ending maintenance window: $MAINTENANCE_ID"
+          echo "🔧 Resuming all monitors after deployment..."
 
-          RESPONSE=$(curl -s -X DELETE \
-            "https://uptime.betterstack.com/api/v2/status-pages/${{ env.BETTERSTACK_STATUS_PAGE_ID }}/maintenances/$MAINTENANCE_ID" \
-            -H "Authorization: Bearer $BETTERSTACK_API_TOKEN")
+          # Get all monitor IDs
+          MONITORS=$(curl -s -X GET "https://uptime.betterstack.com/api/v2/monitors" \
+            -H "Authorization: Bearer $BETTERSTACK_API_TOKEN" \
+            -H "Content-Type: application/json")
 
-          if [ -z "$RESPONSE" ] || echo "$RESPONSE" | jq -e '.data' > /dev/null 2>&1; then
-            echo "✅ Maintenance window ended successfully"
-          else
-            echo "⚠️ Maintenance window may have already ended or expired"
-            echo "$RESPONSE"
-          fi
+          MONITOR_IDS=$(echo "$MONITORS" | jq -r '.data[].id')
+          RESUMED_COUNT=0
+
+          for MONITOR_ID in $MONITOR_IDS; do
+            RESPONSE=$(curl -s -X PATCH "https://uptime.betterstack.com/api/v2/monitors/$MONITOR_ID" \
+              -H "Authorization: Bearer $BETTERSTACK_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data '{"paused": false}')
+
+            if echo "$RESPONSE" | jq -e '.data.attributes.paused == false' > /dev/null 2>&1; then
+              RESUMED_COUNT=$((RESUMED_COUNT + 1))
+            fi
+          done
+
+          echo "✅ Resumed $RESUMED_COUNT monitors"
