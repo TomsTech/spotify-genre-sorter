@@ -24,7 +24,6 @@
     "docs:check": "node scripts/build-docs.mjs --check"
   },
   "dependencies": {
-    "@sentry/cloudflare": "^10.28.0",
     "hono": "^4.6.0"
   },
   "devDependencies": {
