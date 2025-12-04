@@ -57,7 +57,7 @@ jobs:
           END_TIME=$(date -u -d "+30 minutes" +"%Y-%m-%dT%H:%M:%S.000Z")
           echo "end_time=$END_TIME" >> $GITHUB_OUTPUT
 
-      - name: Pause Better Stack monitors for deployment
+      - name: Start deployment maintenance mode
         id: maintenance
         env:
           BETTERSTACK_API_TOKEN: ${{ secrets.BETTERSTACK_API_TOKEN }}
@@ -67,11 +67,21 @@ jobs:
             exit 0
           fi
 
-          echo "🔧 Pausing all monitors for deployment..."
+          echo "🔧 Starting maintenance mode for deployment..."
           echo "📦 Deploying v${{ steps.info.outputs.version }}"
           echo "💬 ${{ steps.info.outputs.commit_msg }}"
 
-          # Get all monitor IDs
+          # Set status page announcement
+          ANNOUNCEMENT="🚀 Deployment in progress: v${{ steps.info.outputs.version }} - ${{ steps.info.outputs.commit_msg }}"
+
+          curl -s -X PATCH "https://uptime.betterstack.com/api/v2/status-pages/${{ env.BETTERSTACK_STATUS_PAGE_ID }}" \
+            -H "Authorization: Bearer $BETTERSTACK_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data "{\"announcement\": \"$ANNOUNCEMENT\"}" > /dev/null
+
+          echo "✅ Status page announcement set"
+
+          # Pause all monitors
           MONITORS=$(curl -s -X GET "https://uptime.betterstack.com/api/v2/monitors" \
             -H "Authorization: Bearer $BETTERSTACK_API_TOKEN" \
             -H "Content-Type: application/json")
@@ -80,14 +90,11 @@ jobs:
           PAUSED_COUNT=0
 
           for MONITOR_ID in $MONITOR_IDS; do
-            RESPONSE=$(curl -s -X PATCH "https://uptime.betterstack.com/api/v2/monitors/$MONITOR_ID" \
+            curl -s -X PATCH "https://uptime.betterstack.com/api/v2/monitors/$MONITOR_ID" \
               -H "Authorization: Bearer $BETTERSTACK_API_TOKEN" \
               -H "Content-Type: application/json" \
-              --data '{"paused": true}')
-
-            if echo "$RESPONSE" | jq -e '.data.attributes.paused' > /dev/null 2>&1; then
-              PAUSED_COUNT=$((PAUSED_COUNT + 1))
-            fi
+              --data '{"paused": true}' > /dev/null
+            PAUSED_COUNT=$((PAUSED_COUNT + 1))
           done
 
           echo "✅ Paused $PAUSED_COUNT monitors"
@@ -524,7 +531,7 @@ jobs:
     needs: [start-maintenance, report]
     if: always()
     steps:
-      - name: Resume Better Stack monitors after deployment
+      - name: End deployment maintenance mode
         env:
           BETTERSTACK_API_TOKEN: ${{ secrets.BETTERSTACK_API_TOKEN }}
           WAS_PAUSED: ${{ needs.start-maintenance.outputs.paused }}
@@ -539,9 +546,17 @@ jobs:
             exit 0
           fi
 
-          echo "🔧 Resuming all monitors after deployment..."
+          echo "🔧 Ending maintenance mode..."
 
-          # Get all monitor IDs
+          # Clear status page announcement
+          curl -s -X PATCH "https://uptime.betterstack.com/api/v2/status-pages/${{ env.BETTERSTACK_STATUS_PAGE_ID }}" \
+            -H "Authorization: Bearer $BETTERSTACK_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data '{"announcement": null}' > /dev/null
+
+          echo "✅ Status page announcement cleared"
+
+          # Resume all monitors
           MONITORS=$(curl -s -X GET "https://uptime.betterstack.com/api/v2/monitors" \
             -H "Authorization: Bearer $BETTERSTACK_API_TOKEN" \
             -H "Content-Type: application/json")
@@ -550,14 +565,11 @@ jobs:
           RESUMED_COUNT=0
 
           for MONITOR_ID in $MONITOR_IDS; do
-            RESPONSE=$(curl -s -X PATCH "https://uptime.betterstack.com/api/v2/monitors/$MONITOR_ID" \
+            curl -s -X PATCH "https://uptime.betterstack.com/api/v2/monitors/$MONITOR_ID" \
               -H "Authorization: Bearer $BETTERSTACK_API_TOKEN" \
               -H "Content-Type: application/json" \
-              --data '{"paused": false}')
-
-            if echo "$RESPONSE" | jq -e '.data.attributes.paused == false' > /dev/null 2>&1; then
-              RESUMED_COUNT=$((RESUMED_COUNT + 1))
-            fi
+              --data '{"paused": false}' > /dev/null
+            RESUMED_COUNT=$((RESUMED_COUNT + 1))
           done
 
           echo "✅ Resumed $RESUMED_COUNT monitors"
