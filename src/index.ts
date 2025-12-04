@@ -3,7 +3,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import auth from './routes/auth';
 import api from './routes/api';
-import { getSession, trackAnalyticsEvent, getAnalytics } from './lib/session';
+import { getSession, trackAnalyticsEvent } from './lib/session';
 import { getHtml } from './generated/frontend';
 
 // App version - increment on each deployment
@@ -220,16 +220,6 @@ app.get('/stats', async (c) => {
     });
   } catch {
     return c.json({ userCount: 0, hallOfFame: [] });
-  }
-});
-
-// Analytics endpoint - dashboard data (public, for Better Stack integration)
-app.get('/api/analytics', async (c) => {
-  try {
-    const analytics = await getAnalytics(c.env.SESSIONS);
-    return c.json(analytics);
-  } catch (err) {
-    return c.json({ error: 'Failed to fetch analytics', message: err instanceof Error ? err.message : 'Unknown' }, 500);
   }
 });
 

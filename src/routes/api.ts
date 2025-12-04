@@ -9,6 +9,7 @@ import {
   getScoreboard,
   buildScoreboard,
   trackAnalyticsEvent,
+  getAnalytics,
   type RecentPlaylist,
 } from '../lib/session';
 import {
@@ -98,7 +99,7 @@ api.use('/*', async (c, next) => {
 });
 
 // Public endpoints that don't require authentication
-const PUBLIC_ENDPOINTS = ['/scoreboard', '/leaderboard', '/recent-playlists', '/deploy-status', '/changelog'];
+const PUBLIC_ENDPOINTS = ['/scoreboard', '/leaderboard', '/recent-playlists', '/deploy-status', '/changelog', '/analytics'];
 
 // Auth middleware - check auth and refresh tokens if needed
 api.use('/*', async (c, next) => {
@@ -969,6 +970,17 @@ api.get('/recent-playlists', async (c) => {
   } catch (err) {
     console.error('Error fetching recent playlists:', err);
     return c.json({ error: 'Failed to fetch recent playlists' }, 500);
+  }
+});
+
+// Analytics dashboard data (public, for Better Stack monitoring)
+api.get('/analytics', async (c) => {
+  try {
+    const analytics = await getAnalytics(c.env.SESSIONS);
+    return c.json(analytics);
+  } catch (err) {
+    console.error('Error fetching analytics:', err);
+    return c.json({ error: 'Failed to fetch analytics' }, 500);
   }
 });
 
