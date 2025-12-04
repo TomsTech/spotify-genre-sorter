@@ -1,10 +1,9 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import * as Sentry from '@sentry/cloudflare';
 import auth from './routes/auth';
 import api from './routes/api';
-import { getSession } from './lib/session';
+import { getSession, trackAnalyticsEvent, getAnalytics } from './lib/session';
 import { getHtml } from './generated/frontend';
 
 // App version - increment on each deployment
@@ -13,10 +12,19 @@ const GITHUB_REPO = 'TomsTech/spotify-genre-sorter';
 
 const app = new Hono<{ Bindings: Env }>();
 
-// Global error handler with Sentry
-app.onError((err, c) => {
+// Global error handler with analytics tracking
+app.onError(async (err, c) => {
   console.error('Worker error:', err);
-  Sentry.captureException(err);
+  // Track error in analytics
+  try {
+    await trackAnalyticsEvent(c.env.SESSIONS, 'error', {
+      message: err.message || 'Unknown error',
+      path: c.req.path,
+      timestamp: new Date().toISOString(),
+    });
+  } catch {
+    // Don't fail on analytics error
+  }
   return c.json({ error: err.message || 'Internal error' }, 500);
 });
 
@@ -215,6 +223,16 @@ app.get('/stats', async (c) => {
   }
 });
 
+// Analytics endpoint - dashboard data (public, for Better Stack integration)
+app.get('/api/analytics', async (c) => {
+  try {
+    const analytics = await getAnalytics(c.env.SESSIONS);
+    return c.json(analytics);
+  } catch (err) {
+    return c.json({ error: 'Failed to fetch analytics', message: err instanceof Error ? err.message : 'Unknown' }, 500);
+  }
+});
+
 // Deployment status endpoint - for the deployment monitor widget
 app.get('/deploy-status', async (c) => {
   try {
@@ -358,16 +376,4 @@ app.get('/', (c) => {
 });
 
 
-// Better Stack error tracking DSN
-const SENTRY_DSN = 'https://ZBR7vpbVnb4KagFdJNnNn3uo@s1614340.eu-nbg-2.betterstackdata.com/1';
-
-// Export with Sentry wrapper
-export default Sentry.withSentry(
-  () => ({
-    dsn: SENTRY_DSN,
-    tracesSampleRate: 1.0,
-    release: `genre-genie@${APP_VERSION}`,
-  }),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  { fetch: app.fetch } as any
-);
+export default app;

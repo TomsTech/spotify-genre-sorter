@@ -19,6 +19,7 @@ import {
   storeState,
   verifyState,
   createOrUpdateUserStats,
+  trackAnalyticsEvent,
 } from '../lib/session';
 
 const auth = new Hono<{ Bindings: Env }>();
@@ -39,6 +40,9 @@ async function registerUser(
   const key = `user:${spotifyId}`;
   const existing = await kv.get(key);
   const now = new Date().toISOString();
+
+  // Track sign-in
+  await trackAnalyticsEvent(kv, 'signIn', { visitorId: spotifyId });
 
   if (existing) {
     // Update last seen
