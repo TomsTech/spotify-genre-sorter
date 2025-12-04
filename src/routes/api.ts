@@ -8,6 +8,7 @@ import {
   addRecentPlaylist,
   getScoreboard,
   buildScoreboard,
+  trackAnalyticsEvent,
   type RecentPlaylist,
 } from '../lib/session';
 import {
@@ -314,6 +315,12 @@ api.get('/genres', async (c) => {
         totalTracksAnalysed: responseData.totalTracks,
       });
     }
+
+    // Track library scan in analytics
+    await trackAnalyticsEvent(c.env.SESSIONS, 'libraryScan', {
+      tracksCount: responseData.totalTracks,
+      visitorId: session.spotifyUserId,
+    });
 
     return c.json({
       ...responseData,
@@ -651,6 +658,9 @@ api.post('/playlist', async (c) => {
     };
     await addRecentPlaylist(c.env.SESSIONS, recentPlaylist);
 
+    // Track playlist creation in analytics
+    await trackAnalyticsEvent(c.env.SESSIONS, 'playlistCreated', { visitorId: user.id });
+
     return c.json({
       success: true,
       playlist: {
@@ -786,6 +796,10 @@ api.post('/playlists/bulk', async (c) => {
     const skippedCount = results.filter(r => r.skipped).length;
     if (successCount > 0) {
       await invalidateGenreCache(c.env.SESSIONS, user.id);
+      // Track bulk playlist creation in analytics
+      for (let i = 0; i < successCount; i++) {
+        await trackAnalyticsEvent(c.env.SESSIONS, 'playlistCreated', { visitorId: user.id });
+      }
     }
 
     return c.json({
