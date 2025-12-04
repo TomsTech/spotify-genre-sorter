@@ -21,7 +21,9 @@
     "version:check": "node scripts/sync-version.mjs --check",
     "version:set": "node scripts/sync-version.mjs",
     "docs:build": "node scripts/build-docs.mjs",
-    "docs:check": "node scripts/build-docs.mjs --check"
+    "docs:check": "node scripts/build-docs.mjs --check",
+    "backup:kv": "node scripts/backup-kv.mjs",
+    "restore:kv": "node scripts/restore-kv.mjs"
   },
   "dependencies": {
     "hono": "^4.6.0"
