@@ -260,7 +260,7 @@ export interface Scoreboard {
 }
 
 const SCOREBOARD_CACHE_KEY = 'scoreboard_cache';
-const SCOREBOARD_CACHE_TTL = 300; // 5 minutes
+const SCOREBOARD_CACHE_TTL = 3600; // 1 hour (was 5 min - hitting KV write limits)
 
 export async function getScoreboard(kv: KVNamespace): Promise<Scoreboard | null> {
   const cached = await kv.get(SCOREBOARD_CACHE_KEY);
