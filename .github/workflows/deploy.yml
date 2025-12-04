@@ -33,8 +33,66 @@ env:
   STAGING_WORKER: spotify-genre-sorter-staging
   PRODUCTION_WORKER: spotify-genre-sorter
   WORKER_SUBDOMAIN: dev-playground-df5.workers.dev
+  BETTERSTACK_STATUS_PAGE_ID: '231448'
 
 jobs:
+  start-maintenance:
+    name: Start Maintenance Mode
+    runs-on: ubuntu-latest
+    outputs:
+      maintenance_id: ${{ steps.maintenance.outputs.id }}
+    steps:
+      - name: Get deployment info
+        id: info
+        run: |
+          # Extract version from package.json via GitHub API
+          VERSION=$(curl -s "https://raw.githubusercontent.com/${{ github.repository }}/main/package.json" | jq -r '.version')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Get commit info
+          COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | head -1 | cut -c1-100)
+          echo "commit_msg=$COMMIT_MSG" >> $GITHUB_OUTPUT
+
+          # Calculate end time (30 minutes from now)
+          END_TIME=$(date -u -d "+30 minutes" +"%Y-%m-%dT%H:%M:%S.000Z")
+          echo "end_time=$END_TIME" >> $GITHUB_OUTPUT
+
+      - name: Create Better Stack maintenance window
+        id: maintenance
+        if: ${{ secrets.BETTERSTACK_API_TOKEN != '' }}
+        env:
+          BETTERSTACK_API_TOKEN: ${{ secrets.BETTERSTACK_API_TOKEN }}
+        run: |
+          TITLE="🚀 Deploying v${{ steps.info.outputs.version }}"
+          DESCRIPTION="Deployment in progress: ${{ steps.info.outputs.commit_msg }}
+
+          Commit: ${{ github.sha }}
+          Branch: ${{ github.ref_name }}
+          Triggered by: ${{ github.actor }}
+          Workflow: ${{ github.run_id }}"
+
+          RESPONSE=$(curl -s -X POST \
+            "https://uptime.betterstack.com/api/v2/status-pages/${{ env.BETTERSTACK_STATUS_PAGE_ID }}/maintenances" \
+            -H "Authorization: Bearer $BETTERSTACK_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data "{
+              \"title\": \"$TITLE\",
+              \"description\": \"$DESCRIPTION\",
+              \"starts_at\": \"$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")\",
+              \"ends_at\": \"${{ steps.info.outputs.end_time }}\",
+              \"maintenance_type\": \"scheduled\"
+            }")
+
+          MAINT_ID=$(echo "$RESPONSE" | jq -r '.data.id // empty')
+
+          if [ -n "$MAINT_ID" ]; then
+            echo "✅ Maintenance window created: $MAINT_ID"
+            echo "id=$MAINT_ID" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ Could not create maintenance window"
+            echo "$RESPONSE"
+          fi
+
   quality:
     name: Code Quality
     runs-on: ubuntu-latest
@@ -459,3 +517,27 @@ jobs:
           echo "| DNS Cutover | ${{ needs.dns-cutover.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Worker**: https://${{ env.PRODUCTION_WORKER }}.${{ env.WORKER_SUBDOMAIN }}" >> $GITHUB_STEP_SUMMARY
+
+  end-maintenance:
+    name: End Maintenance Mode
+    runs-on: ubuntu-latest
+    needs: [start-maintenance, report]
+    if: always() && needs.start-maintenance.outputs.maintenance_id != ''
+    steps:
+      - name: Delete Better Stack maintenance window
+        env:
+          BETTERSTACK_API_TOKEN: ${{ secrets.BETTERSTACK_API_TOKEN }}
+          MAINTENANCE_ID: ${{ needs.start-maintenance.outputs.maintenance_id }}
+        run: |
+          echo "🔧 Ending maintenance window: $MAINTENANCE_ID"
+
+          RESPONSE=$(curl -s -X DELETE \
+            "https://uptime.betterstack.com/api/v2/status-pages/${{ env.BETTERSTACK_STATUS_PAGE_ID }}/maintenances/$MAINTENANCE_ID" \
+            -H "Authorization: Bearer $BETTERSTACK_API_TOKEN")
+
+          if [ -z "$RESPONSE" ] || echo "$RESPONSE" | jq -e '.data' > /dev/null 2>&1; then
+            echo "✅ Maintenance window ended successfully"
+          else
+            echo "⚠️ Maintenance window may have already ended or expired"
+            echo "$RESPONSE"
+          fi
