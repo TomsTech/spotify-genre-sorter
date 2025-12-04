@@ -132,15 +132,18 @@ auth.get('/github/callback', async (c) => {
   const error = c.req.query('error');
 
   if (error) {
+    await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: 'GitHub OAuth denied' });
     return c.redirect('/?error=github_denied');
   }
 
   if (!code || !state) {
+    await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: 'Invalid OAuth request' });
     return c.redirect('/?error=invalid_request');
   }
 
   const stateData = await verifyState(c.env.SESSIONS, state);
   if (!stateData || stateData.provider !== 'github') {
+    await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: 'Invalid OAuth state' });
     return c.redirect('/?error=invalid_state');
   }
 
@@ -156,6 +159,7 @@ auth.get('/github/callback', async (c) => {
     const user = await getGitHubUser(accessToken);
 
     if (!isUserAllowed(user.login, c.env.ALLOWED_GITHUB_USERS || '')) {
+      await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: `User not allowed: ${user.login}` });
       return c.redirect('/?error=not_allowed');
     }
 
@@ -167,6 +171,7 @@ auth.get('/github/callback', async (c) => {
     return c.redirect('/');
   } catch (err) {
     console.error('GitHub auth error:', err);
+    await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: `GitHub auth failed: ${err instanceof Error ? err.message : 'Unknown error'}` });
     return c.redirect('/?error=auth_failed');
   }
 });
@@ -202,15 +207,18 @@ auth.get('/spotify/callback', async (c) => {
   const error = c.req.query('error');
 
   if (error) {
+    await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: 'Spotify OAuth denied' });
     return c.redirect('/?error=spotify_denied');
   }
 
   if (!code || !state) {
+    await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: 'Invalid Spotify OAuth request' });
     return c.redirect('/?error=invalid_request');
   }
 
   const stateData = await verifyState(c.env.SESSIONS, state);
   if (!stateData || stateData.provider !== 'spotify') {
+    await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: 'Invalid Spotify OAuth state' });
     return c.redirect('/?error=invalid_state');
   }
 
@@ -219,6 +227,7 @@ auth.get('/spotify/callback', async (c) => {
   // In GitHub mode, require existing session
   const session = await getSession(c);
   if (!spotifyOnly && !session) {
+    await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: 'Not logged in (GitHub mode)' });
     return c.redirect('/?error=not_logged_in');
   }
 
@@ -268,6 +277,7 @@ auth.get('/spotify/callback', async (c) => {
     return c.redirect('/');
   } catch (err) {
     console.error('Spotify auth error:', err);
+    await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: `Spotify auth failed: ${err instanceof Error ? err.message : 'Unknown error'}` });
     return c.redirect('/?error=spotify_auth_failed');
   }
 });

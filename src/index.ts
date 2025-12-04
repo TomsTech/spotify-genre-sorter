@@ -361,7 +361,15 @@ app.get('/favicon.ico', (c) => {
 });
 
 // Main UI
-app.get('/', (c) => {
+app.get('/', async (c) => {
+  // Track page view in analytics
+  const session = await getSession(c);
+  const visitorId = session?.spotifyUserId || c.req.header('cf-connecting-ip') || 'anonymous';
+  try {
+    await trackAnalyticsEvent(c.env.SESSIONS, 'pageView', { visitorId });
+  } catch {
+    // Don't fail on analytics error
+  }
   return c.html(getHtml());
 });
 
