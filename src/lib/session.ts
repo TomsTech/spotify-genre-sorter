@@ -323,7 +323,6 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
 // ================== Analytics Tracking ==================
 
 const ANALYTICS_KEY = 'analytics:daily';
-const ANALYTICS_EVENTS_KEY = 'analytics:events';
 const ANALYTICS_TTL = 86400 * 7; // 7 days
 
 export interface AnalyticsData {
