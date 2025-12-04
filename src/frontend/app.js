@@ -61,18 +61,19 @@
         }
       });
 
-      // Fallback if video doesn't load
-      video.addEventListener('error', () => {
-        overlay.remove();
-      });
-
-      // Fallback timeout (max 8 seconds)
-      setTimeout(() => {
+      // Fallback if video doesn't load or gets stuck
+      const removeOverlay = () => {
         if (document.body.contains(overlay)) {
           overlay.classList.add('fade-out');
           setTimeout(() => overlay.remove(), 800);
         }
-      }, 8000);
+      };
+      video.addEventListener('error', removeOverlay);
+      video.addEventListener('stalled', removeOverlay);
+      video.addEventListener('abort', removeOverlay);
+
+      // Fallback timeout (max 6 seconds - don't make users wait too long)
+      setTimeout(removeOverlay, 6000);
     })();
 
     const app = document.getElementById('app');
@@ -2618,9 +2619,10 @@
           <div class="scoreboard-content" id="scoreboard-content">
             \${renderScoreboardTab('playlists')}
           </div>
-          <div class="scoreboard-footer">
+          <div class="scoreboard-footer" title="\${swedishMode ? 'Statistik uppdateras var 1-24 timme. Donera till Bryan för snabbare uppdateringar!' : 'Stats refresh every 1-24 hours. Shout Bryan a durry for faster updates!'}">
             \${scoreboardData.totalUsers} \${swedishMode ? 'användare totalt' : 'total users'} •
             \${swedishMode ? 'Uppdaterad' : 'Updated'} \${formatTimeAgo(new Date(scoreboardData.updatedAt))}
+            <span style="opacity:0.5;font-size:0.7rem;margin-left:0.5rem">ℹ️</span>
           </div>
         </div>
       \`;
