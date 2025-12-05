@@ -733,11 +733,43 @@
       }
     }
 
-    // Rotate album carousel to show different covers
+    // Rotate album carousel to show different covers with vinyl flip animation
     function rotateAlbumCarousel() {
-      if (albumArtUrls.length < 3) return;
-      albumCarouselIndex = (albumCarouselIndex + 1) % albumArtUrls.length;
-      updateAlbumCarousel();
+      const carousel = document.getElementById('album-carousel');
+      if (!carousel) return;
+
+      // If we have real album art, rotate through it
+      if (albumArtUrls.length >= 3) {
+        // Add flip animation to center item
+        const centerItem = carousel.querySelector('.album-art-item.center');
+        if (centerItem) {
+          centerItem.style.animation = 'vinylFlip 0.8s ease-in-out';
+          setTimeout(() => {
+            if (centerItem.style) centerItem.style.animation = '';
+          }, 800);
+        }
+
+        // Update index and carousel after flip starts
+        setTimeout(() => {
+          albumCarouselIndex = (albumCarouselIndex + 1) % albumArtUrls.length;
+          updateAlbumCarousel();
+        }, 400);
+      } else {
+        // Placeholder animation - rotate emojis with flip
+        const items = carousel.querySelectorAll('.album-art-item');
+        items.forEach(item => {
+          item.style.animation = 'vinylFlip 0.8s ease-in-out';
+        });
+
+        setTimeout(() => {
+          const emojis = ['🎵', '🎶', '🎸', '🎹', '🥁', '🎺', '🎷', '🎻', '🎤'];
+          items.forEach(item => {
+            const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+            item.textContent = randomEmoji;
+            if (item.style) item.style.animation = '';
+          });
+        }, 400);
+      }
     }
 
     // Update album carousel display
@@ -1863,9 +1895,107 @@
       }
     }
 
-    async function createPlaylist(genreName, force = false) {
+    function showPlaylistCustomizeModal(genre) {
+      const defaultName = playlistTemplate.replace('{genre}', genre.name);
+      const defaultDescription = `${genre.name} tracks from your liked songs ♫`;
+
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.innerHTML = \`
+        <div class="modal playlist-customize-modal">
+          <h3>\${swedishMode ? \`🎵 Anpassa spellista för "\${escapeForHtml(genre.name)}"\` : \`🎵 Customize "\${escapeForHtml(genre.name)}" Playlist\`}</h3>
+
+          <div class="form-group">
+            <label for="playlist-name">\${swedishMode ? 'Namn:' : 'Name:'}</label>
+            <input
+              type="text"
+              id="playlist-name"
+              class="search-input"
+              value="\${escapeForHtml(defaultName)}"
+              maxlength="100"
+              placeholder="\${swedishMode ? 'Spellistans namn' : 'Playlist name'}"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="playlist-description">\${swedishMode ? 'Beskrivning:' : 'Description:'}</label>
+            <textarea
+              id="playlist-description"
+              class="search-input"
+              rows="3"
+              maxlength="300"
+              placeholder="\${swedishMode ? 'Valfri beskrivning (max 300 tecken)' : 'Optional description (max 300 chars)'}"
+            >\${escapeForHtml(defaultDescription)}</textarea>
+            <div class="char-count" style="text-align: right; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+              <span id="desc-char-count">0</span>/300
+            </div>
+          </div>
+
+          <div class="playlist-preview">
+            <div class="preview-icon">\${getGenreEmoji(genre.name)}</div>
+            <div class="preview-info">
+              <div class="preview-tracks">\${genre.count} \${t('tracks')}</div>
+              <div class="preview-hint">\${swedishMode ? 'Kommer att läggas till i spellistan' : 'Will be added to playlist'}</div>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">
+              \${swedishMode ? 'Avbryt' : 'Cancel'}
+            </button>
+            <button class="btn btn-primary" id="create-customized-btn">
+              \${swedishMode ? 'Skapa Spellista' : 'Create Playlist'}
+            </button>
+          </div>
+        </div>
+      \`;
+
+      document.body.appendChild(modal);
+
+      // Update character count
+      const descTextarea = modal.querySelector('#playlist-description');
+      const charCount = modal.querySelector('#desc-char-count');
+      function updateCharCount() {
+        charCount.textContent = descTextarea.value.length;
+      }
+      descTextarea.addEventListener('input', updateCharCount);
+      updateCharCount();
+
+      // Handle create button click
+      modal.querySelector('#create-customized-btn').addEventListener('click', () => {
+        const customName = modal.querySelector('#playlist-name').value.trim();
+        const customDescription = modal.querySelector('#playlist-description').value.trim();
+
+        modal.remove();
+
+        createPlaylist(genre.name, false, {
+          name: customName || null,
+          description: customDescription || null,
+        });
+      });
+
+      // Close on overlay click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.remove();
+        }
+      });
+
+      // Focus name input
+      setTimeout(() => {
+        modal.querySelector('#playlist-name')?.select();
+      }, 100);
+    }
+
+    async function createPlaylist(genreName, force = false, customization = null) {
       const genre = genreData.genres.find(g => g.name === genreName);
       if (!genre) return;
+
+      // If no customization provided and not forcing, show customization modal first
+      if (!customization && !force) {
+        showPlaylistCustomizeModal(genre);
+        return;
+      }
 
       const btn = event?.target;
       if (btn) {
@@ -1874,10 +2004,18 @@
       }
 
       try {
+        const requestBody = {
+          genre: genre.name,
+          trackIds: genre.trackIds,
+          force,
+          ...(customization?.name && { customName: customization.name }),
+          ...(customization?.description && { customDescription: customization.description }),
+        };
+
         const response = await fetch('/api/playlist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ genre: genre.name, trackIds: genre.trackIds, force }),
+          body: JSON.stringify(requestBody),
         });
 
         const result = await response.json();
