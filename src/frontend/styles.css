@@ -569,6 +569,84 @@
       margin-top: 1.5rem;
     }
 
+    /* Playlist Customize Modal */
+    .playlist-customize-modal {
+      max-width: 500px;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .playlist-preview {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--surface-2);
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
+
+    .preview-icon {
+      font-size: 2.5rem;
+      line-height: 1;
+    }
+
+    .preview-info {
+      flex: 1;
+    }
+
+    .preview-tracks {
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+
+    .preview-hint {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .char-count {
+      text-align: right;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
@@ -2923,6 +3001,19 @@
     @keyframes vinylSpin {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
+    }
+
+    @keyframes vinylFlip {
+      0% {
+        transform: rotateY(0deg) scale(1);
+      }
+      50% {
+        transform: rotateY(180deg) scale(1.15);
+        filter: brightness(1.2);
+      }
+      100% {
+        transform: rotateY(360deg) scale(1);
+      }
     }
 
     .loading-text {
