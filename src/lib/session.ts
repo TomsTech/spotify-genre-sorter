@@ -363,7 +363,7 @@ export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData
     const hofKey = `hof:${String(i).padStart(3, '0')}`;
     const data = await kv.get(hofKey);
     if (data) {
-      pioneers.push(JSON.parse(data));
+      pioneers.push(JSON.parse(data) as LeaderboardData['pioneers'][number]);
     }
   }
 
@@ -375,7 +375,7 @@ export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData
   for (const key of userList.keys.slice(0, 50)) {
     const data = await kv.get(key.name);
     if (data) {
-      recentUsers.push(JSON.parse(data));
+      recentUsers.push(JSON.parse(data) as LeaderboardData['newUsers'][number]);
     }
   }
 
