@@ -361,15 +361,8 @@ app.get('/favicon.ico', (c) => {
 });
 
 // Main UI
-app.get('/', async (c) => {
-  // Track page view in analytics
-  const session = await getSession(c);
-  const visitorId = session?.spotifyUserId || c.req.header('cf-connecting-ip') || 'anonymous';
-  try {
-    await trackAnalyticsEvent(c.env.SESSIONS, 'pageView', { visitorId });
-  } catch {
-    // Don't fail on analytics error
-  }
+app.get('/', (c) => {
+  // Removed KV pageView tracking - use Cloudflare Analytics instead
   return c.html(getHtml());
 });
 

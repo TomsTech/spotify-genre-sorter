@@ -262,6 +262,9 @@ export interface Scoreboard {
 const SCOREBOARD_CACHE_KEY = 'scoreboard_cache';
 const SCOREBOARD_CACHE_TTL = 3600; // 1 hour (was 5 min - hitting KV write limits)
 
+const LEADERBOARD_CACHE_KEY = 'leaderboard_cache';
+const LEADERBOARD_CACHE_TTL = 900; // 15 minutes - reduces 112+ KV ops to 1 read
+
 export async function getScoreboard(kv: KVNamespace): Promise<Scoreboard | null> {
   const cached = await kv.get(SCOREBOARD_CACHE_KEY);
   if (cached) {
@@ -320,6 +323,82 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
   return scoreboard;
 }
 
+// ================== Leaderboard Caching ==================
+
+export interface LeaderboardData {
+  pioneers: Array<{
+    position: number;
+    spotifyId: string;
+    spotifyName: string;
+    spotifyAvatar?: string;
+    registeredAt: string;
+  }>;
+  newUsers: Array<{
+    spotifyId: string;
+    spotifyName: string;
+    spotifyAvatar?: string;
+    registeredAt: string;
+  }>;
+  totalUsers: number;
+  updatedAt: string;
+}
+
+export async function getLeaderboard(kv: KVNamespace): Promise<LeaderboardData | null> {
+  const cached = await kv.get(LEADERBOARD_CACHE_KEY);
+  if (cached) {
+    const data = JSON.parse(cached) as LeaderboardData;
+    // Check if cache is still valid
+    const cacheTime = new Date(data.updatedAt).getTime();
+    if (Date.now() - cacheTime < LEADERBOARD_CACHE_TTL * 1000) {
+      return data;
+    }
+  }
+  return null;
+}
+
+export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData> {
+  // Get pioneers (first 10 users)
+  const pioneers: LeaderboardData['pioneers'] = [];
+  for (let i = 1; i <= 10; i++) {
+    const hofKey = `hof:${String(i).padStart(3, '0')}`;
+    const data = await kv.get(hofKey);
+    if (data) {
+      pioneers.push(JSON.parse(data));
+    }
+  }
+
+  // Get recent users (last 10 registered)
+  const userList = await kv.list({ prefix: 'user:' });
+  const recentUsers: LeaderboardData['newUsers'] = [];
+
+  // Only fetch up to 50 users to limit KV reads
+  for (const key of userList.keys.slice(0, 50)) {
+    const data = await kv.get(key.name);
+    if (data) {
+      recentUsers.push(JSON.parse(data));
+    }
+  }
+
+  // Sort by registeredAt descending and take last 10
+  recentUsers.sort((a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime());
+
+  // Get total user count
+  const countStr = await kv.get('stats:user_count');
+  const totalUsers = countStr ? parseInt(countStr, 10) : 0;
+
+  const leaderboard: LeaderboardData = {
+    pioneers,
+    newUsers: recentUsers.slice(0, 10),
+    totalUsers,
+    updatedAt: new Date().toISOString(),
+  };
+
+  // Cache the leaderboard
+  await kv.put(LEADERBOARD_CACHE_KEY, JSON.stringify(leaderboard), { expirationTtl: LEADERBOARD_CACHE_TTL });
+
+  return leaderboard;
+}
+
 // ================== Analytics Tracking ==================
 
 const ANALYTICS_KEY = 'analytics:daily';
@@ -336,6 +415,10 @@ export interface AnalyticsData {
   playlistsCreated: number;
   totalTracksAnalysed: number;
   kvErrors: number;
+  // KV usage tracking
+  kvReads: number;
+  kvWrites: number;
+  kvDeletes: number;
 }
 
 export interface AnalyticsSummary {
@@ -362,7 +445,12 @@ async function getDailyAnalytics(kv: KVNamespace): Promise<AnalyticsData> {
   const existing = await kv.get(key);
 
   if (existing) {
-    return JSON.parse(existing) as AnalyticsData;
+    const data = JSON.parse(existing) as AnalyticsData;
+    // Ensure new fields exist (backwards compatibility)
+    data.kvReads = data.kvReads || 0;
+    data.kvWrites = data.kvWrites || 0;
+    data.kvDeletes = data.kvDeletes || 0;
+    return data;
   }
 
   return {
@@ -376,6 +464,9 @@ async function getDailyAnalytics(kv: KVNamespace): Promise<AnalyticsData> {
     playlistsCreated: 0,
     totalTracksAnalysed: 0,
     kvErrors: 0,
+    kvReads: 0,
+    kvWrites: 0,
+    kvDeletes: 0,
   };
 }
 
@@ -384,26 +475,37 @@ async function saveDailyAnalytics(kv: KVNamespace, data: AnalyticsData): Promise
   await kv.put(key, JSON.stringify(data), { expirationTtl: ANALYTICS_TTL });
 }
 
+// Analytics sampling rate - only persist 1 in N events to reduce KV writes
+// Errors always persist (critical), other events are sampled
+const ANALYTICS_SAMPLE_RATE = 10; // 1 in 10 events = 90% reduction in writes
+
 export async function trackAnalyticsEvent(
   kv: KVNamespace,
   eventType: 'pageView' | 'signIn' | 'authFailure' | 'error' | 'libraryScan' | 'playlistCreated' | 'kvError',
-  metadata?: { message?: string; path?: string; timestamp?: string; visitorId?: string; tracksCount?: number }
+  metadata?: { message?: string; path?: string; timestamp?: string; visitorId?: string; tracksCount?: number; count?: number }
 ): Promise<void> {
   try {
+    // Errors always persist - they're critical for debugging
+    // Other events are sampled to reduce KV writes by ~90%
+    const shouldPersist = eventType === 'error' || Math.random() < (1 / ANALYTICS_SAMPLE_RATE);
+    if (!shouldPersist) return;
+
     const analytics = await getDailyAnalytics(kv);
+    // Scale up sampled events to approximate true count
+    const incrementBy = (metadata?.count || 1) * (eventType === 'error' ? 1 : ANALYTICS_SAMPLE_RATE);
 
     switch (eventType) {
       case 'pageView':
-        analytics.pageViews++;
+        analytics.pageViews += incrementBy;
         if (metadata?.visitorId && !analytics.uniqueVisitors.includes(metadata.visitorId)) {
           analytics.uniqueVisitors.push(metadata.visitorId);
         }
         break;
       case 'signIn':
-        analytics.signIns++;
+        analytics.signIns += incrementBy;
         break;
       case 'authFailure':
-        analytics.authFailures++;
+        analytics.authFailures += incrementBy;
         break;
       case 'error':
         analytics.errors.push({
@@ -417,16 +519,16 @@ export async function trackAnalyticsEvent(
         }
         break;
       case 'libraryScan':
-        analytics.libraryScans++;
+        analytics.libraryScans += incrementBy;
         if (metadata?.tracksCount) {
-          analytics.totalTracksAnalysed += metadata.tracksCount;
+          analytics.totalTracksAnalysed += metadata.tracksCount * ANALYTICS_SAMPLE_RATE;
         }
         break;
       case 'playlistCreated':
-        analytics.playlistsCreated++;
+        analytics.playlistsCreated += incrementBy;
         break;
       case 'kvError':
-        analytics.kvErrors++;
+        analytics.kvErrors += incrementBy;
         break;
     }
 

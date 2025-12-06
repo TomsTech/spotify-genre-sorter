@@ -8,6 +8,8 @@ import {
   addRecentPlaylist,
   getScoreboard,
   buildScoreboard,
+  getLeaderboard,
+  buildLeaderboard,
   trackAnalyticsEvent,
   getAnalytics,
   type RecentPlaylist,
@@ -99,7 +101,7 @@ api.use('/*', async (c, next) => {
 });
 
 // Public endpoints that don't require authentication
-const PUBLIC_ENDPOINTS = ['/scoreboard', '/leaderboard', '/recent-playlists', '/deploy-status', '/changelog', '/analytics'];
+const PUBLIC_ENDPOINTS = ['/scoreboard', '/leaderboard', '/recent-playlists', '/deploy-status', '/changelog', '/analytics', '/kv-usage'];
 
 // Auth middleware - check auth and refresh tokens if needed
 api.use('/*', async (c, next) => {
@@ -797,10 +799,8 @@ api.post('/playlists/bulk', async (c) => {
     const skippedCount = results.filter(r => r.skipped).length;
     if (successCount > 0) {
       await invalidateGenreCache(c.env.SESSIONS, user.id);
-      // Track bulk playlist creation in analytics
-      for (let i = 0; i < successCount; i++) {
-        await trackAnalyticsEvent(c.env.SESSIONS, 'playlistCreated', { visitorId: user.id });
-      }
+      // Track bulk playlist creation in analytics (single KV write instead of N writes)
+      await trackAnalyticsEvent(c.env.SESSIONS, 'playlistCreated', { visitorId: user.id, count: successCount });
     }
 
     return c.json({
@@ -881,80 +881,61 @@ api.get('/scoreboard', async (c) => {
   try {
     // Try to get cached scoreboard
     let scoreboard = await getScoreboard(c.env.SESSIONS);
+    let fromCache = true;
 
     if (!scoreboard) {
       // Build fresh scoreboard
       scoreboard = await buildScoreboard(c.env.SESSIONS);
+      fromCache = false;
     }
 
-    return c.json(scoreboard);
+    // Calculate cache age for transparency
+    const cacheAge = Math.round((Date.now() - new Date(scoreboard.updatedAt).getTime()) / 1000);
+    const nextRefresh = Math.max(0, 3600 - cacheAge); // 1 hour cache
+
+    return c.json({
+      ...scoreboard,
+      _cache: {
+        ageSeconds: cacheAge,
+        nextRefreshSeconds: nextRefresh,
+        fromCache,
+        ttl: '1 hour',
+      },
+    });
   } catch (err) {
     console.error('Error fetching scoreboard:', err);
     return c.json({ error: 'Failed to fetch scoreboard' }, 500);
   }
 });
 
-// Get leaderboard (pioneers + new users)
+// Get leaderboard (pioneers + new users) - CACHED to reduce KV usage
 api.get('/leaderboard', async (c) => {
   try {
-    // Get pioneers (first 10 users)
-    const pioneers: Array<{
-      position: number;
-      spotifyId: string;
-      spotifyName: string;
-      spotifyAvatar?: string;
-      registeredAt: string;
-    }> = [];
+    // Try to get cached leaderboard first (reduces 112+ KV ops to 1 read)
+    let leaderboard = await getLeaderboard(c.env.SESSIONS);
+    let fromCache = true;
 
-    for (let i = 1; i <= 10; i++) {
-      const hofKey = `hof:${String(i).padStart(3, '0')}`;
-      const data = await c.env.SESSIONS.get(hofKey);
-      if (data) {
-        const parsed = JSON.parse(data) as {
-          position: number;
-          spotifyId: string;
-          spotifyName: string;
-          spotifyAvatar?: string;
-          registeredAt: string;
-        };
-        pioneers.push(parsed);
-      }
+    if (!leaderboard) {
+      // Build fresh leaderboard and cache it
+      leaderboard = await buildLeaderboard(c.env.SESSIONS);
+      fromCache = false;
     }
 
-    // Get recent users (last 10 registered)
-    // We need to list all user: keys and sort by registeredAt
-    const userList = await c.env.SESSIONS.list({ prefix: 'user:' });
-    const recentUsers: Array<{
-      spotifyId: string;
-      spotifyName: string;
-      spotifyAvatar?: string;
-      registeredAt: string;
-    }> = [];
-
-    for (const key of userList.keys.slice(0, 100)) {
-      const data = await c.env.SESSIONS.get(key.name);
-      if (data) {
-        const user = JSON.parse(data) as {
-          spotifyId: string;
-          spotifyName: string;
-          spotifyAvatar?: string;
-          registeredAt: string;
-        };
-        recentUsers.push(user);
-      }
-    }
-
-    // Sort by registeredAt descending and take last 10
-    recentUsers.sort((a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime());
-
-    // Get total user count
-    const countStr = await c.env.SESSIONS.get('stats:user_count');
-    const totalUsers = countStr ? parseInt(countStr, 10) : 0;
+    // Calculate cache age for transparency
+    const cacheAge = Math.round((Date.now() - new Date(leaderboard.updatedAt).getTime()) / 1000);
+    const nextRefresh = Math.max(0, 900 - cacheAge); // 15 min cache
 
     return c.json({
-      pioneers,
-      newUsers: recentUsers.slice(0, 10),
-      totalUsers,
+      pioneers: leaderboard.pioneers,
+      newUsers: leaderboard.newUsers,
+      totalUsers: leaderboard.totalUsers,
+      _cache: {
+        updatedAt: leaderboard.updatedAt,
+        ageSeconds: cacheAge,
+        nextRefreshSeconds: nextRefresh,
+        fromCache,
+        ttl: '15 minutes',
+      },
     });
   } catch (err) {
     console.error('Error fetching leaderboard:', err);
@@ -981,6 +962,125 @@ api.get('/analytics', async (c) => {
   } catch (err) {
     console.error('Error fetching analytics:', err);
     return c.json({ error: 'Failed to fetch analytics' }, 500);
+  }
+});
+
+// KV usage estimation endpoint for status page monitoring
+// Cloudflare Workers free tier: 100k reads/day, 1k writes/day
+api.get('/kv-usage', async (c) => {
+  try {
+    const analytics = await getAnalytics(c.env.SESSIONS);
+    const today = analytics.today;
+    const last7Days = analytics.last7Days;
+
+    // Estimate KV operations by category (after optimizations)
+    // Sessions: 1 read per authenticated request
+    // Caches: leaderboard (5min), scoreboard (1h), genre (1-24h)
+    // User stats: 1 read + 1 write per playlist
+    // Recent playlists: 1 read per poll, 1 read + 1 write per add
+
+    const breakdown = {
+      sessions: {
+        reads: Math.round(today.libraryScans * 2 + today.playlistsCreated * 2),
+        writes: today.signIns * 2, // create + update
+      },
+      caches: {
+        reads: Math.round(today.pageViews * 0.5), // Most are cache hits
+        writes: Math.round(today.pageViews * 0.02), // Rare cache rebuilds
+      },
+      userStats: {
+        reads: today.playlistsCreated,
+        writes: today.playlistsCreated,
+      },
+      recentPlaylists: {
+        reads: Math.round(today.pageViews * 0.3), // Polling (now 3min interval)
+        writes: today.playlistsCreated,
+      },
+      auth: {
+        reads: today.signIns * 3,
+        writes: today.signIns * 2,
+      },
+    };
+
+    const estimatedReads = Object.values(breakdown).reduce((sum, cat) => sum + cat.reads, 0);
+    const estimatedWrites = Object.values(breakdown).reduce((sum, cat) => sum + cat.writes, 0);
+
+    // Free tier limits
+    const READ_LIMIT = 100000;
+    const WRITE_LIMIT = 1000;
+
+    const readUsagePercent = Math.round((estimatedReads / READ_LIMIT) * 100);
+    const writeUsagePercent = Math.round((estimatedWrites / WRITE_LIMIT) * 100);
+
+    // Determine status and any recommendations
+    let status: 'ok' | 'warning' | 'critical' = 'ok';
+    const recommendations: string[] = [];
+
+    if (writeUsagePercent > 90 || readUsagePercent > 90) {
+      status = 'critical';
+    } else if (writeUsagePercent > 80 || readUsagePercent > 80) {
+      status = 'warning';
+    }
+
+    // Smart recommendations based on usage patterns
+    if (breakdown.recentPlaylists.reads > estimatedReads * 0.4) {
+      recommendations.push('Consider increasing polling interval for recent playlists');
+    }
+    if (breakdown.userStats.writes > 50) {
+      recommendations.push('High playlist creation activity - stats writes elevated');
+    }
+    if (today.authFailures > 10) {
+      recommendations.push('Elevated auth failures detected - possible attack or misconfiguration');
+    }
+
+    // Calculate 7-day trend
+    const avgDailyWrites = Math.round(
+      (last7Days.signIns * 2 + last7Days.libraryScans + last7Days.playlistsCreated * 2) / 7
+    );
+    const trend = estimatedWrites > avgDailyWrites * 1.5 ? 'increasing' :
+                  estimatedWrites < avgDailyWrites * 0.5 ? 'decreasing' : 'stable';
+
+    return c.json({
+      date: today.date,
+      estimated: {
+        reads: estimatedReads,
+        writes: estimatedWrites,
+      },
+      breakdown,
+      limits: {
+        reads: READ_LIMIT,
+        writes: WRITE_LIMIT,
+      },
+      usage: {
+        readsPercent: readUsagePercent,
+        writesPercent: writeUsagePercent,
+        readsRemaining: READ_LIMIT - estimatedReads,
+        writesRemaining: WRITE_LIMIT - estimatedWrites,
+      },
+      trend: {
+        direction: trend,
+        avgDailyWrites,
+        todayVsAvg: avgDailyWrites > 0 ? `${Math.round((estimatedWrites / avgDailyWrites) * 100)}%` : 'N/A',
+      },
+      status,
+      recommendations: recommendations.length > 0 ? recommendations : undefined,
+      activity: {
+        signIns: today.signIns,
+        libraryScans: today.libraryScans,
+        playlistsCreated: today.playlistsCreated,
+        authFailures: today.authFailures,
+      },
+      optimizations: {
+        leaderboardCacheTTL: '15 minutes',
+        scoreboardCacheTTL: '1 hour',
+        pollingInterval: '3 minutes',
+        pageViewTracking: 'disabled (using Cloudflare Analytics)',
+        analyticsSampling: '10% (90% reduction in writes)',
+      },
+    });
+  } catch (err) {
+    console.error('Error fetching KV usage:', err);
+    return c.json({ error: 'Failed to fetch KV usage' }, 500);
   }
 });
 

@@ -1897,7 +1897,7 @@
 
     function showPlaylistCustomizeModal(genre) {
       const defaultName = playlistTemplate.replace('{genre}', genre.name);
-      const defaultDescription = `${genre.name} tracks from your liked songs ♫`;
+      const defaultDescription = \`\${genre.name} tracks from your liked songs ♫\`;
 
       const modal = document.createElement('div');
       modal.className = 'modal-overlay';
@@ -2751,10 +2751,29 @@
       loadLeaderboard();
       loadRecentPlaylists();
 
-      // Poll for recent playlists every 30 seconds
-      sidebarPollInterval = setInterval(() => {
-        loadRecentPlaylists();
-      }, 30000);
+      // Poll for recent playlists every 3 minutes (was 30s - reduced to save KV usage)
+      function startPolling() {
+        if (sidebarPollInterval) clearInterval(sidebarPollInterval);
+        sidebarPollInterval = setInterval(() => {
+          loadRecentPlaylists();
+        }, 180000); // 3 minutes
+      }
+
+      startPolling();
+
+      // Pause polling when tab is hidden to reduce KV reads
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          if (sidebarPollInterval) {
+            clearInterval(sidebarPollInterval);
+            sidebarPollInterval = null;
+          }
+        } else {
+          // Tab became visible - refresh immediately then resume polling
+          loadRecentPlaylists();
+          startPolling();
+        }
+      });
 
       // On mobile, start with sidebar collapsed
       if (window.innerWidth <= 1024) {

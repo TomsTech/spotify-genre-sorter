@@ -2473,6 +2473,13 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      cursor: help;
+    }
+
+    .cache-hint {
+      font-size: 0.7rem;
+      opacity: 0.5;
+      margin-left: auto;
     }
 
     .sidebar-loading {
