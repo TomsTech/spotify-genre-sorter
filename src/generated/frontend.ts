@@ -592,6 +592,84 @@ export function getHtml(): string {
       margin-top: 1.5rem;
     }
 
+    /* Playlist Customize Modal */
+    .playlist-customize-modal {
+      max-width: 500px;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .playlist-preview {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--surface-2);
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
+
+    .preview-icon {
+      font-size: 2.5rem;
+      line-height: 1;
+    }
+
+    .preview-info {
+      flex: 1;
+    }
+
+    .preview-tracks {
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+
+    .preview-hint {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .char-count {
+      text-align: right;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
@@ -2418,6 +2496,13 @@ export function getHtml(): string {
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      cursor: help;
+    }
+
+    .cache-hint {
+      font-size: 0.7rem;
+      opacity: 0.5;
+      margin-left: auto;
     }
 
     .sidebar-loading {
@@ -2948,6 +3033,19 @@ export function getHtml(): string {
       to { transform: rotate(360deg); }
     }
 
+    @keyframes vinylFlip {
+      0% {
+        transform: rotateY(0deg) scale(1);
+      }
+      50% {
+        transform: rotateY(180deg) scale(1.15);
+        filter: brightness(1.2);
+      }
+      100% {
+        transform: rotateY(360deg) scale(1);
+      }
+    }
+
     .loading-text {
       font-size: 1.25rem;
       font-weight: 500;
@@ -3337,27 +3435,27 @@ export function getHtml(): string {
       <!-- Left Sidebar -->
       <aside class="sidebar" id="sidebar">
         <div class="sidebar-section">
-          <h3 class="sidebar-title">🏆 <span data-i18n="pioneers">Pioneers</span></h3>
+          <h3 class="sidebar-title" title="Updates every 15 minutes to save API calls">🏆 <span data-i18n="pioneers">Pioneers</span> <span class="cache-hint">⏱️</span></h3>
           <div class="pioneers-list" id="pioneers-list">
             <div class="sidebar-loading">Loading...</div>
           </div>
         </div>
 
         <div class="sidebar-section">
-          <h3 class="sidebar-title">👋 <span data-i18n="newUsers">New Users</span></h3>
+          <h3 class="sidebar-title" title="Updates every 15 minutes to save API calls">👋 <span data-i18n="newUsers">New Users</span> <span class="cache-hint">⏱️</span></h3>
           <div class="new-users-list" id="new-users-list">
             <div class="sidebar-loading">Loading...</div>
           </div>
         </div>
 
         <div class="sidebar-section">
-          <h3 class="sidebar-title">🎵 <span data-i18n="recentPlaylists">Recent Playlists</span></h3>
+          <h3 class="sidebar-title" title="Refreshes every 3 minutes">🎵 <span data-i18n="recentPlaylists">Recent Playlists</span> <span class="cache-hint">⏱️</span></h3>
           <div class="recent-playlists-list" id="recent-playlists-list">
             <div class="sidebar-loading">Loading...</div>
           </div>
         </div>
 
-        <button class="btn btn-secondary sidebar-scoreboard-btn" onclick="showScoreboard()">
+        <button class="btn btn-secondary sidebar-scoreboard-btn" onclick="showScoreboard()" title="Rankings update every hour">
           📊 <span data-i18n="viewScoreboard">View Scoreboard</span>
         </button>
 
@@ -4137,11 +4235,43 @@ export function getHtml(): string {
       }
     }
 
-    // Rotate album carousel to show different covers
+    // Rotate album carousel to show different covers with vinyl flip animation
     function rotateAlbumCarousel() {
-      if (albumArtUrls.length < 3) return;
-      albumCarouselIndex = (albumCarouselIndex + 1) % albumArtUrls.length;
-      updateAlbumCarousel();
+      const carousel = document.getElementById('album-carousel');
+      if (!carousel) return;
+
+      // If we have real album art, rotate through it
+      if (albumArtUrls.length >= 3) {
+        // Add flip animation to center item
+        const centerItem = carousel.querySelector('.album-art-item.center');
+        if (centerItem) {
+          centerItem.style.animation = 'vinylFlip 0.8s ease-in-out';
+          setTimeout(() => {
+            if (centerItem.style) centerItem.style.animation = '';
+          }, 800);
+        }
+
+        // Update index and carousel after flip starts
+        setTimeout(() => {
+          albumCarouselIndex = (albumCarouselIndex + 1) % albumArtUrls.length;
+          updateAlbumCarousel();
+        }, 400);
+      } else {
+        // Placeholder animation - rotate emojis with flip
+        const items = carousel.querySelectorAll('.album-art-item');
+        items.forEach(item => {
+          item.style.animation = 'vinylFlip 0.8s ease-in-out';
+        });
+
+        setTimeout(() => {
+          const emojis = ['🎵', '🎶', '🎸', '🎹', '🥁', '🎺', '🎷', '🎻', '🎤'];
+          items.forEach(item => {
+            const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+            item.textContent = randomEmoji;
+            if (item.style) item.style.animation = '';
+          });
+        }, 400);
+      }
     }
 
     // Update album carousel display
@@ -5267,9 +5397,107 @@ export function getHtml(): string {
       }
     }
 
-    async function createPlaylist(genreName, force = false) {
+    function showPlaylistCustomizeModal(genre) {
+      const defaultName = playlistTemplate.replace('{genre}', genre.name);
+      const defaultDescription = \`\${genre.name} tracks from your liked songs ♫\`;
+
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.innerHTML = \`
+        <div class="modal playlist-customize-modal">
+          <h3>\${swedishMode ? \`🎵 Anpassa spellista för "\${escapeForHtml(genre.name)}"\` : \`🎵 Customize "\${escapeForHtml(genre.name)}" Playlist\`}</h3>
+
+          <div class="form-group">
+            <label for="playlist-name">\${swedishMode ? 'Namn:' : 'Name:'}</label>
+            <input
+              type="text"
+              id="playlist-name"
+              class="search-input"
+              value="\${escapeForHtml(defaultName)}"
+              maxlength="100"
+              placeholder="\${swedishMode ? 'Spellistans namn' : 'Playlist name'}"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="playlist-description">\${swedishMode ? 'Beskrivning:' : 'Description:'}</label>
+            <textarea
+              id="playlist-description"
+              class="search-input"
+              rows="3"
+              maxlength="300"
+              placeholder="\${swedishMode ? 'Valfri beskrivning (max 300 tecken)' : 'Optional description (max 300 chars)'}"
+            >\${escapeForHtml(defaultDescription)}</textarea>
+            <div class="char-count" style="text-align: right; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+              <span id="desc-char-count">0</span>/300
+            </div>
+          </div>
+
+          <div class="playlist-preview">
+            <div class="preview-icon">\${getGenreEmoji(genre.name)}</div>
+            <div class="preview-info">
+              <div class="preview-tracks">\${genre.count} \${t('tracks')}</div>
+              <div class="preview-hint">\${swedishMode ? 'Kommer att läggas till i spellistan' : 'Will be added to playlist'}</div>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">
+              \${swedishMode ? 'Avbryt' : 'Cancel'}
+            </button>
+            <button class="btn btn-primary" id="create-customized-btn">
+              \${swedishMode ? 'Skapa Spellista' : 'Create Playlist'}
+            </button>
+          </div>
+        </div>
+      \`;
+
+      document.body.appendChild(modal);
+
+      // Update character count
+      const descTextarea = modal.querySelector('#playlist-description');
+      const charCount = modal.querySelector('#desc-char-count');
+      function updateCharCount() {
+        charCount.textContent = descTextarea.value.length;
+      }
+      descTextarea.addEventListener('input', updateCharCount);
+      updateCharCount();
+
+      // Handle create button click
+      modal.querySelector('#create-customized-btn').addEventListener('click', () => {
+        const customName = modal.querySelector('#playlist-name').value.trim();
+        const customDescription = modal.querySelector('#playlist-description').value.trim();
+
+        modal.remove();
+
+        createPlaylist(genre.name, false, {
+          name: customName || null,
+          description: customDescription || null,
+        });
+      });
+
+      // Close on overlay click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.remove();
+        }
+      });
+
+      // Focus name input
+      setTimeout(() => {
+        modal.querySelector('#playlist-name')?.select();
+      }, 100);
+    }
+
+    async function createPlaylist(genreName, force = false, customization = null) {
       const genre = genreData.genres.find(g => g.name === genreName);
       if (!genre) return;
+
+      // If no customization provided and not forcing, show customization modal first
+      if (!customization && !force) {
+        showPlaylistCustomizeModal(genre);
+        return;
+      }
 
       const btn = event?.target;
       if (btn) {
@@ -5278,10 +5506,18 @@ export function getHtml(): string {
       }
 
       try {
+        const requestBody = {
+          genre: genre.name,
+          trackIds: genre.trackIds,
+          force,
+          ...(customization?.name && { customName: customization.name }),
+          ...(customization?.description && { customDescription: customization.description }),
+        };
+
         const response = await fetch('/api/playlist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ genre: genre.name, trackIds: genre.trackIds, force }),
+          body: JSON.stringify(requestBody),
         });
 
         const result = await response.json();
@@ -6017,10 +6253,29 @@ export function getHtml(): string {
       loadLeaderboard();
       loadRecentPlaylists();
 
-      // Poll for recent playlists every 30 seconds
-      sidebarPollInterval = setInterval(() => {
-        loadRecentPlaylists();
-      }, 30000);
+      // Poll for recent playlists every 3 minutes (was 30s - reduced to save KV usage)
+      function startPolling() {
+        if (sidebarPollInterval) clearInterval(sidebarPollInterval);
+        sidebarPollInterval = setInterval(() => {
+          loadRecentPlaylists();
+        }, 180000); // 3 minutes
+      }
+
+      startPolling();
+
+      // Pause polling when tab is hidden to reduce KV reads
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          if (sidebarPollInterval) {
+            clearInterval(sidebarPollInterval);
+            sidebarPollInterval = null;
+          }
+        } else {
+          // Tab became visible - refresh immediately then resume polling
+          loadRecentPlaylists();
+          startPolling();
+        }
+      });
 
       // On mobile, start with sidebar collapsed
       if (window.innerWidth <= 1024) {
