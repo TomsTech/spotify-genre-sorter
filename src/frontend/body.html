@@ -41,27 +41,27 @@
       <!-- Left Sidebar -->
       <aside class="sidebar" id="sidebar">
         <div class="sidebar-section">
-          <h3 class="sidebar-title">🏆 <span data-i18n="pioneers">Pioneers</span></h3>
+          <h3 class="sidebar-title" title="Updates every 15 minutes to save API calls">🏆 <span data-i18n="pioneers">Pioneers</span> <span class="cache-hint">⏱️</span></h3>
           <div class="pioneers-list" id="pioneers-list">
             <div class="sidebar-loading">Loading...</div>
           </div>
         </div>
 
         <div class="sidebar-section">
-          <h3 class="sidebar-title">👋 <span data-i18n="newUsers">New Users</span></h3>
+          <h3 class="sidebar-title" title="Updates every 15 minutes to save API calls">👋 <span data-i18n="newUsers">New Users</span> <span class="cache-hint">⏱️</span></h3>
           <div class="new-users-list" id="new-users-list">
             <div class="sidebar-loading">Loading...</div>
           </div>
         </div>
 
         <div class="sidebar-section">
-          <h3 class="sidebar-title">🎵 <span data-i18n="recentPlaylists">Recent Playlists</span></h3>
+          <h3 class="sidebar-title" title="Refreshes every 3 minutes">🎵 <span data-i18n="recentPlaylists">Recent Playlists</span> <span class="cache-hint">⏱️</span></h3>
           <div class="recent-playlists-list" id="recent-playlists-list">
             <div class="sidebar-loading">Loading...</div>
           </div>
         </div>
 
-        <button class="btn btn-secondary sidebar-scoreboard-btn" onclick="showScoreboard()">
+        <button class="btn btn-secondary sidebar-scoreboard-btn" onclick="showScoreboard()" title="Rankings update every hour">
           📊 <span data-i18n="viewScoreboard">View Scoreboard</span>
         </button>
 
