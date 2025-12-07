@@ -186,9 +186,9 @@ export async function getLikedTracks(
 }
 
 // Cloudflare Workers free plan has 50 subrequest limit
-// With ~20 requests for tracks + ~15 for artists, limit to ~1000 tracks
-const MAX_TRACKS_FREE_TIER = 1000;
-const MAX_TRACK_REQUESTS = 20; // 20 * 50 = 1000 tracks
+// Increased limit with progressive loading - full library support via chunking
+const MAX_TRACKS_FREE_TIER = 2000; // Increased from 1000 - chunks handle larger
+const MAX_TRACK_REQUESTS = 40; // 40 * 50 = 2000 tracks per scan
 
 export interface LikedTracksResult {
   tracks: LikedTrack[];

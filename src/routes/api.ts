@@ -13,6 +13,8 @@ import {
   trackAnalyticsEvent,
   getAnalytics,
   getKVMetrics,
+  getScanProgress,
+  saveScanProgress,
   type RecentPlaylist,
 } from '../lib/session';
 import {
@@ -348,6 +350,187 @@ interface ChunkCacheData {
   artistCount: number;
   cachedAt: number;
 }
+
+// Progressive scan with resume capability
+// This endpoint handles large libraries by scanning in chunks and storing progress
+api.get('/genres/progressive', async (c) => {
+  const session = await getSession(c);
+  if (!session?.spotifyAccessToken) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+
+  const forceRestart = c.req.query('restart') === 'true';
+
+  try {
+    const user = await getCurrentUser(session.spotifyAccessToken);
+
+    // Check for existing progress
+    let progress = await getScanProgress(c.env.SESSIONS, user.id);
+
+    // If forcing restart or no progress, start fresh
+    if (forceRestart || !progress) {
+      // Get total library size
+      const initialResponse = await getLikedTracks(session.spotifyAccessToken, 1, 0);
+
+      progress = {
+        userId: user.id,
+        offset: 0,
+        totalInLibrary: initialResponse.total,
+        partialGenres: [],
+        partialArtistCount: 0,
+        partialTrackCount: 0,
+        startedAt: new Date().toISOString(),
+        lastUpdatedAt: new Date().toISOString(),
+        status: 'in_progress',
+      };
+    }
+
+    // If scan is complete, return the full cache
+    if (progress.status === 'completed') {
+      const cacheKey = `${GENRE_CACHE_PREFIX}${user.id}`;
+      const cachedData = await c.env.SESSIONS.get<GenreCacheData>(cacheKey, 'json');
+      if (cachedData) {
+        return c.json({
+          ...cachedData,
+          fromCache: true,
+          scanStatus: 'completed',
+          progress: 100,
+        });
+      }
+      // Cache missing, restart scan
+      progress.status = 'in_progress';
+      progress.offset = 0;
+    }
+
+    // Fetch next chunk of tracks (stay under subrequest limit)
+    const CHUNK_SIZE_PROGRESSIVE = 500;
+    const allChunkTracks = [];
+    let currentOffset = progress.offset;
+    let requestCount = 0;
+
+    while (currentOffset < progress.offset + CHUNK_SIZE_PROGRESSIVE && requestCount < 10) {
+      const pageLimit = Math.min(50, progress.offset + CHUNK_SIZE_PROGRESSIVE - currentOffset);
+      const response = await getLikedTracks(session.spotifyAccessToken, pageLimit, currentOffset);
+      allChunkTracks.push(...response.items);
+      currentOffset += pageLimit;
+      requestCount++;
+
+      if (currentOffset >= response.total) break;
+    }
+
+    if (allChunkTracks.length === 0 && progress.offset >= progress.totalInLibrary) {
+      // Scan complete
+      progress.status = 'completed';
+      progress.lastUpdatedAt = new Date().toISOString();
+      await saveScanProgress(c.env.SESSIONS, progress);
+
+      // Build and cache final results
+      const finalData: GenreCacheData = {
+        genres: progress.partialGenres.sort((a, b) => b.count - a.count),
+        totalTracks: progress.partialTrackCount,
+        totalGenres: progress.partialGenres.length,
+        totalArtists: progress.partialArtistCount,
+        cachedAt: Date.now(),
+        cacheExpiresAt: Date.now() + (GENRE_CACHE_TTL_LARGE * 1000),
+      };
+
+      const cacheKey = `${GENRE_CACHE_PREFIX}${user.id}`;
+      await c.env.SESSIONS.put(cacheKey, JSON.stringify(finalData), {
+        expirationTtl: GENRE_CACHE_TTL_LARGE,
+      });
+
+      // Update user stats
+      await createOrUpdateUserStats(c.env.SESSIONS, user.id, {
+        totalGenresDiscovered: finalData.totalGenres,
+        totalArtistsDiscovered: finalData.totalArtists,
+        totalTracksAnalysed: finalData.totalTracks,
+      });
+
+      return c.json({
+        ...finalData,
+        fromCache: false,
+        scanStatus: 'completed',
+        progress: 100,
+      });
+    }
+
+    // Process chunk: get artists and genres
+    const artistIds = new Set<string>();
+    for (const { track } of allChunkTracks) {
+      for (const artist of track.artists) {
+        artistIds.add(artist.id);
+      }
+    }
+
+    const artists = await getArtists(session.spotifyAccessToken, [...artistIds].slice(0, 500));
+    const artistGenreMap = new Map<string, string[]>();
+    for (const artist of artists) {
+      artistGenreMap.set(artist.id, artist.genres);
+    }
+
+    // Merge into progress
+    const genreMap = new Map<string, { count: number; trackIds: string[] }>();
+
+    // Load existing partial genres
+    for (const g of progress.partialGenres) {
+      genreMap.set(g.name, { count: g.count, trackIds: g.trackIds });
+    }
+
+    // Add new tracks
+    for (const { track } of allChunkTracks) {
+      const trackGenres = new Set<string>();
+      for (const artist of track.artists) {
+        const genres = artistGenreMap.get(artist.id) || [];
+        genres.forEach(g => trackGenres.add(g));
+      }
+
+      for (const genre of trackGenres) {
+        let data = genreMap.get(genre);
+        if (!data) {
+          data = { count: 0, trackIds: [] };
+          genreMap.set(genre, data);
+        }
+        data.count++;
+        data.trackIds.push(track.id);
+      }
+    }
+
+    // Update progress
+    progress.partialGenres = [...genreMap.entries()].map(([name, data]) => ({
+      name,
+      count: data.count,
+      trackIds: data.trackIds,
+    }));
+    progress.partialTrackCount += allChunkTracks.length;
+    progress.partialArtistCount = new Set([
+      ...progress.partialGenres.flatMap(g => g.trackIds),
+    ]).size; // Approximate
+    progress.offset = currentOffset;
+    progress.lastUpdatedAt = new Date().toISOString();
+
+    // Save progress
+    await saveScanProgress(c.env.SESSIONS, progress);
+
+    const progressPercent = Math.min(100, Math.round((progress.offset / progress.totalInLibrary) * 100));
+
+    return c.json({
+      scanStatus: 'in_progress',
+      progress: progressPercent,
+      scannedTracks: progress.partialTrackCount,
+      totalInLibrary: progress.totalInLibrary,
+      genresFound: progress.partialGenres.length,
+      nextOffset: progress.offset,
+      message: `Scanned ${progress.partialTrackCount} of ${progress.totalInLibrary} tracks (${progressPercent}%)`,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Error in progressive scan:', err);
+    return c.json({
+      error: 'Progressive scan failed',
+      details: message,
+    }, 500);
+  }
+});
 
 // Progressive loading: Get genres for a chunk of tracks
 // This endpoint stays under 50 subrequests by limiting track fetching per call

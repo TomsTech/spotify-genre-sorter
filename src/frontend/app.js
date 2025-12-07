@@ -104,6 +104,42 @@
       return swedishFacts[Math.floor(Math.random() * swedishFacts.length)];
     }
 
+    // ✨ SECRET: Heidi greeting messages
+    const heidiGreetings = [
+      'Välkommen tillbaka, min drottning 👑',
+      'Hej min kärlek! 💙💛',
+      'Du gör min dag ljusare ✨',
+      'Min favoritperson är här! 🥰',
+      'För dig, alltid 💕',
+    ];
+
+    function showHeidiGreeting() {
+      const greeting = heidiGreetings[Math.floor(Math.random() * heidiGreetings.length)];
+
+      const overlay = document.createElement('div');
+      overlay.className = 'heidi-greeting-overlay';
+      overlay.innerHTML = \`
+        <div class="heidi-greeting-content">
+          <div class="heidi-crown">👑</div>
+          <p class="heidi-greeting-text">\${greeting}</p>
+          <div class="heidi-hearts">💙💛💙💛💙</div>
+        </div>
+      \`;
+
+      document.body.appendChild(overlay);
+
+      // Auto-dismiss after 3 seconds
+      setTimeout(() => {
+        overlay.classList.add('fade-out');
+        setTimeout(() => overlay.remove(), 500);
+      }, 3000);
+
+      overlay.addEventListener('click', () => {
+        overlay.classList.add('fade-out');
+        setTimeout(() => overlay.remove(), 500);
+      });
+    }
+
     // Update Heidi badge tooltip with random fact
     function updateHeidiBadgeFact() {
       const badge = document.querySelector('.heidi-badge');
@@ -561,6 +597,27 @@
       if (!session.authenticated) {
         renderWelcome(error);
         return;
+      }
+
+      // ✨ SECRET: Heidi detection (~oogi~ or Heidi in name)
+      const userName = (session.user || session.spotifyUser || '').toLowerCase();
+      const isHeidi = userName.includes('oogi') || userName.includes('heidi');
+
+      if (isHeidi) {
+        document.body.classList.add('heidi-mode');
+        // Auto-enable Swedish mode for Heidi
+        if (!swedishMode) {
+          swedishMode = true;
+          localStorage.setItem('swedishMode', 'true');
+          document.body.classList.add('swedish-mode');
+        }
+        // Show special greeting (once per day)
+        const lastHeidiGreeting = localStorage.getItem('heidiGreetingDate');
+        const today = new Date().toDateString();
+        if (lastHeidiGreeting !== today) {
+          localStorage.setItem('heidiGreetingDate', today);
+          showHeidiGreeting();
+        }
       }
 
       renderHeaderUser(session);
@@ -2026,6 +2083,8 @@
             btn.style.color = 'var(--accent)';
           }
           showNotification(\`\${swedishMode ? 'Skapade spellista' : 'Created playlist'}: \${genre.name} (\${genre.count} \${t('tracks')})\`, 'success');
+          // Celebrate with confetti!
+          showConfetti();
         } else if (result.duplicate) {
           // Show duplicate confirmation dialog
           showDuplicateDialog(genre, result);
@@ -2084,6 +2143,36 @@
 
     function createPlaylistForce(genreName) {
       createPlaylist(genreName, true);
+    }
+
+    // ================== CONFETTI CELEBRATION ==================
+
+    function showConfetti() {
+      // Don't show if user prefers reduced motion
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      const container = document.createElement('div');
+      container.className = 'confetti-container';
+      document.body.appendChild(container);
+
+      // Spotify green, Swedish colours if in swedish mode
+      const colors = swedishMode
+        ? ['#006AA7', '#FECC00', '#006AA7', '#FECC00', '#fff']
+        : ['#1DB954', '#1ed760', '#fff', '#1DB954', '#b3b3b3'];
+
+      // Create confetti pieces
+      for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti-piece';
+        confetti.style.left = Math.random() * 100 + '%';
+        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.animationDelay = Math.random() * 0.5 + 's';
+        confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+        container.appendChild(confetti);
+      }
+
+      // Remove after animation
+      setTimeout(() => container.remove(), 3000);
     }
 
     // ================== LOADING ANIMATION ==================
@@ -2791,4 +2880,58 @@
     startDeployMonitor();
 
     // Initialize sidebar
-    initSidebar();
+    initSidebar();
+
+    // =========================================
+    // EASTER EGG: Konami Code - Jeff Goldblum
+    // ↑↑↓↓←→←→BA triggers "Life finds a way"
+    // =========================================
+
+    const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+    let konamiPosition = 0;
+    let goldblumShown = sessionStorage.getItem('goldblumShown') === 'true';
+
+    function showGoldblum() {
+      if (goldblumShown) return;
+      goldblumShown = true;
+      sessionStorage.setItem('goldblumShown', 'true');
+
+      const overlay = document.createElement('div');
+      overlay.className = 'goldblum-overlay';
+      overlay.innerHTML = \`
+        <div class="goldblum-content">
+          <div class="goldblum-silhouette">🦖</div>
+          <p class="goldblum-quote">"Life, uh... finds a way."</p>
+          <p class="goldblum-subtitle">- Dr. Ian Malcolm</p>
+        </div>
+      \`;
+
+      document.body.appendChild(overlay);
+
+      // Auto-remove after 4 seconds
+      setTimeout(() => {
+        overlay.classList.add('fade-out');
+        setTimeout(() => overlay.remove(), 500);
+      }, 4000);
+
+      // Click to dismiss
+      overlay.addEventListener('click', () => {
+        overlay.classList.add('fade-out');
+        setTimeout(() => overlay.remove(), 500);
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      const key = e.key.toLowerCase();
+      const expected = konamiCode[konamiPosition].toLowerCase();
+
+      if (key === expected) {
+        konamiPosition++;
+        if (konamiPosition === konamiCode.length) {
+          showGoldblum();
+          konamiPosition = 0;
+        }
+      } else {
+        konamiPosition = 0;
+      }
+    });

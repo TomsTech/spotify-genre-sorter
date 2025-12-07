@@ -5,6 +5,49 @@ import { cachedKV, CACHE_TTL } from './kv-cache';
 // Re-export metrics for API access
 export { getKVMetrics } from './kv-cache';
 
+// ================== Scan Progress Tracking ==================
+
+export interface ScanProgress {
+  userId: string;
+  offset: number;
+  totalInLibrary: number;
+  partialGenres: { name: string; count: number; trackIds: string[] }[];
+  partialArtistCount: number;
+  partialTrackCount: number;
+  startedAt: string;
+  lastUpdatedAt: string;
+  status: 'in_progress' | 'completed' | 'failed';
+}
+
+const SCAN_PROGRESS_PREFIX = 'scan_progress:';
+const SCAN_PROGRESS_TTL = 3600; // 1 hour expiry for incomplete scans
+
+export async function getScanProgress(
+  kv: KVNamespace,
+  userId: string
+): Promise<ScanProgress | null> {
+  return cachedKV.get<ScanProgress>(kv, `${SCAN_PROGRESS_PREFIX}${userId}`, { cacheTtlMs: 60000 });
+}
+
+export async function saveScanProgress(
+  kv: KVNamespace,
+  progress: ScanProgress
+): Promise<void> {
+  await cachedKV.put(
+    kv,
+    `${SCAN_PROGRESS_PREFIX}${progress.userId}`,
+    JSON.stringify(progress),
+    { expirationTtl: SCAN_PROGRESS_TTL, immediate: true }
+  );
+}
+
+export async function deleteScanProgress(
+  kv: KVNamespace,
+  userId: string
+): Promise<void> {
+  await cachedKV.delete(kv, `${SCAN_PROGRESS_PREFIX}${userId}`);
+}
+
 export interface Session {
   githubUser?: string;
   githubAvatar?: string;
