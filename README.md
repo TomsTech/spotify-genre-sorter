@@ -183,7 +183,43 @@ Then verify:
 
 ## Architecture
 
-> *"Architecture is frozen music."* — Johann Wolfgang von Goethe
+<details>
+<summary><strong>Simple Mode</strong></summary>
+
+```mermaid
+flowchart TB
+    subgraph Client["Browser"]
+        User["You"]
+    end
+
+    subgraph CF["Cloudflare"]
+        Worker["Worker<br/>(Hono)"]
+        KV[("KV Store")]
+    end
+
+    subgraph External["External"]
+        Spotify["Spotify API"]
+    end
+
+    User -->|"1. Login"| Worker
+    Worker -->|"2. Auth"| Spotify
+    Spotify -->|"3. Token"| Worker
+    Worker <-->|"4. Save"| KV
+    Worker -->|"5. Get genres"| Spotify
+    Spotify -->|"6. Data"| Worker
+    Worker -->|"7. Create playlist"| Spotify
+    Worker -->|"8. Done!"| User
+
+    style User fill:#FECC00,color:#006AA7
+    style Worker fill:#006AA7,color:#FECC00
+    style KV fill:#006AA7,color:#FECC00
+    style Spotify fill:#1DB954,color:#fff
+```
+
+</details>
+
+<details open>
+<summary><strong>History Nerd Mode</strong> — <em>"Architecture is frozen music."</em></summary>
 
 Like the columns of an ancient temple, each component serves its purpose with elegant simplicity.
 
@@ -217,7 +253,38 @@ flowchart TB
     style Spotify fill:#1DB954,color:#fff
 ```
 
-### The OAuth Ballet
+</details>
+
+### The OAuth Flow
+
+<details>
+<summary><strong>Simple Mode</strong></summary>
+
+```mermaid
+sequenceDiagram
+    participant U as You
+    participant W as Worker
+    participant S as Spotify
+    participant K as Storage
+
+    U->>W: Visit site
+    W->>U: Show login
+    U->>W: Click login
+    W->>S: Redirect to Spotify
+    S->>W: Return with token
+    W->>K: Save session
+    W->>S: Get your genres
+    S->>W: Return genre data
+    W->>U: Show your genres!
+    U->>W: Create playlist
+    W->>S: Make the playlist
+    W->>U: Done!
+```
+
+</details>
+
+<details open>
+<summary><strong>History Nerd Mode</strong> — <em>The Ballet</em></summary>
 
 ```mermaid
 sequenceDiagram
@@ -247,6 +314,8 @@ sequenceDiagram
     S->>W: Confirms creation
     W->>U: Celebrates with confetti
 ```
+
+</details>
 
 ---
 
@@ -423,10 +492,12 @@ gitGraph
    commit id: "v2.0.0" tag: "v2.0.0" type: HIGHLIGHT
    commit id: "v2.2.0" tag: "v2.2.0"
    commit id: "v3.0.0" tag: "v3.0.0" type: HIGHLIGHT
+   commit id: "v3.0.1" tag: "v3.0.1"
 ```
 
 | Era | Version | Chronicle |
 |-----|---------|-----------|
+| | v3.0.1 | Release workflow fix, README cleanup |
 | | **v3.0.0** | Progressive scanning for vast libraries, admin sanctum, celebratory confetti, the Goldblum enigma |
 | | v2.2.0 | Sorted rankings, track counting |
 | | **v2.0.0** | The Genre Genie transformation, leaderboards, scoreboards, the great sidebar |
