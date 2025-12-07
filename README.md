@@ -1,31 +1,101 @@
-# Spotify Genre Sorter
+<p align="center">
+  <img src="https://flagcdn.com/w160/se.png" width="80" alt="Sweden">
+  <img src="https://flagcdn.com/w160/gb.png" width="80" alt="England">
+  <img src="https://flagcdn.com/w160/au.png" width="80" alt="Australia">
+</p>
 
-[![Stars](https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=flat-square&logo=github&label=Stars&color=gold)](https://github.com/TomsTech/spotify-genre-sorter/stargazers)
-[![CI](https://github.com/TomsTech/spotify-genre-sorter/actions/workflows/ci.yml/badge.svg)](https://github.com/TomsTech/spotify-genre-sorter/actions/workflows/ci.yml)
-[![Deploy](https://github.com/TomsTech/spotify-genre-sorter/actions/workflows/deploy.yml/badge.svg)](https://github.com/TomsTech/spotify-genre-sorter/actions/workflows/deploy.yml)
-[![Status](https://img.shields.io/badge/Status-Live-brightgreen?style=flat-square)](https://status.houstons.tech)
-[![License: Personal Use](https://img.shields.io/badge/License-Personal%20Use-blue.svg?style=flat-square)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg?style=flat-square)](https://www.typescriptlang.org/)
-[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange.svg?style=flat-square)](https://workers.cloudflare.com/)
+<h1 align="center">
+  <br>
+  <img src="https://img.shields.io/badge/Genre%20Genie-gold?style=for-the-badge&labelColor=006AA7" alt="Genre Genie">
+  <br>
+  <sub>Spotify Genre Sorter</sub>
+</h1>
 
-Organise your Spotify liked songs into genre-based playlists with one click.
+<p align="center">
+  <em>Like a swan gliding across a midnight lake, organising your music with effortless grace.</em>
+</p>
 
-> *For Heidi x, hopefully you know why I disappear for so long, I'm just dicking my keyboard for countless hours instead*
+<p align="center">
+  <a href="https://github.com/TomsTech/spotify-genre-sorter/stargazers"><img src="https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=for-the-badge&logo=github&label=Stars&color=FECC00&labelColor=006AA7" alt="Stars"></a>
+  <a href="https://github.com/TomsTech/spotify-genre-sorter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/TomsTech/spotify-genre-sorter/ci.yml?style=for-the-badge&logo=github-actions&label=CI&labelColor=006AA7" alt="CI"></a>
+  <a href="https://github.com/TomsTech/spotify-genre-sorter/actions/workflows/deploy.yml"><img src="https://img.shields.io/github/actions/workflow/status/TomsTech/spotify-genre-sorter/deploy.yml?style=for-the-badge&logo=cloudflare&label=Deploy&labelColor=006AA7" alt="Deploy"></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Live-brightgreen?style=flat-square" alt="Status">
+  <img src="https://img.shields.io/badge/License-Personal%20Use-blue?style=flat-square" alt="License">
+  <img src="https://img.shields.io/badge/TypeScript-5.6-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Cloudflare-Workers-F38020?style=flat-square&logo=cloudflare&logoColor=white" alt="Cloudflare Workers">
+  <img src="https://img.shields.io/badge/Hono-Framework-E36002?style=flat-square" alt="Hono">
+</p>
+
+---
+
+<p align="center">
+  <strong>Transform your Spotify library from chaos to symphony.</strong>
+  <br>
+  <em>One click to discover the hidden genres within your favourite songs.</em>
+</p>
+
+---
+
+## Table of Contents
+
+<details open>
+<summary><strong>Navigate the Archives</strong></summary>
+
+| Section | Description |
+|---------|-------------|
+| [The Vision](#the-vision) | What this is all about |
+| [Quick Start](#quick-start) | Get running in 5 minutes |
+| [Complete Guide](#complete-setup-guide) | Full setup walkthrough |
+| [Architecture](#architecture) | How it all works |
+| [API Reference](#api-endpoints) | Available endpoints |
+| [Security](#security) | Protection measures |
+| [Development](#local-development) | For contributors |
+| [Version History](#version-history) | The journey so far |
+
+</details>
+
+---
+
+## The Vision
+
+> *"In the midst of chaos, there is also opportunity."* — Sun Tzu
+
+Your Spotify library is a treasure trove of musical history — from ancient symphonies to modern anthems, from Nordic folk to Mediterranean rhythms. But finding that perfect playlist? That's where the magic happens.
+
+**Genre Genie** analyses your liked songs, extracts genres from the artists who created them (just as historians extract meaning from primary sources), and lets you create perfectly curated playlists with a single click.
+
+### What Makes It Special
+
+| Feature | Description |
+|---------|-------------|
+| **Genre Discovery** | Uncover hidden genres you didn't know you loved |
+| **Lightning Fast** | Powered by Cloudflare's global edge network |
+| **Privacy First** | Your tokens never leave the server |
+| **Beautiful UI** | Light and dark themes, Swedish mode Easter egg |
+| **Statistics** | Diversity scores, genre breakdowns, export options |
+| **Hall of Fame** | Join the pioneers who shaped this project |
+
+---
 
 ## Quick Start
 
-### TL;DR - What You Need
+> *"Well begun is half done."* — Aristotle
 
-1. **Cloudflare account** with Workers enabled (free tier works)
-2. **GitHub OAuth App** - for login
-3. **Spotify Developer App** - for accessing your music
-4. **5 minutes** to set it all up
+### What You'll Need
+
+- Cloudflare account (free tier works)
+- Spotify Developer App
+- 5 minutes of your time
 
 ---
 
 ## Complete Setup Guide
 
-### Step 1: Fork & Clone
+<details>
+<summary><strong>Step 1: Fork & Clone</strong> — <em>Lay the Foundation</em></summary>
 
 ```bash
 git clone https://github.com/TomsTech/spotify-genre-sorter.git
@@ -33,191 +103,224 @@ cd spotify-genre-sorter
 npm install
 ```
 
-### Step 2: Create Cloudflare API Token
+</details>
 
-You need this for GitHub Actions to deploy automatically.
+<details>
+<summary><strong>Step 2: Create Cloudflare API Token</strong> — <em>The Key to the Kingdom</em></summary>
 
-1. Go to [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens)
+1. Visit [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens)
 2. Click **Create Token**
 3. Use **Edit Cloudflare Workers** template
-4. Add these permissions:
-   - `Account > Workers Scripts > Edit`
-   - `Account > Workers KV Storage > Edit`
-   - `Account > Account Settings > Read`
-   - `Zone > DNS > Edit` (only if using custom domain)
-5. Create token and **copy it**
+4. Required permissions:
 
-### Step 3: Add Token to GitHub
+| Scope | Permission |
+|-------|------------|
+| Account | Workers Scripts > Edit |
+| Account | Workers KV Storage > Edit |
+| Account | Account Settings > Read |
+| Zone | DNS > Edit *(optional, for custom domains)* |
 
-1. Go to your repo → **Settings** → **Secrets and variables** → **Actions**
+5. Create and **copy your token**
+
+</details>
+
+<details>
+<summary><strong>Step 3: Add Token to GitHub</strong> — <em>Seal the Covenant</em></summary>
+
+1. Navigate to **Settings** > **Secrets and variables** > **Actions**
 2. Click **New repository secret**
 3. Name: `CLOUDFLARE_API_TOKEN`
-4. Value: paste the token from Step 2
+4. Paste your token
 
-### Step 4: Create GitHub OAuth App
+</details>
 
-This lets users log in with their GitHub account.
+<details>
+<summary><strong>Step 4: Create Spotify Developer App</strong> — <em>The Musical Connection</em></summary>
 
-1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
-2. Click **OAuth Apps** → **New OAuth App**
-3. Fill in:
-
-| Field | Value |
-|-------|-------|
-| Application name | `Spotify Genre Sorter` |
-| Homepage URL | `https://spotify-genre-sorter.<your-subdomain>.workers.dev` |
-| Authorization callback URL | `https://spotify-genre-sorter.<your-subdomain>.workers.dev/auth/github/callback` |
-
-> **Find your subdomain**: Check your Cloudflare Workers dashboard - it's usually `<something>.workers.dev`. For example: `dev-playground-df5.workers.dev`
-
-4. Click **Register application**
-5. **Copy the Client ID** (you'll need this)
-6. Click **Generate a new client secret** and **copy it immediately**
-
-### Step 5: Create Spotify Developer App
-
-This lets the app access your Spotify library.
-
-1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+1. Visit [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 2. Click **Create App**
-3. Fill in:
+3. Configure:
 
 | Field | Value |
 |-------|-------|
-| App name | `Spotify Genre Sorter` |
+| App name | `Genre Genie` |
 | App description | `Organise liked songs into genre playlists` |
-| Redirect URI | `https://spotify-genre-sorter.<your-subdomain>.workers.dev/auth/spotify/callback` |
+| Redirect URI | `https://spotify-genre-sorter.<subdomain>.workers.dev/auth/spotify/callback` |
 
-4. Check **Web API** under APIs
-5. Click **Save**
-6. Go to **Settings** → **copy Client ID and Client Secret**
+4. Select **Web API**
+5. Save and copy your **Client ID** and **Client Secret**
 
-### Step 6: Deploy the Worker
+</details>
 
-Push to GitHub to trigger the first deploy:
+<details>
+<summary><strong>Step 5: Set Worker Secrets</strong> — <em>The Sacred Texts</em></summary>
+
+> **This is where most pilgrims lose their way.** Secrets must be set on the Cloudflare Worker, not in GitHub.
+
+```bash
+npx wrangler secret put SPOTIFY_CLIENT_ID
+npx wrangler secret put SPOTIFY_CLIENT_SECRET
+```
+
+The text won't appear as you type — like whispered secrets, they're hidden for protection.
+
+</details>
+
+<details>
+<summary><strong>Step 6: Deploy & Verify</strong> — <em>The Moment of Truth</em></summary>
 
 ```bash
 git push origin main
 ```
 
-Wait for the GitHub Action to complete (check the Actions tab).
+Then verify:
 
-### Step 7: Set Worker Secrets (THE IMPORTANT BIT)
+| Endpoint | Expected Response |
+|----------|-------------------|
+| `/health` | `{"status":"ok"}` |
+| `/setup` | `{"configured":true}` |
 
-**This is where most people get stuck.** The secrets must be set on the Cloudflare Worker, NOT in GitHub.
-
-Run these commands in your terminal:
-
-```bash
-# GitHub OAuth credentials
-npx wrangler secret put GITHUB_CLIENT_ID
-# Paste your GitHub Client ID when prompted
-
-npx wrangler secret put GITHUB_CLIENT_SECRET
-# Paste your GitHub Client Secret when prompted
-
-# Spotify OAuth credentials
-npx wrangler secret put SPOTIFY_CLIENT_ID
-# Paste your Spotify Client ID when prompted
-
-npx wrangler secret put SPOTIFY_CLIENT_SECRET
-# Paste your Spotify Client Secret when prompted
-```
-
-Each command will prompt you to enter the value. It won't show what you type (that's normal - it's hidden for security).
-
-### Step 8: Verify It Works
-
-1. Visit `https://spotify-genre-sorter.<your-subdomain>.workers.dev/health`
-   - Should show: `{"status":"ok"}`
-2. Visit `https://spotify-genre-sorter.<your-subdomain>.workers.dev/setup`
-   - Should show: `{"configured":true}`
-   - If it shows missing secrets, go back to Step 7
+</details>
 
 ---
 
-## Custom Domain Setup (Optional)
+## Architecture
 
-Want to use your own domain like `spotify.example.com`?
+> *"Architecture is frozen music."* — Johann Wolfgang von Goethe
 
-### Option A: Via GitHub Actions (Recommended)
+Like the columns of an ancient temple, each component serves its purpose with elegant simplicity.
 
-1. Go to your repo → **Settings** → **Variables** → **Actions**
-2. Add variable: `CUSTOM_DOMAIN` = `spotify.example.com`
-3. Run the Deploy workflow manually with "Force DNS update" checked
+```mermaid
+flowchart TB
+    subgraph Client["The Agora"]
+        User["Patron"]
+    end
 
-### Option B: Manual Setup
+    subgraph CF["The Heavens"]
+        Worker["Oracle<br/>(Hono)"]
+        KV[("Archives<br/>(KV Store)")]
+    end
 
-```bash
-# Add the domain via Cloudflare dashboard
-# Workers & Pages → your worker → Settings → Triggers → Custom Domains
+    subgraph External["Allied Realms"]
+        Spotify["Spotify<br/>The Muses"]
+    end
+
+    User -->|"1. Seeks guidance"| Worker
+    Worker -->|"2. Requests blessing"| Spotify
+    Spotify -->|"3. Grants access"| Worker
+    Worker <-->|"4. Records wisdom"| KV
+    Worker -->|"5. Fetches genres"| Spotify
+    Spotify -->|"6. Reveals truth"| Worker
+    Worker -->|"7. Creates playlist"| Spotify
+    Worker -->|"8. Returns triumphant"| User
+
+    style User fill:#FECC00,color:#006AA7
+    style Worker fill:#006AA7,color:#FECC00
+    style KV fill:#006AA7,color:#FECC00
+    style Spotify fill:#1DB954,color:#fff
 ```
 
-**Important**: Update your OAuth callback URLs in both GitHub and Spotify apps to use the new domain!
+### The OAuth Ballet
 
----
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant W as Worker
+    participant S as Spotify
+    participant K as Archives
 
-## Troubleshooting
+    Note over U,K: Act I - The Introduction
+    U->>W: Arrives at the gates
+    W->>U: Presents the entrance
 
-### "Worker returns error 1042"
-The worker is crashing. Usually means secrets aren't set. Run:
-```bash
-npx wrangler secret list
+    Note over U,K: Act II - The Dance
+    U->>W: Requests entry
+    W->>S: Initiates the dance
+    S->>W: Returns with token
+    W->>K: Inscribes the session
+
+    Note over U,K: Act III - The Revelation
+    W->>S: Seeks the genres
+    S->>W: Reveals the music
+    W->>U: Presents the collection
+
+    Note over U,K: Finale - The Creation
+    U->>W: Commands playlist
+    W->>S: Weaves the magic
+    S->>W: Confirms creation
+    W->>U: Celebrates with confetti
 ```
-Should show all 4 secrets. If not, set them with `npx wrangler secret put`.
-
-### "/setup shows missing secrets but I set them"
-Secrets are per-worker. Make sure you're setting them on the right worker:
-```bash
-npx wrangler secret put GITHUB_CLIENT_ID --name spotify-genre-sorter
-```
-
-### "redirect_uri_mismatch" error
-Your OAuth callback URL doesn't match. Check:
-1. The URL in your GitHub/Spotify app settings
-2. Must match EXACTLY: `https://your-domain/auth/github/callback` or `/auth/spotify/callback`
-
-### "DNS not resolving for custom domain"
-DNS can take a few minutes to propagate. Try:
-```bash
-# Check if DNS is working
-nslookup your-domain.com 8.8.8.8
-```
-
-### "Pipeline succeeds but site shows error"
-The health check passed but OAuth isn't configured. Check `/setup` endpoint.
-
----
-
-## How It Works
-
-1. User logs in with GitHub (whitelist specific users if you want)
-2. User connects their Spotify account
-3. App fetches all liked songs
-4. Extracts genres from artists (Spotify assigns genres to artists, not tracks)
-5. User can create playlists for any genre
 
 ---
 
 ## API Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `/` | Main UI |
-| `/health` | Health check (returns `{"status":"ok"}`) |
-| `/setup` | Check if secrets are configured |
-| `/session` | Current session status |
-| `/auth/github` | Start GitHub login |
-| `/auth/spotify` | Connect Spotify |
-| `/auth/logout` | Log out |
-| `/api/genres` | Get all genres from liked songs |
-| `/api/playlist` | Create a playlist |
+> *"The pen is mightier than the sword."* — Edward Bulwer-Lytton
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | The main stage |
+| `/health` | GET | Pulse check |
+| `/setup` | GET | Configuration status |
+| `/session` | GET | Current session |
+| `/auth/spotify` | GET | Begin the journey |
+| `/auth/logout` | GET | Graceful exit |
+| `/api/genres` | GET | Discover your genres |
+| `/api/playlist` | POST | Create a single playlist |
+| `/api/playlists/bulk` | POST | Create multiple playlists |
+| `/api/leaderboard` | GET | The Hall of Fame |
+| `/api/scoreboard` | GET | The Rankings |
+| `/api/recent-playlists` | GET | Latest creations |
+
+---
+
+## Security
+
+> *"The price of freedom is eternal vigilance."*
+
+Your musical treasures are guarded with the same care as the crown jewels.
+
+### Token Protection
+
+| Shield | Purpose |
+|--------|---------|
+| **Server-side storage** | Tokens never reach your browser |
+| **HttpOnly cookies** | Protected from JavaScript |
+| **Secure flag** | HTTPS only transmission |
+| **SameSite=Lax** | CSRF prevention |
+| **Single-use state** | OAuth states expire after use |
+
+### Fortifications
+
+| Protection | Implementation |
+|------------|----------------|
+| **Rate limiting** | 30 requests/minute per IP |
+| **CORS restriction** | Same-origin only |
+| **Input validation** | Track IDs verified |
+| **Genre sanitisation** | Dangerous characters stripped |
+| **Request limits** | Max 10,000 tracks |
+
+### Security Headers
+
+All responses include:
+
+- `Content-Security-Policy` — strict source controls
+- `X-Frame-Options: DENY` — clickjacking prevention
+- `X-Content-Type-Options: nosniff` — MIME sniffing blocked
+- `Strict-Transport-Security` — HTTPS enforced
+- `Referrer-Policy` — information leakage prevented
+- `Permissions-Policy` — unnecessary APIs disabled
+
+### Continuous Vigilance
+
+- **CodeQL** — static analysis on every push
+- **OWASP ZAP** — API security scanning
+- **Snyk** — dependency vulnerability scanning
+- **npm audit** — package security checks
 
 ---
 
 ## Testing
-
-Run the test suite:
 
 ```bash
 npm test              # Run all tests
@@ -225,10 +328,9 @@ npm run test:watch    # Watch mode
 npm run test:coverage # With coverage report
 ```
 
-Tests cover:
-
-- Spotify OAuth URL generation
-- Genre extraction and counting logic
+**Test Coverage:**
+- OAuth URL generation
+- Genre extraction logic
 - Playlist creation chunking
 - Session management
 - API response formats
@@ -239,163 +341,160 @@ Tests cover:
 
 Create a `.dev.vars` file:
 
-```
-GITHUB_CLIENT_ID=your_github_client_id
-GITHUB_CLIENT_SECRET=your_github_client_secret
+```ini
 SPOTIFY_CLIENT_ID=your_spotify_client_id
 SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
 ```
 
 Then:
+
 ```bash
 npm run dev
 ```
 
-Update OAuth callback URLs to `http://localhost:8787/auth/*/callback` for local testing.
+> Update your Spotify redirect URI to `http://localhost:8787/auth/spotify/callback` for local testing.
 
 ---
 
-## Architecture
+## Custom Domain
 
-```mermaid
-flowchart TB
-    subgraph Client["🌐 Browser"]
-        User[User]
-    end
+<details>
+<summary><strong>Via GitHub Actions</strong> (Recommended)</summary>
 
-    subgraph CF["☁️ Cloudflare"]
-        Worker["⚡ Worker<br/>(Hono)"]
-        KV[("🗄️ KV Store<br/>Sessions")]
-    end
+1. Go to **Settings** > **Variables** > **Actions**
+2. Add: `CUSTOM_DOMAIN` = `your.domain.com`
+3. Re-run the Deploy workflow
 
-    subgraph External["🔗 External APIs"]
-        GitHub["🐙 GitHub OAuth"]
-        Spotify["🎵 Spotify API"]
-    end
+</details>
 
-    User -->|1. Login| Worker
-    Worker -->|2. Redirect| GitHub
-    GitHub -->|3. Token| Worker
-    Worker -->|4. Connect| Spotify
-    Spotify -->|5. Access Token| Worker
-    Worker <-->|6. Store Session| KV
-    Worker -->|7. Fetch Genres| Spotify
-    Spotify -->|8. Artist Data| Worker
-    Worker -->|9. Create Playlist| Spotify
-```
+<details>
+<summary><strong>Manual Setup</strong></summary>
 
-### Authentication Flow
+Via Cloudflare Dashboard: Workers & Pages > your worker > Settings > Triggers > Custom Domains
 
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant W as Worker
-    participant G as GitHub
-    participant S as Spotify
-    participant K as KV Store
+Remember to update your Spotify redirect URI!
 
-    U->>W: Visit /
-    W->>U: Show login page
-    U->>W: Click "Login with GitHub"
-    W->>G: Redirect to OAuth
-    G->>W: Callback with code
-    W->>G: Exchange for token
-    W->>K: Create session
-    W->>U: Show "Connect Spotify"
-    U->>W: Click connect
-    W->>S: Redirect to OAuth
-    S->>W: Callback with code
-    W->>S: Exchange for token
-    W->>K: Store Spotify token
-    W->>U: Show genres UI
-```
+</details>
 
 ---
 
-## Security
+## Troubleshooting
 
-Your data and tokens are protected with industry best practices:
+<details>
+<summary><strong>"Worker returns error 1042"</strong></summary>
 
-### Token Protection
+Secrets aren't configured. Verify:
+```bash
+npx wrangler secret list
+```
 
-| Measure | Description |
-|---------|-------------|
-| **Server-side only** | OAuth tokens stored in Cloudflare KV, never sent to browser |
-| **HttpOnly cookies** | Session ID cookie cannot be accessed by JavaScript |
-| **Secure flag** | Cookies only transmitted over HTTPS |
-| **SameSite=Lax** | Prevents cross-site request forgery (CSRF) |
-| **Single-use state** | OAuth state tokens deleted after verification |
+</details>
 
-### API Hardening
+<details>
+<summary><strong>"redirect_uri_mismatch"</strong></summary>
 
-| Protection | Implementation |
-|------------|----------------|
-| **Rate limiting** | 30 requests/minute per IP (429 with Retry-After) |
-| **CORS restriction** | Same-origin only - no cross-site API access |
-| **Input validation** | Track IDs validated (22-char alphanumeric) |
-| **Genre sanitisation** | Dangerous characters stripped, max 100 chars |
-| **Request limits** | Max 10,000 tracks, 50 genres per bulk request |
-| **Error sanitisation** | Internal details never exposed to clients |
+Your callback URL doesn't match exactly. Check:
+- Spotify Dashboard redirect URI
+- Must be exactly: `https://your-domain/auth/spotify/callback`
 
-### Security Headers
+</details>
 
-All responses include:
+<details>
+<summary><strong>"/setup shows missing secrets"</strong></summary>
 
-- `Content-Security-Policy` - strict source restrictions
-- `X-Frame-Options: DENY` - prevents clickjacking
-- `X-Content-Type-Options: nosniff` - prevents MIME sniffing
-- `Strict-Transport-Security` - enforces HTTPS
-- `Referrer-Policy` - limits referrer leakage
-- `Permissions-Policy` - disables camera/microphone/geolocation
+Secrets are per-worker. Specify the worker name:
+```bash
+npx wrangler secret put SPOTIFY_CLIENT_ID --name spotify-genre-sorter
+```
 
-### CI/CD Security
-
-- **CodeQL** analysis on every push
-- **Snyk** vulnerability scanning
-- **npm audit** for dependency checks
+</details>
 
 ---
 
 ## Version History
 
+> *"Those who cannot remember the past are condemned to repeat it."* — George Santayana
+
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'git0': '#006AA7', 'git1': '#FECC00', 'gitBranchLabel0': '#FECC00', 'commitLabelColor': '#006AA7'}}}%%
 gitGraph
-   commit id: "v1.0.0" tag: "v1.0.0"
+   commit id: "v1.0.0" tag: "v1.0.0" type: HIGHLIGHT
    commit id: "v1.1.0" tag: "v1.1.0"
    commit id: "v1.2.0" tag: "v1.2.0"
    commit id: "v1.2.1" tag: "v1.2.1"
    commit id: "v1.3.0" tag: "v1.3.0"
-   commit id: "v2.0.0" tag: "v2.0.0"
+   commit id: "v2.0.0" tag: "v2.0.0" type: HIGHLIGHT
    commit id: "v2.2.0" tag: "v2.2.0"
-   commit id: "v3.0.0" tag: "v3.0.0"
+   commit id: "v3.0.0" tag: "v3.0.0" type: HIGHLIGHT
 ```
 
-| Version | Changes |
-|---------|---------|
-| v3.0.0 | Progressive scanning (2000+ tracks), admin panel, confetti, Konami code Easter egg, Heidi detection |
-| v2.2.0 | Sorted scoreboard tab, track total songs in playlists |
-| v2.0.0 | Genre Genie rebrand, leaderboard, scoreboard, sidebar, light mode |
-| v1.3.0 | PDF docs, SEO playlist descriptions, enhanced health endpoint, all backlog complete |
-| v1.2.1 | Track limit fix for subrequest limit |
-| v1.2.0 | Theme toggle, hidden genres, stats, export |
-| v1.1.0 | Security headers, retry logic, Australian English |
-| v1.0.0 | Initial release with Hall of Fame, Swedish mode |
+| Era | Version | Chronicle |
+|-----|---------|-----------|
+| | **v3.0.0** | Progressive scanning for vast libraries, admin sanctum, celebratory confetti, the Goldblum enigma |
+| | v2.2.0 | Sorted rankings, track counting |
+| | **v2.0.0** | The Genre Genie transformation, leaderboards, scoreboards, the great sidebar |
+| | v1.3.0 | Documentation codex, SEO enchantments |
+| | v1.2.1 | The great track limit remedy |
+| | v1.2.0 | Theme duality, hidden realms, statistics |
+| | v1.1.0 | Security fortifications, resilient connections |
+| | **v1.0.0** | The genesis — Hall of Fame, Swedish mysteries |
 
-See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
+See [CHANGELOG.md](CHANGELOG.md) for the complete chronicles.
 
 ---
 
 ## Notes
 
-- Genres come from **artists**, not individual tracks
-- Large libraries take longer (paginated API calls)
+- Genres are derived from **artists**, not individual tracks
+- Large libraries require patience (paginated API calls)
 - Playlists are created as **private** by default
-- Session expires after 7 days
-
-## License
-
-Free for personal use. Commercial use requires a paid license — see [LICENSE](LICENSE).
+- Sessions expire after 7 days
 
 ---
 
-<sub><img src="https://flagcdn.com/16x12/se.png" width="16" height="12" alt="SE"> *For Heidi*</sub>
+## License
+
+Free for personal use. Commercial endeavours require a license — see [LICENSE](LICENSE).
+
+---
+
+<br>
+
+<p align="center">
+  <img src="https://flagcdn.com/w40/se.png" width="24" alt="Sweden">
+  <img src="https://flagcdn.com/w40/gb.png" width="24" alt="England">
+  <img src="https://flagcdn.com/w40/au.png" width="24" alt="Australia">
+</p>
+
+<p align="center">
+  <sub>
+    <em>
+      "Music gives a soul to the universe, wings to the mind,<br>
+      flight to the imagination, and life to everything."
+    </em>
+    <br>
+    — Plato
+  </sub>
+</p>
+
+<p align="center">
+  <sub>
+    Built with love for someone who appreciates Swan Lake,<br>
+    ancient histories, and Taylor Swift in equal measure.
+  </sub>
+</p>
+
+<p align="center">
+  <strong>For Heidi</strong>
+  <br>
+  <sub>The swan who inspired it all</sub>
+</p>
+
+---
+
+<sub>
+  <em>
+    Like Lady Jane Grey with her books, or the scribes of ancient Rome —<br>
+    we write our stories in code, hoping they echo through time.
+  </em>
+</sub>
