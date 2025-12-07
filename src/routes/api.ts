@@ -643,7 +643,7 @@ api.post('/playlist', async (c) => {
     await invalidateGenreCache(c.env.SESSIONS, user.id);
 
     // Update user stats
-    await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id);
+    await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length);
 
     // Add to recent playlists feed
     const recentPlaylist: RecentPlaylist = {
@@ -761,7 +761,7 @@ api.post('/playlists/bulk', async (c) => {
         existingNames.add(playlistName.toLowerCase());
 
         // Update user stats
-        await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id);
+        await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length);
 
         // Add to recent playlists feed
         const recentPlaylist: RecentPlaylist = {
@@ -819,6 +819,15 @@ api.post('/playlists/bulk', async (c) => {
 api.get('/changelog', (c) => {
   // Static changelog data - updated during releases
   const changelog = [
+    {
+      version: '2.2.0',
+      date: '2025-12-07',
+      changes: [
+        'Track total songs added to playlists in scoreboard',
+        'New "Sorted" tab shows users ranked by tracks sorted',
+        'User stats now track cumulative tracks in created playlists',
+      ],
+    },
     {
       version: '1.3.0',
       date: '2025-12-01',
