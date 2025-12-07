@@ -6177,7 +6177,7 @@ export function getHtml(): string {
             <button class="scoreboard-tab" data-tab="genres">🎸 \${swedishMode ? 'Genrer' : 'Genres'}</button>
             <button class="scoreboard-tab" data-tab="artists">🎤 \${swedishMode ? 'Artister' : 'Artists'}</button>
             <button class="scoreboard-tab" data-tab="tracks">📀 \${swedishMode ? 'Låtar' : 'Tracks'}</button>
-            <button class="scoreboard-tab" data-tab="sorted">📋 ${swedishMode ? 'Sorterade' : 'Sorted'}</button>
+            <button class="scoreboard-tab" data-tab="sorted">📋 \${swedishMode ? 'Sorterade' : 'Sorted'}</button>
           </div>
           <div class="scoreboard-content" id="scoreboard-content">
             \${renderScoreboardTab('playlists')}
