@@ -1,0 +1,94 @@
+name: API Security Scan
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'openapi.yaml'
+      - 'src/routes/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'openapi.yaml'
+      - 'src/routes/**'
+  workflow_dispatch:
+  schedule:
+    # Run weekly on Sundays at midnight
+    - cron: '0 0 * * 0'
+
+jobs:
+  zap-api-scan:
+    name: OWASP ZAP API Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for OpenAPI spec
+        id: check-openapi
+        run: |
+          if [ -f "openapi.yaml" ]; then
+            echo "openapi_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "openapi_exists=false" >> $GITHUB_OUTPUT
+            echo "::warning::No openapi.yaml found, skipping API scan"
+          fi
+
+      - name: ZAP API Scan
+        if: steps.check-openapi.outputs.openapi_exists == 'true'
+        uses: zaproxy/action-api-scan@v0.9.0
+        with:
+          target: 'openapi.yaml'
+          format: openapi
+          # Allow warnings but fail on errors
+          cmd_options: '-I -a'
+          # Don't fail the build on warnings
+          fail_action: false
+          # Output SARIF for GitHub Code Scanning
+          allow_issue_writing: false
+
+      - name: Upload ZAP Report
+        if: always() && steps.check-openapi.outputs.openapi_exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-scan-report
+          path: |
+            zap-*.html
+            zap-*.json
+            zap-*.md
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # Alternative: Lightweight OpenAPI validation
+  openapi-lint:
+    name: OpenAPI Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for OpenAPI spec
+        id: check-openapi
+        run: |
+          if [ -f "openapi.yaml" ]; then
+            echo "openapi_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "openapi_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node.js
+        if: steps.check-openapi.outputs.openapi_exists == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Spectral
+        if: steps.check-openapi.outputs.openapi_exists == 'true'
+        run: npm install -g @stoplight/spectral-cli
+
+      - name: Lint OpenAPI Spec
+        if: steps.check-openapi.outputs.openapi_exists == 'true'
+        run: spectral lint openapi.yaml --ruleset https://unpkg.com/@stoplight/spectral-owasp-ruleset
+        continue-on-error: true

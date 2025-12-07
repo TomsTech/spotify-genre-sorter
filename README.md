@@ -362,14 +362,19 @@ All responses include:
 gitGraph
    commit id: "v1.0.0" tag: "v1.0.0"
    commit id: "v1.1.0" tag: "v1.1.0"
-   commit id: "v1.1.1" tag: "v1.1.1"
    commit id: "v1.2.0" tag: "v1.2.0"
    commit id: "v1.2.1" tag: "v1.2.1"
    commit id: "v1.3.0" tag: "v1.3.0"
+   commit id: "v2.0.0" tag: "v2.0.0"
+   commit id: "v2.2.0" tag: "v2.2.0"
+   commit id: "v3.0.0" tag: "v3.0.0"
 ```
 
 | Version | Changes |
 |---------|---------|
+| v3.0.0 | Progressive scanning (2000+ tracks), admin panel, confetti, Konami code Easter egg, Heidi detection |
+| v2.2.0 | Sorted scoreboard tab, track total songs in playlists |
+| v2.0.0 | Genre Genie rebrand, leaderboard, scoreboard, sidebar, light mode |
 | v1.3.0 | PDF docs, SEO playlist descriptions, enhanced health endpoint, all backlog complete |
 | v1.2.1 | Track limit fix for subrequest limit |
 | v1.2.0 | Theme toggle, hidden genres, stats, export |
