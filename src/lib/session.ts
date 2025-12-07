@@ -1,5 +1,9 @@
 import { Context } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
+import { cachedKV, CACHE_TTL } from './kv-cache';
+
+// Re-export metrics for API access
+export { getKVMetrics } from './kv-cache';
 
 export interface Session {
   githubUser?: string;
@@ -132,9 +136,8 @@ export async function getUserStats(
   kv: KVNamespace,
   spotifyId: string
 ): Promise<UserStats | null> {
-  const data = await kv.get(`user_stats:${spotifyId}`);
-  if (!data) return null;
-  return JSON.parse(data) as UserStats;
+  // Use cached KV with 5 minute memory cache
+  return cachedKV.get<UserStats>(kv, `user_stats:${spotifyId}`, { cacheTtlMs: CACHE_TTL.USER_STATS });
 }
 
 export async function createOrUpdateUserStats(
@@ -151,7 +154,8 @@ export async function createOrUpdateUserStats(
       ...updates,
       lastActive: now,
     };
-    await kv.put(`user_stats:${spotifyId}`, JSON.stringify(updated));
+    // Use batched write (non-critical data)
+    await cachedKV.put(kv, `user_stats:${spotifyId}`, JSON.stringify(updated));
     return updated;
   } else {
     const newStats: UserStats = {
@@ -167,7 +171,8 @@ export async function createOrUpdateUserStats(
       lastActive: now,
       createdPlaylistIds: updates.createdPlaylistIds || [],
     };
-    await kv.put(`user_stats:${spotifyId}`, JSON.stringify(newStats));
+    // Write immediately for new users (important data)
+    await cachedKV.put(kv, `user_stats:${spotifyId}`, JSON.stringify(newStats), { immediate: true });
     return newStats;
   }
 }
@@ -183,7 +188,8 @@ export async function incrementUserStats(
 
   existing[field] += amount;
   existing.lastActive = new Date().toISOString();
-  await kv.put(`user_stats:${spotifyId}`, JSON.stringify(existing));
+  // Batch non-critical stat updates
+  await cachedKV.put(kv, `user_stats:${spotifyId}`, JSON.stringify(existing));
 }
 
 export async function addPlaylistToUser(
@@ -200,7 +206,8 @@ export async function addPlaylistToUser(
     existing.playlistsCreated += 1;
     existing.totalTracksInPlaylists = (existing.totalTracksInPlaylists || 0) + trackCount;
     existing.lastActive = new Date().toISOString();
-    await kv.put(`user_stats:${spotifyId}`, JSON.stringify(existing));
+    // Important data - write immediately to ensure it persists
+    await cachedKV.put(kv, `user_stats:${spotifyId}`, JSON.stringify(existing), { immediate: true });
   }
 }
 
@@ -224,9 +231,9 @@ const RECENT_PLAYLISTS_KEY = 'recent_playlists';
 const MAX_RECENT_PLAYLISTS = 20;
 
 export async function getRecentPlaylists(kv: KVNamespace): Promise<RecentPlaylist[]> {
-  const data = await kv.get(RECENT_PLAYLISTS_KEY);
-  if (!data) return [];
-  return JSON.parse(data) as RecentPlaylist[];
+  // Use cached read with 1 minute memory cache
+  const data = await cachedKV.get<RecentPlaylist[]>(kv, RECENT_PLAYLISTS_KEY, { cacheTtlMs: CACHE_TTL.RECENT_PLAYLISTS });
+  return data || [];
 }
 
 export async function addRecentPlaylist(
@@ -241,7 +248,8 @@ export async function addRecentPlaylist(
   // Keep only max entries
   const trimmed = existing.slice(0, MAX_RECENT_PLAYLISTS);
 
-  await kv.put(RECENT_PLAYLISTS_KEY, JSON.stringify(trimmed));
+  // Write immediately to ensure recent playlists are visible
+  await cachedKV.put(kv, RECENT_PLAYLISTS_KEY, JSON.stringify(trimmed), { immediate: true });
 }
 
 // ================== Scoreboard ==================
@@ -271,17 +279,20 @@ const LEADERBOARD_CACHE_KEY = 'leaderboard_cache';
 const LEADERBOARD_CACHE_TTL = 900; // 15 minutes - reduces 112+ KV ops to 1 read
 
 export async function getScoreboard(kv: KVNamespace): Promise<Scoreboard | null> {
-  const cached = await kv.get(SCOREBOARD_CACHE_KEY);
+  // Use memory cache with 1 hour TTL
+  const cached = await cachedKV.get<Scoreboard>(kv, SCOREBOARD_CACHE_KEY, { cacheTtlMs: CACHE_TTL.SCOREBOARD });
   if (cached) {
-    const data = JSON.parse(cached) as Scoreboard;
     // Check if cache is still valid
-    const cacheTime = new Date(data.updatedAt).getTime();
+    const cacheTime = new Date(cached.updatedAt).getTime();
     if (Date.now() - cacheTime < SCOREBOARD_CACHE_TTL * 1000) {
-      return data;
+      return cached;
     }
   }
   return null;
 }
+
+// Average tracks per playlist for estimation
+const AVERAGE_TRACKS_PER_PLAYLIST = 25;
 
 export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
   // List all user_stats keys
@@ -291,7 +302,15 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
   for (const key of list.keys) {
     const data = await kv.get(key.name);
     if (data) {
-      allStats.push(JSON.parse(data) as UserStats);
+      const stats = JSON.parse(data) as UserStats;
+
+      // Backfill estimation: if totalTracksInPlaylists is 0 but user has playlists,
+      // estimate based on average tracks per playlist
+      if ((!stats.totalTracksInPlaylists || stats.totalTracksInPlaylists === 0) && stats.playlistsCreated > 0) {
+        stats.totalTracksInPlaylists = stats.playlistsCreated * AVERAGE_TRACKS_PER_PLAYLIST;
+      }
+
+      allStats.push(stats);
     }
   }
 
@@ -323,8 +342,11 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
     updatedAt: new Date().toISOString(),
   };
 
-  // Cache the scoreboard
-  await kv.put(SCOREBOARD_CACHE_KEY, JSON.stringify(scoreboard), { expirationTtl: SCOREBOARD_CACHE_TTL });
+  // Cache the scoreboard (write immediately - important aggregated data)
+  await cachedKV.put(kv, SCOREBOARD_CACHE_KEY, JSON.stringify(scoreboard), {
+    expirationTtl: SCOREBOARD_CACHE_TTL,
+    immediate: true,
+  });
 
   return scoreboard;
 }
@@ -350,13 +372,13 @@ export interface LeaderboardData {
 }
 
 export async function getLeaderboard(kv: KVNamespace): Promise<LeaderboardData | null> {
-  const cached = await kv.get(LEADERBOARD_CACHE_KEY);
+  // Use memory cache with 15 minute TTL
+  const cached = await cachedKV.get<LeaderboardData>(kv, LEADERBOARD_CACHE_KEY, { cacheTtlMs: CACHE_TTL.LEADERBOARD });
   if (cached) {
-    const data = JSON.parse(cached) as LeaderboardData;
     // Check if cache is still valid
-    const cacheTime = new Date(data.updatedAt).getTime();
+    const cacheTime = new Date(cached.updatedAt).getTime();
     if (Date.now() - cacheTime < LEADERBOARD_CACHE_TTL * 1000) {
-      return data;
+      return cached;
     }
   }
   return null;
@@ -399,8 +421,11 @@ export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData
     updatedAt: new Date().toISOString(),
   };
 
-  // Cache the leaderboard
-  await kv.put(LEADERBOARD_CACHE_KEY, JSON.stringify(leaderboard), { expirationTtl: LEADERBOARD_CACHE_TTL });
+  // Cache the leaderboard (write immediately - important aggregated data)
+  await cachedKV.put(kv, LEADERBOARD_CACHE_KEY, JSON.stringify(leaderboard), {
+    expirationTtl: LEADERBOARD_CACHE_TTL,
+    immediate: true,
+  });
 
   return leaderboard;
 }

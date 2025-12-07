@@ -12,6 +12,7 @@ import {
   buildLeaderboard,
   trackAnalyticsEvent,
   getAnalytics,
+  getKVMetrics,
   type RecentPlaylist,
 } from '../lib/session';
 import {
@@ -101,7 +102,7 @@ api.use('/*', async (c, next) => {
 });
 
 // Public endpoints that don't require authentication
-const PUBLIC_ENDPOINTS = ['/scoreboard', '/leaderboard', '/recent-playlists', '/deploy-status', '/changelog', '/analytics', '/kv-usage'];
+const PUBLIC_ENDPOINTS = ['/scoreboard', '/leaderboard', '/recent-playlists', '/deploy-status', '/changelog', '/analytics', '/kv-usage', '/kv-metrics'];
 
 // Auth middleware - check auth and refresh tokens if needed
 api.use('/*', async (c, next) => {
@@ -1091,6 +1092,37 @@ api.get('/kv-usage', async (c) => {
     console.error('Error fetching KV usage:', err);
     return c.json({ error: 'Failed to fetch KV usage' }, 500);
   }
+});
+
+// In-memory KV metrics (for monitoring cache effectiveness)
+api.get('/kv-metrics', (c) => {
+  const metrics = getKVMetrics();
+
+  // Calculate cache hit ratio
+  const totalCacheRequests = metrics.cacheHits + metrics.cacheMisses;
+  const hitRatio = totalCacheRequests > 0 ? Math.round((metrics.cacheHits / totalCacheRequests) * 100) : 0;
+
+  // Estimate KV savings
+  const estimatedKVReadsSaved = metrics.cacheHits;
+  const actualKVReads = metrics.reads;
+
+  return c.json({
+    timestamp: new Date().toISOString(),
+    metrics: {
+      kvReads: metrics.reads,
+      kvWrites: metrics.writes,
+      kvDeletes: metrics.deletes,
+      cacheHits: metrics.cacheHits,
+      cacheMisses: metrics.cacheMisses,
+    },
+    cacheEfficiency: {
+      hitRatio: `${hitRatio}%`,
+      estimatedKVReadsSaved,
+      actualKVReads,
+      reduction: actualKVReads > 0 ? `${Math.round((estimatedKVReadsSaved / (estimatedKVReadsSaved + actualKVReads)) * 100)}%` : 'N/A',
+    },
+    note: 'Metrics reset daily and when worker restarts',
+  });
 });
 
 export default api;
