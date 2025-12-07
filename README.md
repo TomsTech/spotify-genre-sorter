@@ -1,13 +1,11 @@
 <p align="center">
-  <img src="https://flagcdn.com/w160/se.png" width="80" alt="Sweden">
-  <img src="https://flagcdn.com/w160/gb.png" width="80" alt="England">
-  <img src="https://flagcdn.com/w160/au.png" width="80" alt="Australia">
+  <img src="https://flagcdn.com/h80/se.png" width="128" height="80" alt="Sweden">
+  <img src="https://flagcdn.com/h80/gb.png" width="160" height="80" alt="England">
+  <img src="https://flagcdn.com/h80/au.png" width="160" height="80" alt="Australia">
 </p>
 
 <h1 align="center">
-  <br>
   <img src="https://img.shields.io/badge/Genre%20Genie-gold?style=for-the-badge&labelColor=006AA7" alt="Genre Genie">
-  <br>
   <sub>Spotify Genre Sorter</sub>
 </h1>
 
@@ -33,7 +31,6 @@
 
 <p align="center">
   <strong>Transform your Spotify library from chaos to symphony.</strong>
-  <br>
   <em>One click to discover the hidden genres within your favourite songs.</em>
 </p>
 
@@ -458,43 +455,40 @@ Free for personal use. Commercial endeavours require a license — see [LICENSE]
 
 ---
 
-<br>
+
 
 <p align="center">
-  <img src="https://flagcdn.com/w40/se.png" width="24" alt="Sweden">
-  <img src="https://flagcdn.com/w40/gb.png" width="24" alt="England">
-  <img src="https://flagcdn.com/w40/au.png" width="24" alt="Australia">
+  <img src="https://flagcdn.com/h24/se.png" height="24" alt="Sweden">
+  <img src="https://flagcdn.com/h24/gb.png" height="24" alt="England">
+  <img src="https://flagcdn.com/h24/au.png" height="24" alt="Australia">
 </p>
 
 <p align="center">
   <sub>
     <em>
-      "Music gives a soul to the universe, wings to the mind,<br>
+      "Music gives a soul to the universe, wings to the mind,
       flight to the imagination, and life to everything."
     </em>
-    <br>
     — Plato
   </sub>
 </p>
 
 <p align="center">
   <sub>
-    Built with love for someone who appreciates Swan Lake,<br>
+    For someone who appreciates Swan Lake,
     ancient histories, and Taylor Swift in equal measure.
   </sub>
 </p>
 
 <p align="center">
-  <strong>For Heidi</strong>
-  <br>
-  <sub>The swan who inspired it all</sub>
+  <strong>For Heidi</strong> 🦢
 </p>
 
 ---
 
 <sub>
   <em>
-    Like Lady Jane Grey with her books, or the scribes of ancient Rome —<br>
+    Like Lady Jane Grey with her books, or the scribes of ancient Rome —
     we write our stories in code, hoping they echo through time.
   </em>
 </sub>
