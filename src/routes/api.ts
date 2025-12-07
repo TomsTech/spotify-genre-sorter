@@ -1004,6 +1004,18 @@ api.get('/changelog', (c) => {
   // Static changelog data - updated during releases
   const changelog = [
     {
+      version: '3.0.0',
+      date: '2025-12-08',
+      changes: [
+        'Progressive scanning for 2000+ track libraries',
+        'Admin debug panel for system monitoring',
+        'Confetti celebration on playlist creation',
+        'Jeff Goldblum Konami code easter egg',
+        'Enhanced smoke animation on durry button',
+        'Secret Heidi detection with auto-Swedish mode',
+      ],
+    },
+    {
       version: '2.2.0',
       date: '2025-12-07',
       changes: [
@@ -1306,6 +1318,80 @@ api.get('/kv-metrics', (c) => {
     },
     note: 'Metrics reset daily and when worker restarts',
   });
+});
+
+
+// ================== Admin Debug Panel ==================
+
+const ADMIN_USERS = ['tomspseudonym', 'tomstech'];
+
+async function isAdmin(c: { env: Env }, session: { githubUser?: string; spotifyUserId?: string } | null): Promise<boolean> {
+  if (!session) return false;
+  if (session.githubUser && ADMIN_USERS.includes(session.githubUser.toLowerCase())) return true;
+  if (session.spotifyUserId) {
+    try {
+      const stats = await c.env.SESSIONS.get(`user_stats:${session.spotifyUserId}`);
+      if (stats) {
+        const parsed = JSON.parse(stats) as { spotifyName?: string };
+        if (parsed.spotifyName && ADMIN_USERS.includes(parsed.spotifyName.toLowerCase())) return true;
+      }
+    } catch { /* ignore */ }
+  }
+  return false;
+}
+
+api.get('/admin', async (c) => {
+  const session = await getSession(c);
+  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+
+  const kv = c.env.SESSIONS;
+  const metrics = getKVMetrics();
+  const analytics = await getAnalytics(kv);
+
+  const keyCounts: Record<string, number> = {};
+  for (const prefix of ['session:', 'user:', 'user_stats:', 'hof:', 'genre_cache_', 'scan_progress:']) {
+    const list = await kv.list({ prefix, limit: 1000 });
+    keyCounts[prefix] = list.keys.length;
+  }
+
+  return c.json({
+    admin: { user: session?.githubUser || session?.spotifyUserId, accessTime: new Date().toISOString() },
+    health: { kvConnected: true, totalUsers: keyCounts['user_stats:'] || 0, activeSessions: keyCounts['session:'] || 0 },
+    kvMetrics: { reads: metrics.reads, writes: metrics.writes, cacheHits: metrics.cacheHits },
+    keyCounts,
+    analytics: { today: analytics.today, last7Days: analytics.last7Days },
+    version: '3.0.0',
+  });
+});
+
+api.post('/admin/clear-cache', async (c) => {
+  const session = await getSession(c);
+  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+
+  const { cache } = await c.req.json<{ cache: string }>();
+  const kv = c.env.SESSIONS;
+  let cleared = 0;
+
+  switch (cache) {
+    case 'leaderboard': await kv.delete('leaderboard_cache'); cleared = 1; break;
+    case 'scoreboard': await kv.delete('scoreboard_cache'); cleared = 1; break;
+    case 'all_genre_caches': {
+      const list = await kv.list({ prefix: 'genre_cache_' });
+      for (const key of list.keys) { await kv.delete(key.name); cleared++; }
+      break;
+    }
+  }
+  return c.json({ success: true, keysCleared: cleared });
+});
+
+api.post('/admin/rebuild-caches', async (c) => {
+  const session = await getSession(c);
+  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+
+  const kv = c.env.SESSIONS;
+  await buildLeaderboard(kv);
+  await buildScoreboard(kv);
+  return c.json({ success: true, timestamp: new Date().toISOString() });
 });
 
 export default api;
