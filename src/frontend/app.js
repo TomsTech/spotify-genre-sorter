@@ -2675,6 +2675,7 @@
             <button class="scoreboard-tab" data-tab="genres">🎸 \${swedishMode ? 'Genrer' : 'Genres'}</button>
             <button class="scoreboard-tab" data-tab="artists">🎤 \${swedishMode ? 'Artister' : 'Artists'}</button>
             <button class="scoreboard-tab" data-tab="tracks">📀 \${swedishMode ? 'Låtar' : 'Tracks'}</button>
+            <button class="scoreboard-tab" data-tab="sorted">📋 ${swedishMode ? 'Sorterade' : 'Sorted'}</button>
           </div>
           <div class="scoreboard-content" id="scoreboard-content">
             \${renderScoreboardTab('playlists')}
@@ -2709,7 +2710,8 @@
         playlists: { data: scoreboardData.byPlaylists, label: swedishMode ? 'spellistor' : 'playlists' },
         genres: { data: scoreboardData.byGenres, label: swedishMode ? 'genrer' : 'genres' },
         artists: { data: scoreboardData.byArtists, label: swedishMode ? 'artister' : 'artists' },
-        tracks: { data: scoreboardData.byTracks, label: swedishMode ? 'låtar' : 'tracks' }
+        tracks: { data: scoreboardData.byTracks, label: swedishMode ? 'låtar' : 'tracks' },
+        sorted: { data: scoreboardData.byTracksInPlaylists, label: swedishMode ? 'spår sorterade' : 'tracks sorted' }
       };
 
       const { data, label } = tabMap[tab] || tabMap.playlists;

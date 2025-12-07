@@ -122,6 +122,7 @@ export interface UserStats {
   totalArtistsDiscovered: number;
   totalTracksAnalysed: number;
   playlistsCreated: number;
+  totalTracksInPlaylists: number;
   firstSeen: string;
   lastActive: string;
   createdPlaylistIds: string[];
@@ -161,6 +162,7 @@ export async function createOrUpdateUserStats(
       totalArtistsDiscovered: updates.totalArtistsDiscovered || 0,
       totalTracksAnalysed: updates.totalTracksAnalysed || 0,
       playlistsCreated: updates.playlistsCreated || 0,
+      totalTracksInPlaylists: updates.totalTracksInPlaylists || 0,
       firstSeen: now,
       lastActive: now,
       createdPlaylistIds: updates.createdPlaylistIds || [],
@@ -173,7 +175,7 @@ export async function createOrUpdateUserStats(
 export async function incrementUserStats(
   kv: KVNamespace,
   spotifyId: string,
-  field: 'totalGenresDiscovered' | 'totalArtistsDiscovered' | 'totalTracksAnalysed' | 'playlistsCreated',
+  field: 'totalGenresDiscovered' | 'totalArtistsDiscovered' | 'totalTracksAnalysed' | 'playlistsCreated' | 'totalTracksInPlaylists',
   amount: number = 1
 ): Promise<void> {
   const existing = await getUserStats(kv, spotifyId);
@@ -187,7 +189,8 @@ export async function incrementUserStats(
 export async function addPlaylistToUser(
   kv: KVNamespace,
   spotifyId: string,
-  playlistId: string
+  playlistId: string,
+  trackCount: number = 0
 ): Promise<void> {
   const existing = await getUserStats(kv, spotifyId);
   if (!existing) return;
@@ -195,6 +198,7 @@ export async function addPlaylistToUser(
   if (!existing.createdPlaylistIds.includes(playlistId)) {
     existing.createdPlaylistIds.push(playlistId);
     existing.playlistsCreated += 1;
+    existing.totalTracksInPlaylists = (existing.totalTracksInPlaylists || 0) + trackCount;
     existing.lastActive = new Date().toISOString();
     await kv.put(`user_stats:${spotifyId}`, JSON.stringify(existing));
   }
@@ -255,6 +259,7 @@ export interface Scoreboard {
   byArtists: ScoreboardEntry[];
   byTracks: ScoreboardEntry[];
   byPlaylists: ScoreboardEntry[];
+  byTracksInPlaylists: ScoreboardEntry[];
   totalUsers: number;
   updatedAt: string;
 }
@@ -293,7 +298,7 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
   // Sort and rank for each category
   const makeRanking = (
     stats: UserStats[],
-    field: keyof Pick<UserStats, 'totalGenresDiscovered' | 'totalArtistsDiscovered' | 'totalTracksAnalysed' | 'playlistsCreated'>
+    field: keyof Pick<UserStats, 'totalGenresDiscovered' | 'totalArtistsDiscovered' | 'totalTracksAnalysed' | 'playlistsCreated' | 'totalTracksInPlaylists'>
   ): ScoreboardEntry[] => {
     return stats
       .filter(s => s[field] > 0)
@@ -313,6 +318,7 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
     byArtists: makeRanking(allStats, 'totalArtistsDiscovered'),
     byTracks: makeRanking(allStats, 'totalTracksAnalysed'),
     byPlaylists: makeRanking(allStats, 'playlistsCreated'),
+    byTracksInPlaylists: makeRanking(allStats, 'totalTracksInPlaylists'),
     totalUsers: allStats.length,
     updatedAt: new Date().toISOString(),
   };
