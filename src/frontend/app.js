@@ -4140,3 +4140,201 @@
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     });
+
+    // ====================================
+    // Error Logging & Monitoring
+    // ====================================
+
+    const errorQueue = [];
+    let errorFlushTimer = null;
+
+    function logErrorToBackend(error) {
+      const errorData = {
+        message: error.message || String(error),
+        stack: error.stack || null,
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString()
+      };
+
+      errorQueue.push(errorData);
+
+      // Batch errors - send after 2 seconds of no new errors
+      clearTimeout(errorFlushTimer);
+      errorFlushTimer = setTimeout(flushErrors, 2000);
+    }
+
+    function flushErrors() {
+      if (errorQueue.length === 0) return;
+
+      const errors = [...errorQueue];
+      errorQueue.length = 0;
+
+      // Send to backend (fire and forget)
+      fetch('/api/log-error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ errors })
+      }).catch(() => {}); // Ignore failures
+    }
+
+    // Global error handler
+    window.onerror = function(message, source, lineno, colno, error) {
+      logErrorToBackend({
+        message: message,
+        stack: error?.stack || (source + ':' + lineno + ':' + colno),
+        type: 'error'
+      });
+      return false; // Let default handler run too
+    };
+
+    // Unhandled promise rejections
+    window.addEventListener('unhandledrejection', (event) => {
+      logErrorToBackend({
+        message: event.reason?.message || String(event.reason),
+        stack: event.reason?.stack || null,
+        type: 'unhandledrejection'
+      });
+    });
+
+    // ====================================
+    // Performance Metrics
+    // ====================================
+
+    let perfMetrics = null;
+
+    function collectPerformanceMetrics() {
+      if (!window.performance || !performance.timing) return null;
+
+      const timing = performance.timing;
+      const now = Date.now();
+
+      return {
+        // Page load timing
+        pageLoadTime: timing.loadEventEnd - timing.navigationStart,
+        domContentLoaded: timing.domContentLoadedEventEnd - timing.navigationStart,
+        timeToFirstByte: timing.responseStart - timing.navigationStart,
+        domInteractive: timing.domInteractive - timing.navigationStart,
+
+        // Network
+        dnsLookup: timing.domainLookupEnd - timing.domainLookupStart,
+        tcpConnect: timing.connectEnd - timing.connectStart,
+        serverResponse: timing.responseEnd - timing.requestStart,
+
+        // Measured at collection time
+        collectedAt: now
+      };
+    }
+
+    // Collect metrics after page fully loads
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        perfMetrics = collectPerformanceMetrics();
+        if (perfMetrics && perfMetrics.pageLoadTime > 0) {
+          // Send to backend
+          fetch('/api/log-perf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(perfMetrics)
+          }).catch(() => {});
+        }
+      }, 100);
+    });
+
+    // ====================================
+    // Health Status Indicator
+    // ====================================
+
+    let healthStatus = { ok: true, issues: [] };
+
+    async function checkHealth() {
+      try {
+        const startTime = Date.now();
+        const response = await fetch('/health?detailed=true');
+        const responseTime = Date.now() - startTime;
+
+        if (!response.ok) {
+          healthStatus = { ok: false, issues: ['API unreachable'], responseTime };
+          updateHealthIndicator();
+          return;
+        }
+
+        const data = await response.json();
+        const issues = [];
+
+        // Check response time
+        if (responseTime > 3000) {
+          issues.push('Slow response (' + Math.round(responseTime/1000) + 's)');
+        }
+
+        // Check KV status from /health response
+        if (data.components?.kv === 'degraded') {
+          issues.push('KV storage issues');
+        }
+
+        // Check from our KV usage data
+        if (kvUsageData?.status === 'critical') {
+          issues.push('Rate limits reached');
+        } else if (kvUsageData?.status === 'warning') {
+          issues.push('High usage');
+        }
+
+        healthStatus = {
+          ok: issues.length === 0,
+          issues: issues,
+          responseTime: responseTime
+        };
+
+        updateHealthIndicator();
+      } catch (err) {
+        healthStatus = { ok: false, issues: ['Cannot reach server'], responseTime: null };
+        updateHealthIndicator();
+      }
+    }
+
+    function updateHealthIndicator() {
+      let indicator = document.getElementById('health-indicator');
+
+      if (!indicator) {
+        // Create indicator if it doesn't exist
+        indicator = document.createElement('div');
+        indicator.id = 'health-indicator';
+        indicator.className = 'health-indicator';
+        indicator.onclick = showHealthDetails;
+        document.body.appendChild(indicator);
+      }
+
+      // Update status
+      indicator.className = 'health-indicator ' + (healthStatus.ok ? 'healthy' : 'unhealthy');
+
+      const statusText = healthStatus.ok
+        ? (swedishMode ? 'Allt OK' : 'All Systems OK')
+        : (swedishMode ? 'Problem upptäckt' : 'Issues Detected');
+
+      const rtText = healthStatus.responseTime
+        ? ' (' + healthStatus.responseTime + 'ms)'
+        : '';
+
+      indicator.innerHTML =
+        '<span class="health-dot"></span>' +
+        '<span class="health-text">' + statusText + rtText + '</span>';
+    }
+
+    function showHealthDetails() {
+      const details = [
+        'Status: ' + (healthStatus.ok ? '✅ Healthy' : '⚠️ Issues'),
+        healthStatus.responseTime ? 'Response: ' + healthStatus.responseTime + 'ms' : null,
+        healthStatus.issues.length > 0 ? 'Issues: ' + healthStatus.issues.join(', ') : null,
+        perfMetrics ? 'Page load: ' + perfMetrics.pageLoadTime + 'ms' : null,
+        kvUsageData ? 'KV reads: ' + (kvUsageData.usage?.reads?.percent || 0) + '%' : null,
+        kvUsageData ? 'KV writes: ' + (kvUsageData.usage?.writes?.percent || 0) + '%' : null
+      ].filter(Boolean);
+
+      showNotification(details.join(' | '), healthStatus.ok ? 'success' : 'warning');
+    }
+
+    // Check health on load and periodically
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(checkHealth, 3000); // Initial check after 3s
+      setInterval(checkHealth, 60000); // Then every minute
+    });

@@ -5078,3 +5078,68 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
+
+    /* Health Status Indicator */
+    .health-indicator {
+      position: fixed;
+      top: 0.5rem;
+      right: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      z-index: 1000;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(10px);
+      opacity: 0.7;
+    }
+
+    .health-indicator:hover {
+      opacity: 1;
+      transform: scale(1.02);
+    }
+
+    .health-indicator .health-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .health-indicator.healthy .health-dot {
+      background: var(--accent);
+    }
+
+    .health-indicator.unhealthy .health-dot {
+      background: #ff4444;
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    .health-indicator .health-text {
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    body.light-mode .health-indicator {
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    /* Mobile: hide text, show only dot */
+    @media (max-width: 768px) {
+      .health-indicator .health-text {
+        display: none;
+      }
+      .health-indicator {
+        padding: 0.5rem;
+      }
+    }

@@ -5102,6 +5102,71 @@ export function getHtml(): string {
       letter-spacing: 0.5px;
     }
 
+    /* Health Status Indicator */
+    .health-indicator {
+      position: fixed;
+      top: 0.5rem;
+      right: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      z-index: 1000;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(10px);
+      opacity: 0.7;
+    }
+
+    .health-indicator:hover {
+      opacity: 1;
+      transform: scale(1.02);
+    }
+
+    .health-indicator .health-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .health-indicator.healthy .health-dot {
+      background: var(--accent);
+    }
+
+    .health-indicator.unhealthy .health-dot {
+      background: #ff4444;
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    .health-indicator .health-text {
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    body.light-mode .health-indicator {
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    /* Mobile: hide text, show only dot */
+    @media (max-width: 768px) {
+      .health-indicator .health-text {
+        display: none;
+      }
+      .health-indicator {
+        padding: 0.5rem;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -5148,21 +5213,21 @@ export function getHtml(): string {
       <!-- Left Sidebar -->
       <aside class="sidebar" id="sidebar">
         <div class="sidebar-section">
-          <h3 class="sidebar-title" title="Updates every 15 minutes to save API calls">🏆 <span data-i18n="pioneers">Pioneers</span> <span class="cache-hint">⏱️</span></h3>
+          <h3 class="sidebar-title" title="Updates every 15 minutes to save API calls">🏆 <span data-i18n="pioneers">Pioneers</span></h3>
           <div class="pioneers-list" id="pioneers-list">
             <div class="sidebar-loading">Loading...</div>
           </div>
         </div>
 
         <div class="sidebar-section">
-          <h3 class="sidebar-title" title="Updates every 15 minutes to save API calls">👋 <span data-i18n="newUsers">New Users</span> <span class="cache-hint">⏱️</span></h3>
+          <h3 class="sidebar-title" title="Updates every 15 minutes to save API calls">👋 <span data-i18n="newUsers">New Users</span></h3>
           <div class="new-users-list" id="new-users-list">
             <div class="sidebar-loading">Loading...</div>
           </div>
         </div>
 
         <div class="sidebar-section">
-          <h3 class="sidebar-title" title="Refreshes every 3 minutes">🎵 <span data-i18n="recentPlaylists">Recent Playlists</span> <span class="cache-hint">⏱️</span></h3>
+          <h3 class="sidebar-title" title="Refreshes every 3 minutes">🎵 <span data-i18n="recentPlaylists">Recent Playlists</span></h3>
           <div class="recent-playlists-list" id="recent-playlists-list">
             <div class="sidebar-loading">Loading...</div>
           </div>
@@ -9354,6 +9419,204 @@ export function getHtml(): string {
         // Clean URL
         window.history.replaceState({}, document.title, window.location.pathname);
       }
+    });
+
+    // ====================================
+    // Error Logging & Monitoring
+    // ====================================
+
+    const errorQueue = [];
+    let errorFlushTimer = null;
+
+    function logErrorToBackend(error) {
+      const errorData = {
+        message: error.message || String(error),
+        stack: error.stack || null,
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString()
+      };
+
+      errorQueue.push(errorData);
+
+      // Batch errors - send after 2 seconds of no new errors
+      clearTimeout(errorFlushTimer);
+      errorFlushTimer = setTimeout(flushErrors, 2000);
+    }
+
+    function flushErrors() {
+      if (errorQueue.length === 0) return;
+
+      const errors = [...errorQueue];
+      errorQueue.length = 0;
+
+      // Send to backend (fire and forget)
+      fetch('/api/log-error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ errors })
+      }).catch(() => {}); // Ignore failures
+    }
+
+    // Global error handler
+    window.onerror = function(message, source, lineno, colno, error) {
+      logErrorToBackend({
+        message: message,
+        stack: error?.stack || (source + ':' + lineno + ':' + colno),
+        type: 'error'
+      });
+      return false; // Let default handler run too
+    };
+
+    // Unhandled promise rejections
+    window.addEventListener('unhandledrejection', (event) => {
+      logErrorToBackend({
+        message: event.reason?.message || String(event.reason),
+        stack: event.reason?.stack || null,
+        type: 'unhandledrejection'
+      });
+    });
+
+    // ====================================
+    // Performance Metrics
+    // ====================================
+
+    let perfMetrics = null;
+
+    function collectPerformanceMetrics() {
+      if (!window.performance || !performance.timing) return null;
+
+      const timing = performance.timing;
+      const now = Date.now();
+
+      return {
+        // Page load timing
+        pageLoadTime: timing.loadEventEnd - timing.navigationStart,
+        domContentLoaded: timing.domContentLoadedEventEnd - timing.navigationStart,
+        timeToFirstByte: timing.responseStart - timing.navigationStart,
+        domInteractive: timing.domInteractive - timing.navigationStart,
+
+        // Network
+        dnsLookup: timing.domainLookupEnd - timing.domainLookupStart,
+        tcpConnect: timing.connectEnd - timing.connectStart,
+        serverResponse: timing.responseEnd - timing.requestStart,
+
+        // Measured at collection time
+        collectedAt: now
+      };
+    }
+
+    // Collect metrics after page fully loads
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        perfMetrics = collectPerformanceMetrics();
+        if (perfMetrics && perfMetrics.pageLoadTime > 0) {
+          // Send to backend
+          fetch('/api/log-perf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(perfMetrics)
+          }).catch(() => {});
+        }
+      }, 100);
+    });
+
+    // ====================================
+    // Health Status Indicator
+    // ====================================
+
+    let healthStatus = { ok: true, issues: [] };
+
+    async function checkHealth() {
+      try {
+        const startTime = Date.now();
+        const response = await fetch('/health?detailed=true');
+        const responseTime = Date.now() - startTime;
+
+        if (!response.ok) {
+          healthStatus = { ok: false, issues: ['API unreachable'], responseTime };
+          updateHealthIndicator();
+          return;
+        }
+
+        const data = await response.json();
+        const issues = [];
+
+        // Check response time
+        if (responseTime > 3000) {
+          issues.push('Slow response (' + Math.round(responseTime/1000) + 's)');
+        }
+
+        // Check KV status from /health response
+        if (data.components?.kv === 'degraded') {
+          issues.push('KV storage issues');
+        }
+
+        // Check from our KV usage data
+        if (kvUsageData?.status === 'critical') {
+          issues.push('Rate limits reached');
+        } else if (kvUsageData?.status === 'warning') {
+          issues.push('High usage');
+        }
+
+        healthStatus = {
+          ok: issues.length === 0,
+          issues: issues,
+          responseTime: responseTime
+        };
+
+        updateHealthIndicator();
+      } catch (err) {
+        healthStatus = { ok: false, issues: ['Cannot reach server'], responseTime: null };
+        updateHealthIndicator();
+      }
+    }
+
+    function updateHealthIndicator() {
+      let indicator = document.getElementById('health-indicator');
+
+      if (!indicator) {
+        // Create indicator if it doesn't exist
+        indicator = document.createElement('div');
+        indicator.id = 'health-indicator';
+        indicator.className = 'health-indicator';
+        indicator.onclick = showHealthDetails;
+        document.body.appendChild(indicator);
+      }
+
+      // Update status
+      indicator.className = 'health-indicator ' + (healthStatus.ok ? 'healthy' : 'unhealthy');
+
+      const statusText = healthStatus.ok
+        ? (swedishMode ? 'Allt OK' : 'All Systems OK')
+        : (swedishMode ? 'Problem upptäckt' : 'Issues Detected');
+
+      const rtText = healthStatus.responseTime
+        ? ' (' + healthStatus.responseTime + 'ms)'
+        : '';
+
+      indicator.innerHTML =
+        '<span class="health-dot"></span>' +
+        '<span class="health-text">' + statusText + rtText + '</span>';
+    }
+
+    function showHealthDetails() {
+      const details = [
+        'Status: ' + (healthStatus.ok ? '✅ Healthy' : '⚠️ Issues'),
+        healthStatus.responseTime ? 'Response: ' + healthStatus.responseTime + 'ms' : null,
+        healthStatus.issues.length > 0 ? 'Issues: ' + healthStatus.issues.join(', ') : null,
+        perfMetrics ? 'Page load: ' + perfMetrics.pageLoadTime + 'ms' : null,
+        kvUsageData ? 'KV reads: ' + (kvUsageData.usage?.reads?.percent || 0) + '%' : null,
+        kvUsageData ? 'KV writes: ' + (kvUsageData.usage?.writes?.percent || 0) + '%' : null
+      ].filter(Boolean);
+
+      showNotification(details.join(' | '), healthStatus.ok ? 'success' : 'warning');
+    }
+
+    // Check health on load and periodically
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(checkHealth, 3000); // Initial check after 3s
+      setInterval(checkHealth, 60000); // Then every minute
     });
 
   </script>

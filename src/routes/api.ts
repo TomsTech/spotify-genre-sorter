@@ -107,7 +107,7 @@ api.use('/*', async (c, next) => {
 });
 
 // Public endpoints that don't require authentication
-const PUBLIC_ENDPOINTS = ['/scoreboard', '/leaderboard', '/recent-playlists', '/deploy-status', '/changelog', '/analytics', '/kv-usage', '/kv-metrics'];
+const PUBLIC_ENDPOINTS = ['/scoreboard', '/leaderboard', '/recent-playlists', '/deploy-status', '/changelog', '/analytics', '/kv-usage', '/kv-metrics', '/log-error', '/log-perf'];
 
 // Auth middleware - check auth and refresh tokens if needed
 api.use('/*', async (c, next) => {
@@ -1420,6 +1420,152 @@ api.get('/admin/invites', async (c) => {
   } catch (err) {
     console.error('Error fetching invites:', err);
     return c.json({ error: 'Failed to fetch invites' }, 500);
+  }
+});
+
+// ====================================
+// Frontend Error & Performance Logging
+// ====================================
+
+const ERROR_LOG_KEY = 'client_errors';
+const PERF_LOG_KEY = 'client_perf';
+
+// Log frontend JS errors
+api.post('/log-error', async (c) => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const body: Record<string, unknown> = await c.req.json();
+    const errors = Array.isArray(body.errors) ? body.errors : [];
+
+    if (errors.length === 0) {
+      return c.json({ ok: true });
+    }
+
+    // Get existing errors (last 100)
+    const existingRaw = await c.env.SESSIONS.get(ERROR_LOG_KEY);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const existing: unknown[] = existingRaw ? JSON.parse(existingRaw) as unknown[] : [];
+
+    // Add new errors with server timestamp
+    const newErrors = errors.slice(0, 10).map((e: unknown) => ({
+      ...(typeof e === 'object' && e !== null ? e : { raw: e }),
+      serverTime: new Date().toISOString(),
+      ip: c.req.header('cf-connecting-ip') || 'unknown'
+    }));
+
+    // Keep last 100 errors
+    const combined = [...newErrors, ...existing].slice(0, 100);
+
+    await c.env.SESSIONS.put(ERROR_LOG_KEY, JSON.stringify(combined), {
+      expirationTtl: 86400 * 7 // 7 days
+    });
+
+    // Log to console for immediate visibility
+    console.error('[CLIENT ERROR]', JSON.stringify(newErrors[0]));
+
+    return c.json({ ok: true, logged: newErrors.length });
+  } catch (err) {
+    console.error('Error logging client errors:', err);
+    return c.json({ error: 'Failed to log' }, 500);
+  }
+});
+
+// Log frontend performance metrics
+api.post('/log-perf', async (c) => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const body: Record<string, unknown> = await c.req.json();
+
+    // Validate basic structure
+    if (typeof body.pageLoadTime !== 'number') {
+      return c.json({ ok: true }); // Silently ignore invalid data
+    }
+
+    // Get existing perf data (last 1000 samples)
+    const existingRaw = await c.env.SESSIONS.get(PERF_LOG_KEY);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const existing: unknown[] = existingRaw ? JSON.parse(existingRaw) as unknown[] : [];
+
+    // Add new sample
+    const sample = {
+      pageLoadTime: body.pageLoadTime,
+      domContentLoaded: body.domContentLoaded,
+      timeToFirstByte: body.timeToFirstByte,
+      serverResponse: body.serverResponse,
+      timestamp: new Date().toISOString(),
+      userAgent: c.req.header('user-agent')?.substring(0, 100) || 'unknown'
+    };
+
+    const combined = [sample, ...existing].slice(0, 1000);
+
+    await c.env.SESSIONS.put(PERF_LOG_KEY, JSON.stringify(combined), {
+      expirationTtl: 86400 * 30 // 30 days
+    });
+
+    return c.json({ ok: true });
+  } catch (err) {
+    console.error('Error logging perf:', err);
+    return c.json({ error: 'Failed to log' }, 500);
+  }
+});
+
+// Admin endpoint to view error logs
+api.get('/admin/errors', async (c) => {
+  const session = await getSession(c);
+  const adminUsers = ['tomspseudonym', 'tomstech'];
+
+  if (!session?.spotifyUser || !adminUsers.includes(session.spotifyUser.toLowerCase())) {
+    return c.json({ error: 'Forbidden' }, 403);
+  }
+
+  try {
+    const errorsRaw = await c.env.SESSIONS.get(ERROR_LOG_KEY);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const errors: unknown[] = errorsRaw ? JSON.parse(errorsRaw) as unknown[] : [];
+    return c.json({ errors, count: errors.length });
+  } catch {
+    return c.json({ error: 'Failed to fetch errors' }, 500);
+  }
+});
+
+// Admin endpoint to view performance metrics
+api.get('/admin/perf', async (c) => {
+  const session = await getSession(c);
+  const adminUsers = ['tomspseudonym', 'tomstech'];
+
+  if (!session?.spotifyUser || !adminUsers.includes(session.spotifyUser.toLowerCase())) {
+    return c.json({ error: 'Forbidden' }, 403);
+  }
+
+  try {
+    const perfRaw = await c.env.SESSIONS.get(PERF_LOG_KEY);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const samples: unknown[] = perfRaw ? JSON.parse(perfRaw) as unknown[] : [];
+
+    // Calculate averages
+    const validSamples = samples.filter((s: unknown): s is Record<string, number> =>
+      typeof s === 'object' && s !== null && typeof (s as Record<string, unknown>).pageLoadTime === 'number'
+    );
+
+    const avg = (key: string) => {
+      const values = validSamples
+        .map(s => s[key])
+        .filter((v): v is number => typeof v === 'number' && v > 0);
+      return values.length > 0 ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
+    };
+
+    return c.json({
+      samples: samples.slice(0, 50), // Last 50 samples
+      totalSamples: samples.length,
+      averages: {
+        pageLoadTime: avg('pageLoadTime'),
+        domContentLoaded: avg('domContentLoaded'),
+        timeToFirstByte: avg('timeToFirstByte'),
+        serverResponse: avg('serverResponse')
+      }
+    });
+  } catch {
+    return c.json({ error: 'Failed to fetch perf data' }, 500);
   }
 });
 
