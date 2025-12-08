@@ -5,6 +5,17 @@ All notable changes to Genre Genie (Spotify Genre Sorter) will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2025-12-08
+
+### Added
+- **Special user tags** - display badges next to special users in leaderboard
+  - Creator badge (👑) for tomspseudonym and tomstech
+  - Queen badge (💙) for ~oogi~ (Heidi)
+- **Genre merging** - select 2+ genres and merge them into a single playlist
+  - "Merge Selected" button appears when 2+ genres are checked
+  - Combines all unique tracks from selected genres
+  - Swedish translations included
+
 ## [3.1.0] - 2025-12-08
 
 ### Added

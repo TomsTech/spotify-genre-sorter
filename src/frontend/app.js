@@ -2,7 +2,270 @@
     const headerActions = document.getElementById('header-actions');
 
     let genreData = null;
-    let selectedGenres = new Set();
+    
+    // Create merged playlist from selected genres
+    async function createMergedFromSelection() {
+      if (selectedGenres.size < 2) {
+        showNotification(swedishMode ? 'Välj minst 2 genrer' : 'Select at least 2 genres', 'error');
+        return;
+      }
+
+      const genreNames = [...selectedGenres];
+      const suggestedName = genreNames.slice(0, 3).join(' + ') + (genreNames.length > 3 ? ' +more' : '');
+
+      // Prompt for playlist name
+      const playlistName = prompt(
+        swedishMode ? 'Namn på sammanslagen spellista:' : 'Name for merged playlist:',
+        suggestedName
+      );
+
+      if (!playlistName) return;
+
+      // Collect all track IDs
+      const trackIds = new Set();
+      for (const genreName of selectedGenres) {
+        const genre = genreData.genres.find(g => g.name === genreName);
+        if (genre && genre.trackIds) {
+          genre.trackIds.forEach(id => trackIds.add(id));
+        }
+      }
+
+      if (trackIds.size === 0) {
+        showNotification(swedishMode ? 'Inga låtar hittades' : 'No tracks found', 'error');
+        return;
+      }
+
+      showNotification(swedishMode ? '⏳ Skapar spellista...' : '⏳ Creating playlist...', 'info');
+
+      try {
+        const response = await fetch('/api/playlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: playlistName,
+            trackIds: [...trackIds],
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to create playlist');
+        }
+
+        const totalTracks = trackIds.size;
+        showNotification(
+          swedishMode
+            ? '✅ ' + playlistName + ' skapad med ' + totalTracks + ' låtar!'
+            : '✅ ' + playlistName + ' created with ' + totalTracks + ' tracks!',
+          'success'
+        );
+
+        triggerConfetti();
+
+        // Clear selection
+        selectedGenres.clear();
+        renderGenres();
+
+      } catch (error) {
+        console.error('Merge error:', error);
+        showNotification(swedishMode ? '❌ Kunde inte skapa spellista' : '❌ Failed to create playlist', 'error');
+      }
+    }
+
+    window.createMergedFromSelection = createMergedFromSelection;
+
+    let selectedGenres = new Set();\n
+    // Genre merging state
+    let mergeMode = false;
+    let genresToMerge = new Set();
+
+    function toggleMergeMode() {
+      mergeMode = !mergeMode;
+      genresToMerge.clear();
+
+      if (mergeMode) {
+        showNotification(swedishMode ? '📦 Välj genrer att slå ihop' : '📦 Select genres to merge', 'info');
+      }
+
+      renderGenres();
+    }
+
+    function toggleGenreForMerge(genreName) {
+      if (genresToMerge.has(genreName)) {
+        genresToMerge.delete(genreName);
+      } else {
+        genresToMerge.add(genreName);
+      }
+      updateMergeToolbar();
+
+      // Update visual state
+      const cards = document.querySelectorAll('.genre-card');
+      cards.forEach(card => {
+        const name = card.dataset.genre;
+        if (genresToMerge.has(name)) {
+          card.classList.add('selected-for-merge');
+        } else {
+          card.classList.remove('selected-for-merge');
+        }
+      });
+    }
+
+    function updateMergeToolbar() {
+      let toolbar = document.getElementById('merge-toolbar');
+
+      if (genresToMerge.size === 0) {
+        if (toolbar) toolbar.remove();
+        return;
+      }
+
+      if (!toolbar) {
+        toolbar = document.createElement('div');
+        toolbar.id = 'merge-toolbar';
+        toolbar.className = 'merge-toolbar';
+        const genreGrid = document.querySelector('.genre-grid');
+        if (genreGrid) {
+          genreGrid.parentNode.insertBefore(toolbar, genreGrid);
+        }
+      }
+
+      const totalTracks = [...genresToMerge].reduce((sum, name) => {
+        const genre = genreData.genres.find(g => g.name === name);
+        return sum + (genre ? genre.count : 0);
+      }, 0);
+
+      toolbar.innerHTML = [
+        '<span class="merge-count">' + genresToMerge.size + (swedishMode ? ' genrer valda' : ' genres selected') + '</span>',
+        '<span>(' + totalTracks + (swedishMode ? ' låtar totalt)' : ' tracks total)') + '</span>',
+        '<button class="btn btn-ghost btn-sm" onclick="cancelMerge()">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
+        '<button class="btn btn-primary btn-sm" onclick="showMergeModal()">' + (swedishMode ? '📦 Slå ihop' : '📦 Merge') + '</button>',
+      ].join('');
+    }
+
+    function cancelMerge() {
+      mergeMode = false;
+      genresToMerge.clear();
+      document.querySelectorAll('.genre-card.selected-for-merge').forEach(card => {
+        card.classList.remove('selected-for-merge');
+      });
+      const toolbar = document.getElementById('merge-toolbar');
+      if (toolbar) toolbar.remove();
+    }
+
+    function showMergeModal() {
+      if (genresToMerge.size < 2) {
+        showNotification(swedishMode ? 'Välj minst 2 genrer' : 'Select at least 2 genres', 'error');
+        return;
+      }
+
+      const genreNames = [...genresToMerge];
+      const genreItems = genreNames.map(name => {
+        const genre = genreData.genres.find(g => g.name === name);
+        return { name, count: genre ? genre.count : 0 };
+      }).sort((a, b) => b.count - a.count);
+
+      const totalTracks = genreItems.reduce((sum, g) => sum + g.count, 0);
+      const suggestedName = genreNames.slice(0, 3).join(' + ') + (genreNames.length > 3 ? ' +more' : '');
+
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay merge-modal';
+      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+      modal.innerHTML = [
+        '<div class="modal-content">',
+        '  <div class="modal-header">',
+        '    <h3>' + (swedishMode ? '📦 Slå ihop genrer' : '📦 Merge Genres') + '</h3>',
+        '    <button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()">×</button>',
+        '  </div>',
+        '  <div class="modal-body">',
+        '    <label>' + (swedishMode ? 'Spellistans namn' : 'Playlist Name') + '</label>',
+        '    <input type="text" id="merge-playlist-name" class="search-input" value="' + escapeForHtml(suggestedName) + '" style="margin-bottom: 1rem;">',
+        '    <label>' + (swedishMode ? 'Genrer som slås ihop:' : 'Genres to merge:') + '</label>',
+        '    <div class="merge-preview">',
+        genreItems.map(g => '<div class="merge-preview-item"><span>' + escapeForHtml(g.name) + '</span><span>' + g.count + ' ' + (swedishMode ? 'låtar' : 'tracks') + '</span></div>').join(''),
+        '    </div>',
+        '    <div class="merge-total">' + (swedishMode ? 'Totalt:' : 'Total:') + ' ' + totalTracks + ' ' + (swedishMode ? 'låtar' : 'tracks') + '</div>',
+        '  </div>',
+        '  <div class="modal-actions">',
+        '    <button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
+        '    <button class="btn btn-primary" onclick="createMergedPlaylist()">' + (swedishMode ? '🎵 Skapa spellista' : '🎵 Create Playlist') + '</button>',
+        '  </div>',
+        '</div>',
+      ].join('');
+
+      document.body.appendChild(modal);
+      document.getElementById('merge-playlist-name').focus();
+    }
+
+    async function createMergedPlaylist() {
+      const nameInput = document.getElementById('merge-playlist-name');
+      const playlistName = nameInput ? nameInput.value.trim() : 'Merged Playlist';
+
+      if (!playlistName) {
+        showNotification(swedishMode ? 'Ange ett namn' : 'Enter a name', 'error');
+        return;
+      }
+
+      // Collect all track IDs from selected genres
+      const trackIds = new Set();
+      for (const genreName of genresToMerge) {
+        const genre = genreData.genres.find(g => g.name === genreName);
+        if (genre && genre.trackIds) {
+          genre.trackIds.forEach(id => trackIds.add(id));
+        }
+      }
+
+      if (trackIds.size === 0) {
+        showNotification(swedishMode ? 'Inga låtar hittades' : 'No tracks found', 'error');
+        return;
+      }
+
+      // Close modal
+      const modal = document.querySelector('.merge-modal');
+      if (modal) modal.remove();
+
+      showNotification(swedishMode ? '⏳ Skapar spellista...' : '⏳ Creating playlist...', 'info');
+
+      try {
+        const response = await fetch('/api/playlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: playlistName,
+            trackIds: [...trackIds],
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to create playlist');
+        }
+
+        showNotification(
+          swedishMode ? '✅ Spellista skapad: ' + playlistName : '✅ Playlist created: ' + playlistName,
+          'success'
+        );
+
+        // Trigger confetti
+        triggerConfetti();
+
+        // Clean up merge state
+        cancelMerge();
+
+      } catch (error) {
+        console.error('Merge error:', error);
+        showNotification(swedishMode ? '❌ Kunde inte skapa spellista' : '❌ Failed to create playlist', 'error');
+      }
+    }
+
+    // Make functions globally available
+    window.toggleMergeMode = toggleMergeMode;
+    window.toggleGenreForMerge = toggleGenreForMerge;
+    window.cancelMerge = cancelMerge;
+    window.showMergeModal = showMergeModal;
+    window.createMergedPlaylist = createMergedPlaylist;
+
     let swedishMode = localStorage.getItem('swedishMode') === 'true';
     let spotifyOnlyMode = false;
     let statsData = null;
@@ -70,7 +333,39 @@
 
     // Fika reminder (25 minutes)
     let fikaTimerStarted = false;
-    let fikaTimerId = null;\n
+    let fikaTimerId = null;
+
+    // Special user tags
+    const SPECIAL_USERS = {
+      'tomspseudonym': { tag: 'Creator', class: 'creator', emoji: '👑' },
+      'tomstech': { tag: 'Creator', class: 'creator', emoji: '👑' },
+      '~oogi~': { tag: 'Queen', class: 'queen', emoji: '💙' },
+      'oogi': { tag: 'Queen', class: 'queen', emoji: '💙' },
+      'heidi': { tag: 'Queen', class: 'queen', emoji: '💙' },
+    };
+
+    function getSpecialUserTag(userName) {
+      if (!userName) return '';
+      const lowerName = userName.toLowerCase();
+      for (const [name, config] of Object.entries(SPECIAL_USERS)) {
+        if (lowerName.includes(name.toLowerCase())) {
+          return '<span class="user-tag ' + config.class + '">' + config.emoji + ' ' + config.tag + '</span>';
+        }
+      }
+      return '';
+    }
+
+    function getSpecialUserClass(userName) {
+      if (!userName) return '';
+      const lowerName = userName.toLowerCase();
+      for (const [name, config] of Object.entries(SPECIAL_USERS)) {
+        if (lowerName.includes(name.toLowerCase())) {
+          return config.class + '-user';
+        }
+      }
+      return '';
+    }
+\n
     // Admin panel state
     let isAdminUser = false;
     let adminData = null;
@@ -1758,6 +2053,9 @@
           <button onclick="toggleStatsDashboard()" class="btn btn-ghost btn-sm stats-toggle" id="stats-toggle">
             \${showStatsDashboard ? (swedishMode ? '📊 Dölj statistik' : '📊 Hide Stats') : (swedishMode ? '📊 Visa statistik' : '📊 Show Stats')}
           </button>
+          <button onclick="toggleMergeMode()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Välj genrer att slå ihop' : 'Select genres to merge into one playlist'}">
+            📦 \${swedishMode ? 'Slå ihop' : 'Merge'}
+          </button>
           <button onclick="exportGenresJSON()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Exportera som JSON' : 'Export as JSON'}">
             📥 JSON
           </button>
@@ -1892,10 +2190,25 @@
     function updateSelectedCount() {
       document.getElementById('selected-count').textContent = selectedGenres.size;
       document.getElementById('create-btn').disabled = selectedGenres.size === 0;
-      const mergeBtn = document.getElementById('merge-btn');
-      if (mergeBtn) {
-        mergeBtn.disabled = selectedGenres.size < 2; // Need at least 2 to merge
+
+      // Show/hide merge selected button based on selection count
+      let mergeSelectedBtn = document.getElementById('merge-selected-btn');
+      if (selectedGenres.size >= 2) {
+        if (!mergeSelectedBtn) {
+          const actionsDiv = document.querySelector('.bulk-actions');
+          if (actionsDiv) {
+            const btn = document.createElement('button');
+            btn.id = 'merge-selected-btn';
+            btn.className = 'btn btn-secondary';
+            btn.onclick = createMergedFromSelection;
+            btn.innerHTML = (swedishMode ? '📦 Slå ihop valda' : '📦 Merge Selected');
+            actionsDiv.appendChild(btn);
+          }
+        }
+      } else if (mergeSelectedBtn) {
+        mergeSelectedBtn.remove();
       }
+    }
     }
 
     // Playlist template functions
@@ -2832,13 +3145,15 @@
                         i < 10 ? '<span class="regalia">⭐</span>' : '';
         const delay = i * 50; // Stagger by 50ms
 
+        const specialClass = getSpecialUserClass(user.spotifyName);
+        const specialTag = getSpecialUserTag(user.spotifyName);
         return \`
-          <div class="user-list-item animate-in" style="animation-delay: \${delay}ms" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
+          <div class="user-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
             <span class="position \${posClass}">#\${i + 1}</span>
             \${user.spotifyAvatar
               ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
               : '<div class="user-avatar-placeholder">👤</div>'}
-            <span class="user-name">\${escapeHtml(user.spotifyName)}</span>
+            <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
             \${regalia}
           </div>
         \`;
@@ -2857,12 +3172,14 @@
 
       container.innerHTML = sidebarData.newUsers.map((user, i) => {
         const delay = i * 50; // Stagger by 50ms
+        const specialClass = getSpecialUserClass(user.spotifyName);
+        const specialTag = getSpecialUserTag(user.spotifyName);
         return \`
-          <div class="user-list-item animate-in" style="animation-delay: \${delay}ms">
+          <div class="user-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms">
             \${user.spotifyAvatar
               ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
               : '<div class="user-avatar-placeholder">👤</div>'}
-            <span class="user-name">\${escapeHtml(user.spotifyName)}</span>
+            <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
             <span class="regalia">\${formatTimeAgo(new Date(user.registeredAt))}</span>
           </div>
         \`;
