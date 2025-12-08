@@ -1028,30 +1028,35 @@
       "Abrakadabra! *jazzhänder* 👐",
     ];
 
+    // Will Smith slap audio (base64 encoded short clip)
+    const willSmithAudio = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYZDvlMeAAAAAAD/+1DEAAAGAAGn9AAAIj4Lbv8xgAAJGkBhgMEBgYHDGqpgEPHA4SEhQ+D4Ph8HygIOfKAh8uf/+XBA5/lwfB8HwfD/l+X/rn/8uD4f/y/+D4Pg+D4IHP/9YPqBz/Lg+UDn+sHwQOdQEP8H/4Pgg+o=';
+
     function initGenieClick() {
       const genie = document.getElementById('genie-mascot');
       if (!genie || genie.dataset.clickInit) return;
       genie.dataset.clickInit = 'true';
 
       genie.addEventListener('click', () => {
-        // Play sound
+        // Play Will Smith sound
         try {
-          const audio = new Audio(genieSounds[0]);
-          audio.volume = 0.4;
+          const audio = new Audio(willSmithAudio);
+          audio.volume = 0.6;
           audio.play().catch(() => {});
         } catch {}
 
-        // Add talking animation
-        genie.classList.add('talking');
-        setTimeout(() => genie.classList.remove('talking'), 1500);
+        // Turn brown (Will Smith mode) and animate
+        genie.classList.add('talking', 'will-smith-mode');
+        setTimeout(() => {
+          genie.classList.remove('talking', 'will-smith-mode');
+        }, 2500);
 
-        // Show speech bubble
-        const phrases = swedishMode ? geniePhrasesSv : geniePhrases;
-        const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+        // Show the iconic line
+        const phrase = "KEEP MY WIFE'S NAME OUT YOUR F***ING MOUTH!";
+        const phraseSv = "HÅLL MIN FRUS NAMN UTANFÖR DIN J*VLA MUN!";
 
         const bubble = document.createElement('div');
         bubble.className = 'genie-speech-bubble';
-        bubble.textContent = phrase;
+        bubble.textContent = swedishMode ? phraseSv : phrase;
 
         const rect = genie.getBoundingClientRect();
         bubble.style.left = (rect.left + rect.width / 2 - 100) + 'px';
