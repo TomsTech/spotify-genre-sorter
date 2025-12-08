@@ -1,8 +1,28 @@
 # Genre Genie v2.1 - Complete UX Overhaul Plan
 
-> This plan supersedes the previous plan. Focus on immersive, animated experience.
+> **STATUS**: Most items from this plan have been superseded by v3.x releases.
+> See CHANGELOG.md for actual completed features.
 
 ---
+
+## ✅ Completed Items
+
+| Item | Status | Completed In |
+|------|--------|--------------|
+| Genre Merging | ✅ Done | v3.2.0 |
+| UI/Layout Fixes | ✅ Done | v3.0-v3.3 |
+| Extended Caching | ✅ Done | v3.0.0 |
+| Sidebar Animations | ✅ Done | v3.3.0 |
+| Playlist Customisation | ✅ Done | v3.0.0 |
+
+## ⏳ Remaining Items (Low Priority)
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Will Smith Intro | BLOCKED | Need video URL |
+| Album Art Carousel | Pending | Nice to have |
+| Live Bar Chart | Pending | Nice to have |
+| Fireworks | ✅ Done | v3.0.0 (confetti) |
 
 ## Overview
 
