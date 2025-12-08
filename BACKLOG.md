@@ -20,6 +20,39 @@
 
 ---
 
+
+## v3.x Completed Tasks ✅
+
+<details open>
+<summary>Click to see completed tasks from v3.0-v3.3</summary>
+
+### v3.3.0
+- ✅ UI redesign with glassmorphism effects
+- ✅ Playlist scanning - browse and analyse any playlist
+- ✅ User preferences - cloud-synced settings
+- ✅ Tutorial system for new users
+- ✅ Rate limit warning banner
+- ✅ Invite request system for Spotify whitelist
+- ✅ Status page link in footer
+
+### v3.2.0
+- ✅ Special user tags in leaderboard (Creator, Queen)
+- ✅ Genre merging - combine multiple genres into one playlist
+
+### v3.1.0
+- ✅ Admin panel UI in frontend
+- ✅ Genie click animation with speech bubbles
+- ✅ "Normal mode huh?" jokes when leaving Swedish mode
+
+### v3.0.0
+- ✅ Progressive scanning for 2000+ track libraries
+- ✅ Admin debug panel (/api/admin)
+- ✅ Confetti celebration on playlist creation
+
+</details>
+
+---
+
 ## v1.x Completed Tasks ✅
 
 <details>
