@@ -5050,3 +5050,31 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
     }
+
+
+    /* Will Smith Genie Mode */
+    .genie-mascot.will-smith-mode {
+      filter: sepia(1) saturate(3) hue-rotate(-10deg) brightness(0.85);
+      animation: genieFloat 4s ease-in-out infinite, willSmithSlap 0.15s ease-in-out 8;
+    }
+
+    @keyframes willSmithSlap {
+      0%, 100% {
+        transform: translateX(0) rotate(0deg);
+      }
+      25% {
+        transform: translateX(-5px) rotate(-5deg);
+      }
+      75% {
+        transform: translateX(5px) rotate(5deg);
+      }
+    }
+
+    .genie-mascot.will-smith-mode + .genie-speech-bubble,
+    .will-smith-mode ~ .genie-speech-bubble {
+      background: linear-gradient(135deg, #8B4513 0%, #654321 100%);
+      border-color: #FFD700;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
