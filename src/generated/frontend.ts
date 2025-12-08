@@ -5167,6 +5167,278 @@ export function getHtml(): string {
       }
     }
 
+    /* ====================================
+       Share Modal (#90)
+    ==================================== */
+
+    .share-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      backdrop-filter: blur(5px);
+    }
+
+    .share-modal {
+      background: var(--surface);
+      border-radius: 1rem;
+      padding: 2rem;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      position: relative;
+      animation: shareModalIn 0.3s ease;
+    }
+
+    @keyframes shareModalIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .share-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .share-close:hover {
+      color: var(--text);
+    }
+
+    .share-modal h3 {
+      margin-bottom: 0.5rem;
+    }
+
+    .share-playlist-name {
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 1.2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .share-qr-container {
+      background: white;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      display: inline-block;
+      margin-bottom: 1.5rem;
+    }
+
+    .share-qr-code {
+      width: 150px;
+      height: 150px;
+    }
+
+    .share-link-container {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .share-link-input {
+      flex: 1;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--surface-2);
+      color: var(--text);
+      font-size: 0.85rem;
+    }
+
+    .share-copy-btn {
+      min-width: 80px;
+    }
+
+    .share-social-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .share-social-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 1.2rem;
+      transition: transform 0.2s;
+    }
+
+    .share-social-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .share-social-btn.twitter {
+      background: #000;
+      color: white;
+    }
+
+    .share-social-btn.facebook {
+      background: #1877f2;
+      color: white;
+    }
+
+    .share-social-btn.whatsapp {
+      background: #25d366;
+      color: white;
+    }
+
+    .share-open-btn {
+      width: 100%;
+    }
+
+    /* ====================================
+       Genre Family Grouping (#79)
+    ==================================== */
+
+    .genre-family-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: var(--surface-2);
+      border-radius: 0.75rem;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .genre-family-header:hover {
+      background: var(--surface);
+    }
+
+    .genre-family-emoji {
+      font-size: 1.5rem;
+    }
+
+    .genre-family-name {
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .genre-family-count {
+      background: var(--accent);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.85rem;
+    }
+
+    .genre-family-toggle {
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+
+    .genre-family-header.collapsed .genre-family-toggle {
+      transform: rotate(-90deg);
+    }
+
+    .genre-family-content {
+      padding-left: 1rem;
+      border-left: 2px solid var(--border);
+      margin-left: 1rem;
+      margin-bottom: 1rem;
+      max-height: 1000px;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    .genre-family-content.collapsed {
+      max-height: 0;
+      margin-bottom: 0;
+    }
+
+    .view-mode-toggle {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .view-mode-btn {
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .view-mode-btn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    /* ====================================
+       Artist Breakdown Modal (#78)
+    ==================================== */
+
+    .artist-breakdown {
+      max-width: 450px;
+    }
+
+    .artist-breakdown-subtitle {
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .artist-breakdown-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .artist-breakdown-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .artist-breakdown-item:last-child {
+      border-bottom: none;
+    }
+
+    .artist-name {
+      font-weight: 500;
+    }
+
+    .artist-count {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* Light mode adjustments for new components */
+    body.light-mode .share-modal,
+    body.light-mode .artist-breakdown {
+      border: 1px solid var(--border);
+    }
+
+    body.light-mode .share-link-input {
+      border: 1px solid var(--border);
+    }
+
+    body.light-mode .genre-family-header {
+      border: 1px solid var(--border);
+    }
+
   </style>
 </head>
 <body>
@@ -7893,6 +8165,12 @@ export function getHtml(): string {
           showNotification(\`\${swedishMode ? 'Skapade spellista' : 'Created playlist'}: \${genre.name} (\${genre.count} \${t('tracks')})\`, 'success');
           // Celebrate with confetti!
           showConfetti();
+          // Show share modal after a short delay
+          if (result.url) {
+            setTimeout(() => {
+              showShareModal(customization?.name || genre.name + ' (from Likes)', result.url);
+            }, 1500);
+          }
         } else if (result.duplicate) {
           // Show duplicate confirmation dialog
           showDuplicateDialog(genre, result);
@@ -9618,6 +9896,261 @@ export function getHtml(): string {
       setTimeout(checkHealth, 3000); // Initial check after 3s
       setInterval(checkHealth, 60000); // Then every minute
     });
+
+    // ====================================
+    // Share Modal (#90)
+    // ====================================
+
+    function showShareModal(playlistName, playlistUrl) {
+      const existing = document.querySelector('.share-modal-overlay');
+      if (existing) existing.remove();
+
+      const qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(playlistUrl);
+
+      const modal = document.createElement('div');
+      modal.className = 'share-modal-overlay';
+      modal.innerHTML = [
+        '<div class="share-modal">',
+        '  <button class="share-close" onclick="this.closest(\'.share-modal-overlay\').remove()">&times;</button>',
+        '  <h3>' + (swedishMode ? '🎉 Dela din spellista!' : '🎉 Share your playlist!') + '</h3>',
+        '  <p class="share-playlist-name">' + playlistName + '</p>',
+        '  <div class="share-qr-container">',
+        '    <img src="' + qrCodeUrl + '" alt="QR Code" class="share-qr-code" />',
+        '  </div>',
+        '  <div class="share-link-container">',
+        '    <input type="text" class="share-link-input" value="' + playlistUrl + '" readonly />',
+        '    <button class="btn btn-secondary share-copy-btn" onclick="copyShareLink(this)">' + (swedishMode ? 'Kopiera' : 'Copy') + '</button>',
+        '  </div>',
+        '  <div class="share-social-buttons">',
+        '    <a href="https://twitter.com/intent/tweet?url=' + encodeURIComponent(playlistUrl) + '&text=' + encodeURIComponent('Check out my ' + playlistName + ' playlist! 🎵') + '" target="_blank" class="share-social-btn twitter">𝕏</a>',
+        '    <a href="https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(playlistUrl) + '" target="_blank" class="share-social-btn facebook">f</a>',
+        '    <a href="whatsapp://send?text=' + encodeURIComponent(playlistName + ' - ' + playlistUrl) + '" target="_blank" class="share-social-btn whatsapp">💬</a>',
+        '  </div>',
+        '  <a href="' + playlistUrl + '" target="_blank" class="btn btn-primary share-open-btn">' + (swedishMode ? 'Öppna i Spotify' : 'Open in Spotify') + '</a>',
+        '</div>'
+      ].join('');
+
+      document.body.appendChild(modal);
+
+      // Close on backdrop click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+      });
+    }
+
+    function copyShareLink(btn) {
+      const input = btn.previousElementSibling;
+      input.select();
+      document.execCommand('copy');
+      btn.textContent = swedishMode ? '✓ Kopierad!' : '✓ Copied!';
+      setTimeout(() => {
+        btn.textContent = swedishMode ? 'Kopiera' : 'Copy';
+      }, 2000);
+    }
+
+    window.copyShareLink = copyShareLink;
+
+    // ====================================
+    // Genre Family Grouping (#79)
+    // ====================================
+
+    const GENRE_FAMILIES = {
+      rock: ['rock', 'alt rock', 'indie rock', 'hard rock', 'classic rock', 'punk rock', 'soft rock', 'garage rock', 'progressive rock', 'psychedelic rock', 'grunge', 'post-punk', 'new wave'],
+      pop: ['pop', 'dance pop', 'electropop', 'synth-pop', 'indie pop', 'art pop', 'dream pop', 'k-pop', 'j-pop', 'teen pop', 'bubblegum pop'],
+      electronic: ['electronic', 'edm', 'house', 'techno', 'trance', 'dubstep', 'drum and bass', 'ambient', 'electro', 'chillwave', 'synthwave', 'future bass'],
+      hiphop: ['hip hop', 'rap', 'trap', 'drill', 'boom bap', 'southern hip hop', 'west coast hip hop', 'east coast hip hop', 'conscious hip hop', 'gangsta rap'],
+      rnb: ['r&b', 'soul', 'neo soul', 'contemporary r&b', 'funk', 'motown', 'quiet storm'],
+      metal: ['metal', 'heavy metal', 'death metal', 'black metal', 'thrash metal', 'doom metal', 'power metal', 'progressive metal', 'metalcore', 'nu metal'],
+      jazz: ['jazz', 'smooth jazz', 'bebop', 'cool jazz', 'free jazz', 'fusion', 'swing', 'big band'],
+      classical: ['classical', 'baroque', 'romantic', 'contemporary classical', 'opera', 'orchestral', 'chamber music'],
+      country: ['country', 'country rock', 'outlaw country', 'americana', 'bluegrass', 'honky tonk'],
+      folk: ['folk', 'indie folk', 'folk rock', 'traditional folk', 'singer-songwriter', 'acoustic'],
+      reggae: ['reggae', 'dub', 'ska', 'dancehall', 'roots reggae'],
+      latin: ['latin', 'reggaeton', 'salsa', 'bachata', 'cumbia', 'bossa nova', 'latin pop'],
+      world: ['world', 'afrobeat', 'celtic', 'flamenco', 'indian classical', 'middle eastern']
+    };
+
+    let genreViewMode = 'flat'; // 'flat' or 'grouped'
+
+    function getGenreFamily(genreName) {
+      const lowerName = genreName.toLowerCase();
+      for (const [family, keywords] of Object.entries(GENRE_FAMILIES)) {
+        if (keywords.some(kw => lowerName.includes(kw))) {
+          return family;
+        }
+      }
+      return 'other';
+    }
+
+    function groupGenresByFamily(genres) {
+      const grouped = {};
+      for (const genre of genres) {
+        const family = getGenreFamily(genre.name);
+        if (!grouped[family]) {
+          grouped[family] = { genres: [], totalCount: 0 };
+        }
+        grouped[family].genres.push(genre);
+        grouped[family].totalCount += genre.count;
+      }
+      // Sort families by total count
+      return Object.entries(grouped)
+        .sort((a, b) => b[1].totalCount - a[1].totalCount)
+        .reduce((acc, [k, v]) => { acc[k] = v; return acc; }, {});
+    }
+
+    function toggleGenreViewMode() {
+      genreViewMode = genreViewMode === 'flat' ? 'grouped' : 'flat';
+      renderGenres();
+      showNotification(
+        genreViewMode === 'grouped'
+          ? (swedishMode ? 'Visar grupperade genrer' : 'Showing grouped genres')
+          : (swedishMode ? 'Visar alla genrer' : 'Showing all genres'),
+        'info'
+      );
+    }
+
+    window.toggleGenreViewMode = toggleGenreViewMode;
+
+    function getFamilyEmoji(family) {
+      const emojis = {
+        rock: '🎸', pop: '🎤', electronic: '🎹', hiphop: '🎧', rnb: '🎷',
+        metal: '🤘', jazz: '🎺', classical: '🎻', country: '🤠', folk: '🪕',
+        reggae: '🇯🇲', latin: '💃', world: '🌍', other: '🎵'
+      };
+      return emojis[family] || '🎵';
+    }
+
+    function getFamilyName(family) {
+      const names = {
+        rock: { en: 'Rock', sv: 'Rock' },
+        pop: { en: 'Pop', sv: 'Pop' },
+        electronic: { en: 'Electronic', sv: 'Elektronisk' },
+        hiphop: { en: 'Hip Hop', sv: 'Hip Hop' },
+        rnb: { en: 'R&B / Soul', sv: 'R&B / Soul' },
+        metal: { en: 'Metal', sv: 'Metal' },
+        jazz: { en: 'Jazz', sv: 'Jazz' },
+        classical: { en: 'Classical', sv: 'Klassisk' },
+        country: { en: 'Country', sv: 'Country' },
+        folk: { en: 'Folk', sv: 'Folk' },
+        reggae: { en: 'Reggae', sv: 'Reggae' },
+        latin: { en: 'Latin', sv: 'Latin' },
+        world: { en: 'World', sv: 'Världsmusik' },
+        other: { en: 'Other', sv: 'Övrigt' }
+      };
+      return swedishMode ? (names[family]?.sv || family) : (names[family]?.en || family);
+    }
+
+    // ====================================
+    // Swedish Release Codenames (#71)
+    // ====================================
+
+    const RELEASE_CODENAMES = {
+      '3.0': { sv: 'Förtrollad', en: 'Enchanted' },
+      '3.1': { sv: 'Äventyr', en: 'Adventure' },
+      '3.2': { sv: 'Skymning', en: 'Twilight' },
+      '3.3': { sv: 'Magi', en: 'Magic' },
+      '3.4': { sv: 'Stjärnfall', en: 'Starfall' },
+      '3.5': { sv: 'Midnatt', en: 'Midnight' },
+      '4.0': { sv: 'Gryning', en: 'Dawn' }
+    };
+
+    function getVersionWithCodename(version) {
+      const majorMinor = version.replace(/^v/, '').split('.').slice(0, 2).join('.');
+      const codename = RELEASE_CODENAMES[majorMinor];
+      if (codename) {
+        return 'v' + version.replace(/^v/, '') + ' - ' + (swedishMode ? codename.sv : codename.en);
+      }
+      return 'v' + version.replace(/^v/, '');
+    }
+
+    // ====================================
+    // Dynamic Completion Messages (#41)
+    // ====================================
+
+    const GENRE_MESSAGES = {
+      rock: { en: "You're a certified rockstar! 🎸", sv: 'Du är en certifierad rockstjärna! 🎸' },
+      pop: { en: 'Pop goes your playlist! 🎤', sv: 'Pop går din spellista! 🎤' },
+      'hip hop': { en: 'Straight outta your library! 🎧', sv: 'Direkt från ditt bibliotek! 🎧' },
+      electronic: { en: "You've got the beats! 🎹", sv: 'Du har beaten! 🎹' },
+      metal: { en: 'Heavy metal thunder! 🤘', sv: 'Heavy metal-åska! 🤘' },
+      indie: { en: 'Too cool for mainstream! 🎪', sv: 'För cool för mainstream! 🎪' },
+      jazz: { en: 'Smooth as butter! 🎷', sv: 'Smidig som smör! 🎷' },
+      classical: { en: 'A person of culture! 🎻', sv: 'En person av kultur! 🎻' },
+      country: { en: 'Yeehaw! 🤠', sv: 'Yeehaw! 🤠' },
+      'k-pop': { en: 'Annyeonghaseyo! 🇰🇷', sv: 'Annyeonghaseyo! 🇰🇷' },
+      default: { en: 'Your taste is uniquely yours! ✨', sv: 'Din smak är unikt din! ✨' }
+    };
+
+    function getCompletionMessage(topGenres) {
+      if (!topGenres || topGenres.length === 0) {
+        return swedishMode ? GENRE_MESSAGES.default.sv : GENRE_MESSAGES.default.en;
+      }
+
+      const topGenre = topGenres[0].name.toLowerCase();
+
+      for (const [genre, messages] of Object.entries(GENRE_MESSAGES)) {
+        if (topGenre.includes(genre)) {
+          return swedishMode ? messages.sv : messages.en;
+        }
+      }
+
+      return swedishMode ? GENRE_MESSAGES.default.sv : GENRE_MESSAGES.default.en;
+    }
+
+    // ====================================
+    // Artist Deep Dive (#78)
+    // ====================================
+
+    function showArtistBreakdown(genreName) {
+      const genre = genreData?.genres?.find(g => g.name === genreName);
+      if (!genre) return;
+
+      // Collect artist data from genre tracks
+      const artistCounts = new Map();
+      const artistNames = new Map();
+
+      if (genre.artistIds && genreData.artistsCache) {
+        for (const artistId of genre.artistIds) {
+          const artist = genreData.artistsCache[artistId];
+          if (artist) {
+            artistCounts.set(artistId, (artistCounts.get(artistId) || 0) + 1);
+            artistNames.set(artistId, artist.name);
+          }
+        }
+      }
+
+      // Sort by count
+      const sortedArtists = [...artistCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay artist-breakdown-modal';
+
+      const artistList = sortedArtists.map(([id, count]) => {
+        const name = artistNames.get(id) || 'Unknown';
+        return '<div class="artist-breakdown-item">' +
+          '<span class="artist-name">' + name + '</span>' +
+          '<span class="artist-count">' + count + ' ' + (swedishMode ? 'låtar' : 'tracks') + '</span>' +
+          '</div>';
+      }).join('');
+
+      modal.innerHTML = [
+        '<div class="modal artist-breakdown">',
+        '  <h3>' + getFamilyEmoji(getGenreFamily(genreName)) + ' ' + genreName + '</h3>',
+        '  <p class="artist-breakdown-subtitle">' + (swedishMode ? 'Topp artister i denna genre' : 'Top artists in this genre') + '</p>',
+        '  <div class="artist-breakdown-list">' + (artistList || '<p>' + (swedishMode ? 'Ingen artistdata tillgänglig' : 'No artist data available') + '</p>') + '</div>',
+        '  <div class="modal-actions">',
+        '    <button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">' + (swedishMode ? 'Stäng' : 'Close') + '</button>',
+        '  </div>',
+        '</div>'
+      ].join('');
+
+      document.body.appendChild(modal);
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    }
+
+    window.showArtistBreakdown = showArtistBreakdown;
 
   </script>
 </body>
