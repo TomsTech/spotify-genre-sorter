@@ -1148,12 +1148,65 @@ export function getHtml(): string {
     }
 
     .sidebar-donate-btn .icon {
-      animation: smoke 2s ease-in-out infinite;
+      position: relative;
+      animation: iconGlow 2s ease-in-out infinite;
     }
 
-    @keyframes smoke {
-      0%, 100% { opacity: 0.5; transform: translateY(0); }
-      50% { opacity: 1; transform: translateY(-2px); }
+    @keyframes iconGlow {
+      0%, 100% { opacity: 0.8; }
+      50% { opacity: 1; }
+    }
+
+    /* Smoke wisps on hover */
+    .sidebar-donate-btn::before,
+    .sidebar-donate-btn::after {
+      content: '~';
+      position: absolute;
+      top: 0;
+      left: 1.5rem;
+      font-size: 0.9rem;
+      color: rgba(200, 200, 200, 0);
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .sidebar-donate-btn::after {
+      left: 2rem;
+      animation-delay: 0.3s;
+    }
+
+    .sidebar-donate-btn:hover::before,
+    .sidebar-donate-btn:hover::after {
+      animation: smokeWisp 2s ease-out infinite;
+    }
+
+    .sidebar-donate-btn:hover::after {
+      animation-delay: 0.5s;
+    }
+
+    @keyframes smokeWisp {
+      0% {
+        opacity: 0;
+        transform: translateY(0) translateX(0) rotate(0deg);
+      }
+      20% {
+        opacity: 0.6;
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-25px) translateX(8px) rotate(15deg);
+      }
+    }
+
+    /* Reduced motion: disable smoke animation */
+    @media (prefers-reduced-motion: reduce) {
+      .sidebar-donate-btn::before,
+      .sidebar-donate-btn::after {
+        animation: none;
+      }
+      .sidebar-donate-btn .icon {
+        animation: none;
+      }
     }
 
     /* Swedish mode snus styling */
@@ -3389,6 +3442,625 @@ export function getHtml(): string {
       font-size: 0.8rem;
       font-weight: 500;
     }
+
+    /* =========================================
+       ENHANCED MOBILE ACCESSIBILITY (v3.0)
+       Apple HIG: 44px minimum touch targets
+       ========================================= */
+
+    @media (max-width: 768px) {
+      /* Ensure all interactive elements are tappable */
+      button,
+      .btn,
+      input[type="checkbox"],
+      .toggle-icon,
+      .sidebar-toggle,
+      .scoreboard-tab {
+        touch-action: manipulation; /* Faster taps, no double-tap zoom */
+      }
+
+      /* Sidebar toggle - make larger and more visible */
+      .sidebar-toggle {
+        min-width: 44px;
+        min-height: 60px;
+        padding: 1rem 0.75rem;
+      }
+
+      .sidebar-toggle .toggle-icon {
+        font-size: 1.25rem;
+      }
+
+      /* Sidebar timestamps - increase readability */
+      .playlist-list-item .playlist-meta {
+        font-size: 0.85rem;
+        gap: 0.75rem;
+      }
+
+      .playlist-list-item .creator-avatar {
+        width: 20px;
+        height: 20px;
+      }
+
+      /* User list items - larger touch targets */
+      .user-list-item {
+        min-height: 44px;
+        padding: 0.75rem;
+      }
+
+      .user-list-item .avatar {
+        width: 28px;
+        height: 28px;
+      }
+
+      /* Scoreboard tabs - ensure tappable */
+      .scoreboard-tabs {
+        gap: 0.5rem;
+      }
+
+      .scoreboard-tab {
+        min-height: 44px;
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+      }
+
+      /* Scoreboard entry - larger touch area */
+      .scoreboard-entry {
+        min-height: 48px;
+        padding: 0.75rem;
+      }
+
+      .scoreboard-entry .position {
+        font-size: 1rem;
+        min-width: 28px;
+      }
+
+      .scoreboard-entry .avatar {
+        width: 28px;
+        height: 28px;
+      }
+
+      /* Recent playlists list items */
+      .playlist-list-item {
+        min-height: 52px;
+        padding: 0.75rem;
+      }
+
+      /* Deploy widget - larger on mobile */
+      .deploy-widget {
+        min-height: 44px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+      }
+
+      /* Heidi badge - larger touch target */
+      .heidi-badge {
+        min-height: 36px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.75rem;
+      }
+
+      /* Badges and counters - ensure readable */
+      .user-counter {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.75rem;
+      }
+
+      /* Loading modal buttons */
+      .playlist-loading-modal button {
+        min-height: 44px;
+        min-width: 120px;
+      }
+
+      /* Modal close buttons */
+      .modal-close,
+      .scoreboard-close {
+        min-width: 44px;
+        min-height: 44px;
+        font-size: 1.5rem;
+      }
+
+      /* Genre action buttons - ensure visible always on mobile */
+      .genre-hide,
+      .genre-create,
+      .genre-customise {
+        opacity: 1 !important;
+        font-size: 1rem;
+      }
+    }
+
+    /* Extra small screens (iPhone SE etc) */
+    @media (max-width: 400px) {
+      .sidebar {
+        width: 100%;
+        min-width: 100%;
+      }
+
+      .scoreboard-tabs {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .scoreboard-tab {
+        flex: 0 1 auto;
+        min-width: 70px;
+        padding: 0.6rem 0.8rem;
+        font-size: 0.75rem;
+      }
+
+      /* Stack playlist meta vertically */
+      .playlist-list-item .playlist-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+      }
+    }
+
+    /* Prevent zoom on input focus (iOS) */
+    @media (max-width: 768px) {
+      input,
+      select,
+      textarea {
+        font-size: 16px !important; /* Prevents iOS zoom */
+      }
+    }
+
+    /* =========================================
+       EASTER EGG: Jeff Goldblum (Konami Code)
+       ========================================= */
+
+    .goldblum-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      animation: fadeIn 0.5s ease;
+      cursor: pointer;
+    }
+
+    .goldblum-overlay.fade-out {
+      animation: fadeOut 0.5s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+
+    .goldblum-content {
+      text-align: center;
+      animation: goldblumSlide 0.8s ease;
+    }
+
+    @keyframes goldblumSlide {
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .goldblum-silhouette {
+      font-size: 8rem;
+      margin-bottom: 1.5rem;
+      animation: goldblumPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes goldblumPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .goldblum-quote {
+      font-size: 2rem;
+      font-style: italic;
+      color: #fff;
+      margin-bottom: 0.5rem;
+      text-shadow: 0 0 20px rgba(255, 200, 0, 0.5);
+    }
+
+    .goldblum-subtitle {
+      font-size: 1rem;
+      color: #888;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+      .goldblum-silhouette {
+        font-size: 5rem;
+      }
+      .goldblum-quote {
+        font-size: 1.25rem;
+        padding: 0 1rem;
+      }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .goldblum-overlay,
+      .goldblum-content,
+      .goldblum-silhouette {
+        animation: none;
+      }
+    }
+
+    /* =========================================
+       SECRET: Heidi Mode (~oogi~ detection)
+       ========================================= */
+
+    /* Heidi greeting overlay */
+    .heidi-greeting-overlay {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0, 106, 167, 0.95), rgba(254, 204, 0, 0.95));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      animation: fadeIn 0.5s ease;
+      cursor: pointer;
+    }
+
+    .heidi-greeting-overlay.fade-out {
+      animation: fadeOut 0.5s ease forwards;
+    }
+
+    .heidi-greeting-content {
+      text-align: center;
+      animation: heidiSlide 0.6s ease;
+    }
+
+    @keyframes heidiSlide {
+      from {
+        opacity: 0;
+        transform: scale(0.8) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .heidi-crown {
+      font-size: 5rem;
+      margin-bottom: 1rem;
+      animation: crownSparkle 1.5s ease-in-out infinite;
+    }
+
+    @keyframes crownSparkle {
+      0%, 100% {
+        transform: scale(1) rotate(-5deg);
+        filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
+      }
+      50% {
+        transform: scale(1.1) rotate(5deg);
+        filter: drop-shadow(0 0 20px rgba(255, 215, 0, 1));
+      }
+    }
+
+    .heidi-greeting-text {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: #fff;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      margin-bottom: 1rem;
+    }
+
+    .heidi-hearts {
+      font-size: 1.5rem;
+      animation: heartsFloat 2s ease-in-out infinite;
+    }
+
+    @keyframes heartsFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    /* Heidi mode header crown */
+    body.heidi-mode header h1::after {
+      content: ' 👑';
+      animation: crownSparkle 1.5s ease-in-out infinite;
+      display: inline-block;
+    }
+
+    /* Heart confetti on playlist creation for Heidi */
+    body.heidi-mode .playlist-success::before {
+      content: '💙💛';
+      position: absolute;
+      animation: heartBurst 1s ease-out;
+    }
+
+    @keyframes heartBurst {
+      0% {
+        opacity: 1;
+        transform: scale(0.5) translateY(0);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(2) translateY(-50px);
+      }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .heidi-greeting-overlay,
+      .heidi-greeting-content,
+      .heidi-crown,
+      .heidi-hearts {
+        animation: none;
+      }
+      body.heidi-mode header h1::after {
+        animation: none;
+      }
+    }
+
+    /* =========================================
+       CONFETTI CELEBRATION
+       ========================================= */
+
+    .confetti-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 9998;
+      overflow: hidden;
+    }
+
+    .confetti-piece {
+      position: absolute;
+      top: -10px;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      animation: confettiFall 3s linear forwards;
+    }
+
+    @keyframes confettiFall {
+      0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    /* Vary confetti shapes */
+    .confetti-piece:nth-child(odd) {
+      width: 8px;
+      height: 12px;
+    }
+
+    .confetti-piece:nth-child(3n) {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .confetti-piece:nth-child(4n) {
+      width: 12px;
+      height: 4px;
+    }
+
+    /* Add some horizontal movement */
+    .confetti-piece:nth-child(2n) {
+      animation: confettiFallLeft 3s linear forwards;
+    }
+
+    .confetti-piece:nth-child(3n + 1) {
+      animation: confettiFallRight 3s linear forwards;
+    }
+
+    @keyframes confettiFallLeft {
+      0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) translateX(-100px) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes confettiFallRight {
+      0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) translateX(100px) rotate(-720deg);
+        opacity: 0;
+      }
+    }
+
+    /* Admin Panel Styles */
+    .admin-btn {
+      background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+      color: #fff !important;
+      font-weight: 600;
+    }
+
+    .admin-btn:hover {
+      background: linear-gradient(135deg, #f7931e 0%, #ff6b35 100%);
+      box-shadow: 0 0 15px rgba(247, 147, 30, 0.5);
+    }
+
+    .admin-modal .modal-content {
+      max-width: 800px;
+      background: var(--surface);
+    }
+
+    .admin-panel {
+      padding: 0;
+    }
+
+    .admin-panel .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .admin-panel .modal-header h2 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .admin-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      padding: 1.5rem;
+    }
+
+    @media (max-width: 600px) {
+      .admin-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .admin-card {
+      background: var(--card-bg);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      border: 1px solid var(--border);
+    }
+
+    .admin-card h3 {
+      margin: 0 0 0.75rem 0;
+      font-size: 1rem;
+      color: var(--text-muted);
+    }
+
+    .admin-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .admin-stats .stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .admin-stats .label {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .admin-stats .value {
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--primary);
+    }
+
+    .admin-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .admin-actions .btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .admin-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    body.light-mode .admin-btn {
+      background: linear-gradient(135deg, #e65100 0%, #ef6c00 100%);
+    }
+
+    body.light-mode .admin-card {
+      background: #f5f5f5;
+    }
+
+
+    /* Genie Click Animation */
+    .genie-mascot.talking {
+      filter: sepia(1) saturate(2) hue-rotate(-20deg);
+      animation: genieFloat 4s ease-in-out infinite, genieTalk 0.3s ease-in-out 5;
+    }
+
+    @keyframes genieTalk {
+      0%, 100% {
+        transform: scale(1) translateY(0);
+      }
+      25% {
+        transform: scale(1.1, 0.9) translateY(2px);
+      }
+      50% {
+        transform: scale(0.9, 1.1) translateY(-2px);
+      }
+      75% {
+        transform: scale(1.05, 0.95) translateY(1px);
+      }
+    }
+
+    .genie-mascot:active {
+      transform: scale(1.3);
+    }
+
+    .genie-speech-bubble {
+      position: fixed;
+      background: var(--surface);
+      border: 2px solid var(--primary);
+      border-radius: 1rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      max-width: 200px;
+      z-index: 10001;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      animation: bubbleAppear 0.3s ease-out;
+      pointer-events: none;
+    }
+
+    .genie-speech-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 10px solid transparent;
+      border-top-color: var(--primary);
+    }
+
+    @keyframes bubbleAppear {
+      0% {
+        opacity: 0;
+        transform: scale(0.8) translateY(10px);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    body.swedish-mode .genie-mascot.talking {
+      filter: sepia(1) saturate(2) hue-rotate(180deg); /* Blue viking */
+    }
+
   </style>
 </head>
 <body>
@@ -3572,7 +4244,129 @@ export function getHtml(): string {
 
     // Fika reminder (25 minutes)
     let fikaTimerStarted = false;
-    let fikaTimerId = null;
+    let fikaTimerId = null;\n
+    // Admin panel state
+    let isAdminUser = false;
+    let adminData = null;
+
+    async function checkAdminStatus() {
+      try {
+        const response = await fetch('/api/admin');
+        if (response.ok) {
+          isAdminUser = true;
+          adminData = await response.json();
+          showAdminButton();
+        }
+      } catch { /* Not admin */ }
+    }
+
+    function showAdminButton() {
+      const headerActions = document.getElementById('header-actions');
+      if (headerActions && !document.getElementById('admin-btn')) {
+        const adminBtn = document.createElement('button');
+        adminBtn.id = 'admin-btn';
+        adminBtn.className = 'btn btn-ghost btn-sm admin-btn';
+        adminBtn.innerHTML = '⚙️ Admin';
+        adminBtn.onclick = showAdminPanel;
+        adminBtn.title = 'Open admin debug panel';
+        headerActions.insertBefore(adminBtn, headerActions.firstChild);
+      }
+    }
+
+    function showAdminPanel() {
+      if (!adminData) return;
+
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay admin-modal';
+      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+      modal.innerHTML = \`
+        <div class="modal-content admin-panel">
+          <div class="modal-header">
+            <h2>⚙️ Admin Debug Panel</h2>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          </div>
+          <div class="admin-grid">
+            <div class="admin-card">
+              <h3>📊 KV Metrics</h3>
+              <div class="admin-stats">
+                <div class="stat"><span class="label">Reads:</span> <span class="value">\${adminData.kvMetrics?.reads || 0}</span></div>
+                <div class="stat"><span class="label">Writes:</span> <span class="value">\${adminData.kvMetrics?.writes || 0}</span></div>
+                <div class="stat"><span class="label">Cache Hits:</span> <span class="value">\${adminData.kvMetrics?.cacheHits || 0}</span></div>
+              </div>
+            </div>
+            <div class="admin-card">
+              <h3>👥 Users</h3>
+              <div class="admin-stats">
+                <div class="stat"><span class="label">Total Users:</span> <span class="value">\${adminData.health?.totalUsers || 0}</span></div>
+                <div class="stat"><span class="label">Active Sessions:</span> <span class="value">\${adminData.health?.activeSessions || 0}</span></div>
+              </div>
+            </div>
+            <div class="admin-card">
+              <h3>📈 Analytics (Today)</h3>
+              <div class="admin-stats">
+                <div class="stat"><span class="label">Visits:</span> <span class="value">\${adminData.analytics?.today?.visits || 0}</span></div>
+                <div class="stat"><span class="label">Logins:</span> <span class="value">\${adminData.analytics?.today?.logins || 0}</span></div>
+                <div class="stat"><span class="label">Playlists:</span> <span class="value">\${adminData.analytics?.today?.playlistsCreated || 0}</span></div>
+              </div>
+            </div>
+            <div class="admin-card">
+              <h3>🗑️ Cache Actions</h3>
+              <div class="admin-actions">
+                <button class="btn btn-secondary btn-sm" onclick="clearCache('leaderboard')">Clear Leaderboard</button>
+                <button class="btn btn-secondary btn-sm" onclick="clearCache('scoreboard')">Clear Scoreboard</button>
+                <button class="btn btn-secondary btn-sm" onclick="clearCache('all_genre_caches')">Clear All Genre Caches</button>
+                <button class="btn btn-primary btn-sm" onclick="rebuildCaches()">Rebuild All Caches</button>
+              </div>
+            </div>
+          </div>
+          <div class="admin-footer">
+            <small>Version: \${adminData.version || '?'} | User: \${adminData.admin?.user || '?'}</small>
+          </div>
+        </div>
+      \`;
+
+      document.body.appendChild(modal);
+    }
+
+    async function clearCache(cache) {
+      try {
+        const response = await fetch('/api/admin/clear-cache', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cache })
+        });
+        const result = await response.json();
+        showNotification(\`Cleared \${result.keysCleared} keys\`, 'success');
+        refreshAdminData();
+      } catch (err) {
+        showNotification('Failed to clear cache', 'error');
+      }
+    }
+
+    async function rebuildCaches() {
+      try {
+        const response = await fetch('/api/admin/rebuild-caches', { method: 'POST' });
+        const result = await response.json();
+        showNotification('Caches rebuilt!', 'success');
+        refreshAdminData();
+      } catch (err) {
+        showNotification('Failed to rebuild caches', 'error');
+      }
+    }
+
+    async function refreshAdminData() {
+      try {
+        const response = await fetch('/api/admin');
+        if (response.ok) {
+          adminData = await response.json();
+        }
+      } catch { /* ignore */ }
+    }
+
+    window.clearCache = clearCache;
+    window.rebuildCaches = rebuildCaches;
+
 
     function startFikaTimer() {
       if (fikaTimerStarted || !swedishMode) return;
@@ -3604,6 +4398,42 @@ export function getHtml(): string {
 
     function getRandomSwedishFact() {
       return swedishFacts[Math.floor(Math.random() * swedishFacts.length)];
+    }
+
+    // ✨ SECRET: Heidi greeting messages
+    const heidiGreetings = [
+      'Välkommen tillbaka, min drottning 👑',
+      'Hej min kärlek! 💙💛',
+      'Du gör min dag ljusare ✨',
+      'Min favoritperson är här! 🥰',
+      'För dig, alltid 💕',
+    ];
+
+    function showHeidiGreeting() {
+      const greeting = heidiGreetings[Math.floor(Math.random() * heidiGreetings.length)];
+
+      const overlay = document.createElement('div');
+      overlay.className = 'heidi-greeting-overlay';
+      overlay.innerHTML = \`
+        <div class="heidi-greeting-content">
+          <div class="heidi-crown">👑</div>
+          <p class="heidi-greeting-text">\${greeting}</p>
+          <div class="heidi-hearts">💙💛💙💛💙</div>
+        </div>
+      \`;
+
+      document.body.appendChild(overlay);
+
+      // Auto-dismiss after 3 seconds
+      setTimeout(() => {
+        overlay.classList.add('fade-out');
+        setTimeout(() => overlay.remove(), 500);
+      }, 3000);
+
+      overlay.addEventListener('click', () => {
+        overlay.classList.add('fade-out');
+        setTimeout(() => overlay.remove(), 500);
+      });
     }
 
     // Update Heidi badge tooltip with random fact
@@ -4011,7 +4841,16 @@ export function getHtml(): string {
         if (enabled) {
           showNotification('🇸🇪 Välkommen till svenskt läge! Tack Heidi! 👑', 'success');
         } else {
-          showNotification('Back to normal mode!', 'success');
+          // Heidi laughed at "Normal mode huh?" so let's keep the joke!
+          const normalJokes = [
+            'Normal mode huh? 🤔 How... vanilla',
+            'Normal mode huh? 🙄 Okay boomer',
+            'Normal mode? 😴 *yawns in Swedish*',
+            'Back to boring mode! 🥱',
+            'Normal mode huh? Vikings disapprove 🪓',
+          ];
+          const joke = normalJokes[Math.floor(Math.random() * normalJokes.length)];
+          showNotification(joke, 'success');
         }
       }
 
@@ -4040,6 +4879,76 @@ export function getHtml(): string {
     // Make toggleSwedishMode globally accessible
     window.toggleSwedishMode = toggleSwedishMode;
 
+    // Genie click animation and sounds
+    const genieSounds = [
+      // Short xylophone/magical sound in base64 (very short beep melody)
+      'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleBlSk9bj2qlhMEdwkK2RaDAJGnSo5Pzyl1cOAGar5/38w3UyBlKG0+z87Yg5Gmi4//zzlmglZJPb/fbWi0EfTI3e9OjNgzQVWaDY19aWTiNJfLbs8t6OPRxMk9bl6MqAMRpXotvh08eAMxhXotvh08eAMxhXotvh08eAMxhXotvh08eAMw==',
+    ];
+
+    const geniePhrases = [
+      "Your wish is my command! 🧞",
+      "Three wishes? I got unlimited! ✨",
+      "Genre sorting? Easy peasy! 🎵",
+      "Did somebody say playlists? 🎉",
+      "Phenomenal cosmic powers! 💫",
+      "Itty bitty living space though... 🏠",
+      "I've been stuck in that lamp for ages! 💨",
+      "Alakazam! *jazz hands* 👐",
+    ];
+
+    const geniePhrasesSv = [
+      "Din önskan är min lag! 🧞",
+      "Tre önskningar? Jag har oändligt! ✨",
+      "Genresortering? Lätt som en plätt! 🎵",
+      "Sa någon spellistor? 🎉",
+      "Fenomenal kosmisk kraft! 💫",
+      "Men ganska liten bostad... 🏠",
+      "Jag har suttit fast i den lampan i evigheter! 💨",
+      "Abrakadabra! *jazzhänder* 👐",
+    ];
+
+    function initGenieClick() {
+      const genie = document.getElementById('genie-mascot');
+      if (!genie || genie.dataset.clickInit) return;
+      genie.dataset.clickInit = 'true';
+
+      genie.addEventListener('click', () => {
+        // Play sound
+        try {
+          const audio = new Audio(genieSounds[0]);
+          audio.volume = 0.4;
+          audio.play().catch(() => {});
+        } catch {}
+
+        // Add talking animation
+        genie.classList.add('talking');
+        setTimeout(() => genie.classList.remove('talking'), 1500);
+
+        // Show speech bubble
+        const phrases = swedishMode ? geniePhrasesSv : geniePhrases;
+        const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+
+        const bubble = document.createElement('div');
+        bubble.className = 'genie-speech-bubble';
+        bubble.textContent = phrase;
+
+        const rect = genie.getBoundingClientRect();
+        bubble.style.left = (rect.left + rect.width / 2 - 100) + 'px';
+        bubble.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
+
+        document.body.appendChild(bubble);
+        setTimeout(() => bubble.remove(), 2500);
+      });
+    }
+
+    // Initialize genie click when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initGenieClick);
+    } else {
+      initGenieClick();
+    }
+
+
     // Apply Swedish mode on load if previously enabled
     if (swedishMode) {
       // Defer to ensure DOM is ready
@@ -4065,7 +4974,28 @@ export function getHtml(): string {
         return;
       }
 
-      renderHeaderUser(session);
+      // ✨ SECRET: Heidi detection (~oogi~ or Heidi in name)
+      const userName = (session.user || session.spotifyUser || '').toLowerCase();
+      const isHeidi = userName.includes('oogi') || userName.includes('heidi');
+
+      if (isHeidi) {
+        document.body.classList.add('heidi-mode');
+        // Auto-enable Swedish mode for Heidi
+        if (!swedishMode) {
+          swedishMode = true;
+          localStorage.setItem('swedishMode', 'true');
+          document.body.classList.add('swedish-mode');
+        }
+        // Show special greeting (once per day)
+        const lastHeidiGreeting = localStorage.getItem('heidiGreetingDate');
+        const today = new Date().toDateString();
+        if (lastHeidiGreeting !== today) {
+          localStorage.setItem('heidiGreetingDate', today);
+          showHeidiGreeting();
+        }
+      }
+
+      renderHeaderUser(session);\n      checkAdminStatus(); // Check if user is admin
 
       // In Spotify-only mode, we're already connected if authenticated
       if (!spotifyOnlyMode && !session.spotifyConnected) {
@@ -4653,6 +5583,18 @@ export function getHtml(): string {
           return;
         }
 
+        // Auto-switch to progressive loading for large/truncated libraries
+        if (data.truncated && data.totalInLibrary > data.totalTracks) {
+          console.log();
+          showNotification(
+            swedishMode ?  : ,
+            'info'
+          );
+          // Start progressive loading automatically
+          await loadFullLibrary();
+          return;
+        }
+
         genreData = data;
         triggerFireworks(); // Celebrate completion!
         renderGenres();
@@ -4983,9 +5925,6 @@ export function getHtml(): string {
           \${cacheInfo}
           <button onclick="refreshGenres()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Hämta ny data från Spotify' : 'Fetch fresh data from Spotify'}">
             🔄 \${swedishMode ? 'Uppdatera' : 'Refresh'}
-          </button>
-          <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm" title="\${lightMode ? (swedishMode ? 'Byt till mörkt läge' : 'Switch to dark mode') : (swedishMode ? 'Byt till ljust läge' : 'Switch to light mode')}">
-            \${lightMode ? '🌙' : '☀️'}
           </button>
         </div>
 
@@ -5528,6 +6467,8 @@ export function getHtml(): string {
             btn.style.color = 'var(--accent)';
           }
           showNotification(\`\${swedishMode ? 'Skapade spellista' : 'Created playlist'}: \${genre.name} (\${genre.count} \${t('tracks')})\`, 'success');
+          // Celebrate with confetti!
+          showConfetti();
         } else if (result.duplicate) {
           // Show duplicate confirmation dialog
           showDuplicateDialog(genre, result);
@@ -5586,6 +6527,36 @@ export function getHtml(): string {
 
     function createPlaylistForce(genreName) {
       createPlaylist(genreName, true);
+    }
+
+    // ================== CONFETTI CELEBRATION ==================
+
+    function showConfetti() {
+      // Don't show if user prefers reduced motion
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      const container = document.createElement('div');
+      container.className = 'confetti-container';
+      document.body.appendChild(container);
+
+      // Spotify green, Swedish colours if in swedish mode
+      const colors = swedishMode
+        ? ['#006AA7', '#FECC00', '#006AA7', '#FECC00', '#fff']
+        : ['#1DB954', '#1ed760', '#fff', '#1DB954', '#b3b3b3'];
+
+      // Create confetti pieces
+      for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti-piece';
+        confetti.style.left = Math.random() * 100 + '%';
+        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.animationDelay = Math.random() * 0.5 + 's';
+        confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+        container.appendChild(confetti);
+      }
+
+      // Remove after animation
+      setTimeout(() => container.remove(), 3000);
     }
 
     // ================== LOADING ANIMATION ==================
@@ -6294,6 +7265,60 @@ export function getHtml(): string {
 
     // Initialize sidebar
     initSidebar();
+
+    // =========================================
+    // EASTER EGG: Konami Code - Jeff Goldblum
+    // ↑↑↓↓←→←→BA triggers "Life finds a way"
+    // =========================================
+
+    const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+    let konamiPosition = 0;
+    let goldblumShown = sessionStorage.getItem('goldblumShown') === 'true';
+
+    function showGoldblum() {
+      if (goldblumShown) return;
+      goldblumShown = true;
+      sessionStorage.setItem('goldblumShown', 'true');
+
+      const overlay = document.createElement('div');
+      overlay.className = 'goldblum-overlay';
+      overlay.innerHTML = \`
+        <div class="goldblum-content">
+          <div class="goldblum-silhouette">🦖</div>
+          <p class="goldblum-quote">"Life, uh... finds a way."</p>
+          <p class="goldblum-subtitle">- Dr. Ian Malcolm</p>
+        </div>
+      \`;
+
+      document.body.appendChild(overlay);
+
+      // Auto-remove after 4 seconds
+      setTimeout(() => {
+        overlay.classList.add('fade-out');
+        setTimeout(() => overlay.remove(), 500);
+      }, 4000);
+
+      // Click to dismiss
+      overlay.addEventListener('click', () => {
+        overlay.classList.add('fade-out');
+        setTimeout(() => overlay.remove(), 500);
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      const key = e.key.toLowerCase();
+      const expected = konamiCode[konamiPosition].toLowerCase();
+
+      if (key === expected) {
+        konamiPosition++;
+        if (konamiPosition === konamiCode.length) {
+          showGoldblum();
+          konamiPosition = 0;
+        }
+      } else {
+        konamiPosition = 0;
+      }
+    });
   </script>
 </body>
 </html>`;
