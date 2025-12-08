@@ -5,6 +5,26 @@ All notable changes to Genre Genie (Spotify Genre Sorter) will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2025-12-08
+
+### Added
+- **Admin panel UI** - accessible from frontend for admin users (tomspseudonym, tomstech)
+  - View KV metrics, user stats, analytics dashboard
+  - Clear caches and rebuild leaderboard/scoreboard buttons
+  - Orange gradient admin button in header
+- **Genie click animation** - click the floating genie for:
+  - Talking mouth animation with brown/blue colour shift
+  - Random speech bubbles with funny quotes
+  - Sound effect on click
+- **"Normal mode huh?" jokes** - random funny messages when leaving Swedish mode
+
+### Fixed
+- **Progressive scanning** now auto-triggers for large libraries (>2000 tracks)
+- **Duplicate theme toggle** removed from cache-status section
+
+### Changed
+- Swedish mode exit messages now rotate through funny jokes
+
 ## [3.0.1] - 2025-12-08
 
 ### Fixed

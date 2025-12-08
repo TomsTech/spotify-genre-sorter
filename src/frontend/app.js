@@ -70,7 +70,129 @@
 
     // Fika reminder (25 minutes)
     let fikaTimerStarted = false;
-    let fikaTimerId = null;
+    let fikaTimerId = null;\n
+    // Admin panel state
+    let isAdminUser = false;
+    let adminData = null;
+
+    async function checkAdminStatus() {
+      try {
+        const response = await fetch('/api/admin');
+        if (response.ok) {
+          isAdminUser = true;
+          adminData = await response.json();
+          showAdminButton();
+        }
+      } catch { /* Not admin */ }
+    }
+
+    function showAdminButton() {
+      const headerActions = document.getElementById('header-actions');
+      if (headerActions && !document.getElementById('admin-btn')) {
+        const adminBtn = document.createElement('button');
+        adminBtn.id = 'admin-btn';
+        adminBtn.className = 'btn btn-ghost btn-sm admin-btn';
+        adminBtn.innerHTML = '⚙️ Admin';
+        adminBtn.onclick = showAdminPanel;
+        adminBtn.title = 'Open admin debug panel';
+        headerActions.insertBefore(adminBtn, headerActions.firstChild);
+      }
+    }
+
+    function showAdminPanel() {
+      if (!adminData) return;
+
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay admin-modal';
+      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+      modal.innerHTML = \`
+        <div class="modal-content admin-panel">
+          <div class="modal-header">
+            <h2>⚙️ Admin Debug Panel</h2>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          </div>
+          <div class="admin-grid">
+            <div class="admin-card">
+              <h3>📊 KV Metrics</h3>
+              <div class="admin-stats">
+                <div class="stat"><span class="label">Reads:</span> <span class="value">\${adminData.kvMetrics?.reads || 0}</span></div>
+                <div class="stat"><span class="label">Writes:</span> <span class="value">\${adminData.kvMetrics?.writes || 0}</span></div>
+                <div class="stat"><span class="label">Cache Hits:</span> <span class="value">\${adminData.kvMetrics?.cacheHits || 0}</span></div>
+              </div>
+            </div>
+            <div class="admin-card">
+              <h3>👥 Users</h3>
+              <div class="admin-stats">
+                <div class="stat"><span class="label">Total Users:</span> <span class="value">\${adminData.health?.totalUsers || 0}</span></div>
+                <div class="stat"><span class="label">Active Sessions:</span> <span class="value">\${adminData.health?.activeSessions || 0}</span></div>
+              </div>
+            </div>
+            <div class="admin-card">
+              <h3>📈 Analytics (Today)</h3>
+              <div class="admin-stats">
+                <div class="stat"><span class="label">Visits:</span> <span class="value">\${adminData.analytics?.today?.visits || 0}</span></div>
+                <div class="stat"><span class="label">Logins:</span> <span class="value">\${adminData.analytics?.today?.logins || 0}</span></div>
+                <div class="stat"><span class="label">Playlists:</span> <span class="value">\${adminData.analytics?.today?.playlistsCreated || 0}</span></div>
+              </div>
+            </div>
+            <div class="admin-card">
+              <h3>🗑️ Cache Actions</h3>
+              <div class="admin-actions">
+                <button class="btn btn-secondary btn-sm" onclick="clearCache('leaderboard')">Clear Leaderboard</button>
+                <button class="btn btn-secondary btn-sm" onclick="clearCache('scoreboard')">Clear Scoreboard</button>
+                <button class="btn btn-secondary btn-sm" onclick="clearCache('all_genre_caches')">Clear All Genre Caches</button>
+                <button class="btn btn-primary btn-sm" onclick="rebuildCaches()">Rebuild All Caches</button>
+              </div>
+            </div>
+          </div>
+          <div class="admin-footer">
+            <small>Version: \${adminData.version || '?'} | User: \${adminData.admin?.user || '?'}</small>
+          </div>
+        </div>
+      \`;
+
+      document.body.appendChild(modal);
+    }
+
+    async function clearCache(cache) {
+      try {
+        const response = await fetch('/api/admin/clear-cache', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cache })
+        });
+        const result = await response.json();
+        showNotification(\`Cleared \${result.keysCleared} keys\`, 'success');
+        refreshAdminData();
+      } catch (err) {
+        showNotification('Failed to clear cache', 'error');
+      }
+    }
+
+    async function rebuildCaches() {
+      try {
+        const response = await fetch('/api/admin/rebuild-caches', { method: 'POST' });
+        const result = await response.json();
+        showNotification('Caches rebuilt!', 'success');
+        refreshAdminData();
+      } catch (err) {
+        showNotification('Failed to rebuild caches', 'error');
+      }
+    }
+
+    async function refreshAdminData() {
+      try {
+        const response = await fetch('/api/admin');
+        if (response.ok) {
+          adminData = await response.json();
+        }
+      } catch { /* ignore */ }
+    }
+
+    window.clearCache = clearCache;
+    window.rebuildCaches = rebuildCaches;
+
 
     function startFikaTimer() {
       if (fikaTimerStarted || !swedishMode) return;
@@ -545,7 +667,16 @@
         if (enabled) {
           showNotification('🇸🇪 Välkommen till svenskt läge! Tack Heidi! 👑', 'success');
         } else {
-          showNotification('Back to normal mode!', 'success');
+          // Heidi laughed at "Normal mode huh?" so let's keep the joke!
+          const normalJokes = [
+            'Normal mode huh? 🤔 How... vanilla',
+            'Normal mode huh? 🙄 Okay boomer',
+            'Normal mode? 😴 *yawns in Swedish*',
+            'Back to boring mode! 🥱',
+            'Normal mode huh? Vikings disapprove 🪓',
+          ];
+          const joke = normalJokes[Math.floor(Math.random() * normalJokes.length)];
+          showNotification(joke, 'success');
         }
       }
 
@@ -573,6 +704,76 @@
     }
     // Make toggleSwedishMode globally accessible
     window.toggleSwedishMode = toggleSwedishMode;
+
+    // Genie click animation and sounds
+    const genieSounds = [
+      // Short xylophone/magical sound in base64 (very short beep melody)
+      'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleBlSk9bj2qlhMEdwkK2RaDAJGnSo5Pzyl1cOAGar5/38w3UyBlKG0+z87Yg5Gmi4//zzlmglZJPb/fbWi0EfTI3e9OjNgzQVWaDY19aWTiNJfLbs8t6OPRxMk9bl6MqAMRpXotvh08eAMxhXotvh08eAMxhXotvh08eAMxhXotvh08eAMw==',
+    ];
+
+    const geniePhrases = [
+      "Your wish is my command! 🧞",
+      "Three wishes? I got unlimited! ✨",
+      "Genre sorting? Easy peasy! 🎵",
+      "Did somebody say playlists? 🎉",
+      "Phenomenal cosmic powers! 💫",
+      "Itty bitty living space though... 🏠",
+      "I've been stuck in that lamp for ages! 💨",
+      "Alakazam! *jazz hands* 👐",
+    ];
+
+    const geniePhrasesSv = [
+      "Din önskan är min lag! 🧞",
+      "Tre önskningar? Jag har oändligt! ✨",
+      "Genresortering? Lätt som en plätt! 🎵",
+      "Sa någon spellistor? 🎉",
+      "Fenomenal kosmisk kraft! 💫",
+      "Men ganska liten bostad... 🏠",
+      "Jag har suttit fast i den lampan i evigheter! 💨",
+      "Abrakadabra! *jazzhänder* 👐",
+    ];
+
+    function initGenieClick() {
+      const genie = document.getElementById('genie-mascot');
+      if (!genie || genie.dataset.clickInit) return;
+      genie.dataset.clickInit = 'true';
+
+      genie.addEventListener('click', () => {
+        // Play sound
+        try {
+          const audio = new Audio(genieSounds[0]);
+          audio.volume = 0.4;
+          audio.play().catch(() => {});
+        } catch {}
+
+        // Add talking animation
+        genie.classList.add('talking');
+        setTimeout(() => genie.classList.remove('talking'), 1500);
+
+        // Show speech bubble
+        const phrases = swedishMode ? geniePhrasesSv : geniePhrases;
+        const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+
+        const bubble = document.createElement('div');
+        bubble.className = 'genie-speech-bubble';
+        bubble.textContent = phrase;
+
+        const rect = genie.getBoundingClientRect();
+        bubble.style.left = (rect.left + rect.width / 2 - 100) + 'px';
+        bubble.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
+
+        document.body.appendChild(bubble);
+        setTimeout(() => bubble.remove(), 2500);
+      });
+    }
+
+    // Initialize genie click when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initGenieClick);
+    } else {
+      initGenieClick();
+    }
+
 
     // Apply Swedish mode on load if previously enabled
     if (swedishMode) {
@@ -620,7 +821,7 @@
         }
       }
 
-      renderHeaderUser(session);
+      renderHeaderUser(session);\n      checkAdminStatus(); // Check if user is admin
 
       // In Spotify-only mode, we're already connected if authenticated
       if (!spotifyOnlyMode && !session.spotifyConnected) {
@@ -1208,6 +1409,18 @@
           return;
         }
 
+        // Auto-switch to progressive loading for large/truncated libraries
+        if (data.truncated && data.totalInLibrary > data.totalTracks) {
+          console.log();
+          showNotification(
+            swedishMode ?  : ,
+            'info'
+          );
+          // Start progressive loading automatically
+          await loadFullLibrary();
+          return;
+        }
+
         genreData = data;
         triggerFireworks(); // Celebrate completion!
         renderGenres();
@@ -1538,9 +1751,6 @@
           \${cacheInfo}
           <button onclick="refreshGenres()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Hämta ny data från Spotify' : 'Fetch fresh data from Spotify'}">
             🔄 \${swedishMode ? 'Uppdatera' : 'Refresh'}
-          </button>
-          <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm" title="\${lightMode ? (swedishMode ? 'Byt till mörkt läge' : 'Switch to dark mode') : (swedishMode ? 'Byt till ljust läge' : 'Switch to light mode')}">
-            \${lightMode ? '🌙' : '☀️'}
           </button>
         </div>
 
