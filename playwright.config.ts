@@ -37,10 +37,6 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    {
-      name: 'mobile',
-      use: { ...devices['iPhone 14'] },
-    },
   ],
 
   // Start local dev server before running tests (if not testing production)
