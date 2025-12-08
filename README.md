@@ -5,7 +5,7 @@
 </p>
 
 <h1 align="center">
-  <img src="https://img.shields.io/badge/Genre%20Genie-gold?style=for-the-badge&labelColor=006AA7" alt="Genre Genie">
+  <img src="https://img.shields.io/badge/🧞_Genre_Genie-006AA7?style=for-the-badge&labelColor=FECC00&color=006AA7" alt="Genre Genie">
   <sub>Spotify Genre Sorter</sub>
 </h1>
 
