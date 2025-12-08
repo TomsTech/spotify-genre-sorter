@@ -666,3 +666,41 @@ export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
     recentErrors: allErrors.slice(0, 20),
   };
 }
+
+// User Preferences
+export interface UserPreferences {
+  theme: 'light' | 'dark' | 'system';
+  swedishMode: boolean;
+  playlistTemplate: string;
+  hiddenGenres: string[];
+  showHiddenGenres: boolean;
+  tutorialCompleted: boolean;
+}
+
+const DEFAULT_PREFERENCES: UserPreferences = {
+  theme: 'system',
+  swedishMode: false,
+  playlistTemplate: '{genre}',
+  hiddenGenres: [],
+  showHiddenGenres: false,
+  tutorialCompleted: false,
+};
+
+export async function getUserPreferences(
+  kv: KVNamespace,
+  spotifyId: string
+): Promise<UserPreferences> {
+  const prefs = await kv.get<UserPreferences>(`user_prefs:${spotifyId}`, { type: 'json' });
+  return prefs || { ...DEFAULT_PREFERENCES };
+}
+
+export async function updateUserPreferences(
+  kv: KVNamespace,
+  spotifyId: string,
+  updates: Partial<UserPreferences>
+): Promise<UserPreferences> {
+  const existing = await getUserPreferences(kv, spotifyId);
+  const updated = { ...existing, ...updates };
+  await kv.put(`user_prefs:${spotifyId}`, JSON.stringify(updated));
+  return updated;
+}

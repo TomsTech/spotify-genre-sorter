@@ -5,6 +5,30 @@ All notable changes to Genre Genie (Spotify Genre Sorter) will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2025-12-08
+
+### Added
+- **UI Redesign** - Modern polish with glassmorphism effects
+  - Improved card hover animations
+  - Better button ripple effects
+  - Enhanced scrollbar styling
+  - Gradient text headers
+  - Tooltips support
+- **Playlist Scanning** - Scan any playlist for genre breakdown
+  - Browse your playlists from the toolbar
+  - See genre distribution for each playlist
+  - Swedish translations included
+- **User Preferences** - Persistent settings saved to cloud
+  - Theme preference synced across sessions
+  - Hidden genres saved
+  - Playlist template saved
+  - Swedish mode preference saved
+- **Tutorial System** - Interactive onboarding for new users
+  - Welcome screen with tour option
+  - Step-by-step feature highlights
+  - Skip option for returning users
+  - Swedish translations included
+
 ## [3.2.0] - 2025-12-08
 
 ### Added

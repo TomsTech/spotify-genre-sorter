@@ -16,6 +16,8 @@ import {
   getScanProgress,
   saveScanProgress,
   type RecentPlaylist,
+  getUserPreferences,
+  updateUserPreferences,
 } from '../lib/session';
 import {
   refreshSpotifyToken,
@@ -26,6 +28,7 @@ import {
   addTracksToPlaylist,
   getCurrentUser,
   getUserPlaylists,
+  getPlaylistTracks,
 } from '../lib/spotify';
 
 const api = new Hono<{ Bindings: Env }>();
@@ -1156,6 +1159,189 @@ api.get('/recent-playlists', async (c) => {
   } catch (err) {
     console.error('Error fetching recent playlists:', err);
     return c.json({ error: 'Failed to fetch recent playlists' }, 500);
+  }
+});
+
+
+
+// Get user's playlists for scanning
+api.get('/my-playlists', async (c) => {
+  const session = await getSession(c);
+  if (!session?.spotifyAccessToken) {
+    return c.json({ error: 'Not authenticated with Spotify' }, 401);
+  }
+
+  try {
+    // Refresh token if needed
+    let accessToken = session.spotifyAccessToken;
+    if (session.spotifyExpiresAt && Date.now() > session.spotifyExpiresAt - 60000) {
+      const refreshed = await refreshSpotifyToken(
+        session.spotifyRefreshToken!,
+        c.env.SPOTIFY_CLIENT_ID,
+        c.env.SPOTIFY_CLIENT_SECRET
+      );
+      accessToken = refreshed.access_token;
+      await updateSession(c, {
+        spotifyAccessToken: refreshed.access_token,
+        spotifyExpiresAt: Date.now() + refreshed.expires_in * 1000,
+      });
+    }
+
+    const playlists = await getUserPlaylists(accessToken);
+
+    // Return playlists with basic info
+    return c.json({
+      playlists: playlists.map(p => ({
+        id: p.id,
+        name: p.name,
+        trackCount: p.tracks.total,
+        isOwner: p.owner.id === session.spotifyUserId
+      }))
+    });
+  } catch (err) {
+    console.error('Error fetching playlists:', err);
+    return c.json({ error: 'Failed to fetch playlists' }, 500);
+  }
+});
+
+// Scan a specific playlist for genres
+api.get('/scan-playlist/:playlistId', async (c) => {
+  const session = await getSession(c);
+  if (!session?.spotifyAccessToken) {
+    return c.json({ error: 'Not authenticated with Spotify' }, 401);
+  }
+
+  const playlistId = c.req.param('playlistId');
+  if (!playlistId || !/^[a-zA-Z0-9]{22}$/.test(playlistId)) {
+    return c.json({ error: 'Invalid playlist ID' }, 400);
+  }
+
+  try {
+    // Refresh token if needed
+    let accessToken = session.spotifyAccessToken;
+    if (session.spotifyExpiresAt && Date.now() > session.spotifyExpiresAt - 60000) {
+      const refreshed = await refreshSpotifyToken(
+        session.spotifyRefreshToken!,
+        c.env.SPOTIFY_CLIENT_ID,
+        c.env.SPOTIFY_CLIENT_SECRET
+      );
+      accessToken = refreshed.access_token;
+      await updateSession(c, {
+        spotifyAccessToken: refreshed.access_token,
+        spotifyExpiresAt: Date.now() + refreshed.expires_in * 1000,
+      });
+    }
+
+    // Get playlist tracks (limit to 500 to stay under subrequest limit)
+    const tracks = await getPlaylistTracks(accessToken, playlistId, 500);
+
+    // Get unique artists
+    const artistIds = new Set<string>();
+    const trackData: { id: string; name: string; artistIds: string[] }[] = [];
+
+    for (const item of tracks) {
+      if (item.track && item.track.id) {
+        const artistIdsForTrack = item.track.artists.map(a => a.id);
+        artistIdsForTrack.forEach(id => artistIds.add(id));
+        trackData.push({
+          id: item.track.id,
+          name: item.track.name,
+          artistIds: artistIdsForTrack
+        });
+      }
+    }
+
+    // Get artist genres
+    const artistIdList = Array.from(artistIds);
+    const artistGenres = new Map<string, string[]>();
+
+    // Fetch artists in batches of 50
+    for (let i = 0; i < artistIdList.length && i < 500; i += 50) {
+      const batch = artistIdList.slice(i, i + 50);
+      const artists = await getArtists(accessToken, batch);
+      for (const artist of artists) {
+        artistGenres.set(artist.id, artist.genres);
+      }
+    }
+
+    // Aggregate genres
+    const genreCounts = new Map<string, { count: number; trackIds: string[] }>();
+
+    for (const track of trackData) {
+      const trackGenres = new Set<string>();
+      for (const artistId of track.artistIds) {
+        const genres = artistGenres.get(artistId) || [];
+        genres.forEach(g => trackGenres.add(g));
+      }
+
+      for (const genre of trackGenres) {
+        const existing = genreCounts.get(genre) || { count: 0, trackIds: [] };
+        existing.count++;
+        existing.trackIds.push(track.id);
+        genreCounts.set(genre, existing);
+      }
+    }
+
+    // Convert to sorted array
+    const genres = Array.from(genreCounts.entries())
+      .map(([name, data]) => ({ name, count: data.count, trackIds: data.trackIds }))
+      .sort((a, b) => b.count - a.count);
+
+    return c.json({
+      totalTracks: trackData.length,
+      totalArtists: artistIds.size,
+      totalGenres: genres.length,
+      genres,
+      truncated: tracks.length >= 500
+    });
+  } catch (err) {
+    console.error('Error scanning playlist:', err);
+    return c.json({ error: 'Failed to scan playlist' }, 500);
+  }
+});
+
+
+
+// Get user preferences
+api.get('/preferences', async (c) => {
+  const session = await getSession(c);
+  if (!session?.spotifyUserId) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+
+  try {
+    const prefs = await getUserPreferences(c.env.SESSIONS, session.spotifyUserId);
+    return c.json({ preferences: prefs });
+  } catch (err) {
+    console.error('Error fetching preferences:', err);
+    return c.json({ error: 'Failed to fetch preferences' }, 500);
+  }
+});
+
+// Update user preferences
+api.post('/preferences', async (c) => {
+  const session = await getSession(c);
+  if (!session?.spotifyUserId) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+
+  try {
+    const body = await c.req.json();
+
+    // Validate allowed fields
+    const allowedFields = ['theme', 'swedishMode', 'playlistTemplate', 'hiddenGenres', 'showHiddenGenres', 'tutorialCompleted'];
+    const updates: Record<string, unknown> = {};
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) {
+        updates[field] = body[field];
+      }
+    }
+
+    const prefs = await updateUserPreferences(c.env.SESSIONS, session.spotifyUserId, updates);
+    return c.json({ preferences: prefs });
+  } catch (err) {
+    console.error('Error updating preferences:', err);
+    return c.json({ error: 'Failed to update preferences' }, 500);
   }
 });
 

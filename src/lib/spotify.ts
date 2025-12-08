@@ -355,3 +355,37 @@ export async function getUserPlaylists(
 
   return allPlaylists;
 }
+
+export interface PlaylistTrack {
+  track: {
+    id: string;
+    name: string;
+    artists: { id: string; name: string }[];
+  } | null;
+  added_at: string;
+}
+
+export async function getPlaylistTracks(
+  accessToken: string,
+  playlistId: string,
+  limit = 100
+): Promise<PlaylistTrack[]> {
+  const allTracks: PlaylistTrack[] = [];
+  let offset = 0;
+  const pageLimit = 50;
+  let hasMore = true;
+
+  while (hasMore && allTracks.length < limit) {
+    const response = await spotifyFetch<{
+      items: PlaylistTrack[];
+      total: number;
+      next: string | null;
+    }>(`/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${offset}`, accessToken);
+
+    allTracks.push(...response.items);
+    offset += pageLimit;
+    hasMore = !!response.next && allTracks.length < limit;
+  }
+
+  return allTracks.slice(0, limit);
+}
