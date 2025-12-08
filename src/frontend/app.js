@@ -75,7 +75,7 @@
 
     window.createMergedFromSelection = createMergedFromSelection;
 
-    let selectedGenres = new Set();\n
+    let selectedGenres = new Set();
     // Genre merging state
     let mergeMode = false;
     let genresToMerge = new Set();
@@ -1744,9 +1744,9 @@
 
         // Auto-switch to progressive loading for large/truncated libraries
         if (data.truncated && data.totalInLibrary > data.totalTracks) {
-          console.log();
+          console.log('Large library detected, switching to progressive loading');
           showNotification(
-            swedishMode ?  : ,
+            swedishMode ? '📚 Stort bibliotek - laddar alla låtar...' : '📚 Large library - loading all tracks...',
             'info'
           );
           // Start progressive loading automatically

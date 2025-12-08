@@ -51,6 +51,7 @@ test.describe('Health & API Endpoints', () => {
 
     const body = await response.json();
     expect(body.status).toBe('ok');
+    // version is returned, not timestamp
     expect(body).toHaveProperty('version');
   });
 
@@ -68,6 +69,7 @@ test.describe('Health & API Endpoints', () => {
     expect(response.ok()).toBeTruthy();
 
     const body = await response.json();
+    // Stats endpoint returns userCount, hallOfFame, launchDate
     expect(body).toHaveProperty('userCount');
     expect(typeof body.userCount).toBe('number');
   });
