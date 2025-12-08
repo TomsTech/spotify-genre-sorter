@@ -555,7 +555,7 @@ const ANALYTICS_SAMPLE_RATE = 10; // 1 in 10 events = 90% reduction in writes
 
 export async function trackAnalyticsEvent(
   kv: KVNamespace,
-  eventType: 'pageView' | 'signIn' | 'authFailure' | 'error' | 'libraryScan' | 'playlistCreated' | 'kvError',
+  eventType: 'pageView' | 'signIn' | 'authFailure' | 'error' | 'libraryScan' | 'playlistCreated' | 'kvError' | 'inviteRequest',
   metadata?: { message?: string; path?: string; timestamp?: string; visitorId?: string; tracksCount?: number; count?: number }
 ): Promise<void> {
   try {
