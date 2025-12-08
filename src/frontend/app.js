@@ -831,6 +831,15 @@
         errorNotAllowed: 'Your GitHub account is not authorised to use this app.',
         errorAuthFailed: 'Authentication failed. Please try again.',
         errorInvalidState: 'Invalid state. Please try again.',
+        requestAccess: 'Request Access',
+        requestAccessTitle: 'Request Access to Genre Genie',
+        requestAccessDesc: 'Enter your details below to request an invite. The admin will review your request.',
+        requestAccessEmail: 'Email (Spotify account email)',
+        requestAccessGithub: 'GitHub username (optional)',
+        requestAccessMessage: 'Why do you want access? (optional)',
+        requestAccessSubmit: 'Submit Request',
+        requestAccessSuccess: 'Request submitted! You\'ll receive an email when approved.',
+        requestAccessError: 'Failed to submit request. Please try again.',
         hallOfFame: 'First Users - Hall of Fame',
         musicLoversJoined: 'music lovers have joined',
         signInSpotify: 'Sign in with Spotify',
@@ -874,6 +883,15 @@
         errorNotAllowed: 'Ditt GitHub-konto är inte behörigt att använda denna app.',
         errorAuthFailed: 'Autentisering misslyckades. Försök igen.',
         errorInvalidState: 'Ogiltigt tillstånd. Försök igen.',
+        requestAccess: 'Begär Åtkomst',
+        requestAccessTitle: 'Begär Åtkomst till Genre Genie',
+        requestAccessDesc: 'Ange dina uppgifter nedan för att begära en inbjudan. Administratören granskar din förfrågan.',
+        requestAccessEmail: 'E-post (Spotify-kontots e-post)',
+        requestAccessGithub: 'GitHub-användarnamn (valfritt)',
+        requestAccessMessage: 'Varför vill du ha åtkomst? (valfritt)',
+        requestAccessSubmit: 'Skicka Förfrågan',
+        requestAccessSuccess: 'Förfrågan skickad! Du får ett e-postmeddelande när du godkänns.',
+        requestAccessError: 'Kunde inte skicka förfrågan. Försök igen.',
         hallOfFame: 'Första Användarna',
         musicLoversJoined: 'musikälskare har gått med',
         signInSpotify: 'Logga in med Spotify',
@@ -1170,9 +1188,16 @@
         </a>
       \`;
 
+      // Request access button for not_allowed errors
+      const requestAccessButton = error === 'not_allowed' ? \`
+        <button onclick="showRequestAccessModal()" class="btn btn-secondary request-access-btn">
+          🔑 \${t('requestAccess')}
+        </button>
+      \` : '';
+
       app.innerHTML = \`
         <div class="welcome">
-          \${error ? \`<div class="error">\${errorMessages[error] || error}</div>\` : ''}
+          \${error ? \`<div class="error">\${errorMessages[error] || error}\${requestAccessButton}</div>\` : ''}
           \${userCounterHtml}
           <h2 data-i18n="organiseMusic">\${t('organiseMusic')}</h2>
           <p data-i18n="organiseDesc">\${t('organiseDesc')}</p>
@@ -5211,7 +5236,85 @@
       }, 2000);
     }
 
+    // Request Access Modal
+    function showRequestAccessModal() {
+      const existing = document.querySelector('.request-access-overlay');
+      if (existing) existing.remove();
+
+      const modal = document.createElement('div');
+      modal.className = 'request-access-overlay';
+      modal.innerHTML = \`
+        <div class="request-access-modal">
+          <button class="modal-close" onclick="this.closest('.request-access-overlay').remove()">&times;</button>
+          <h2>🔑 \${t('requestAccessTitle')}</h2>
+          <p>\${t('requestAccessDesc')}</p>
+          <form onsubmit="submitAccessRequest(event)" class="request-access-form">
+            <div class="form-group">
+              <label for="request-email">\${t('requestAccessEmail')}</label>
+              <input type="email" id="request-email" required placeholder="your@email.com" />
+            </div>
+            <div class="form-group">
+              <label for="request-github">\${t('requestAccessGithub')}</label>
+              <input type="text" id="request-github" placeholder="username" />
+            </div>
+            <div class="form-group">
+              <label for="request-message">\${t('requestAccessMessage')}</label>
+              <textarea id="request-message" rows="3" placeholder="I'd like to try Genre Genie because..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary request-submit-btn">
+              \${t('requestAccessSubmit')}
+            </button>
+          </form>
+        </div>
+      \`;
+
+      document.body.appendChild(modal);
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+      // Focus first input
+      requestAnimationFrame(() => {
+        modal.querySelector('#request-email')?.focus();
+      });
+    }
+
+    async function submitAccessRequest(event) {
+      event.preventDefault();
+
+      const email = document.getElementById('request-email')?.value?.trim();
+      const github = document.getElementById('request-github')?.value?.trim();
+      const message = document.getElementById('request-message')?.value?.trim();
+
+      if (!email) return;
+
+      const submitBtn = document.querySelector('.request-submit-btn');
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = swedishMode ? 'Skickar...' : 'Submitting...';
+      submitBtn.disabled = true;
+
+      try {
+        const response = await fetch('/api/request-access', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, github, message })
+        });
+
+        if (response.ok) {
+          showToast(t('requestAccessSuccess'));
+          document.querySelector('.request-access-overlay')?.remove();
+        } else {
+          throw new Error('Request failed');
+        }
+      } catch (err) {
+        console.error('Access request error:', err);
+        showToast(t('requestAccessError'));
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+      }
+    }
+
     window.showGenreWrapped = showGenreWrapped;
     window.downloadWrappedCard = downloadWrappedCard;
     window.copyWrappedToClipboard = copyWrappedToClipboard;
     window.shareWrappedNative = shareWrappedNative;
+    window.showRequestAccessModal = showRequestAccessModal;
+    window.submitAccessRequest = submitAccessRequest;

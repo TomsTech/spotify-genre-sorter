@@ -5801,3 +5801,145 @@
     body.swedish-mode .wrapped-btn:hover {
       background: linear-gradient(135deg, #0077b8 0%, #ffd700 50%, #0077b8 100%);
     }
+
+    /* Request Access Modal */
+    .request-access-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      padding: 1rem;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .request-access-modal {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 480px;
+      width: 100%;
+      position: relative;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      animation: slideUp 0.3s ease-out;
+    }
+
+    .request-access-modal .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.5rem;
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s;
+    }
+
+    .request-access-modal .modal-close:hover {
+      background: var(--hover-bg);
+      color: var(--text-primary);
+    }
+
+    .request-access-modal h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1.5rem;
+      color: var(--text-primary);
+    }
+
+    .request-access-modal p {
+      margin: 0 0 1.5rem;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .request-access-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .request-access-form .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+
+    .request-access-form label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .request-access-form input,
+    .request-access-form textarea {
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--text-primary);
+      font-size: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .request-access-form input:focus,
+    .request-access-form textarea:focus {
+      outline: none;
+      border-color: var(--spotify-green);
+      box-shadow: 0 0 0 3px rgba(29, 185, 84, 0.2);
+    }
+
+    .request-access-form textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .request-submit-btn {
+      margin-top: 0.5rem;
+      padding: 0.875rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .request-submit-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .request-access-btn {
+      margin-top: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Light mode adjustments */
+    body.light-mode .request-access-modal {
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }

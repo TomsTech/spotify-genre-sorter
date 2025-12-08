@@ -14,3 +14,8 @@ CLAUDE.md
 
 # KV Backups (committed via GitHub Actions only)
 backups/
+
+# Playwright
+e2e-report/
+playwright-report/
+test-results/
