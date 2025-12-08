@@ -5439,6 +5439,381 @@ export function getHtml(): string {
       border: 1px solid var(--border);
     }
 
+    /* ====================================
+       Genre Wrapped - Shareable Stats Card
+       ==================================== */
+
+    .wrapped-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+
+    .wrapped-overlay.wrapped-visible {
+      opacity: 1;
+    }
+
+    .wrapped-container {
+      position: relative;
+      max-width: 400px;
+      width: 100%;
+      animation: wrapped-slide-up 0.5s ease-out;
+    }
+
+    @keyframes wrapped-slide-up {
+      from {
+        opacity: 0;
+        transform: translateY(40px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .wrapped-close {
+      position: absolute;
+      top: -40px;
+      right: 0;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 2rem;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+      z-index: 10;
+    }
+
+    .wrapped-close:hover {
+      opacity: 1;
+    }
+
+    .wrapped-card {
+      border-radius: 24px;
+      padding: 2rem;
+      color: white;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      aspect-ratio: 9/16;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .wrapped-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                  radial-gradient(circle at 70% 80%, rgba(255,255,255,0.1) 0%, transparent 40%);
+      pointer-events: none;
+    }
+
+    .wrapped-card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .wrapped-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .wrapped-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .wrapped-logo-icon {
+      font-size: 1.5rem;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    }
+
+    .wrapped-logo-text {
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.9;
+    }
+
+    .wrapped-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      object-fit: cover;
+    }
+
+    .wrapped-personality {
+      text-align: center;
+      padding: 1.5rem 0;
+    }
+
+    .wrapped-emoji {
+      font-size: 4rem;
+      display: block;
+      margin-bottom: 0.5rem;
+      animation: wrapped-bounce 2s ease-in-out infinite;
+    }
+
+    @keyframes wrapped-bounce {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-10px) scale(1.05); }
+    }
+
+    .wrapped-title {
+      font-size: 2rem;
+      font-weight: 800;
+      margin: 0 0 0.5rem;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.8) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .wrapped-desc {
+      font-size: 1rem;
+      opacity: 0.9;
+      margin: 0;
+      line-height: 1.4;
+      max-width: 280px;
+      margin: 0 auto;
+    }
+
+    .wrapped-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 1rem;
+    }
+
+    .wrapped-stat {
+      text-align: center;
+    }
+
+    .wrapped-stat-value {
+      display: block;
+      font-size: 1.75rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .wrapped-stat-label {
+      display: block;
+      font-size: 0.75rem;
+      opacity: 0.7;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 0.25rem;
+    }
+
+    .wrapped-top-genres {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .wrapped-top-genres h3 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.7;
+      margin: 0 0 0.5rem;
+    }
+
+    .wrapped-genre-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      animation: wrapped-bar-slide 0.6s ease-out backwards;
+    }
+
+    @keyframes wrapped-bar-slide {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .wrapped-genre-name {
+      font-size: 0.85rem;
+      font-weight: 500;
+      min-width: 100px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .wrapped-bar-container {
+      flex: 1;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .wrapped-bar-fill {
+      height: 100%;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 10px;
+      transition: width 1s ease-out;
+    }
+
+    .wrapped-bar-count {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.7rem;
+      font-weight: 600;
+      opacity: 0.9;
+    }
+
+    .wrapped-fact {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .wrapped-fact p {
+      margin: 0;
+      font-style: italic;
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .wrapped-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      opacity: 0.7;
+    }
+
+    .wrapped-user {
+      font-weight: 500;
+    }
+
+    .wrapped-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      justify-content: center;
+    }
+
+    .wrapped-actions .btn {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+    }
+
+    /* Toast notification */
+    .toast-notification {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--surface-2);
+      color: var(--text);
+      padding: 0.75rem 1.5rem;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      z-index: 100000;
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+
+    .toast-notification.toast-visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Mobile adjustments for wrapped card */
+    @media (max-width: 480px) {
+      .wrapped-card {
+        padding: 1.5rem;
+        border-radius: 20px;
+      }
+
+      .wrapped-title {
+        font-size: 1.5rem;
+      }
+
+      .wrapped-emoji {
+        font-size: 3rem;
+      }
+
+      .wrapped-stat-value {
+        font-size: 1.5rem;
+      }
+
+      .wrapped-genre-name {
+        min-width: 80px;
+        font-size: 0.75rem;
+      }
+
+      .wrapped-actions {
+        flex-direction: column;
+      }
+    }
+
+    /* Share Your Taste button */
+    .wrapped-btn {
+      background: linear-gradient(135deg, #1db954 0%, #1ed760 50%, #1db954 100%);
+      border: none;
+      animation: wrapped-btn-glow 3s ease-in-out infinite;
+    }
+
+    .wrapped-btn:hover {
+      background: linear-gradient(135deg, #1ed760 0%, #22df67 50%, #1ed760 100%);
+      transform: scale(1.05);
+    }
+
+    @keyframes wrapped-btn-glow {
+      0%, 100% { box-shadow: 0 0 10px rgba(29, 185, 84, 0.3); }
+      50% { box-shadow: 0 0 20px rgba(29, 185, 84, 0.5); }
+    }
+
+    body.swedish-mode .wrapped-btn {
+      background: linear-gradient(135deg, #006AA7 0%, #FECC00 50%, #006AA7 100%);
+    }
+
+    body.swedish-mode .wrapped-btn:hover {
+      background: linear-gradient(135deg, #0077b8 0%, #ffd700 50%, #0077b8 100%);
+    }
+
   </style>
 </head>
 <body>
@@ -6745,6 +7120,13 @@ export function getHtml(): string {
       const avatar = session.avatar || session.spotifyAvatar || session.githubAvatar;
       const user = session.user || session.spotifyUser || session.githubUser;
       const lightMode = document.body.classList.contains('light-mode');
+
+      // Store user info for Genre Wrapped
+      window.currentUser = {
+        display_name: user || 'Music Lover',
+        images: avatar ? [{ url: avatar }] : []
+      };
+
       // Keep theme toggle in header, add user info next to it
       headerActions.innerHTML = \`
         <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
@@ -7197,6 +7579,7 @@ export function getHtml(): string {
         const fullData = await loadGenresProgressively();
         stopAlbumCarousel(); // Clean up carousel when loading completes
         genreData = fullData;
+        window.currentGenres = fullData?.genres || []; // For Genre Wrapped
         triggerFireworks(); // Celebrate completion!
         renderGenres();
         showNotification(
@@ -7274,6 +7657,7 @@ export function getHtml(): string {
         }
 
         genreData = data;
+        window.currentGenres = data?.genres || []; // For Genre Wrapped
         triggerFireworks(); // Celebrate completion!
         renderGenres();
       } catch (error) {
@@ -7607,6 +7991,9 @@ export function getHtml(): string {
         </div>
 
         <div class="toolbar-row">
+          <button onclick="showGenreWrapped()" class="btn btn-primary btn-sm wrapped-btn" title="\${swedishMode ? 'Dela din musiksmak!' : 'Share your music taste!'}">
+            ✨ \${swedishMode ? 'Dela Din Smak' : 'Share Your Taste'}
+          </button>
           <button onclick="toggleStatsDashboard()" class="btn btn-ghost btn-sm stats-toggle" id="stats-toggle">
             \${showStatsDashboard ? (swedishMode ? '📊 Dölj statistik' : '📊 Hide Stats') : (swedishMode ? '📊 Visa statistik' : '📊 Show Stats')}
           </button>
@@ -10151,6 +10538,327 @@ export function getHtml(): string {
     }
 
     window.showArtistBreakdown = showArtistBreakdown;
+
+    // ====================================
+    // Genre Wrapped - Shareable Stats Card
+    // ====================================
+
+    const GENRE_GRADIENTS = {
+      rock: 'linear-gradient(135deg, #dc2626 0%, #7c2d12 50%, #1a1a2e 100%)',
+      pop: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #06b6d4 100%)',
+      electronic: 'linear-gradient(135deg, #00f5d4 0%, #7209b7 50%, #f72585 100%)',
+      hiphop: 'linear-gradient(135deg, #f59e0b 0%, #dc2626 50%, #1f2937 100%)',
+      rnb: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #f97316 100%)',
+      metal: 'linear-gradient(135deg, #1f2937 0%, #dc2626 50%, #000000 100%)',
+      jazz: 'linear-gradient(135deg, #1e3a5f 0%, #d4af37 50%, #0f172a 100%)',
+      classical: 'linear-gradient(135deg, #fffbeb 0%, #d4af37 50%, #1f2937 100%)',
+      country: 'linear-gradient(135deg, #d97706 0%, #92400e 50%, #1c1917 100%)',
+      folk: 'linear-gradient(135deg, #84cc16 0%, #a3e635 50%, #365314 100%)',
+      reggae: 'linear-gradient(135deg, #16a34a 0%, #facc15 50%, #dc2626 100%)',
+      latin: 'linear-gradient(135deg, #f97316 0%, #ef4444 50%, #fbbf24 100%)',
+      world: 'linear-gradient(135deg, #0ea5e9 0%, #8b5cf6 50%, #f97316 100%)',
+      other: 'linear-gradient(135deg, #1db954 0%, #191414 50%, #1db954 100%)',
+      swedish: 'linear-gradient(135deg, #006AA7 0%, #FECC00 50%, #006AA7 100%)'
+    };
+
+    const GENRE_PERSONALITIES = {
+      rock: {
+        en: { title: 'The Rebel Soul', emoji: '🎸', desc: 'You live for the riff. Raw energy courses through your veins.' },
+        sv: { title: 'Rebellsjälen', emoji: '🎸', desc: 'Du lever för riffet. Rå energi flödar genom dina ådror.' }
+      },
+      pop: {
+        en: { title: 'The Hitmaker', emoji: '✨', desc: 'You know what slaps. Your playlists are pure vibes.' },
+        sv: { title: 'Hitfabriken', emoji: '✨', desc: 'Du vet vad som svänger. Dina spellistor är ren känsla.' }
+      },
+      electronic: {
+        en: { title: 'The Synthesist', emoji: '🎹', desc: 'Bass drops and synth waves fuel your existence.' },
+        sv: { title: 'Syntmästaren', emoji: '🎹', desc: 'Basdrops och synthvågor driver din existens.' }
+      },
+      hiphop: {
+        en: { title: 'The Flow Master', emoji: '🎤', desc: 'Bars and beats. You appreciate the art of the rhyme.' },
+        sv: { title: 'Flowmästaren', emoji: '🎤', desc: 'Bars och beats. Du uppskattar rimkonsten.' }
+      },
+      rnb: {
+        en: { title: 'The Smooth Operator', emoji: '🎷', desc: 'Silky vocals and groovy basslines are your love language.' },
+        sv: { title: 'Den Smidiga', emoji: '🎷', desc: 'Silkeslen sång och groovy baslinjer är ditt kärleksspråk.' }
+      },
+      metal: {
+        en: { title: 'The Thunder God', emoji: '🤘', desc: 'Heavy. Brutal. Unapologetic. You embrace the chaos.' },
+        sv: { title: 'Åskguden', emoji: '🤘', desc: 'Tungt. Brutalt. Oförsonligt. Du omfamnar kaoset.' }
+      },
+      jazz: {
+        en: { title: 'The Improviser', emoji: '🎺', desc: 'Complex harmonies speak to your sophisticated soul.' },
+        sv: { title: 'Improvisatören', emoji: '🎺', desc: 'Komplexa harmonier talar till din sofistikerade själ.' }
+      },
+      classical: {
+        en: { title: 'The Maestro', emoji: '🎻', desc: 'Timeless compositions move you like nothing else.' },
+        sv: { title: 'Maestron', emoji: '🎻', desc: 'Tidlösa kompositioner berör dig som inget annat.' }
+      },
+      country: {
+        en: { title: 'The Storyteller', emoji: '🤠', desc: 'Real lyrics about real life. You feel every word.' },
+        sv: { title: 'Berättaren', emoji: '🤠', desc: 'Verkliga texter om verkligt liv. Du känner varje ord.' }
+      },
+      folk: {
+        en: { title: 'The Old Soul', emoji: '🌿', desc: 'Acoustic vibes and honest lyrics speak to your heart.' },
+        sv: { title: 'Den Gamla Själen', emoji: '🌿', desc: 'Akustiska vibar och ärliga texter talar till ditt hjärta.' }
+      },
+      reggae: {
+        en: { title: 'The Peaceful Warrior', emoji: '☮️', desc: 'Good vibes only. You spread love through rhythm.' },
+        sv: { title: 'Fredskrigaren', emoji: '☮️', desc: 'Bara bra vibbar. Du sprider kärlek genom rytm.' }
+      },
+      latin: {
+        en: { title: 'The Fire Dancer', emoji: '💃', desc: 'Passion and rhythm flow through everything you do.' },
+        sv: { title: 'Elddansaren', emoji: '💃', desc: 'Passion och rytm flödar genom allt du gör.' }
+      },
+      world: {
+        en: { title: 'The Explorer', emoji: '🌍', desc: 'Music knows no borders. You discover sounds from everywhere.' },
+        sv: { title: 'Upptäckaren', emoji: '🌍', desc: 'Musik känner inga gränser. Du upptäcker ljud överallt.' }
+      },
+      other: {
+        en: { title: 'The Eclectic', emoji: '🎵', desc: 'Your taste defies categories. Truly unique.' },
+        sv: { title: 'Den Eklektiska', emoji: '🎵', desc: 'Din smak trotsar kategorier. Verkligt unik.' }
+      }
+    };
+
+    const WRAPPED_FACTS = {
+      en: [
+        'Your music taste is in the top {pct}% for variety!',
+        'You\'ve discovered {count} unique genres - that\'s impressive!',
+        'Your library spans {artists} different artists',
+        'If your genres were a party, it\'d be legendary',
+        'Your ears have traveled through {genres} different sonic worlds'
+      ],
+      sv: [
+        'Din musiksmak är bland topp {pct}% för variation!',
+        'Du har upptäckt {count} unika genrer - imponerande!',
+        'Ditt bibliotek spänner över {artists} olika artister',
+        'Om dina genrer var en fest, skulle den vara legendarisk',
+        'Dina öron har rest genom {genres} olika soniska världar'
+      ]
+    };
+
+    function calculateDiversityScore(genres) {
+      if (!genres || genres.length === 0) return 0;
+      const totalTracks = genres.reduce((sum, g) => sum + g.count, 0);
+      if (totalTracks === 0) return 0;
+
+      // Shannon diversity index normalized to 0-100
+      let entropy = 0;
+      for (const genre of genres) {
+        const p = genre.count / totalTracks;
+        if (p > 0) entropy -= p * Math.log2(p);
+      }
+      const maxEntropy = Math.log2(genres.length);
+      return maxEntropy > 0 ? Math.round((entropy / maxEntropy) * 100) : 0;
+    }
+
+    function showGenreWrapped() {
+      // Get current genre data from the app state
+      const genres = window.currentGenres || [];
+      if (genres.length === 0) {
+        alert(swedishMode ? 'Analysera dina låtar först!' : 'Analyze your tracks first!');
+        return;
+      }
+
+      const existing = document.querySelector('.wrapped-overlay');
+      if (existing) existing.remove();
+
+      // Calculate stats
+      const totalTracks = genres.reduce((sum, g) => sum + g.count, 0);
+      const topGenres = genres.slice(0, 5);
+      const topFamily = getGenreFamily(topGenres[0]?.name || '');
+      const diversityScore = calculateDiversityScore(genres);
+      const personality = GENRE_PERSONALITIES[topFamily] || GENRE_PERSONALITIES.other;
+      const lang = swedishMode ? 'sv' : 'en';
+      const gradient = swedishMode ? GENRE_GRADIENTS.swedish : (GENRE_GRADIENTS[topFamily] || GENRE_GRADIENTS.other);
+
+      // Get unique artists count (estimate from genres)
+      const uniqueArtists = Math.round(totalTracks * 0.6); // rough estimate
+
+      // Random fun fact
+      const facts = WRAPPED_FACTS[lang];
+      const fact = facts[Math.floor(Math.random() * facts.length)]
+        .replace('{pct}', Math.max(5, 100 - diversityScore))
+        .replace('{count}', genres.length)
+        .replace('{artists}', uniqueArtists)
+        .replace('{genres}', genres.length);
+
+      // Build top genres bars
+      const maxCount = topGenres[0]?.count || 1;
+      const genreBars = topGenres.map((g, i) => {
+        const pct = Math.round((g.count / maxCount) * 100);
+        const delay = i * 0.1;
+        return '<div class="wrapped-genre-bar" style="animation-delay: ' + delay + 's">' +
+               '  <span class="wrapped-genre-name">' + g.name + '</span>' +
+               '  <div class="wrapped-bar-container">' +
+               '    <div class="wrapped-bar-fill" style="width: ' + pct + '%"></div>' +
+               '    <span class="wrapped-bar-count">' + g.count + '</span>' +
+               '  </div>' +
+               '</div>';
+      }).join('');
+
+      // Get user info
+      const userName = window.currentUser?.display_name || 'Music Lover';
+      const userAvatar = window.currentUser?.images?.[0]?.url || '';
+
+      const modal = document.createElement('div');
+      modal.className = 'wrapped-overlay';
+      modal.innerHTML = [
+        '<div class="wrapped-container">',
+        '  <button class="wrapped-close" onclick="this.closest(\'.wrapped-overlay\').remove()">&times;</button>',
+        '  <div class="wrapped-card" id="wrapped-card" style="background: ' + gradient + '">',
+        '    <div class="wrapped-header">',
+        '      <div class="wrapped-logo">',
+        '        <span class="wrapped-logo-icon">🧞</span>',
+        '        <span class="wrapped-logo-text">Genre Genie</span>',
+        '      </div>',
+        userAvatar ? '      <img src="' + userAvatar + '" class="wrapped-avatar" alt="' + userName + '" />' : '',
+        '    </div>',
+        '    <div class="wrapped-personality">',
+        '      <span class="wrapped-emoji">' + personality[lang].emoji + '</span>',
+        '      <h2 class="wrapped-title">' + personality[lang].title + '</h2>',
+        '      <p class="wrapped-desc">' + personality[lang].desc + '</p>',
+        '    </div>',
+        '    <div class="wrapped-stats">',
+        '      <div class="wrapped-stat">',
+        '        <span class="wrapped-stat-value">' + totalTracks + '</span>',
+        '        <span class="wrapped-stat-label">' + (swedishMode ? 'Låtar' : 'Tracks') + '</span>',
+        '      </div>',
+        '      <div class="wrapped-stat">',
+        '        <span class="wrapped-stat-value">' + genres.length + '</span>',
+        '        <span class="wrapped-stat-label">' + (swedishMode ? 'Genrer' : 'Genres') + '</span>',
+        '      </div>',
+        '      <div class="wrapped-stat">',
+        '        <span class="wrapped-stat-value">' + diversityScore + '%</span>',
+        '        <span class="wrapped-stat-label">' + (swedishMode ? 'Mångfald' : 'Diversity') + '</span>',
+        '      </div>',
+        '    </div>',
+        '    <div class="wrapped-top-genres">',
+        '      <h3>' + (swedishMode ? 'Dina Toppgenrer' : 'Your Top Genres') + '</h3>',
+        '      ' + genreBars,
+        '    </div>',
+        '    <div class="wrapped-fact">',
+        '      <p>"' + fact + '"</p>',
+        '    </div>',
+        '    <div class="wrapped-footer">',
+        '      <span class="wrapped-user">' + userName + '</span>',
+        '      <span class="wrapped-date">' + new Date().toLocaleDateString(swedishMode ? 'sv-SE' : 'en-US', { month: 'short', year: 'numeric' }) + '</span>',
+        '    </div>',
+        '  </div>',
+        '  <div class="wrapped-actions">',
+        '    <button class="btn btn-primary wrapped-download" onclick="downloadWrappedCard()">',
+        '      ' + (swedishMode ? '📥 Ladda ner' : '📥 Download') + '',
+        '    </button>',
+        '    <button class="btn btn-secondary wrapped-copy" onclick="copyWrappedToClipboard()">',
+        '      ' + (swedishMode ? '📋 Kopiera' : '📋 Copy') + '',
+        '    </button>',
+        '    <button class="btn btn-ghost wrapped-share-social" onclick="shareWrappedSocial()">',
+        '      ' + (swedishMode ? '🐦 Dela' : '🐦 Share') + '',
+        '    </button>',
+        '  </div>',
+        '</div>'
+      ].join('');
+
+      document.body.appendChild(modal);
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+      // Animate in
+      requestAnimationFrame(() => {
+        modal.classList.add('wrapped-visible');
+      });
+    }
+
+    async function downloadWrappedCard() {
+      const card = document.getElementById('wrapped-card');
+      if (!card) return;
+
+      try {
+        // Use html2canvas if available, otherwise fallback to simple method
+        if (typeof html2canvas !== 'undefined') {
+          const canvas = await html2canvas(card, {
+            backgroundColor: null,
+            scale: 2,
+            logging: false
+          });
+          const link = document.createElement('a');
+          link.download = 'my-genre-wrapped.png';
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        } else {
+          // Fallback: prompt user to screenshot
+          alert(swedishMode
+            ? 'Ta en skärmbild av ditt kort! (html2canvas behövs för automatisk nedladdning)'
+            : 'Take a screenshot of your card! (html2canvas needed for automatic download)');
+        }
+      } catch (err) {
+        console.error('Download error:', err);
+        alert(swedishMode ? 'Kunde inte ladda ner. Ta en skärmbild istället!' : 'Could not download. Take a screenshot instead!');
+      }
+    }
+
+    async function copyWrappedToClipboard() {
+      const card = document.getElementById('wrapped-card');
+      if (!card) return;
+
+      try {
+        if (typeof html2canvas !== 'undefined') {
+          const canvas = await html2canvas(card, {
+            backgroundColor: null,
+            scale: 2,
+            logging: false
+          });
+          canvas.toBlob(async (blob) => {
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob })
+            ]);
+            showToast(swedishMode ? '✓ Kopierat till urklipp!' : '✓ Copied to clipboard!');
+          });
+        } else {
+          // Copy text summary instead
+          const personality = document.querySelector('.wrapped-title')?.textContent || '';
+          const genres = Array.from(document.querySelectorAll('.wrapped-genre-name')).map(el => el.textContent).join(', ');
+          const text = (swedishMode
+            ? 'Mitt Genre Genie resultat: ' + personality + '!\nMina toppgenrer: ' + genres + '\n🧞 geniegenie.com'
+            : 'My Genre Genie result: ' + personality + '!\nMy top genres: ' + genres + '\n🧞 geniegenie.com');
+          await navigator.clipboard.writeText(text);
+          showToast(swedishMode ? '✓ Text kopierad!' : '✓ Text copied!');
+        }
+      } catch (err) {
+        console.error('Copy error:', err);
+        showToast(swedishMode ? '✗ Kunde inte kopiera' : '✗ Could not copy');
+      }
+    }
+
+    function shareWrappedSocial() {
+      const personality = document.querySelector('.wrapped-title')?.textContent || '';
+      const text = swedishMode
+        ? 'Jag är en ' + personality + '! 🧞 Vad är du? Kolla din musikpersonlighet på Genre Genie!'
+        : 'I\'m a ' + personality + '! 🧞 What are you? Check your music personality on Genre Genie!';
+
+      const url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
+      window.open(url, '_blank', 'width=550,height=420');
+    }
+
+    function showToast(message) {
+      const existing = document.querySelector('.toast-notification');
+      if (existing) existing.remove();
+
+      const toast = document.createElement('div');
+      toast.className = 'toast-notification';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      setTimeout(() => toast.classList.add('toast-visible'), 10);
+      setTimeout(() => {
+        toast.classList.remove('toast-visible');
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }
+
+    window.showGenreWrapped = showGenreWrapped;
+    window.downloadWrappedCard = downloadWrappedCard;
+    window.copyWrappedToClipboard = copyWrappedToClipboard;
+    window.shareWrappedSocial = shareWrappedSocial;
 
   </script>
 </body>
