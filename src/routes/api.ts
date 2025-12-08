@@ -1804,4 +1804,103 @@ api.post('/admin/rebuild-caches', async (c) => {
   return c.json({ success: true, timestamp: new Date().toISOString() });
 });
 
+// Request Access - for non-whitelisted users to request an invite
+interface AccessRequestBody {
+  email?: string;
+  github?: string;
+  message?: string;
+}
+
+interface AccessRequest {
+  email: string;
+  github: string | null;
+  message: string | null;
+  requestedAt: string;
+  status: string;
+  ip: string;
+  userAgent: string;
+}
+
+api.post('/request-access', async (c) => {
+  try {
+    const body = await c.req.json<AccessRequestBody>();
+    const { email, github, message } = body;
+
+    if (!email || typeof email !== 'string') {
+      return c.json({ error: 'Email is required' }, 400);
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return c.json({ error: 'Invalid email format' }, 400);
+    }
+
+    const kv = c.env.SESSIONS;
+    const requestKey = `access_request_${email.toLowerCase()}`;
+
+    // Check if already requested
+    const existing = await kv.get(requestKey);
+    if (existing) {
+      return c.json({ message: 'Request already submitted', alreadyRequested: true });
+    }
+
+    // Store the request
+    const request: AccessRequest = {
+      email: email.toLowerCase(),
+      github: github || null,
+      message: message || null,
+      requestedAt: new Date().toISOString(),
+      status: 'pending',
+      ip: c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown',
+      userAgent: c.req.header('user-agent') || 'unknown',
+    };
+
+    // Store with 90-day TTL
+    await kv.put(requestKey, JSON.stringify(request), { expirationTtl: 90 * 24 * 60 * 60 });
+
+    // Also add to a list for easy admin review
+    const listKey = 'access_requests_list';
+    const existingList = await kv.get(listKey);
+    const list: string[] = existingList ? JSON.parse(existingList) as string[] : [];
+    if (!list.includes(email.toLowerCase())) {
+      list.push(email.toLowerCase());
+      await kv.put(listKey, JSON.stringify(list));
+    }
+
+    // Track analytics
+    await trackAnalyticsEvent(kv, 'accessRequest', { email: email.toLowerCase() });
+
+    return c.json({ success: true, message: 'Request submitted successfully' });
+  } catch (err) {
+    console.error('Request access error:', err);
+    return c.json({ error: 'Failed to submit request' }, 500);
+  }
+});
+
+// Admin: Get access requests
+api.get('/admin/access-requests', async (c) => {
+  const session = await getSession(c);
+  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+
+  const kv = c.env.SESSIONS;
+  const listKey = 'access_requests_list';
+  const existingList = await kv.get(listKey);
+  const emails: string[] = existingList ? JSON.parse(existingList) as string[] : [];
+
+  const requests: AccessRequest[] = [];
+  for (const email of emails) {
+    const requestKey = `access_request_${email}`;
+    const data = await kv.get(requestKey);
+    if (data) {
+      requests.push(JSON.parse(data) as AccessRequest);
+    }
+  }
+
+  // Sort by most recent first
+  requests.sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime());
+
+  return c.json({ requests, total: requests.length });
+});
+
 export default api;

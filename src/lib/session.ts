@@ -555,8 +555,8 @@ const ANALYTICS_SAMPLE_RATE = 10; // 1 in 10 events = 90% reduction in writes
 
 export async function trackAnalyticsEvent(
   kv: KVNamespace,
-  eventType: 'pageView' | 'signIn' | 'authFailure' | 'error' | 'libraryScan' | 'playlistCreated' | 'kvError' | 'inviteRequest',
-  metadata?: { message?: string; path?: string; timestamp?: string; visitorId?: string; tracksCount?: number; count?: number }
+  eventType: 'pageView' | 'signIn' | 'authFailure' | 'error' | 'libraryScan' | 'playlistCreated' | 'kvError' | 'inviteRequest' | 'accessRequest',
+  metadata?: { message?: string; path?: string; timestamp?: string; visitorId?: string; tracksCount?: number; count?: number; email?: string }
 ): Promise<void> {
   try {
     // Errors always persist - they're critical for debugging
