@@ -4900,6 +4900,180 @@ export function getHtml(): string {
       font-size: 1rem;
     }
 
+
+    /* Rate Limit Warning Banner */
+    .rate-limit-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+      color: white;
+      padding: 0.75rem 1rem;
+      text-align: center;
+      z-index: 50000;
+      animation: slideDown 0.3s ease;
+      font-size: 0.9rem;
+    }
+
+    .rate-limit-banner.warning {
+      background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    }
+
+    .rate-limit-banner a {
+      color: white;
+      text-decoration: underline;
+    }
+
+    .rate-limit-banner .close-btn {
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.25rem;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+
+    .rate-limit-banner .close-btn:hover {
+      opacity: 1;
+    }
+
+    @keyframes slideDown {
+      from { transform: translateY(-100%); }
+      to { transform: translateY(0); }
+    }
+
+    body.has-banner {
+      padding-top: 50px;
+    }
+
+    /* Invite Request Modal */
+    .invite-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100000;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .invite-modal-content {
+      background: var(--surface);
+      border: 2px solid var(--accent);
+      border-radius: 1.5rem;
+      padding: 2rem;
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .invite-modal h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .invite-modal .poop-emoji {
+      font-size: 4rem;
+      margin: 1rem 0;
+    }
+
+    .invite-modal p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+
+    .invite-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .invite-form input, .invite-form textarea {
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--surface-2);
+      color: var(--text);
+      font-size: 0.95rem;
+      width: 100%;
+    }
+
+    .invite-form input:focus, .invite-form textarea:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    .invite-form textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .invite-form .btn {
+      margin-top: 0.5rem;
+    }
+
+    .invite-success {
+      background: rgba(29, 185, 84, 0.1);
+      border: 1px solid var(--accent);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .invite-success h3 {
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+
+    /* Status Page Link */
+    .status-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-decoration: none;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      transition: all 0.2s ease;
+    }
+
+    .status-link:hover {
+      color: var(--accent);
+      background: var(--surface-2);
+    }
+
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .status-indicator.warning {
+      background: #ff9800;
+    }
+
+    .status-indicator.critical {
+      background: #ff4444;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
   </style>
 </head>
 <body>
@@ -8938,6 +9112,216 @@ export function getHtml(): string {
         setTimeout(showTutorial, 500);
       }
     }
+
+    // ====================================
+    // KV Rate Limit Warning Banner
+    // ====================================
+
+    let kvUsageData = null;
+
+    async function checkKVUsage() {
+      try {
+        const response = await fetch('/api/kv-usage');
+        if (response.ok) {
+          kvUsageData = await response.json();
+          if (kvUsageData.status === 'critical' || kvUsageData.status === 'warning') {
+            showRateLimitBanner(kvUsageData);
+          }
+        }
+      } catch (err) {
+        console.log('Could not check KV usage');
+      }
+    }
+
+    function showRateLimitBanner(data) {
+      // Don't show if already dismissed recently
+      const dismissedAt = localStorage.getItem('rateLimitBannerDismissed');
+      if (dismissedAt && Date.now() - parseInt(dismissedAt) < 3600000) { // 1 hour
+        return;
+      }
+
+      const existing = document.querySelector('.rate-limit-banner');
+      if (existing) return;
+
+      const isCritical = data.status === 'critical';
+      const banner = document.createElement('div');
+      banner.className = 'rate-limit-banner' + (isCritical ? '' : ' warning');
+
+      const readPct = data.usage?.reads?.percent || 0;
+      const writePct = data.usage?.writes?.percent || 0;
+      const maxPct = Math.max(readPct, writePct);
+
+      const titleEN = isCritical
+        ? '⚠️ Service Degraded - Rate limits reached (' + maxPct + '% used)'
+        : '⚡ High usage detected (' + maxPct + '% of daily limit)';
+      const titleSE = isCritical
+        ? '⚠️ Tjänsten begränsad - Gränser nådda (' + maxPct + '% använt)'
+        : '⚡ Hög användning (' + maxPct + '% av daglig gräns)';
+
+      const msgEN = isCritical
+        ? 'Some features may be unavailable until 00:00 UTC. For urgent needs, contact the developer.'
+        : 'The service may slow down later today. Everything is still working!';
+      const msgSE = isCritical
+        ? 'Vissa funktioner kan vara otillgängliga till 00:00 UTC. Kontakta utvecklaren vid behov.'
+        : 'Tjänsten kan bli långsammare senare idag. Allt fungerar fortfarande!';
+
+      const title = swedishMode ? titleSE : titleEN;
+      const msg = swedishMode ? msgSE : msgEN;
+
+      banner.innerHTML = '<strong>' + title + '</strong> — ' + msg +
+        ' <a href="https://status.tomstech.dev" target="_blank">' +
+        (swedishMode ? 'Statussida' : 'Status Page') + '</a>' +
+        '<button class="close-btn" onclick="dismissRateLimitBanner()">&times;</button>';
+
+      document.body.prepend(banner);
+      document.body.classList.add('has-banner');
+    }
+
+    function dismissRateLimitBanner() {
+      const banner = document.querySelector('.rate-limit-banner');
+      if (banner) {
+        banner.remove();
+        document.body.classList.remove('has-banner');
+        localStorage.setItem('rateLimitBannerDismissed', Date.now().toString());
+      }
+    }
+
+    // ====================================
+    // Invite Request System
+    // ====================================
+
+    function showInviteRequestModal(errorMessage) {
+      const existing = document.querySelector('.invite-modal');
+      if (existing) return;
+
+      const modal = document.createElement('div');
+      modal.className = 'invite-modal';
+      modal.innerHTML = getInviteModalHTML();
+      document.body.appendChild(modal);
+    }
+
+    function getInviteModalHTML() {
+      const title = swedishMode ? '🚫 Endast inbjudan, kompis!' : '🚫 Invite only, buddy!';
+      const subtitle = swedishMode
+        ? 'Denna app är i testläge och kräver godkännande.'
+        : 'This app is in development mode and requires approval.';
+      const desc = swedishMode
+        ? 'Om jag känner dig, skriv in ditt Spotify-namn eller email så skickar jag en inbjudan!'
+        : 'If I know you, drop your Spotify email/name below and I\'ll send you an invite!';
+      const emailLabel = swedishMode ? 'Din Spotify-email eller namn' : 'Your Spotify email or display name';
+      const noteLabel = swedishMode ? 'Hur känner vi varandra? (valfritt)' : 'How do I know you? (optional)';
+      const submitText = swedishMode ? 'Skicka Förfrågan' : 'Send Request';
+
+      return '<div class="invite-modal-content">' +
+        '<div class="poop-emoji">💩</div>' +
+        '<h2>' + title + '</h2>' +
+        '<p>' + subtitle + '</p>' +
+        '<p>' + desc + '</p>' +
+        '<form class="invite-form" onsubmit="submitInviteRequest(event)">' +
+          '<input type="text" id="invite-email" placeholder="' + emailLabel + '" required>' +
+          '<textarea id="invite-note" placeholder="' + noteLabel + '"></textarea>' +
+          '<button type="submit" class="btn btn-primary">' + submitText + '</button>' +
+        '</form>' +
+        '<div id="invite-result"></div>' +
+      '</div>';
+    }
+
+    async function submitInviteRequest(e) {
+      e.preventDefault();
+      const email = document.getElementById('invite-email').value;
+      const note = document.getElementById('invite-note').value;
+      const resultDiv = document.getElementById('invite-result');
+
+      const submitBtn = e.target.querySelector('button');
+      submitBtn.disabled = true;
+      submitBtn.textContent = swedishMode ? 'Skickar...' : 'Sending...';
+
+      try {
+        const response = await fetch('/api/invite-request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, note })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          const successTitle = swedishMode ? '✅ Förfrågan skickad!' : '✅ Request sent!';
+          const successMsg = swedishMode
+            ? 'Du får ett email när jag har granskat din förfrågan. Kolla spam-mappen!'
+            : 'You\'ll get an email once I review your request. Check spam!';
+          const trackText = swedishMode ? 'Följ din förfrågan' : 'Track your request';
+
+          resultDiv.innerHTML =
+            '<div class="invite-success">' +
+              '<h3>' + successTitle + '</h3>' +
+              '<p>' + successMsg + '</p>' +
+              (data.trackingUrl ? '<a href="' + data.trackingUrl + '" class="btn btn-secondary" target="_blank">' + trackText + '</a>' : '') +
+            '</div>';
+
+          e.target.style.display = 'none';
+        } else {
+          resultDiv.innerHTML = '<p style="color: var(--danger);">' + (data.error || 'Failed to submit request') + '</p>';
+          submitBtn.disabled = false;
+          submitBtn.textContent = swedishMode ? 'Försök igen' : 'Try again';
+        }
+      } catch (err) {
+        resultDiv.innerHTML = '<p style="color: var(--danger);">' + (swedishMode ? 'Nätverksfel' : 'Network error') + '</p>';
+        submitBtn.disabled = false;
+        submitBtn.textContent = swedishMode ? 'Försök igen' : 'Try again';
+      }
+    }
+
+    // ====================================
+    // Status Page Link in Footer
+    // ====================================
+
+    function addStatusLink() {
+      const footer = document.querySelector('footer') || document.querySelector('.heidi-badge');
+      if (!footer) return;
+
+      // Check if already added
+      if (document.getElementById('status-link')) return;
+
+      const link = document.createElement('a');
+      link.id = 'status-link';
+      link.className = 'status-link';
+      link.href = 'https://status.tomstech.dev';
+      link.target = '_blank';
+
+      const status = kvUsageData?.status || 'ok';
+      const indicatorClass = status === 'critical' ? 'critical' : status === 'warning' ? 'warning' : '';
+      const text = swedishMode ? 'Driftstatus' : 'System Status';
+
+      link.innerHTML = '<span class="status-indicator ' + indicatorClass + '"></span>' + text;
+
+      // Add after heidi badge or in footer
+      if (footer.classList && footer.classList.contains('heidi-badge')) {
+        footer.parentElement.insertBefore(link, footer);
+        link.style.position = 'fixed';
+        link.style.bottom = '0.5rem';
+        link.style.left = '0.5rem';
+      } else {
+        footer.appendChild(link);
+      }
+    }
+
+    // Check KV usage and add status link on load
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        checkKVUsage().then(addStatusLink);
+      }, 2000);
+    });
+
+    // Check for Spotify auth errors and show invite modal
+    window.addEventListener('load', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('error') === 'spotify_whitelist' || urlParams.get('error') === 'access_denied') {
+        showInviteRequestModal();
+        // Clean URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    });
 
   </script>
 </body>

@@ -1346,6 +1346,83 @@ api.post('/preferences', async (c) => {
   }
 });
 
+
+// Store invite requests
+const INVITE_REQUESTS_KEY = 'invite_requests';
+
+// Submit invite request
+api.post('/invite-request', async (c) => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const body: Record<string, unknown> = await c.req.json();
+    const email = typeof body.email === 'string' ? body.email.trim() : '';
+    const note = typeof body.note === 'string' ? body.note.trim() : '';
+
+    if (!email || email.length < 3 || email.length > 100) {
+      return c.json({ error: 'Invalid email/name' }, 400);
+    }
+
+    // Store the request
+    const existingRaw = await c.env.SESSIONS.get(INVITE_REQUESTS_KEY);
+    interface InviteRequest {
+      email: string;
+      note: string;
+      createdAt: string;
+      status: 'pending' | 'approved' | 'denied';
+      ip?: string;
+    }
+    const existing: InviteRequest[] = existingRaw ? JSON.parse(existingRaw) as InviteRequest[] : [];
+
+    // Check if already requested
+    if (existing.some(r => r.email.toLowerCase() === email.toLowerCase())) {
+      return c.json({ error: 'Request already submitted' }, 409);
+    }
+
+    const request: InviteRequest = {
+      email,
+      note,
+      createdAt: new Date().toISOString(),
+      status: 'pending',
+      ip: c.req.header('cf-connecting-ip') || undefined
+    };
+
+    existing.push(request);
+    await c.env.SESSIONS.put(INVITE_REQUESTS_KEY, JSON.stringify(existing));
+
+    // Track analytics
+    await trackAnalyticsEvent(c.env.SESSIONS, 'inviteRequest');
+
+    return c.json({
+      success: true,
+      message: 'Request submitted! You will receive an email when reviewed.',
+      trackingUrl: null // Could add tracking later
+    });
+  } catch (err) {
+    console.error('Error submitting invite request:', err);
+    return c.json({ error: 'Failed to submit request' }, 500);
+  }
+});
+
+// Admin endpoint to view invite requests
+api.get('/admin/invites', async (c) => {
+  const session = await getSession(c);
+  const adminUsers = ['tomspseudonym', 'tomstech'];
+
+  if (!session?.spotifyUser || !adminUsers.includes(session.spotifyUser.toLowerCase())) {
+    return c.json({ error: 'Forbidden' }, 403);
+  }
+
+  try {
+    const requestsRaw = await c.env.SESSIONS.get(INVITE_REQUESTS_KEY);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const requests: unknown[] = requestsRaw ? JSON.parse(requestsRaw) as unknown[] : [];
+    return c.json({ requests });
+  } catch (err) {
+    console.error('Error fetching invites:', err);
+    return c.json({ error: 'Failed to fetch invites' }, 500);
+  }
+});
+
 // Analytics dashboard data (public, for Better Stack monitoring)
 api.get('/analytics', async (c) => {
   try {
