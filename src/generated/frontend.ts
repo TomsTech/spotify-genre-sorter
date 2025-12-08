@@ -6255,7 +6255,7 @@ export function getHtml(): string {
         '<div class="modal-content">',
         '  <div class="modal-header">',
         '    <h3>' + (swedishMode ? '📦 Slå ihop genrer' : '📦 Merge Genres') + '</h3>',
-        '    <button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()">×</button>',
+        '    <button class="modal-close" onclick="this.closest(\\'.modal-overlay\\').remove()">×</button>',
         '  </div>',
         '  <div class="modal-body">',
         '    <label>' + (swedishMode ? 'Spellistans namn' : 'Playlist Name') + '</label>',
@@ -6267,7 +6267,7 @@ export function getHtml(): string {
         '    <div class="merge-total">' + (swedishMode ? 'Totalt:' : 'Total:') + ' ' + totalTracks + ' ' + (swedishMode ? 'låtar' : 'tracks') + '</div>',
         '  </div>',
         '  <div class="modal-actions">',
-        '    <button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
+        '    <button class="btn btn-ghost" onclick="this.closest(\\'.modal-overlay\\').remove()">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
         '    <button class="btn btn-primary" onclick="createMergedPlaylist()">' + (swedishMode ? '🎵 Skapa spellista' : '🎵 Create Playlist') + '</button>',
         '  </div>',
         '</div>',
@@ -6445,7 +6445,7 @@ export function getHtml(): string {
       }
       return '';
     }
-\n
+
     // Admin panel state
     let isAdminUser = false;
     let adminData = null;
@@ -6918,7 +6918,7 @@ export function getHtml(): string {
         requestAccessGithub: 'GitHub username (optional)',
         requestAccessMessage: 'Why do you want access? (optional)',
         requestAccessSubmit: 'Submit Request',
-        requestAccessSuccess: 'Request submitted! You\'ll receive an email when approved.',
+        requestAccessSuccess: 'Request submitted! You\\'ll receive an email when approved.',
         requestAccessError: 'Failed to submit request. Please try again.',
         hallOfFame: 'First Users - Hall of Fame',
         musicLoversJoined: 'music lovers have joined',
@@ -7219,7 +7219,8 @@ export function getHtml(): string {
         }
       }
 
-      renderHeaderUser(session);\n      checkAdminStatus(); // Check if user is admin
+      renderHeaderUser(session);
+      checkAdminStatus(); // Check if user is admin
 
       // In Spotify-only mode, we're already connected if authenticated
       if (!spotifyOnlyMode && !session.spotifyConnected) {
@@ -8331,7 +8332,6 @@ export function getHtml(): string {
         mergeSelectedBtn.remove();
       }
     }
-    }
 
     // Playlist template functions
     function getTemplatePreview() {
@@ -8484,111 +8484,6 @@ export function getHtml(): string {
           );
         } else if (result.duplicate) {
           showNotification(swedishMode ? 'Spellista finns redan' : 'Playlist already exists', 'error');
-        } else {
-          throw new Error(result.error);
-        }
-      } catch (error) {
-        showNotification(t('failed') + ': ' + error.message, 'error');
-      }
-    }
-
-    // Show merge modal for combining selected genres
-    function showMergeModal() {
-      if (selectedGenres.size < 2) return;
-
-      const genreNames = Array.from(selectedGenres);
-      const genres = genreNames.map(name => genreData.genres.find(g => g.name === name)).filter(Boolean);
-      const totalTracks = genres.reduce((sum, g) => sum + g.count, 0);
-      const uniqueTrackIds = [...new Set(genres.flatMap(g => g.trackIds))];
-
-      const defaultName = genreNames.slice(0, 3).join(' + ') + (genreNames.length > 3 ? ' +more' : '') + ' Mix';
-      const defaultDesc = 'Combined playlist: ' + genreNames.join(', ');
-
-      const modal = document.createElement('div');
-      modal.className = 'customise-modal';
-      modal.innerHTML = [
-        '<div class="customise-panel">',
-        '  <div class="customise-header">',
-        '    <h3>' + (swedishMode ? '🔗 Slå ihop genrer' : '🔗 Merge Genres') + '</h3>',
-        '    <button class="customise-close" onclick="this.closest(\\'.customise-modal\\').remove()">&times;</button>',
-        '  </div>',
-        '  <div class="customise-body">',
-        '    <div style="margin-bottom: 1rem; padding: 0.75rem; background: var(--bg); border-radius: 8px;">',
-        '      <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">' + (swedishMode ? 'Valda genrer:' : 'Selected genres:') + '</div>',
-        '      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">',
-        genreNames.map(name => '<span class="genre-tag">' + escapeForHtml(name) + '</span>').join(''),
-        '      </div>',
-        '    </div>',
-        '    <div class="customise-field">',
-        '      <label>' + (swedishMode ? 'Spellistans namn' : 'Playlist Name') + '</label>',
-        '      <input type="text" id="merge-name" value="' + escapeForHtml(defaultName) + '" maxlength="100">',
-        '    </div>',
-        '    <div class="customise-field">',
-        '      <label>' + (swedishMode ? 'Beskrivning' : 'Description') + '</label>',
-        '      <textarea id="merge-desc" maxlength="300">' + escapeForHtml(defaultDesc) + '</textarea>',
-        '    </div>',
-        '    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">',
-        '      <span class="customise-track-count">🎵 ' + uniqueTrackIds.length + ' ' + (swedishMode ? 'unika låtar' : 'unique tracks') + '</span>',
-        '      <span style="color: var(--text-muted); font-size: 0.85rem;">' + (swedishMode ? '(av ' + totalTracks + ' totalt)' : '(of ' + totalTracks + ' total)') + '</span>',
-        '    </div>',
-        '  </div>',
-        '  <div class="customise-footer">',
-        '    <button class="btn btn-ghost" onclick="this.closest(\\'.customise-modal\\').remove()">',
-        '      ' + (swedishMode ? 'Avbryt' : 'Cancel'),
-        '    </button>',
-        '    <button class="btn btn-primary" id="merge-create-btn">',
-        '      ' + (swedishMode ? '🔗 Skapa mix' : '🔗 Create Mix'),
-        '    </button>',
-        '  </div>',
-        '</div>'
-      ].join('');
-
-      document.body.appendChild(modal);
-
-      // Handle create button
-      document.getElementById('merge-create-btn').addEventListener('click', async () => {
-        const customName = document.getElementById('merge-name').value.trim();
-        const customDesc = document.getElementById('merge-desc').value.trim();
-        modal.remove();
-        await createMergedPlaylist(genreNames, uniqueTrackIds, customName, customDesc);
-      });
-
-      // Close on backdrop click
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) modal.remove();
-      });
-
-      // Focus name input
-      document.getElementById('merge-name').focus();
-    }
-
-    // Create merged playlist from multiple genres
-    async function createMergedPlaylist(genreNames, trackIds, customName, customDescription) {
-      try {
-        const response = await fetch('/api/playlist', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            genre: genreNames[0], // Use first genre as base
-            trackIds: trackIds,
-            force: true, // Skip duplicate check for merged playlists
-            customName: customName || genreNames.join(' + ') + ' Mix',
-            customDescription: customDescription || 'Merged: ' + genreNames.join(', ')
-          }),
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          showNotification(
-            (swedishMode ? '🔗 Skapade mix: ' : '🔗 Created mix: ') + result.playlist.name + ' (' + trackIds.length + ' ' + t('tracks') + ')',
-            'success'
-          );
-          // Clear selection after successful merge
-          selectedGenres.clear();
-          updateSelectedCount();
-          const checkboxes = document.querySelectorAll('.genre-checkbox');
-          checkboxes.forEach(cb => cb.checked = false);
         } else {
           throw new Error(result.error);
         }
@@ -9355,22 +9250,6 @@ export function getHtml(): string {
       return div.innerHTML;
     }
 
-    // Get emoji for genre (reuse existing or provide fallback)
-    function getGenreEmoji(genre) {
-      const emojiMap = {
-        'rock': '🎸', 'pop': '🎤', 'hip hop': '🎧', 'rap': '🎤', 'jazz': '🎷',
-        'classical': '🎻', 'electronic': '🎹', 'dance': '💃', 'country': '🤠',
-        'r&b': '🎵', 'soul': '💜', 'blues': '🎺', 'metal': '🤘', 'punk': '⚡',
-        'folk': '🪕', 'indie': '🌟', 'alternative': '🎸', 'reggae': '🌴',
-        'latin': '💃', 'k-pop': '🇰🇷', 'j-pop': '🇯🇵', 'anime': '🎌'
-      };
-      const lowerGenre = (genre || '').toLowerCase();
-      for (const [key, emoji] of Object.entries(emojiMap)) {
-        if (lowerGenre.includes(key)) return emoji;
-      }
-      return '🎵';
-    }
-
     // Toggle sidebar visibility (mobile)
     function toggleSidebar() {
       const sidebar = document.getElementById('sidebar');
@@ -9675,7 +9554,7 @@ export function getHtml(): string {
             '<span class="playlist-item-tracks">' + playlist.trackCount + ' ' + tracksText + '</span>' +
             (playlist.isOwner ? '<span class="playlist-item-owner">' + ownerText + '</span>' : '') +
           '</div>' +
-          '<button class="playlist-scan-btn" onclick="scanPlaylist(\'' + playlist.id + '\', \'' + escapeHtml(playlist.name).replace(/'/g, "\\'") + '\')">' +
+          '<button class="playlist-scan-btn" onclick="scanPlaylist(\\'' + playlist.id + '\\', \\'' + escapeHtml(playlist.name).replace(/'/g, "\\'") + '\\')">' +
             scanText +
           '</button>' +
         '</div>';
@@ -9683,12 +9562,6 @@ export function getHtml(): string {
       html += '</div>';
 
       container.innerHTML = html;
-    }
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
     }
 
     async function scanPlaylist(playlistId, playlistName) {
@@ -9892,7 +9765,7 @@ export function getHtml(): string {
         position: 'top'
       },
       {
-        title: 'You\'re Ready! 🎉',
+        title: 'You\\'re Ready! 🎉',
         titleSE: 'Du är redo! 🎉',
         content: 'Explore your music, discover hidden genres, and create amazing playlists. Have fun!',
         contentSE: 'Utforska din musik, upptäck dolda genrer och skapa fantastiska spellistor. Ha kul!',
@@ -10148,7 +10021,7 @@ export function getHtml(): string {
         : 'This app is in development mode and requires approval.';
       const desc = swedishMode
         ? 'Om jag känner dig, skriv in ditt Spotify-namn eller email så skickar jag en inbjudan!'
-        : 'If I know you, drop your Spotify email/name below and I\'ll send you an invite!';
+        : 'If I know you, drop your Spotify email/name below and I\\'ll send you an invite!';
       const emailLabel = swedishMode ? 'Din Spotify-email eller namn' : 'Your Spotify email or display name';
       const noteLabel = swedishMode ? 'Hur känner vi varandra? (valfritt)' : 'How do I know you? (optional)';
       const submitText = swedishMode ? 'Skicka Förfrågan' : 'Send Request';
@@ -10190,7 +10063,7 @@ export function getHtml(): string {
           const successTitle = swedishMode ? '✅ Förfrågan skickad!' : '✅ Request sent!';
           const successMsg = swedishMode
             ? 'Du får ett email när jag har granskat din förfrågan. Kolla spam-mappen!'
-            : 'You\'ll get an email once I review your request. Check spam!';
+            : 'You\\'ll get an email once I review your request. Check spam!';
           const trackText = swedishMode ? 'Följ din förfrågan' : 'Track your request';
 
           resultDiv.innerHTML =
@@ -10476,7 +10349,7 @@ export function getHtml(): string {
       modal.className = 'share-modal-overlay';
       modal.innerHTML = [
         '<div class="share-modal">',
-        '  <button class="share-close" onclick="this.closest(\'.share-modal-overlay\').remove()">&times;</button>',
+        '  <button class="share-close" onclick="this.closest(\\'.share-modal-overlay\\').remove()">&times;</button>',
         '  <h3>' + (swedishMode ? '🎉 Dela din spellista!' : '🎉 Share your playlist!') + '</h3>',
         '  <p class="share-playlist-name">' + playlistName + '</p>',
         '  <div class="share-qr-container">',
@@ -10706,7 +10579,7 @@ export function getHtml(): string {
         '  <p class="artist-breakdown-subtitle">' + (swedishMode ? 'Topp artister i denna genre' : 'Top artists in this genre') + '</p>',
         '  <div class="artist-breakdown-list">' + (artistList || '<p>' + (swedishMode ? 'Ingen artistdata tillgänglig' : 'No artist data available') + '</p>') + '</div>',
         '  <div class="modal-actions">',
-        '    <button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">' + (swedishMode ? 'Stäng' : 'Close') + '</button>',
+        '    <button class="btn btn-ghost" onclick="this.closest(\\'.modal-overlay\\').remove()">' + (swedishMode ? 'Stäng' : 'Close') + '</button>',
         '  </div>',
         '</div>'
       ].join('');
@@ -10804,8 +10677,8 @@ export function getHtml(): string {
         en: [
           'You probably have a playlist you made at 2am that hits different.',
           'People underestimate your emotional depth. Their loss.',
-          'You\'re the friend who always controls the aux cord - and everyone\'s grateful.',
-          'Your energy is magnetic. You don\'t follow trends, you set them.',
+          'You\\'re the friend who always controls the aux cord - and everyone\\'s grateful.',
+          'Your energy is magnetic. You don\\'t follow trends, you set them.',
           'Late nights and loud guitars speak to something deep in your soul.'
         ],
         sv: [
@@ -10821,7 +10694,7 @@ export function getHtml(): string {
           'You radiate main character energy. Own it.',
           'Your vibe is immaculate. People want to be around your energy.',
           'You know exactly what song fits every moment of your life.',
-          'Secretly deep, openly fun. That\'s your whole brand.',
+          'Secretly deep, openly fun. That\\'s your whole brand.',
           'Your playlist is basically a therapy session disguised as a party.'
         ],
         sv: [
@@ -10835,10 +10708,10 @@ export function getHtml(): string {
       electronic: {
         en: [
           'You see patterns others miss. Your mind works different.',
-          'You\'re probably most creative between midnight and 4am.',
-          'Your brain operates on frequencies most can\'t comprehend.',
+          'You\\'re probably most creative between midnight and 4am.',
+          'Your brain operates on frequencies most can\\'t comprehend.',
           'Futuristic thinker with nostalgic tendencies. Complex, like your taste.',
-          'You don\'t need lyrics to feel understood. The beat speaks.'
+          'You don\\'t need lyrics to feel understood. The beat speaks.'
         ],
         sv: [
           'Du ser mönster andra missar. Ditt sinne fungerar annorlunda.',
@@ -10851,8 +10724,8 @@ export function getHtml(): string {
       hiphop: {
         en: [
           'You appreciate craft. Flow, wordplay, delivery - you notice it all.',
-          'Your confidence isn\'t arrogance, it\'s awareness of your worth.',
-          'You\'ve got stories to tell and wisdom beyond your years.',
+          'Your confidence isn\\'t arrogance, it\\'s awareness of your worth.',
+          'You\\'ve got stories to tell and wisdom beyond your years.',
           'Streets smart and emotionally intelligent. Rare combination.',
           'You hear the poetry where others just hear music.'
         ],
@@ -10866,7 +10739,7 @@ export function getHtml(): string {
       },
       rnb: {
         en: [
-          'You feel things deeply and that\'s your superpower.',
+          'You feel things deeply and that\\'s your superpower.',
           'Your love language is definitely quality time with good music.',
           'Sensual, sophisticated, and slightly mysterious. You know who you are.',
           'When you fall, you fall hard. The playlist reflects that.',
@@ -10882,7 +10755,7 @@ export function getHtml(): string {
       },
       metal: {
         en: [
-          'You\'re intense and you\'ve made peace with that. Others should too.',
+          'You\\'re intense and you\\'ve made peace with that. Others should too.',
           'Secretly one of the most emotionally intelligent people in the room.',
           'You process life through extremes. It keeps you balanced.',
           'Your loyalty is unmatched. Ride or die energy.',
@@ -10900,8 +10773,8 @@ export function getHtml(): string {
         en: [
           'You appreciate nuance in a world that loves to oversimplify.',
           'Old soul energy in a young body. Time moves different for you.',
-          'Conversations with you go places people don\'t expect.',
-          'You notice the spaces between the notes. That\'s where meaning lives.',
+          'Conversations with you go places people don\\'t expect.',
+          'You notice the spaces between the notes. That\\'s where meaning lives.',
           'Intellectually curious and emotionally deep. A rare combo.'
         ],
         sv: [
@@ -10914,7 +10787,7 @@ export function getHtml(): string {
       },
       classical: {
         en: [
-          'You see beauty in structure that others find rigid. That\'s depth.',
+          'You see beauty in structure that others find rigid. That\\'s depth.',
           'Your inner world is rich beyond what most could imagine.',
           'Patient. Observant. You understand delayed gratification.',
           'You feel connected to something timeless and larger than yourself.',
@@ -10930,8 +10803,8 @@ export function getHtml(): string {
       },
       country: {
         en: [
-          'You value authenticity over everything. Can\'t fake real.',
-          'Your heart is bigger than your problems, and that\'s saying something.',
+          'You value authenticity over everything. Can\\'t fake real.',
+          'Your heart is bigger than your problems, and that\\'s saying something.',
           'You tell it like it is. People respect that more than you know.',
           'Nostalgic but not stuck. You honor the past while moving forward.',
           'Community matters to you. You remember where you came from.'
@@ -10946,11 +10819,11 @@ export function getHtml(): string {
       },
       folk: {
         en: [
-          'You find poetry in the ordinary. That\'s a gift.',
+          'You find poetry in the ordinary. That\\'s a gift.',
           'Genuine to your core. People trust you instantly.',
           'You listen more than you speak, and notice more than you say.',
           'Nature probably recharges you. Cities drain your energy.',
-          'Simplicity isn\'t boring to you - it\'s honest.'
+          'Simplicity isn\\'t boring to you - it\\'s honest.'
         ],
         sv: [
           'Du hittar poesi i det vardagliga. Det är en gåva.',
@@ -10963,9 +10836,9 @@ export function getHtml(): string {
       reggae: {
         en: [
           'Your calm is contagious. People feel better around you.',
-          'You understand that life flows better when you don\'t fight it.',
+          'You understand that life flows better when you don\\'t fight it.',
           'Spiritual without being preachy. You just radiate peace.',
-          'Problems exist, but so does perspective. You\'ve got both.',
+          'Problems exist, but so does perspective. You\\'ve got both.',
           'You bring people together without trying. Natural connector.'
         ],
         sv: [
@@ -10980,7 +10853,7 @@ export function getHtml(): string {
         en: [
           'You live with intention. Every moment matters.',
           'Your passion is inspiring and slightly intimidating. Good.',
-          'You express emotions freely. Bottling up isn\'t your style.',
+          'You express emotions freely. Bottling up isn\\'t your style.',
           'Life is for living loudly. You understood the assignment.',
           'Your energy is magnetic. People are drawn to your fire.'
         ],
@@ -10994,11 +10867,11 @@ export function getHtml(): string {
       },
       world: {
         en: [
-          'Curious soul. You\'re not satisfied with the obvious.',
+          'Curious soul. You\\'re not satisfied with the obvious.',
           'Borders are just lines to you. Your mind travels freely.',
           'You see connections others miss. Global perspective is rare.',
-          'Open-minded doesn\'t even begin to describe you.',
-          'Your empathy extends beyond your own experience. That\'s growth.'
+          'Open-minded doesn\\'t even begin to describe you.',
+          'Your empathy extends beyond your own experience. That\\'s growth.'
         ],
         sv: [
           'Nyfiken själ. Du nöjer dig inte med det uppenbara.',
@@ -11010,11 +10883,11 @@ export function getHtml(): string {
       },
       other: {
         en: [
-          'Labels don\'t define you. Your taste is authentically yours.',
-          'You\'re drawn to what resonates, not what\'s expected.',
+          'Labels don\\'t define you. Your taste is authentically yours.',
+          'You\\'re drawn to what resonates, not what\\'s expected.',
           'Category-defying taste usually means category-defying person.',
           'Your mind makes connections that surprise even you.',
-          'Different isn\'t a phase for you. It\'s just who you are.'
+          'Different isn\\'t a phase for you. It\\'s just who you are.'
         ],
         sv: [
           'Etiketter definierar inte dig. Din smak är autentiskt din.',
@@ -11034,9 +10907,9 @@ export function getHtml(): string {
     const WRAPPED_FACTS = {
       en: [
         'Your music taste is in the top {pct}% for variety!',
-        'You\'ve discovered {count} unique genres - that\'s impressive!',
+        'You\\'ve discovered {count} unique genres - that\\'s impressive!',
         'Your library spans {artists} different artists',
-        'If your genres were a party, it\'d be legendary',
+        'If your genres were a party, it\\'d be legendary',
         'Your ears have traveled through {genres} different sonic worlds'
       ],
       sv: [
@@ -11047,21 +10920,6 @@ export function getHtml(): string {
         'Dina öron har rest genom {genres} olika soniska världar'
       ]
     };
-
-    function calculateDiversityScore(genres) {
-      if (!genres || genres.length === 0) return 0;
-      const totalTracks = genres.reduce((sum, g) => sum + g.count, 0);
-      if (totalTracks === 0) return 0;
-
-      // Shannon diversity index normalized to 0-100
-      let entropy = 0;
-      for (const genre of genres) {
-        const p = genre.count / totalTracks;
-        if (p > 0) entropy -= p * Math.log2(p);
-      }
-      const maxEntropy = Math.log2(genres.length);
-      return maxEntropy > 0 ? Math.round((entropy / maxEntropy) * 100) : 0;
-    }
 
     function showGenreWrapped() {
       // Get current genre data from the app state
@@ -11117,7 +10975,7 @@ export function getHtml(): string {
       modal.className = 'wrapped-overlay';
       modal.innerHTML = [
         '<div class="wrapped-container">',
-        '  <button class="wrapped-close" onclick="this.closest(\'.wrapped-overlay\').remove()">&times;</button>',
+        '  <button class="wrapped-close" onclick="this.closest(\\'.wrapped-overlay\\').remove()">&times;</button>',
         '  <div class="wrapped-card" id="wrapped-card" style="background: ' + gradient + '">',
         '    <div class="wrapped-header">',
         '      <div class="wrapped-logo">',
@@ -11231,8 +11089,8 @@ export function getHtml(): string {
           const personality = document.querySelector('.wrapped-title')?.textContent || '';
           const genres = Array.from(document.querySelectorAll('.wrapped-genre-name')).map(el => el.textContent).join(', ');
           const text = (swedishMode
-            ? 'Mitt Genre Genie resultat: ' + personality + '!\nMina toppgenrer: ' + genres + '\n🧞 geniegenie.com'
-            : 'My Genre Genie result: ' + personality + '!\nMy top genres: ' + genres + '\n🧞 geniegenie.com');
+            ? 'Mitt Genre Genie resultat: ' + personality + '!\\nMina toppgenrer: ' + genres + '\\n🧞 geniegenie.com'
+            : 'My Genre Genie result: ' + personality + '!\\nMy top genres: ' + genres + '\\n🧞 geniegenie.com');
           await navigator.clipboard.writeText(text);
           showToast(swedishMode ? '✓ Text kopierad!' : '✓ Text copied!');
         }
@@ -11246,8 +11104,8 @@ export function getHtml(): string {
       const personality = document.querySelector('.wrapped-title')?.textContent || '';
       const reading = document.querySelector('.wrapped-reading')?.textContent || '';
       const text = swedishMode
-        ? 'Jag är en ' + personality + '! 🧞\n\n' + reading + '\n\nVad är du? Kolla din musikpersonlighet på Genre Genie!'
-        : 'I\'m a ' + personality + '! 🧞\n\n' + reading + '\n\nWhat are you? Check your music personality on Genre Genie!';
+        ? 'Jag är en ' + personality + '! 🧞\\n\\n' + reading + '\\n\\nVad är du? Kolla din musikpersonlighet på Genre Genie!'
+        : 'I\\'m a ' + personality + '! 🧞\\n\\n' + reading + '\\n\\nWhat are you? Check your music personality on Genre Genie!';
 
       // Try native share first (works on mobile, offers TikTok/Instagram/Stories etc)
       if (navigator.share) {

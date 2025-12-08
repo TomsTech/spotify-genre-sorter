@@ -35,6 +35,19 @@ function escapeCss(str) {
   return str.replace(/(?<!\\)`/g, '\\`');
 }
 
+// Escape specific sequences so they survive template literal embedding
+// In template literals, backslash sequences get interpreted (backslash consumed)
+// We need to preserve \', \n, \r, \t in the output
+// But we don't escape \` or \$ as those are for template literal control
+// Use negative lookbehind to NOT escape sequences already escaped (e.g., \\n in /\\r?\\n/g)
+function escapeJs(str) {
+  return str
+    .replace(/(?<!\\)\\'/g, "\\\\'")  // \' -> \\' (but not \\')
+    .replace(/(?<!\\)\\n/g, "\\\\n")  // \n -> \\n (but not \\n)
+    .replace(/(?<!\\)\\r/g, "\\\\r")  // \r -> \\r (but not \\r)
+    .replace(/(?<!\\)\\t/g, "\\\\t"); // \t -> \\t (but not \\t)
+}
+
 // Create the TypeScript file content
 // Note: body.html and app.js already have proper escapes from extraction
 const tsContent = `/**
@@ -66,7 +79,7 @@ ${escapeCss(css)}
 <body>
 ${bodyHtml}
   <script>
-${js}
+${escapeJs(js)}
   </script>
 </body>
 </html>\`;
