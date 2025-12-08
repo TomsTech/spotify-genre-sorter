@@ -183,6 +183,9 @@ api.get('/me', async (c) => {
   }
 });
 
+// Threshold for switching to progressive loading (tracks)
+const PROGRESSIVE_LOAD_THRESHOLD = 500;
+
 // Get all genres from liked tracks (with caching)
 api.get('/genres', async (c) => {
   const session = await getSession(c);
@@ -206,6 +209,20 @@ api.get('/genres', async (c) => {
           fromCache: true,
         });
       }
+    }
+
+    // Early check: Get library size with minimal API call
+    // This prevents wasting subrequests on large libraries that will fail
+    const sizeCheck = await getLikedTracks(session.spotifyAccessToken, 1, 0);
+    const librarySize = sizeCheck.total;
+
+    // If library is large, immediately redirect to progressive loading
+    if (librarySize > PROGRESSIVE_LOAD_THRESHOLD) {
+      return c.json({
+        requiresProgressiveLoad: true,
+        totalInLibrary: librarySize,
+        message: 'Library too large for standard loading. Use progressive loading.',
+      });
     }
 
     // Step 1: Get all liked tracks (limited to avoid subrequest limits)
@@ -1002,84 +1019,115 @@ api.post('/playlists/bulk', async (c) => {
   }
 });
 
-// Changelog endpoint for deploy widget timeline
-api.get('/changelog', (c) => {
-  // Static changelog data - updated during releases
-  const changelog = [
-    {
-      version: '3.0.0',
-      date: '2025-12-08',
-      changes: [
-        'Progressive scanning for 2000+ track libraries',
-        'Admin debug panel for system monitoring',
-        'Confetti celebration on playlist creation',
-        'Jeff Goldblum Konami code easter egg',
-        'Enhanced smoke animation on durry button',
-        'Secret Heidi detection with auto-Swedish mode',
-      ],
-    },
-    {
-      version: '2.2.0',
-      date: '2025-12-07',
-      changes: [
-        'Track total songs added to playlists in scoreboard',
-        'New "Sorted" tab shows users ranked by tracks sorted',
-        'User stats now track cumulative tracks in created playlists',
-      ],
-    },
-    {
-      version: '1.3.0',
-      date: '2025-12-01',
-      changes: [
-        'PDF documentation generation',
-        'SEO playlist descriptions',
-        'Enhanced health endpoint',
-        'All backlog tasks complete',
-      ],
-    },
-    {
-      version: '1.2.1',
-      date: '2025-11-29',
-      changes: [
-        'Fix track limit for subrequest errors',
-        'Show truncation warning in UI',
-      ],
-    },
-    {
-      version: '1.2.0',
-      date: '2025-11-28',
-      changes: [
-        'Dark/light theme toggle',
-        'Hidden genres management',
-        'Genre statistics dashboard',
-        'Export to JSON/CSV',
-      ],
-    },
-    {
-      version: '1.1.0',
-      date: '2025-11-27',
-      changes: [
-        'Security headers (CSP, HSTS)',
-        'Retry logic with exponential backoff',
-        'Australian English spelling',
-      ],
-    },
-    {
-      version: '1.0.0',
-      date: '2025-11-26',
-      changes: [
-        'Initial release',
-        'Hall of Fame',
-        'Swedish Easter eggs',
-        'Spotify-only auth mode',
-      ],
-    },
-  ];
+// Changelog endpoint - dynamically fetches from GitHub releases with caching
+const CHANGELOG_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+let changelogCache: { data: unknown; timestamp: number } | null = null;
 
-  return c.json({
-    changelog: changelog.slice(0, 10),
-    repoUrl: 'https://github.com/TomsTech/spotify-genre-sorter',
-  });
+api.get('/changelog', async (c) => {
+  const REPO_URL = 'https://github.com/TomsTech/spotify-genre-sorter';
+  const API_URL = 'https://api.github.com/repos/TomsTech/spotify-genre-sorter/releases';
+
+  // Check cache first
+  if (changelogCache && Date.now() - changelogCache.timestamp < CHANGELOG_CACHE_TTL) {
+    return c.json(changelogCache.data);
+  }
+
+  try {
+    // Fetch releases from GitHub API
+    const response = await fetch(API_URL, {
+      headers: {
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'Genre-Genie-App',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`GitHub API returned ${response.status}`);
+    }
+
+    const releases: Array<{
+      tag_name: string;
+      published_at: string;
+      body: string;
+      name: string;
+    }> = await response.json();
+
+    // Transform GitHub releases to our changelog format
+    const changelog = releases.slice(0, 10).map((release) => {
+      // Extract version from tag (e.g., "v3.4.0" -> "3.4.0")
+      const version = release.tag_name.replace(/^v/, '');
+
+      // Extract date from published_at
+      const date = release.published_at.split('T')[0];
+
+      // Parse release body into changes array
+      // Look for markdown list items (- or *)
+      const bodyLines = (release.body || '').split('\n');
+      const changes: string[] = [];
+
+      for (const line of bodyLines) {
+        const trimmed = line.trim();
+        // Match markdown list items: - item or * item
+        const match = trimmed.match(/^[-*]\s+(.+)$/);
+        if (match) {
+          // Clean up the change text (remove markdown formatting)
+          const change = match[1]
+            .replace(/\*\*/g, '')  // Remove bold
+            .replace(/`/g, '')     // Remove code ticks
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); // Remove links, keep text
+          changes.push(change);
+        }
+      }
+
+      // If no list items found, use the release name or first line
+      if (changes.length === 0) {
+        changes.push(release.name || `Release ${version}`);
+      }
+
+      return {
+        version,
+        date,
+        changes: changes.slice(0, 8), // Limit to 8 changes per release
+      };
+    });
+
+    const result = {
+      changelog,
+      repoUrl: REPO_URL,
+      cached: false,
+      fetchedAt: new Date().toISOString(),
+    };
+
+    // Cache the result
+    changelogCache = {
+      data: { ...result, cached: true },
+      timestamp: Date.now(),
+    };
+
+    return c.json(result);
+  } catch (error) {
+    console.error('Failed to fetch GitHub releases:', error);
+
+    // If we have stale cache, return it
+    if (changelogCache) {
+      return c.json({ ...changelogCache.data as object, stale: true });
+    }
+
+    // Fallback to static data if GitHub API fails and no cache
+    const fallbackChangelog = [
+      {
+        version: '3.4.0',
+        date: '2025-12-09',
+        changes: ['Dynamic changelog from GitHub releases', 'Bug fixes and improvements'],
+      },
+    ];
+
+    return c.json({
+      changelog: fallbackChangelog,
+      repoUrl: REPO_URL,
+      error: 'Failed to fetch releases, showing fallback',
+    });
+  }
 });
 
 // ================== Leaderboard & Scoreboard Endpoints ==================

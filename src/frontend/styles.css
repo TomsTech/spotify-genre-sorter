@@ -711,6 +711,118 @@
       margin-right: auto;
     }
 
+    /* Privacy Explainer - Collapsible permissions info */
+    .privacy-explainer {
+      text-align: left;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin: 1.5rem 0;
+      overflow: hidden;
+    }
+
+    .privacy-explainer summary {
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      font-weight: 500;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: color 0.2s;
+    }
+
+    .privacy-explainer summary:hover {
+      color: var(--text);
+    }
+
+    .privacy-explainer summary::marker {
+      color: var(--accent);
+    }
+
+    .privacy-explainer[open] summary {
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .privacy-grid {
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .privacy-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.5rem;
+      border-radius: 6px;
+      background: var(--surface-2);
+    }
+
+    .privacy-icon {
+      font-size: 1.25rem;
+      flex-shrink: 0;
+      width: 2rem;
+      text-align: center;
+    }
+
+    .privacy-item div {
+      display: flex;
+      flex-direction: column;
+      gap: 0.125rem;
+    }
+
+    .privacy-item strong {
+      font-size: 0.875rem;
+      color: var(--text);
+    }
+
+    .privacy-item span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .privacy-permission {
+      border-left: 3px solid var(--accent);
+    }
+
+    .privacy-reassurance {
+      border-left: 3px solid var(--swedish-blue);
+    }
+
+    .privacy-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0.5rem 0;
+    }
+
+    .privacy-docs-link {
+      display: block;
+      text-align: center;
+      padding: 0.75rem 1rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .privacy-docs-link:hover {
+      color: var(--accent);
+      background: var(--surface-2);
+    }
+
+    /* Light mode overrides for privacy section */
+    body.light-mode .privacy-explainer {
+      border: 1px solid var(--border);
+    }
+
+    body.light-mode .privacy-item {
+      border: 1px solid var(--border);
+    }
+
     .search-input {
       width: 100%;
       padding: 0.75rem 1rem;
@@ -5052,9 +5164,9 @@
     }
 
 
-    /* Will Smith Genie Mode */
+    /* Will Smith Genie Mode - Deep brown skin tone */
     .genie-mascot.will-smith-mode {
-      filter: sepia(1) saturate(3) hue-rotate(-10deg) brightness(0.85);
+      filter: sepia(1) saturate(4) hue-rotate(350deg) brightness(0.7) contrast(1.1);
       animation: genieFloat 4s ease-in-out infinite, willSmithSlap 0.15s ease-in-out 8;
     }
 
@@ -5079,11 +5191,11 @@
       letter-spacing: 0.5px;
     }
 
-    /* Health Status Indicator */
+    /* Health Status Indicator - positioned below deploy widget */
     .health-indicator {
       position: fixed;
-      top: 0.5rem;
-      right: 0.5rem;
+      top: 3rem;
+      right: 1rem;
       display: flex;
       align-items: center;
       gap: 0.5rem;
