@@ -5143,3 +5143,275 @@
         padding: 0.5rem;
       }
     }
+
+    /* ====================================
+       Share Modal (#90)
+    ==================================== */
+
+    .share-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      backdrop-filter: blur(5px);
+    }
+
+    .share-modal {
+      background: var(--surface);
+      border-radius: 1rem;
+      padding: 2rem;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      position: relative;
+      animation: shareModalIn 0.3s ease;
+    }
+
+    @keyframes shareModalIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .share-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .share-close:hover {
+      color: var(--text);
+    }
+
+    .share-modal h3 {
+      margin-bottom: 0.5rem;
+    }
+
+    .share-playlist-name {
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 1.2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .share-qr-container {
+      background: white;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      display: inline-block;
+      margin-bottom: 1.5rem;
+    }
+
+    .share-qr-code {
+      width: 150px;
+      height: 150px;
+    }
+
+    .share-link-container {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .share-link-input {
+      flex: 1;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--surface-2);
+      color: var(--text);
+      font-size: 0.85rem;
+    }
+
+    .share-copy-btn {
+      min-width: 80px;
+    }
+
+    .share-social-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .share-social-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 1.2rem;
+      transition: transform 0.2s;
+    }
+
+    .share-social-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .share-social-btn.twitter {
+      background: #000;
+      color: white;
+    }
+
+    .share-social-btn.facebook {
+      background: #1877f2;
+      color: white;
+    }
+
+    .share-social-btn.whatsapp {
+      background: #25d366;
+      color: white;
+    }
+
+    .share-open-btn {
+      width: 100%;
+    }
+
+    /* ====================================
+       Genre Family Grouping (#79)
+    ==================================== */
+
+    .genre-family-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: var(--surface-2);
+      border-radius: 0.75rem;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .genre-family-header:hover {
+      background: var(--surface);
+    }
+
+    .genre-family-emoji {
+      font-size: 1.5rem;
+    }
+
+    .genre-family-name {
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .genre-family-count {
+      background: var(--accent);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.85rem;
+    }
+
+    .genre-family-toggle {
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+
+    .genre-family-header.collapsed .genre-family-toggle {
+      transform: rotate(-90deg);
+    }
+
+    .genre-family-content {
+      padding-left: 1rem;
+      border-left: 2px solid var(--border);
+      margin-left: 1rem;
+      margin-bottom: 1rem;
+      max-height: 1000px;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    .genre-family-content.collapsed {
+      max-height: 0;
+      margin-bottom: 0;
+    }
+
+    .view-mode-toggle {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .view-mode-btn {
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .view-mode-btn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    /* ====================================
+       Artist Breakdown Modal (#78)
+    ==================================== */
+
+    .artist-breakdown {
+      max-width: 450px;
+    }
+
+    .artist-breakdown-subtitle {
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .artist-breakdown-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .artist-breakdown-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .artist-breakdown-item:last-child {
+      border-bottom: none;
+    }
+
+    .artist-name {
+      font-weight: 500;
+    }
+
+    .artist-count {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* Light mode adjustments for new components */
+    body.light-mode .share-modal,
+    body.light-mode .artist-breakdown {
+      border: 1px solid var(--border);
+    }
+
+    body.light-mode .share-link-input {
+      border: 1px solid var(--border);
+    }
+
+    body.light-mode .genre-family-header {
+      border: 1px solid var(--border);
+    }
