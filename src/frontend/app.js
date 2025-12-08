@@ -4693,6 +4693,239 @@
       }
     };
 
+    // Astrology-tier "deep" personality readings - cookie cutter but feels personal
+    const PERSONALITY_READINGS = {
+      rock: {
+        en: [
+          'You probably have a playlist you made at 2am that hits different.',
+          'People underestimate your emotional depth. Their loss.',
+          'You\'re the friend who always controls the aux cord - and everyone\'s grateful.',
+          'Your energy is magnetic. You don\'t follow trends, you set them.',
+          'Late nights and loud guitars speak to something deep in your soul.'
+        ],
+        sv: [
+          'Du har säkert en spellista du gjorde klockan 2 på natten som träffar annorlunda.',
+          'Folk underskattar ditt emotionella djup. Deras förlust.',
+          'Du är kompisen som alltid kontrollerar musiken - och alla är tacksamma.',
+          'Din energi är magnetisk. Du följer inte trender, du sätter dem.',
+          'Sena nätter och höga gitarrer talar till något djupt i din själ.'
+        ]
+      },
+      pop: {
+        en: [
+          'You radiate main character energy. Own it.',
+          'Your vibe is immaculate. People want to be around your energy.',
+          'You know exactly what song fits every moment of your life.',
+          'Secretly deep, openly fun. That\'s your whole brand.',
+          'Your playlist is basically a therapy session disguised as a party.'
+        ],
+        sv: [
+          'Du utstrålar huvudrollsenergi. Äg det.',
+          'Din vibe är fläckfri. Folk vill vara runt din energi.',
+          'Du vet exakt vilken låt som passar varje ögonblick i ditt liv.',
+          'Hemligt djup, öppet rolig. Det är hela ditt varumärke.',
+          'Din spellista är i princip en terapisession förklädd till fest.'
+        ]
+      },
+      electronic: {
+        en: [
+          'You see patterns others miss. Your mind works different.',
+          'You\'re probably most creative between midnight and 4am.',
+          'Your brain operates on frequencies most can\'t comprehend.',
+          'Futuristic thinker with nostalgic tendencies. Complex, like your taste.',
+          'You don\'t need lyrics to feel understood. The beat speaks.'
+        ],
+        sv: [
+          'Du ser mönster andra missar. Ditt sinne fungerar annorlunda.',
+          'Du är förmodligen mest kreativ mellan midnatt och 4 på morgonen.',
+          'Din hjärna arbetar på frekvenser de flesta inte kan förstå.',
+          'Futuristisk tänkare med nostalgiska tendenser. Komplex, som din smak.',
+          'Du behöver inte texter för att känna dig förstådd. Beaten talar.'
+        ]
+      },
+      hiphop: {
+        en: [
+          'You appreciate craft. Flow, wordplay, delivery - you notice it all.',
+          'Your confidence isn\'t arrogance, it\'s awareness of your worth.',
+          'You\'ve got stories to tell and wisdom beyond your years.',
+          'Streets smart and emotionally intelligent. Rare combination.',
+          'You hear the poetry where others just hear music.'
+        ],
+        sv: [
+          'Du uppskattar hantverk. Flow, ordlekar, leverans - du märker allt.',
+          'Ditt självförtroende är inte arrogans, det är medvetenhet om ditt värde.',
+          'Du har historier att berätta och visdom bortom dina år.',
+          'Gatusmart och emotionellt intelligent. Sällsynt kombination.',
+          'Du hör poesin där andra bara hör musik.'
+        ]
+      },
+      rnb: {
+        en: [
+          'You feel things deeply and that\'s your superpower.',
+          'Your love language is definitely quality time with good music.',
+          'Sensual, sophisticated, and slightly mysterious. You know who you are.',
+          'When you fall, you fall hard. The playlist reflects that.',
+          'You make mundane moments feel cinematic. Main character behavior.'
+        ],
+        sv: [
+          'Du känner saker djupt och det är din superkraft.',
+          'Ditt kärleksspråk är definitivt kvalitetstid med bra musik.',
+          'Sensuell, sofistikerad och lite mystisk. Du vet vem du är.',
+          'När du faller, faller du hårt. Spellistan reflekterar det.',
+          'Du gör vardagliga stunder filmiska. Huvudrollsbeteende.'
+        ]
+      },
+      metal: {
+        en: [
+          'You\'re intense and you\'ve made peace with that. Others should too.',
+          'Secretly one of the most emotionally intelligent people in the room.',
+          'You process life through extremes. It keeps you balanced.',
+          'Your loyalty is unmatched. Ride or die energy.',
+          'Chaos on the outside, deeply philosophical on the inside.'
+        ],
+        sv: [
+          'Du är intensiv och du har gjort fred med det. Andra borde också.',
+          'I hemlighet en av de mest emotionellt intelligenta i rummet.',
+          'Du bearbetar livet genom extremer. Det håller dig balanserad.',
+          'Din lojalitet är oöverträffad. Ride or die-energi.',
+          'Kaos på utsidan, djupt filosofisk på insidan.'
+        ]
+      },
+      jazz: {
+        en: [
+          'You appreciate nuance in a world that loves to oversimplify.',
+          'Old soul energy in a young body. Time moves different for you.',
+          'Conversations with you go places people don\'t expect.',
+          'You notice the spaces between the notes. That\'s where meaning lives.',
+          'Intellectually curious and emotionally deep. A rare combo.'
+        ],
+        sv: [
+          'Du uppskattar nyanser i en värld som älskar att förenkla.',
+          'Gammal själsenergi i en ung kropp. Tiden rör sig annorlunda för dig.',
+          'Samtal med dig går dit folk inte förväntar sig.',
+          'Du märker utrymmena mellan tonerna. Där bor meningen.',
+          'Intellektuellt nyfiken och emotionellt djup. En sällsynt kombo.'
+        ]
+      },
+      classical: {
+        en: [
+          'You see beauty in structure that others find rigid. That\'s depth.',
+          'Your inner world is rich beyond what most could imagine.',
+          'Patient. Observant. You understand delayed gratification.',
+          'You feel connected to something timeless and larger than yourself.',
+          'In a world of instant gratification, you appreciate the slow build.'
+        ],
+        sv: [
+          'Du ser skönhet i struktur som andra finner stel. Det är djup.',
+          'Din inre värld är rikare än vad de flesta kan föreställa sig.',
+          'Tålmodig. Observant. Du förstår fördröjd belöning.',
+          'Du känner dig kopplad till något tidlöst och större än dig själv.',
+          'I en värld av omedelbar belöning uppskattar du den långsamma uppbyggnaden.'
+        ]
+      },
+      country: {
+        en: [
+          'You value authenticity over everything. Can\'t fake real.',
+          'Your heart is bigger than your problems, and that\'s saying something.',
+          'You tell it like it is. People respect that more than you know.',
+          'Nostalgic but not stuck. You honor the past while moving forward.',
+          'Community matters to you. You remember where you came from.'
+        ],
+        sv: [
+          'Du värderar autenticitet över allt annat. Kan inte fejka äkta.',
+          'Ditt hjärta är större än dina problem, och det säger något.',
+          'Du säger som det är. Folk respekterar det mer än du vet.',
+          'Nostalgisk men inte fast. Du hedrar det förflutna medan du går framåt.',
+          'Gemenskap betyder något för dig. Du kommer ihåg varifrån du kom.'
+        ]
+      },
+      folk: {
+        en: [
+          'You find poetry in the ordinary. That\'s a gift.',
+          'Genuine to your core. People trust you instantly.',
+          'You listen more than you speak, and notice more than you say.',
+          'Nature probably recharges you. Cities drain your energy.',
+          'Simplicity isn\'t boring to you - it\'s honest.'
+        ],
+        sv: [
+          'Du hittar poesi i det vardagliga. Det är en gåva.',
+          'Genuin in i kärnan. Folk litar på dig direkt.',
+          'Du lyssnar mer än du talar, och märker mer än du säger.',
+          'Naturen laddar förmodligen om dig. Städer dränerar din energi.',
+          'Enkelhet är inte tråkigt för dig - det är ärligt.'
+        ]
+      },
+      reggae: {
+        en: [
+          'Your calm is contagious. People feel better around you.',
+          'You understand that life flows better when you don\'t fight it.',
+          'Spiritual without being preachy. You just radiate peace.',
+          'Problems exist, but so does perspective. You\'ve got both.',
+          'You bring people together without trying. Natural connector.'
+        ],
+        sv: [
+          'Ditt lugn är smittsamt. Folk mår bättre runt dig.',
+          'Du förstår att livet flyter bättre när man inte kämpar emot.',
+          'Spirituell utan att predika. Du utstrålar bara fred.',
+          'Problem finns, men det gör perspektiv också. Du har båda.',
+          'Du för samman människor utan att försöka. Naturlig sammankopplare.'
+        ]
+      },
+      latin: {
+        en: [
+          'You live with intention. Every moment matters.',
+          'Your passion is inspiring and slightly intimidating. Good.',
+          'You express emotions freely. Bottling up isn\'t your style.',
+          'Life is for living loudly. You understood the assignment.',
+          'Your energy is magnetic. People are drawn to your fire.'
+        ],
+        sv: [
+          'Du lever med intention. Varje ögonblick spelar roll.',
+          'Din passion är inspirerande och lite skrämmande. Bra.',
+          'Du uttrycker känslor fritt. Att hålla inne är inte din stil.',
+          'Livet är till för att levas högt. Du förstod uppgiften.',
+          'Din energi är magnetisk. Folk dras till din eld.'
+        ]
+      },
+      world: {
+        en: [
+          'Curious soul. You\'re not satisfied with the obvious.',
+          'Borders are just lines to you. Your mind travels freely.',
+          'You see connections others miss. Global perspective is rare.',
+          'Open-minded doesn\'t even begin to describe you.',
+          'Your empathy extends beyond your own experience. That\'s growth.'
+        ],
+        sv: [
+          'Nyfiken själ. Du nöjer dig inte med det uppenbara.',
+          'Gränser är bara linjer för dig. Ditt sinne reser fritt.',
+          'Du ser kopplingar andra missar. Globalt perspektiv är sällsynt.',
+          'Öppensinnad börjar inte ens beskriva dig.',
+          'Din empati sträcker sig bortom din egen erfarenhet. Det är tillväxt.'
+        ]
+      },
+      other: {
+        en: [
+          'Labels don\'t define you. Your taste is authentically yours.',
+          'You\'re drawn to what resonates, not what\'s expected.',
+          'Category-defying taste usually means category-defying person.',
+          'Your mind makes connections that surprise even you.',
+          'Different isn\'t a phase for you. It\'s just who you are.'
+        ],
+        sv: [
+          'Etiketter definierar inte dig. Din smak är autentiskt din.',
+          'Du dras till det som resonerar, inte det som förväntas.',
+          'Kategoribrytande smak brukar betyda kategoribrytande person.',
+          'Ditt sinne gör kopplingar som överraskar även dig.',
+          'Annorlunda är inte en fas för dig. Det är bara vem du är.'
+        ]
+      }
+    };
+
+    function getRandomReading(family, lang) {
+      const readings = PERSONALITY_READINGS[family]?.[lang] || PERSONALITY_READINGS.other[lang];
+      return readings[Math.floor(Math.random() * readings.length)];
+    }
+
     const WRAPPED_FACTS = {
       en: [
         'Your music taste is in the top {pct}% for variety!',
@@ -4744,6 +4977,7 @@
       const personality = GENRE_PERSONALITIES[topFamily] || GENRE_PERSONALITIES.other;
       const lang = swedishMode ? 'sv' : 'en';
       const gradient = swedishMode ? GENRE_GRADIENTS.swedish : (GENRE_GRADIENTS[topFamily] || GENRE_GRADIENTS.other);
+      const reading = getRandomReading(topFamily, lang);
 
       // Get unique artists count (estimate from genres)
       const uniqueArtists = Math.round(totalTracks * 0.6); // rough estimate
@@ -4791,6 +5025,7 @@
         '      <span class="wrapped-emoji">' + personality[lang].emoji + '</span>',
         '      <h2 class="wrapped-title">' + personality[lang].title + '</h2>',
         '      <p class="wrapped-desc">' + personality[lang].desc + '</p>',
+        '      <p class="wrapped-reading">"' + reading + '"</p>',
         '    </div>',
         '    <div class="wrapped-stats">',
         '      <div class="wrapped-stat">',
@@ -4825,8 +5060,8 @@
         '    <button class="btn btn-secondary wrapped-copy" onclick="copyWrappedToClipboard()">',
         '      ' + (swedishMode ? '📋 Kopiera' : '📋 Copy') + '',
         '    </button>',
-        '    <button class="btn btn-ghost wrapped-share-social" onclick="shareWrappedSocial()">',
-        '      ' + (swedishMode ? '🐦 Dela' : '🐦 Share') + '',
+        '    <button class="btn btn-ghost wrapped-share-social" onclick="shareWrappedNative()">',
+        '      ' + (swedishMode ? '📤 Dela' : '📤 Share') + '',
         '    </button>',
         '  </div>',
         '</div>'
@@ -4902,14 +5137,62 @@
       }
     }
 
-    function shareWrappedSocial() {
+    async function shareWrappedNative() {
       const personality = document.querySelector('.wrapped-title')?.textContent || '';
+      const reading = document.querySelector('.wrapped-reading')?.textContent || '';
       const text = swedishMode
-        ? 'Jag är en ' + personality + '! 🧞 Vad är du? Kolla din musikpersonlighet på Genre Genie!'
-        : 'I\'m a ' + personality + '! 🧞 What are you? Check your music personality on Genre Genie!';
+        ? 'Jag är en ' + personality + '! 🧞\n\n' + reading + '\n\nVad är du? Kolla din musikpersonlighet på Genre Genie!'
+        : 'I\'m a ' + personality + '! 🧞\n\n' + reading + '\n\nWhat are you? Check your music personality on Genre Genie!';
 
-      const url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
-      window.open(url, '_blank', 'width=550,height=420');
+      // Try native share first (works on mobile, offers TikTok/Instagram/Stories etc)
+      if (navigator.share) {
+        try {
+          // Try to share with image if possible
+          const card = document.getElementById('wrapped-card');
+          if (card && typeof html2canvas !== 'undefined') {
+            const canvas = await html2canvas(card, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: null,
+              logging: false
+            });
+            canvas.toBlob(async (blob) => {
+              if (blob) {
+                const file = new File([blob], 'genre-genie-wrapped.png', { type: 'image/png' });
+                try {
+                  await navigator.share({
+                    title: swedishMode ? 'Min Musikpersonlighet' : 'My Music Personality',
+                    text: text,
+                    files: [file]
+                  });
+                  return;
+                } catch (e) {
+                  // File sharing not supported, fall through to text-only
+                }
+              }
+            }, 'image/png');
+          }
+          // Text-only share
+          await navigator.share({
+            title: swedishMode ? 'Min Musikpersonlighet' : 'My Music Personality',
+            text: text
+          });
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            console.error('Share failed:', err);
+            showToast(swedishMode ? '✗ Kunde inte dela' : '✗ Could not share');
+          }
+        }
+      } else {
+        // Fallback: copy to clipboard
+        try {
+          await navigator.clipboard.writeText(text);
+          showToast(swedishMode ? '✓ Kopierad till urklipp!' : '✓ Copied to clipboard!');
+        } catch (err) {
+          console.error('Copy failed:', err);
+          showToast(swedishMode ? '✗ Kunde inte kopiera' : '✗ Could not copy');
+        }
+      }
     }
 
     function showToast(message) {
