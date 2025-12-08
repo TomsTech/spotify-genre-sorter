@@ -4203,6 +4203,703 @@ export function getHtml(): string {
       text-align: right;
     }
 
+    /* ========================================
+       UI Redesign v3.3.0 - Modern Polish
+       ======================================== */
+
+    /* Improved Card Design */
+    .card {
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card:hover {
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+
+    /* Glass morphism for modals */
+    .modal {
+      backdrop-filter: blur(20px) saturate(1.5);
+      -webkit-backdrop-filter: blur(20px) saturate(1.5);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Enhanced Genre Cards */
+    .genre-item {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .genre-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 3px;
+      background: var(--accent);
+      transform: scaleY(0);
+      transition: transform 0.2s ease;
+    }
+
+    .genre-item:hover::before {
+      transform: scaleY(1);
+    }
+
+    .genre-item:hover {
+      transform: translateX(4px);
+      background: var(--surface);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Better Button Effects */
+    .btn {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.4s ease, height 0.4s ease;
+    }
+
+    .btn:active::after {
+      width: 200%;
+      height: 200%;
+    }
+
+    .btn-primary {
+      box-shadow: 0 4px 15px rgba(29, 185, 84, 0.3);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 6px 20px rgba(29, 185, 84, 0.4);
+      transform: translateY(-1px);
+    }
+
+    /* Improved Sidebar Cards */
+    .sidebar-section {
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+
+    .sidebar-section:hover {
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .pioneer-item, .user-entry, .playlist-entry {
+      transition: all 0.2s ease;
+      border-radius: 8px;
+      padding: 0.5rem;
+      margin: -0.25rem;
+    }
+
+    .pioneer-item:hover, .user-entry:hover, .playlist-entry:hover {
+      background: var(--surface-2);
+      transform: scale(1.02);
+    }
+
+    /* Better Stats Cards */
+    .stat {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .stat::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .stat:hover::before {
+      opacity: 1;
+    }
+
+    .stat:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Improved Header */
+    header {
+      position: relative;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      letter-spacing: -0.025em;
+      background: linear-gradient(135deg, var(--text) 0%, var(--text-muted) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    body.swedish-mode header h1 {
+      background: linear-gradient(135deg, var(--swedish-yellow) 0%, var(--swedish-blue) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+
+    /* Avatar Improvements */
+    .avatar {
+      border: 2px solid var(--accent);
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .avatar:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Search Input Polish */
+    .search-input {
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .search-input:focus {
+      transform: scale(1.01);
+      box-shadow: 0 4px 20px rgba(29, 185, 84, 0.15);
+    }
+
+    /* Notification Polish */
+    .notification {
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      animation: slideInNotification 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes slideInNotification {
+      from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Loading Skeleton Animation */
+    @keyframes shimmer {
+      0% {
+        background-position: -200% 0;
+      }
+      100% {
+        background-position: 200% 0;
+      }
+    }
+
+    .skeleton {
+      background: linear-gradient(
+        90deg,
+        var(--surface-2) 0%,
+        var(--surface) 50%,
+        var(--surface-2) 100%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+    }
+
+    /* Improved Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--surface);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+      transition: background 0.2s ease;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    /* Selection Color */
+    ::selection {
+      background: rgba(29, 185, 84, 0.3);
+      color: var(--text);
+    }
+
+    body.swedish-mode ::selection {
+      background: rgba(0, 106, 167, 0.3);
+    }
+
+    /* Focus Visible for Accessibility */
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Progress Bar Polish */
+    .progress-bar, .progress-bar-full {
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      transition: width 0.3s ease;
+      box-shadow: 0 0 10px rgba(29, 185, 84, 0.5);
+    }
+
+    /* Light Mode Polish */
+    body.light-mode .card {
+      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    body.light-mode .card:hover {
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    }
+
+    body.light-mode .btn-primary {
+      box-shadow: 0 4px 15px rgba(29, 185, 84, 0.25);
+    }
+
+    body.light-mode header h1 {
+      background: linear-gradient(135deg, #1a1a1a 0%, #4a4a4a 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+
+    /* Tooltip Styles */
+    [data-tooltip] {
+      position: relative;
+    }
+
+    [data-tooltip]::before {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%) translateY(-5px);
+      padding: 0.5rem 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+      z-index: 1000;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    [data-tooltip]:hover::before {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(-8px);
+    }
+
+    /* Improved Layout Spacing */
+    .main-content-area {
+      padding: 1.5rem;
+    }
+
+    /* Genre List Improvements */
+    .genre-list {
+      padding-right: 0.5rem;
+    }
+
+    /* Hall of Fame Crown Animation */
+    .hof-crown {
+      display: inline-block;
+      animation: crownBounce 2s ease-in-out infinite;
+    }
+
+    @keyframes crownBounce {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-3px);
+      }
+    }
+
+    /* Swedish Mode Enhancements */
+    body.swedish-mode .btn-primary:hover {
+      box-shadow: 0 6px 20px rgba(0, 106, 167, 0.4);
+    }
+
+    body.swedish-mode .genre-item::before {
+      background: var(--swedish-blue);
+    }
+
+    body.swedish-mode .progress-fill {
+      box-shadow: 0 0 10px rgba(0, 106, 167, 0.5);
+    }
+
+
+    /* Playlist Scanner Styles */
+    .playlist-scanner-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s ease;
+    }
+
+    .playlist-scanner-btn:hover {
+      background: var(--surface);
+      border-color: var(--accent);
+    }
+
+    .playlist-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .playlist-modal-content {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .playlist-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .playlist-modal-header h2 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+
+    .playlist-modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.25rem;
+      line-height: 1;
+    }
+
+    .playlist-modal-close:hover {
+      color: var(--text);
+    }
+
+    .playlist-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .playlist-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background: var(--surface-2);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .playlist-item:hover {
+      background: var(--border);
+    }
+
+    .playlist-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .playlist-item-name {
+      font-weight: 500;
+    }
+
+    .playlist-item-tracks {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .playlist-item-owner {
+      font-size: 0.65rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .playlist-scan-btn {
+      padding: 0.4rem 0.8rem;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 0.25rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .playlist-scan-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .playlist-scan-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .scanning-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--accent);
+      font-size: 0.85rem;
+    }
+
+    .scanning-indicator .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--accent);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Playlist genres result */
+    .playlist-genres-result {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .playlist-genres-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .playlist-genres-stats {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .back-to-playlists-btn {
+      padding: 0.4rem 0.8rem;
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 0.25rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .back-to-playlists-btn:hover {
+      background: var(--border);
+    }
+
+
+    /* Tutorial System */
+    .tutorial-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 20000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .tutorial-spotlight {
+      position: absolute;
+      border-radius: 0.5rem;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.85);
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+
+    .tutorial-dialog {
+      background: var(--surface);
+      border: 2px solid var(--accent);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      max-width: 400px;
+      width: 90%;
+      position: absolute;
+      animation: slideUp 0.3s ease;
+      z-index: 20001;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .tutorial-dialog h3 {
+      margin: 0 0 0.75rem 0;
+      color: var(--accent);
+      font-size: 1.1rem;
+    }
+
+    .tutorial-dialog p {
+      margin: 0 0 1rem 0;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .tutorial-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .tutorial-progress {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .tutorial-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .tutorial-btn {
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tutorial-btn-skip {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .tutorial-btn-skip:hover {
+      border-color: var(--text-muted);
+      color: var(--text);
+    }
+
+    .tutorial-btn-next {
+      background: var(--accent);
+      border: none;
+      color: #000;
+    }
+
+    .tutorial-btn-next:hover {
+      background: var(--accent-hover);
+    }
+
+    .tutorial-highlight {
+      position: relative;
+      z-index: 20002;
+      animation: tutorialPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes tutorialPulse {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.4);
+      }
+      50% {
+        box-shadow: 0 0 0 10px rgba(29, 185, 84, 0);
+      }
+    }
+
+    /* Welcome screen */
+    .tutorial-welcome {
+      text-align: center;
+    }
+
+    .tutorial-welcome h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .tutorial-welcome .genie-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .tutorial-welcome-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    .tutorial-btn-start {
+      background: var(--accent);
+      border: none;
+      color: #000;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+    }
+
   </style>
 </head>
 <body>
@@ -7778,6 +8475,470 @@ export function getHtml(): string {
         konamiPosition = 0;
       }
     });
+
+    // ====================================
+    // Playlist Scanner
+    // ====================================
+
+    let userPlaylists = [];
+    let scannedPlaylistGenres = null;
+
+    function showPlaylistScanner() {
+      const existing = document.querySelector('.playlist-modal');
+      if (existing) existing.remove();
+
+      const modal = document.createElement('div');
+      modal.className = 'playlist-modal';
+      modal.innerHTML = getPlaylistModalHTML();
+      document.body.appendChild(modal);
+
+      // Close on backdrop click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closePlaylistModal();
+      });
+
+      // Load playlists
+      loadUserPlaylists();
+    }
+
+    function getPlaylistModalHTML() {
+      const title = swedishMode ? '🎵 Dina Spellistor' : '🎵 Your Playlists';
+      const loading = swedishMode ? 'Laddar spellistor...' : 'Loading playlists...';
+      return '<div class="playlist-modal-content">' +
+        '<div class="playlist-modal-header">' +
+          '<h2>' + title + '</h2>' +
+          '<button class="playlist-modal-close" onclick="closePlaylistModal()">&times;</button>' +
+        '</div>' +
+        '<div id="playlist-list-container">' +
+          '<div class="scanning-indicator"><div class="spinner"></div>' + loading + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    function closePlaylistModal() {
+      const modal = document.querySelector('.playlist-modal');
+      if (modal) modal.remove();
+      scannedPlaylistGenres = null;
+    }
+
+    async function loadUserPlaylists() {
+      try {
+        const response = await fetch('/api/my-playlists');
+        if (!response.ok) throw new Error('Failed to load playlists');
+        const data = await response.json();
+        userPlaylists = data.playlists;
+        renderPlaylistList();
+      } catch (err) {
+        console.error('Error loading playlists:', err);
+        const container = document.getElementById('playlist-list-container');
+        if (container) {
+          const errorText = swedishMode ? 'Kunde inte ladda spellistor' : 'Failed to load playlists';
+          container.innerHTML = '<p style="color: var(--danger)">' + errorText + '</p>';
+        }
+      }
+    }
+
+    function renderPlaylistList() {
+      const container = document.getElementById('playlist-list-container');
+      if (!container) return;
+
+      if (userPlaylists.length === 0) {
+        const noPlaylists = swedishMode ? 'Inga spellistor hittades' : 'No playlists found';
+        container.innerHTML = '<p>' + noPlaylists + '</p>';
+        return;
+      }
+
+      const scanText = swedishMode ? 'Skanna' : 'Scan';
+      const ownerText = swedishMode ? 'Din' : 'Yours';
+      const tracksText = swedishMode ? 'låtar' : 'tracks';
+
+      let html = '<div class="playlist-list">';
+      for (const playlist of userPlaylists) {
+        html += '<div class="playlist-item">' +
+          '<div class="playlist-item-info">' +
+            '<span class="playlist-item-name">' + escapeHtml(playlist.name) + '</span>' +
+            '<span class="playlist-item-tracks">' + playlist.trackCount + ' ' + tracksText + '</span>' +
+            (playlist.isOwner ? '<span class="playlist-item-owner">' + ownerText + '</span>' : '') +
+          '</div>' +
+          '<button class="playlist-scan-btn" onclick="scanPlaylist(\'' + playlist.id + '\', \'' + escapeHtml(playlist.name).replace(/'/g, "\\'") + '\')">' +
+            scanText +
+          '</button>' +
+        '</div>';
+      }
+      html += '</div>';
+
+      container.innerHTML = html;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    async function scanPlaylist(playlistId, playlistName) {
+      const container = document.getElementById('playlist-list-container');
+      if (!container) return;
+
+      const scanningText = swedishMode ? 'Skannar ' + playlistName + '...' : 'Scanning ' + playlistName + '...';
+      container.innerHTML = '<div class="scanning-indicator"><div class="spinner"></div>' + scanningText + '</div>';
+
+      try {
+        const response = await fetch('/api/scan-playlist/' + playlistId);
+        if (!response.ok) throw new Error('Failed to scan playlist');
+        const data = await response.json();
+        scannedPlaylistGenres = data;
+        renderScannedPlaylistGenres(playlistName);
+      } catch (err) {
+        console.error('Error scanning playlist:', err);
+        const errorText = swedishMode ? 'Kunde inte skanna spellistan' : 'Failed to scan playlist';
+        container.innerHTML = '<p style="color: var(--danger)">' + errorText + '</p>' +
+          '<button class="back-to-playlists-btn" onclick="renderPlaylistList()">← Back</button>';
+      }
+    }
+
+    function renderScannedPlaylistGenres(playlistName) {
+      const container = document.getElementById('playlist-list-container');
+      if (!container || !scannedPlaylistGenres) return;
+
+      const data = scannedPlaylistGenres;
+      const backText = swedishMode ? '← Tillbaka' : '← Back';
+      const genresText = swedishMode ? 'genrer' : 'genres';
+      const tracksText = swedishMode ? 'låtar' : 'tracks';
+      const artistsText = swedishMode ? 'artister' : 'artists';
+
+      let html = '<div class="playlist-genres-result">' +
+        '<div class="playlist-genres-header">' +
+          '<button class="back-to-playlists-btn" onclick="renderPlaylistList()">' + backText + '</button>' +
+          '<div class="playlist-genres-stats">' +
+            '<span>' + data.totalGenres + ' ' + genresText + '</span>' +
+            '<span>' + data.totalTracks + ' ' + tracksText + '</span>' +
+            '<span>' + data.totalArtists + ' ' + artistsText + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<h3>' + escapeHtml(playlistName) + '</h3>';
+
+      if (data.truncated) {
+        const truncatedText = swedishMode ? 'Visar max 500 låtar' : 'Showing max 500 tracks';
+        html += '<p style="color: var(--text-muted); font-size: 0.8rem;">⚠️ ' + truncatedText + '</p>';
+      }
+
+      html += '<div class="genre-list" style="max-height: 300px;">';
+      for (const genre of data.genres.slice(0, 50)) {
+        const emoji = getGenreEmoji(genre.name);
+        html += '<div class="genre-item">' +
+          '<span class="genre-emoji">' + emoji + '</span>' +
+          '<span class="genre-name">' + escapeHtml(genre.name) + '</span>' +
+          '<span class="genre-count">' + genre.count + '</span>' +
+        '</div>';
+      }
+      html += '</div></div>';
+
+      container.innerHTML = html;
+    }
+
+    // Add playlist scanner button to toolbar
+    function addPlaylistScannerButton() {
+      const toolbar = document.querySelector('.genre-toolbar');
+      if (!toolbar) return;
+
+      // Check if button already exists
+      if (document.getElementById('playlist-scanner-btn')) return;
+
+      const btn = document.createElement('button');
+      btn.id = 'playlist-scanner-btn';
+      btn.className = 'playlist-scanner-btn';
+      btn.innerHTML = swedishMode ? '📋 Skanna Spellista' : '📋 Scan Playlist';
+      btn.onclick = showPlaylistScanner;
+
+      // Insert at the beginning of toolbar
+      toolbar.insertBefore(btn, toolbar.firstChild);
+    }
+
+    // ====================================
+    // User Preferences Sync
+    // ====================================
+
+    let userPreferences = null;
+
+    async function loadUserPreferences() {
+      try {
+        const response = await fetch('/api/preferences');
+        if (response.ok) {
+          const data = await response.json();
+          userPreferences = data.preferences;
+          applyPreferences(userPreferences);
+          checkAndShowTutorial();
+        }
+      } catch (err) {
+        console.log('Could not load preferences, using defaults');
+      }
+    }
+
+    async function savePreference(key, value) {
+      try {
+        const body = {};
+        body[key] = value;
+        const response = await fetch('/api/preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (response.ok) {
+          const data = await response.json();
+          userPreferences = data.preferences;
+        }
+      } catch (err) {
+        console.error('Could not save preference:', err);
+      }
+    }
+
+    function applyPreferences(prefs) {
+      if (!prefs) return;
+
+      // Apply theme
+      if (prefs.theme === 'light') {
+        document.body.classList.add('light-mode');
+        localStorage.setItem('theme', 'light');
+      } else if (prefs.theme === 'dark') {
+        document.body.classList.remove('light-mode');
+        localStorage.setItem('theme', 'dark');
+      }
+
+      // Apply Swedish mode
+      if (prefs.swedishMode && !swedishMode) {
+        toggleSwedishMode();
+      }
+
+      // Apply hidden genres
+      if (prefs.hiddenGenres && prefs.hiddenGenres.length > 0) {
+        hiddenGenres = new Set(prefs.hiddenGenres);
+      }
+
+      // Apply template
+      if (prefs.playlistTemplate) {
+        playlistNameTemplate = prefs.playlistTemplate;
+        const templateInput = document.getElementById('template-input');
+        if (templateInput) templateInput.value = prefs.playlistTemplate;
+      }
+    }
+
+    // Hook into theme toggle to save preference
+    const originalToggleTheme = typeof toggleTheme === 'function' ? toggleTheme : null;
+    function toggleThemeWithSave() {
+      const isLight = document.body.classList.toggle('light-mode');
+      localStorage.setItem('theme', isLight ? 'light' : 'dark');
+      savePreference('theme', isLight ? 'light' : 'dark');
+    }
+
+    // Hook into Swedish mode toggle to save preference
+    const originalSwedishToggle = typeof toggleSwedishMode === 'function' ? toggleSwedishMode : null;
+
+    // Load preferences on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(loadUserPreferences, 1000); // After initial load
+    });
+
+    // ====================================
+    // Tutorial System
+    // ====================================
+
+    const tutorialSteps = [
+      {
+        title: 'Welcome to Genre Genie! 🧞',
+        titleSE: 'Välkommen till Genre Genie! 🧞',
+        content: 'Let me show you around! I will help you organise your Spotify library by genre.',
+        contentSE: 'Låt mig visa dig runt! Jag hjälper dig organisera ditt Spotify-bibliotek efter genre.',
+        target: null, // Welcome screen, no specific target
+        position: 'center'
+      },
+      {
+        title: 'Your Music Stats 📊',
+        titleSE: 'Din Musikstatistik 📊',
+        content: 'Here you can see how many tracks, genres, and artists are in your library.',
+        contentSE: 'Här kan du se hur många låtar, genrer och artister som finns i ditt bibliotek.',
+        target: '.stats',
+        position: 'bottom'
+      },
+      {
+        title: 'Browse Genres 🎵',
+        titleSE: 'Bläddra Genrer 🎵',
+        content: 'Click on any genre to see its tracks. Check the box to select multiple genres.',
+        contentSE: 'Klicka på en genre för att se dess låtar. Kryssa i rutan för att välja flera genrer.',
+        target: '.genre-list',
+        position: 'left'
+      },
+      {
+        title: 'Create Playlists ✨',
+        titleSE: 'Skapa Spellistor ✨',
+        content: 'Select genres and click "Create Playlist" to add them to Spotify!',
+        contentSE: 'Välj genrer och klicka "Skapa Spellista" för att lägga till dem på Spotify!',
+        target: '.btn-primary',
+        position: 'top'
+      },
+      {
+        title: 'You\'re Ready! 🎉',
+        titleSE: 'Du är redo! 🎉',
+        content: 'Explore your music, discover hidden genres, and create amazing playlists. Have fun!',
+        contentSE: 'Utforska din musik, upptäck dolda genrer och skapa fantastiska spellistor. Ha kul!',
+        target: null,
+        position: 'center'
+      }
+    ];
+
+    let currentTutorialStep = 0;
+
+    function showTutorial() {
+      // Check if already completed
+      if (userPreferences && userPreferences.tutorialCompleted) {
+        return;
+      }
+
+      currentTutorialStep = 0;
+      renderTutorialStep();
+    }
+
+    function renderTutorialStep() {
+      // Remove existing
+      const existing = document.querySelector('.tutorial-overlay');
+      if (existing) existing.remove();
+
+      const step = tutorialSteps[currentTutorialStep];
+      if (!step) {
+        endTutorial();
+        return;
+      }
+
+      const overlay = document.createElement('div');
+      overlay.className = 'tutorial-overlay';
+
+      const title = swedishMode ? step.titleSE : step.title;
+      const content = swedishMode ? step.contentSE : step.content;
+      const nextText = swedishMode ? 'Nästa' : 'Next';
+      const skipText = swedishMode ? 'Hoppa över' : 'Skip';
+      const finishText = swedishMode ? 'Klar!' : 'Finish!';
+
+      const isLast = currentTutorialStep === tutorialSteps.length - 1;
+      const isFirst = currentTutorialStep === 0;
+
+      // Create dialog
+      const dialog = document.createElement('div');
+      dialog.className = 'tutorial-dialog';
+
+      if (isFirst) {
+        // Welcome screen
+        dialog.innerHTML =
+          '<div class="tutorial-welcome">' +
+            '<div class="genie-icon">🧞</div>' +
+            '<h2>' + title + '</h2>' +
+            '<p>' + content + '</p>' +
+            '<div class="tutorial-welcome-actions">' +
+              '<button class="tutorial-btn tutorial-btn-start" onclick="nextTutorialStep()">' +
+                (swedishMode ? 'Börja Rundturen' : 'Start Tour') +
+              '</button>' +
+              '<button class="tutorial-btn tutorial-btn-skip" onclick="endTutorial()">' +
+                (swedishMode ? 'Jag kan redan' : 'I know my way around') +
+              '</button>' +
+            '</div>' +
+          '</div>';
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        return;
+      }
+
+      // Regular step with target highlight
+      if (step.target) {
+        const target = document.querySelector(step.target);
+        if (target) {
+          const rect = target.getBoundingClientRect();
+          const spotlight = document.createElement('div');
+          spotlight.className = 'tutorial-spotlight';
+          spotlight.style.top = (rect.top - 10) + 'px';
+          spotlight.style.left = (rect.left - 10) + 'px';
+          spotlight.style.width = (rect.width + 20) + 'px';
+          spotlight.style.height = (rect.height + 20) + 'px';
+          overlay.appendChild(spotlight);
+
+          // Position dialog relative to target
+          positionTutorialDialog(dialog, rect, step.position);
+        }
+      }
+
+      dialog.innerHTML =
+        '<h3>' + title + '</h3>' +
+        '<p>' + content + '</p>' +
+        '<div class="tutorial-footer">' +
+          '<span class="tutorial-progress">' + (currentTutorialStep + 1) + '/' + tutorialSteps.length + '</span>' +
+          '<div class="tutorial-actions">' +
+            '<button class="tutorial-btn tutorial-btn-skip" onclick="endTutorial()">' + skipText + '</button>' +
+            '<button class="tutorial-btn tutorial-btn-next" onclick="nextTutorialStep()">' +
+              (isLast ? finishText : nextText) +
+            '</button>' +
+          '</div>' +
+        '</div>';
+
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+
+      // Click outside to close
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) nextTutorialStep();
+      });
+    }
+
+    function positionTutorialDialog(dialog, targetRect, position) {
+      const margin = 20;
+
+      switch(position) {
+        case 'bottom':
+          dialog.style.top = (targetRect.bottom + margin) + 'px';
+          dialog.style.left = '50%';
+          dialog.style.transform = 'translateX(-50%)';
+          break;
+        case 'top':
+          dialog.style.bottom = (window.innerHeight - targetRect.top + margin) + 'px';
+          dialog.style.left = '50%';
+          dialog.style.transform = 'translateX(-50%)';
+          break;
+        case 'left':
+          dialog.style.top = (targetRect.top) + 'px';
+          dialog.style.right = (window.innerWidth - targetRect.left + margin) + 'px';
+          break;
+        case 'right':
+          dialog.style.top = (targetRect.top) + 'px';
+          dialog.style.left = (targetRect.right + margin) + 'px';
+          break;
+        default:
+          dialog.style.top = '50%';
+          dialog.style.left = '50%';
+          dialog.style.transform = 'translate(-50%, -50%)';
+      }
+    }
+
+    function nextTutorialStep() {
+      currentTutorialStep++;
+      if (currentTutorialStep >= tutorialSteps.length) {
+        endTutorial();
+      } else {
+        renderTutorialStep();
+      }
+    }
+
+    function endTutorial() {
+      const overlay = document.querySelector('.tutorial-overlay');
+      if (overlay) overlay.remove();
+
+      // Save that tutorial was completed
+      savePreference('tutorialCompleted', true);
+    }
+
+    // Auto-show tutorial for first time users after genres load
+    function checkAndShowTutorial() {
+      if (userPreferences && !userPreferences.tutorialCompleted && genreData && genreData.genres) {
+        setTimeout(showTutorial, 500);
+      }
+    }
+
   </script>
 </body>
 </html>`;

@@ -7,7 +7,7 @@ import { getSession, trackAnalyticsEvent } from './lib/session';
 import { getHtml } from './generated/frontend';
 
 // App version - increment on each deployment
-const APP_VERSION = '3.2.0'; // Analytics + BetterStack monitoring enhancements
+const APP_VERSION = '3.3.0'; // Analytics + BetterStack monitoring enhancements
 const GITHUB_REPO = 'TomsTech/spotify-genre-sorter';
 
 const app = new Hono<{ Bindings: Env }>();

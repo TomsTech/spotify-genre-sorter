@@ -3461,4 +3461,467 @@
       } else {
         konamiPosition = 0;
       }
-    });
+    });
+
+    // ====================================
+    // Playlist Scanner
+    // ====================================
+
+    let userPlaylists = [];
+    let scannedPlaylistGenres = null;
+
+    function showPlaylistScanner() {
+      const existing = document.querySelector('.playlist-modal');
+      if (existing) existing.remove();
+
+      const modal = document.createElement('div');
+      modal.className = 'playlist-modal';
+      modal.innerHTML = getPlaylistModalHTML();
+      document.body.appendChild(modal);
+
+      // Close on backdrop click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closePlaylistModal();
+      });
+
+      // Load playlists
+      loadUserPlaylists();
+    }
+
+    function getPlaylistModalHTML() {
+      const title = swedishMode ? '🎵 Dina Spellistor' : '🎵 Your Playlists';
+      const loading = swedishMode ? 'Laddar spellistor...' : 'Loading playlists...';
+      return '<div class="playlist-modal-content">' +
+        '<div class="playlist-modal-header">' +
+          '<h2>' + title + '</h2>' +
+          '<button class="playlist-modal-close" onclick="closePlaylistModal()">&times;</button>' +
+        '</div>' +
+        '<div id="playlist-list-container">' +
+          '<div class="scanning-indicator"><div class="spinner"></div>' + loading + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    function closePlaylistModal() {
+      const modal = document.querySelector('.playlist-modal');
+      if (modal) modal.remove();
+      scannedPlaylistGenres = null;
+    }
+
+    async function loadUserPlaylists() {
+      try {
+        const response = await fetch('/api/my-playlists');
+        if (!response.ok) throw new Error('Failed to load playlists');
+        const data = await response.json();
+        userPlaylists = data.playlists;
+        renderPlaylistList();
+      } catch (err) {
+        console.error('Error loading playlists:', err);
+        const container = document.getElementById('playlist-list-container');
+        if (container) {
+          const errorText = swedishMode ? 'Kunde inte ladda spellistor' : 'Failed to load playlists';
+          container.innerHTML = '<p style="color: var(--danger)">' + errorText + '</p>';
+        }
+      }
+    }
+
+    function renderPlaylistList() {
+      const container = document.getElementById('playlist-list-container');
+      if (!container) return;
+
+      if (userPlaylists.length === 0) {
+        const noPlaylists = swedishMode ? 'Inga spellistor hittades' : 'No playlists found';
+        container.innerHTML = '<p>' + noPlaylists + '</p>';
+        return;
+      }
+
+      const scanText = swedishMode ? 'Skanna' : 'Scan';
+      const ownerText = swedishMode ? 'Din' : 'Yours';
+      const tracksText = swedishMode ? 'låtar' : 'tracks';
+
+      let html = '<div class="playlist-list">';
+      for (const playlist of userPlaylists) {
+        html += '<div class="playlist-item">' +
+          '<div class="playlist-item-info">' +
+            '<span class="playlist-item-name">' + escapeHtml(playlist.name) + '</span>' +
+            '<span class="playlist-item-tracks">' + playlist.trackCount + ' ' + tracksText + '</span>' +
+            (playlist.isOwner ? '<span class="playlist-item-owner">' + ownerText + '</span>' : '') +
+          '</div>' +
+          '<button class="playlist-scan-btn" onclick="scanPlaylist(\'' + playlist.id + '\', \'' + escapeHtml(playlist.name).replace(/'/g, "\\'") + '\')">' +
+            scanText +
+          '</button>' +
+        '</div>';
+      }
+      html += '</div>';
+
+      container.innerHTML = html;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    async function scanPlaylist(playlistId, playlistName) {
+      const container = document.getElementById('playlist-list-container');
+      if (!container) return;
+
+      const scanningText = swedishMode ? 'Skannar ' + playlistName + '...' : 'Scanning ' + playlistName + '...';
+      container.innerHTML = '<div class="scanning-indicator"><div class="spinner"></div>' + scanningText + '</div>';
+
+      try {
+        const response = await fetch('/api/scan-playlist/' + playlistId);
+        if (!response.ok) throw new Error('Failed to scan playlist');
+        const data = await response.json();
+        scannedPlaylistGenres = data;
+        renderScannedPlaylistGenres(playlistName);
+      } catch (err) {
+        console.error('Error scanning playlist:', err);
+        const errorText = swedishMode ? 'Kunde inte skanna spellistan' : 'Failed to scan playlist';
+        container.innerHTML = '<p style="color: var(--danger)">' + errorText + '</p>' +
+          '<button class="back-to-playlists-btn" onclick="renderPlaylistList()">← Back</button>';
+      }
+    }
+
+    function renderScannedPlaylistGenres(playlistName) {
+      const container = document.getElementById('playlist-list-container');
+      if (!container || !scannedPlaylistGenres) return;
+
+      const data = scannedPlaylistGenres;
+      const backText = swedishMode ? '← Tillbaka' : '← Back';
+      const genresText = swedishMode ? 'genrer' : 'genres';
+      const tracksText = swedishMode ? 'låtar' : 'tracks';
+      const artistsText = swedishMode ? 'artister' : 'artists';
+
+      let html = '<div class="playlist-genres-result">' +
+        '<div class="playlist-genres-header">' +
+          '<button class="back-to-playlists-btn" onclick="renderPlaylistList()">' + backText + '</button>' +
+          '<div class="playlist-genres-stats">' +
+            '<span>' + data.totalGenres + ' ' + genresText + '</span>' +
+            '<span>' + data.totalTracks + ' ' + tracksText + '</span>' +
+            '<span>' + data.totalArtists + ' ' + artistsText + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<h3>' + escapeHtml(playlistName) + '</h3>';
+
+      if (data.truncated) {
+        const truncatedText = swedishMode ? 'Visar max 500 låtar' : 'Showing max 500 tracks';
+        html += '<p style="color: var(--text-muted); font-size: 0.8rem;">⚠️ ' + truncatedText + '</p>';
+      }
+
+      html += '<div class="genre-list" style="max-height: 300px;">';
+      for (const genre of data.genres.slice(0, 50)) {
+        const emoji = getGenreEmoji(genre.name);
+        html += '<div class="genre-item">' +
+          '<span class="genre-emoji">' + emoji + '</span>' +
+          '<span class="genre-name">' + escapeHtml(genre.name) + '</span>' +
+          '<span class="genre-count">' + genre.count + '</span>' +
+        '</div>';
+      }
+      html += '</div></div>';
+
+      container.innerHTML = html;
+    }
+
+    // Add playlist scanner button to toolbar
+    function addPlaylistScannerButton() {
+      const toolbar = document.querySelector('.genre-toolbar');
+      if (!toolbar) return;
+
+      // Check if button already exists
+      if (document.getElementById('playlist-scanner-btn')) return;
+
+      const btn = document.createElement('button');
+      btn.id = 'playlist-scanner-btn';
+      btn.className = 'playlist-scanner-btn';
+      btn.innerHTML = swedishMode ? '📋 Skanna Spellista' : '📋 Scan Playlist';
+      btn.onclick = showPlaylistScanner;
+
+      // Insert at the beginning of toolbar
+      toolbar.insertBefore(btn, toolbar.firstChild);
+    }
+
+    // ====================================
+    // User Preferences Sync
+    // ====================================
+
+    let userPreferences = null;
+
+    async function loadUserPreferences() {
+      try {
+        const response = await fetch('/api/preferences');
+        if (response.ok) {
+          const data = await response.json();
+          userPreferences = data.preferences;
+          applyPreferences(userPreferences);
+          checkAndShowTutorial();
+        }
+      } catch (err) {
+        console.log('Could not load preferences, using defaults');
+      }
+    }
+
+    async function savePreference(key, value) {
+      try {
+        const body = {};
+        body[key] = value;
+        const response = await fetch('/api/preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (response.ok) {
+          const data = await response.json();
+          userPreferences = data.preferences;
+        }
+      } catch (err) {
+        console.error('Could not save preference:', err);
+      }
+    }
+
+    function applyPreferences(prefs) {
+      if (!prefs) return;
+
+      // Apply theme
+      if (prefs.theme === 'light') {
+        document.body.classList.add('light-mode');
+        localStorage.setItem('theme', 'light');
+      } else if (prefs.theme === 'dark') {
+        document.body.classList.remove('light-mode');
+        localStorage.setItem('theme', 'dark');
+      }
+
+      // Apply Swedish mode
+      if (prefs.swedishMode && !swedishMode) {
+        toggleSwedishMode();
+      }
+
+      // Apply hidden genres
+      if (prefs.hiddenGenres && prefs.hiddenGenres.length > 0) {
+        hiddenGenres = new Set(prefs.hiddenGenres);
+      }
+
+      // Apply template
+      if (prefs.playlistTemplate) {
+        playlistNameTemplate = prefs.playlistTemplate;
+        const templateInput = document.getElementById('template-input');
+        if (templateInput) templateInput.value = prefs.playlistTemplate;
+      }
+    }
+
+    // Hook into theme toggle to save preference
+    const originalToggleTheme = typeof toggleTheme === 'function' ? toggleTheme : null;
+    function toggleThemeWithSave() {
+      const isLight = document.body.classList.toggle('light-mode');
+      localStorage.setItem('theme', isLight ? 'light' : 'dark');
+      savePreference('theme', isLight ? 'light' : 'dark');
+    }
+
+    // Hook into Swedish mode toggle to save preference
+    const originalSwedishToggle = typeof toggleSwedishMode === 'function' ? toggleSwedishMode : null;
+
+    // Load preferences on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(loadUserPreferences, 1000); // After initial load
+    });
+
+    // ====================================
+    // Tutorial System
+    // ====================================
+
+    const tutorialSteps = [
+      {
+        title: 'Welcome to Genre Genie! 🧞',
+        titleSE: 'Välkommen till Genre Genie! 🧞',
+        content: 'Let me show you around! I will help you organise your Spotify library by genre.',
+        contentSE: 'Låt mig visa dig runt! Jag hjälper dig organisera ditt Spotify-bibliotek efter genre.',
+        target: null, // Welcome screen, no specific target
+        position: 'center'
+      },
+      {
+        title: 'Your Music Stats 📊',
+        titleSE: 'Din Musikstatistik 📊',
+        content: 'Here you can see how many tracks, genres, and artists are in your library.',
+        contentSE: 'Här kan du se hur många låtar, genrer och artister som finns i ditt bibliotek.',
+        target: '.stats',
+        position: 'bottom'
+      },
+      {
+        title: 'Browse Genres 🎵',
+        titleSE: 'Bläddra Genrer 🎵',
+        content: 'Click on any genre to see its tracks. Check the box to select multiple genres.',
+        contentSE: 'Klicka på en genre för att se dess låtar. Kryssa i rutan för att välja flera genrer.',
+        target: '.genre-list',
+        position: 'left'
+      },
+      {
+        title: 'Create Playlists ✨',
+        titleSE: 'Skapa Spellistor ✨',
+        content: 'Select genres and click "Create Playlist" to add them to Spotify!',
+        contentSE: 'Välj genrer och klicka "Skapa Spellista" för att lägga till dem på Spotify!',
+        target: '.btn-primary',
+        position: 'top'
+      },
+      {
+        title: 'You\'re Ready! 🎉',
+        titleSE: 'Du är redo! 🎉',
+        content: 'Explore your music, discover hidden genres, and create amazing playlists. Have fun!',
+        contentSE: 'Utforska din musik, upptäck dolda genrer och skapa fantastiska spellistor. Ha kul!',
+        target: null,
+        position: 'center'
+      }
+    ];
+
+    let currentTutorialStep = 0;
+
+    function showTutorial() {
+      // Check if already completed
+      if (userPreferences && userPreferences.tutorialCompleted) {
+        return;
+      }
+
+      currentTutorialStep = 0;
+      renderTutorialStep();
+    }
+
+    function renderTutorialStep() {
+      // Remove existing
+      const existing = document.querySelector('.tutorial-overlay');
+      if (existing) existing.remove();
+
+      const step = tutorialSteps[currentTutorialStep];
+      if (!step) {
+        endTutorial();
+        return;
+      }
+
+      const overlay = document.createElement('div');
+      overlay.className = 'tutorial-overlay';
+
+      const title = swedishMode ? step.titleSE : step.title;
+      const content = swedishMode ? step.contentSE : step.content;
+      const nextText = swedishMode ? 'Nästa' : 'Next';
+      const skipText = swedishMode ? 'Hoppa över' : 'Skip';
+      const finishText = swedishMode ? 'Klar!' : 'Finish!';
+
+      const isLast = currentTutorialStep === tutorialSteps.length - 1;
+      const isFirst = currentTutorialStep === 0;
+
+      // Create dialog
+      const dialog = document.createElement('div');
+      dialog.className = 'tutorial-dialog';
+
+      if (isFirst) {
+        // Welcome screen
+        dialog.innerHTML =
+          '<div class="tutorial-welcome">' +
+            '<div class="genie-icon">🧞</div>' +
+            '<h2>' + title + '</h2>' +
+            '<p>' + content + '</p>' +
+            '<div class="tutorial-welcome-actions">' +
+              '<button class="tutorial-btn tutorial-btn-start" onclick="nextTutorialStep()">' +
+                (swedishMode ? 'Börja Rundturen' : 'Start Tour') +
+              '</button>' +
+              '<button class="tutorial-btn tutorial-btn-skip" onclick="endTutorial()">' +
+                (swedishMode ? 'Jag kan redan' : 'I know my way around') +
+              '</button>' +
+            '</div>' +
+          '</div>';
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        return;
+      }
+
+      // Regular step with target highlight
+      if (step.target) {
+        const target = document.querySelector(step.target);
+        if (target) {
+          const rect = target.getBoundingClientRect();
+          const spotlight = document.createElement('div');
+          spotlight.className = 'tutorial-spotlight';
+          spotlight.style.top = (rect.top - 10) + 'px';
+          spotlight.style.left = (rect.left - 10) + 'px';
+          spotlight.style.width = (rect.width + 20) + 'px';
+          spotlight.style.height = (rect.height + 20) + 'px';
+          overlay.appendChild(spotlight);
+
+          // Position dialog relative to target
+          positionTutorialDialog(dialog, rect, step.position);
+        }
+      }
+
+      dialog.innerHTML =
+        '<h3>' + title + '</h3>' +
+        '<p>' + content + '</p>' +
+        '<div class="tutorial-footer">' +
+          '<span class="tutorial-progress">' + (currentTutorialStep + 1) + '/' + tutorialSteps.length + '</span>' +
+          '<div class="tutorial-actions">' +
+            '<button class="tutorial-btn tutorial-btn-skip" onclick="endTutorial()">' + skipText + '</button>' +
+            '<button class="tutorial-btn tutorial-btn-next" onclick="nextTutorialStep()">' +
+              (isLast ? finishText : nextText) +
+            '</button>' +
+          '</div>' +
+        '</div>';
+
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+
+      // Click outside to close
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) nextTutorialStep();
+      });
+    }
+
+    function positionTutorialDialog(dialog, targetRect, position) {
+      const margin = 20;
+
+      switch(position) {
+        case 'bottom':
+          dialog.style.top = (targetRect.bottom + margin) + 'px';
+          dialog.style.left = '50%';
+          dialog.style.transform = 'translateX(-50%)';
+          break;
+        case 'top':
+          dialog.style.bottom = (window.innerHeight - targetRect.top + margin) + 'px';
+          dialog.style.left = '50%';
+          dialog.style.transform = 'translateX(-50%)';
+          break;
+        case 'left':
+          dialog.style.top = (targetRect.top) + 'px';
+          dialog.style.right = (window.innerWidth - targetRect.left + margin) + 'px';
+          break;
+        case 'right':
+          dialog.style.top = (targetRect.top) + 'px';
+          dialog.style.left = (targetRect.right + margin) + 'px';
+          break;
+        default:
+          dialog.style.top = '50%';
+          dialog.style.left = '50%';
+          dialog.style.transform = 'translate(-50%, -50%)';
+      }
+    }
+
+    function nextTutorialStep() {
+      currentTutorialStep++;
+      if (currentTutorialStep >= tutorialSteps.length) {
+        endTutorial();
+      } else {
+        renderTutorialStep();
+      }
+    }
+
+    function endTutorial() {
+      const overlay = document.querySelector('.tutorial-overlay');
+      if (overlay) overlay.remove();
+
+      // Save that tutorial was completed
+      savePreference('tutorialCompleted', true);
+    }
+
+    // Auto-show tutorial for first time users after genres load
+    function checkAndShowTutorial() {
+      if (userPreferences && !userPreferences.tutorialCompleted && genreData && genreData.genres) {
+        setTimeout(showTutorial, 500);
+      }
+    }
