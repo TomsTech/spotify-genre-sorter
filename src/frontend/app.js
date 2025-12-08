@@ -5214,4 +5214,4 @@
     window.showGenreWrapped = showGenreWrapped;
     window.downloadWrappedCard = downloadWrappedCard;
     window.copyWrappedToClipboard = copyWrappedToClipboard;
-    window.shareWrappedSocial = shareWrappedSocial;
+    window.shareWrappedNative = shareWrappedNative;
