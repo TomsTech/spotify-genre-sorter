@@ -1193,6 +1193,13 @@
       const avatar = session.avatar || session.spotifyAvatar || session.githubAvatar;
       const user = session.user || session.spotifyUser || session.githubUser;
       const lightMode = document.body.classList.contains('light-mode');
+
+      // Store user info for Genre Wrapped
+      window.currentUser = {
+        display_name: user || 'Music Lover',
+        images: avatar ? [{ url: avatar }] : []
+      };
+
       // Keep theme toggle in header, add user info next to it
       headerActions.innerHTML = \`
         <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
@@ -1645,6 +1652,7 @@
         const fullData = await loadGenresProgressively();
         stopAlbumCarousel(); // Clean up carousel when loading completes
         genreData = fullData;
+        window.currentGenres = fullData?.genres || []; // For Genre Wrapped
         triggerFireworks(); // Celebrate completion!
         renderGenres();
         showNotification(
@@ -1722,6 +1730,7 @@
         }
 
         genreData = data;
+        window.currentGenres = data?.genres || []; // For Genre Wrapped
         triggerFireworks(); // Celebrate completion!
         renderGenres();
       } catch (error) {
@@ -2055,6 +2064,9 @@
         </div>
 
         <div class="toolbar-row">
+          <button onclick="showGenreWrapped()" class="btn btn-primary btn-sm wrapped-btn" title="\${swedishMode ? 'Dela din musiksmak!' : 'Share your music taste!'}">
+            ✨ \${swedishMode ? 'Dela Din Smak' : 'Share Your Taste'}
+          </button>
           <button onclick="toggleStatsDashboard()" class="btn btn-ghost btn-sm stats-toggle" id="stats-toggle">
             \${showStatsDashboard ? (swedishMode ? '📊 Dölj statistik' : '📊 Hide Stats') : (swedishMode ? '📊 Visa statistik' : '📊 Show Stats')}
           </button>
@@ -4599,3 +4611,324 @@
     }
 
     window.showArtistBreakdown = showArtistBreakdown;
+
+    // ====================================
+    // Genre Wrapped - Shareable Stats Card
+    // ====================================
+
+    const GENRE_GRADIENTS = {
+      rock: 'linear-gradient(135deg, #dc2626 0%, #7c2d12 50%, #1a1a2e 100%)',
+      pop: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #06b6d4 100%)',
+      electronic: 'linear-gradient(135deg, #00f5d4 0%, #7209b7 50%, #f72585 100%)',
+      hiphop: 'linear-gradient(135deg, #f59e0b 0%, #dc2626 50%, #1f2937 100%)',
+      rnb: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #f97316 100%)',
+      metal: 'linear-gradient(135deg, #1f2937 0%, #dc2626 50%, #000000 100%)',
+      jazz: 'linear-gradient(135deg, #1e3a5f 0%, #d4af37 50%, #0f172a 100%)',
+      classical: 'linear-gradient(135deg, #fffbeb 0%, #d4af37 50%, #1f2937 100%)',
+      country: 'linear-gradient(135deg, #d97706 0%, #92400e 50%, #1c1917 100%)',
+      folk: 'linear-gradient(135deg, #84cc16 0%, #a3e635 50%, #365314 100%)',
+      reggae: 'linear-gradient(135deg, #16a34a 0%, #facc15 50%, #dc2626 100%)',
+      latin: 'linear-gradient(135deg, #f97316 0%, #ef4444 50%, #fbbf24 100%)',
+      world: 'linear-gradient(135deg, #0ea5e9 0%, #8b5cf6 50%, #f97316 100%)',
+      other: 'linear-gradient(135deg, #1db954 0%, #191414 50%, #1db954 100%)',
+      swedish: 'linear-gradient(135deg, #006AA7 0%, #FECC00 50%, #006AA7 100%)'
+    };
+
+    const GENRE_PERSONALITIES = {
+      rock: {
+        en: { title: 'The Rebel Soul', emoji: '🎸', desc: 'You live for the riff. Raw energy courses through your veins.' },
+        sv: { title: 'Rebellsjälen', emoji: '🎸', desc: 'Du lever för riffet. Rå energi flödar genom dina ådror.' }
+      },
+      pop: {
+        en: { title: 'The Hitmaker', emoji: '✨', desc: 'You know what slaps. Your playlists are pure vibes.' },
+        sv: { title: 'Hitfabriken', emoji: '✨', desc: 'Du vet vad som svänger. Dina spellistor är ren känsla.' }
+      },
+      electronic: {
+        en: { title: 'The Synthesist', emoji: '🎹', desc: 'Bass drops and synth waves fuel your existence.' },
+        sv: { title: 'Syntmästaren', emoji: '🎹', desc: 'Basdrops och synthvågor driver din existens.' }
+      },
+      hiphop: {
+        en: { title: 'The Flow Master', emoji: '🎤', desc: 'Bars and beats. You appreciate the art of the rhyme.' },
+        sv: { title: 'Flowmästaren', emoji: '🎤', desc: 'Bars och beats. Du uppskattar rimkonsten.' }
+      },
+      rnb: {
+        en: { title: 'The Smooth Operator', emoji: '🎷', desc: 'Silky vocals and groovy basslines are your love language.' },
+        sv: { title: 'Den Smidiga', emoji: '🎷', desc: 'Silkeslen sång och groovy baslinjer är ditt kärleksspråk.' }
+      },
+      metal: {
+        en: { title: 'The Thunder God', emoji: '🤘', desc: 'Heavy. Brutal. Unapologetic. You embrace the chaos.' },
+        sv: { title: 'Åskguden', emoji: '🤘', desc: 'Tungt. Brutalt. Oförsonligt. Du omfamnar kaoset.' }
+      },
+      jazz: {
+        en: { title: 'The Improviser', emoji: '🎺', desc: 'Complex harmonies speak to your sophisticated soul.' },
+        sv: { title: 'Improvisatören', emoji: '🎺', desc: 'Komplexa harmonier talar till din sofistikerade själ.' }
+      },
+      classical: {
+        en: { title: 'The Maestro', emoji: '🎻', desc: 'Timeless compositions move you like nothing else.' },
+        sv: { title: 'Maestron', emoji: '🎻', desc: 'Tidlösa kompositioner berör dig som inget annat.' }
+      },
+      country: {
+        en: { title: 'The Storyteller', emoji: '🤠', desc: 'Real lyrics about real life. You feel every word.' },
+        sv: { title: 'Berättaren', emoji: '🤠', desc: 'Verkliga texter om verkligt liv. Du känner varje ord.' }
+      },
+      folk: {
+        en: { title: 'The Old Soul', emoji: '🌿', desc: 'Acoustic vibes and honest lyrics speak to your heart.' },
+        sv: { title: 'Den Gamla Själen', emoji: '🌿', desc: 'Akustiska vibar och ärliga texter talar till ditt hjärta.' }
+      },
+      reggae: {
+        en: { title: 'The Peaceful Warrior', emoji: '☮️', desc: 'Good vibes only. You spread love through rhythm.' },
+        sv: { title: 'Fredskrigaren', emoji: '☮️', desc: 'Bara bra vibbar. Du sprider kärlek genom rytm.' }
+      },
+      latin: {
+        en: { title: 'The Fire Dancer', emoji: '💃', desc: 'Passion and rhythm flow through everything you do.' },
+        sv: { title: 'Elddansaren', emoji: '💃', desc: 'Passion och rytm flödar genom allt du gör.' }
+      },
+      world: {
+        en: { title: 'The Explorer', emoji: '🌍', desc: 'Music knows no borders. You discover sounds from everywhere.' },
+        sv: { title: 'Upptäckaren', emoji: '🌍', desc: 'Musik känner inga gränser. Du upptäcker ljud överallt.' }
+      },
+      other: {
+        en: { title: 'The Eclectic', emoji: '🎵', desc: 'Your taste defies categories. Truly unique.' },
+        sv: { title: 'Den Eklektiska', emoji: '🎵', desc: 'Din smak trotsar kategorier. Verkligt unik.' }
+      }
+    };
+
+    const WRAPPED_FACTS = {
+      en: [
+        'Your music taste is in the top {pct}% for variety!',
+        'You\'ve discovered {count} unique genres - that\'s impressive!',
+        'Your library spans {artists} different artists',
+        'If your genres were a party, it\'d be legendary',
+        'Your ears have traveled through {genres} different sonic worlds'
+      ],
+      sv: [
+        'Din musiksmak är bland topp {pct}% för variation!',
+        'Du har upptäckt {count} unika genrer - imponerande!',
+        'Ditt bibliotek spänner över {artists} olika artister',
+        'Om dina genrer var en fest, skulle den vara legendarisk',
+        'Dina öron har rest genom {genres} olika soniska världar'
+      ]
+    };
+
+    function calculateDiversityScore(genres) {
+      if (!genres || genres.length === 0) return 0;
+      const totalTracks = genres.reduce((sum, g) => sum + g.count, 0);
+      if (totalTracks === 0) return 0;
+
+      // Shannon diversity index normalized to 0-100
+      let entropy = 0;
+      for (const genre of genres) {
+        const p = genre.count / totalTracks;
+        if (p > 0) entropy -= p * Math.log2(p);
+      }
+      const maxEntropy = Math.log2(genres.length);
+      return maxEntropy > 0 ? Math.round((entropy / maxEntropy) * 100) : 0;
+    }
+
+    function showGenreWrapped() {
+      // Get current genre data from the app state
+      const genres = window.currentGenres || [];
+      if (genres.length === 0) {
+        alert(swedishMode ? 'Analysera dina låtar först!' : 'Analyze your tracks first!');
+        return;
+      }
+
+      const existing = document.querySelector('.wrapped-overlay');
+      if (existing) existing.remove();
+
+      // Calculate stats
+      const totalTracks = genres.reduce((sum, g) => sum + g.count, 0);
+      const topGenres = genres.slice(0, 5);
+      const topFamily = getGenreFamily(topGenres[0]?.name || '');
+      const diversityScore = calculateDiversityScore(genres);
+      const personality = GENRE_PERSONALITIES[topFamily] || GENRE_PERSONALITIES.other;
+      const lang = swedishMode ? 'sv' : 'en';
+      const gradient = swedishMode ? GENRE_GRADIENTS.swedish : (GENRE_GRADIENTS[topFamily] || GENRE_GRADIENTS.other);
+
+      // Get unique artists count (estimate from genres)
+      const uniqueArtists = Math.round(totalTracks * 0.6); // rough estimate
+
+      // Random fun fact
+      const facts = WRAPPED_FACTS[lang];
+      const fact = facts[Math.floor(Math.random() * facts.length)]
+        .replace('{pct}', Math.max(5, 100 - diversityScore))
+        .replace('{count}', genres.length)
+        .replace('{artists}', uniqueArtists)
+        .replace('{genres}', genres.length);
+
+      // Build top genres bars
+      const maxCount = topGenres[0]?.count || 1;
+      const genreBars = topGenres.map((g, i) => {
+        const pct = Math.round((g.count / maxCount) * 100);
+        const delay = i * 0.1;
+        return '<div class="wrapped-genre-bar" style="animation-delay: ' + delay + 's">' +
+               '  <span class="wrapped-genre-name">' + g.name + '</span>' +
+               '  <div class="wrapped-bar-container">' +
+               '    <div class="wrapped-bar-fill" style="width: ' + pct + '%"></div>' +
+               '    <span class="wrapped-bar-count">' + g.count + '</span>' +
+               '  </div>' +
+               '</div>';
+      }).join('');
+
+      // Get user info
+      const userName = window.currentUser?.display_name || 'Music Lover';
+      const userAvatar = window.currentUser?.images?.[0]?.url || '';
+
+      const modal = document.createElement('div');
+      modal.className = 'wrapped-overlay';
+      modal.innerHTML = [
+        '<div class="wrapped-container">',
+        '  <button class="wrapped-close" onclick="this.closest(\'.wrapped-overlay\').remove()">&times;</button>',
+        '  <div class="wrapped-card" id="wrapped-card" style="background: ' + gradient + '">',
+        '    <div class="wrapped-header">',
+        '      <div class="wrapped-logo">',
+        '        <span class="wrapped-logo-icon">🧞</span>',
+        '        <span class="wrapped-logo-text">Genre Genie</span>',
+        '      </div>',
+        userAvatar ? '      <img src="' + userAvatar + '" class="wrapped-avatar" alt="' + userName + '" />' : '',
+        '    </div>',
+        '    <div class="wrapped-personality">',
+        '      <span class="wrapped-emoji">' + personality[lang].emoji + '</span>',
+        '      <h2 class="wrapped-title">' + personality[lang].title + '</h2>',
+        '      <p class="wrapped-desc">' + personality[lang].desc + '</p>',
+        '    </div>',
+        '    <div class="wrapped-stats">',
+        '      <div class="wrapped-stat">',
+        '        <span class="wrapped-stat-value">' + totalTracks + '</span>',
+        '        <span class="wrapped-stat-label">' + (swedishMode ? 'Låtar' : 'Tracks') + '</span>',
+        '      </div>',
+        '      <div class="wrapped-stat">',
+        '        <span class="wrapped-stat-value">' + genres.length + '</span>',
+        '        <span class="wrapped-stat-label">' + (swedishMode ? 'Genrer' : 'Genres') + '</span>',
+        '      </div>',
+        '      <div class="wrapped-stat">',
+        '        <span class="wrapped-stat-value">' + diversityScore + '%</span>',
+        '        <span class="wrapped-stat-label">' + (swedishMode ? 'Mångfald' : 'Diversity') + '</span>',
+        '      </div>',
+        '    </div>',
+        '    <div class="wrapped-top-genres">',
+        '      <h3>' + (swedishMode ? 'Dina Toppgenrer' : 'Your Top Genres') + '</h3>',
+        '      ' + genreBars,
+        '    </div>',
+        '    <div class="wrapped-fact">',
+        '      <p>"' + fact + '"</p>',
+        '    </div>',
+        '    <div class="wrapped-footer">',
+        '      <span class="wrapped-user">' + userName + '</span>',
+        '      <span class="wrapped-date">' + new Date().toLocaleDateString(swedishMode ? 'sv-SE' : 'en-US', { month: 'short', year: 'numeric' }) + '</span>',
+        '    </div>',
+        '  </div>',
+        '  <div class="wrapped-actions">',
+        '    <button class="btn btn-primary wrapped-download" onclick="downloadWrappedCard()">',
+        '      ' + (swedishMode ? '📥 Ladda ner' : '📥 Download') + '',
+        '    </button>',
+        '    <button class="btn btn-secondary wrapped-copy" onclick="copyWrappedToClipboard()">',
+        '      ' + (swedishMode ? '📋 Kopiera' : '📋 Copy') + '',
+        '    </button>',
+        '    <button class="btn btn-ghost wrapped-share-social" onclick="shareWrappedSocial()">',
+        '      ' + (swedishMode ? '🐦 Dela' : '🐦 Share') + '',
+        '    </button>',
+        '  </div>',
+        '</div>'
+      ].join('');
+
+      document.body.appendChild(modal);
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+      // Animate in
+      requestAnimationFrame(() => {
+        modal.classList.add('wrapped-visible');
+      });
+    }
+
+    async function downloadWrappedCard() {
+      const card = document.getElementById('wrapped-card');
+      if (!card) return;
+
+      try {
+        // Use html2canvas if available, otherwise fallback to simple method
+        if (typeof html2canvas !== 'undefined') {
+          const canvas = await html2canvas(card, {
+            backgroundColor: null,
+            scale: 2,
+            logging: false
+          });
+          const link = document.createElement('a');
+          link.download = 'my-genre-wrapped.png';
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        } else {
+          // Fallback: prompt user to screenshot
+          alert(swedishMode
+            ? 'Ta en skärmbild av ditt kort! (html2canvas behövs för automatisk nedladdning)'
+            : 'Take a screenshot of your card! (html2canvas needed for automatic download)');
+        }
+      } catch (err) {
+        console.error('Download error:', err);
+        alert(swedishMode ? 'Kunde inte ladda ner. Ta en skärmbild istället!' : 'Could not download. Take a screenshot instead!');
+      }
+    }
+
+    async function copyWrappedToClipboard() {
+      const card = document.getElementById('wrapped-card');
+      if (!card) return;
+
+      try {
+        if (typeof html2canvas !== 'undefined') {
+          const canvas = await html2canvas(card, {
+            backgroundColor: null,
+            scale: 2,
+            logging: false
+          });
+          canvas.toBlob(async (blob) => {
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob })
+            ]);
+            showToast(swedishMode ? '✓ Kopierat till urklipp!' : '✓ Copied to clipboard!');
+          });
+        } else {
+          // Copy text summary instead
+          const personality = document.querySelector('.wrapped-title')?.textContent || '';
+          const genres = Array.from(document.querySelectorAll('.wrapped-genre-name')).map(el => el.textContent).join(', ');
+          const text = (swedishMode
+            ? 'Mitt Genre Genie resultat: ' + personality + '!\nMina toppgenrer: ' + genres + '\n🧞 geniegenie.com'
+            : 'My Genre Genie result: ' + personality + '!\nMy top genres: ' + genres + '\n🧞 geniegenie.com');
+          await navigator.clipboard.writeText(text);
+          showToast(swedishMode ? '✓ Text kopierad!' : '✓ Text copied!');
+        }
+      } catch (err) {
+        console.error('Copy error:', err);
+        showToast(swedishMode ? '✗ Kunde inte kopiera' : '✗ Could not copy');
+      }
+    }
+
+    function shareWrappedSocial() {
+      const personality = document.querySelector('.wrapped-title')?.textContent || '';
+      const text = swedishMode
+        ? 'Jag är en ' + personality + '! 🧞 Vad är du? Kolla din musikpersonlighet på Genre Genie!'
+        : 'I\'m a ' + personality + '! 🧞 What are you? Check your music personality on Genre Genie!';
+
+      const url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
+      window.open(url, '_blank', 'width=550,height=420');
+    }
+
+    function showToast(message) {
+      const existing = document.querySelector('.toast-notification');
+      if (existing) existing.remove();
+
+      const toast = document.createElement('div');
+      toast.className = 'toast-notification';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      setTimeout(() => toast.classList.add('toast-visible'), 10);
+      setTimeout(() => {
+        toast.classList.remove('toast-visible');
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }
+
+    window.showGenreWrapped = showGenreWrapped;
+    window.downloadWrappedCard = downloadWrappedCard;
+    window.copyWrappedToClipboard = copyWrappedToClipboard;
+    window.shareWrappedSocial = shareWrappedSocial;
