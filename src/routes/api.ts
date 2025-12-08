@@ -1174,9 +1174,9 @@ api.get('/my-playlists', async (c) => {
   try {
     // Refresh token if needed
     let accessToken = session.spotifyAccessToken;
-    if (session.spotifyExpiresAt && Date.now() > session.spotifyExpiresAt - 60000) {
+    if (session.spotifyExpiresAt && session.spotifyRefreshToken && Date.now() > session.spotifyExpiresAt - 60000) {
       const refreshed = await refreshSpotifyToken(
-        session.spotifyRefreshToken!,
+        session.spotifyRefreshToken,
         c.env.SPOTIFY_CLIENT_ID,
         c.env.SPOTIFY_CLIENT_SECRET
       );
@@ -1219,9 +1219,9 @@ api.get('/scan-playlist/:playlistId', async (c) => {
   try {
     // Refresh token if needed
     let accessToken = session.spotifyAccessToken;
-    if (session.spotifyExpiresAt && Date.now() > session.spotifyExpiresAt - 60000) {
+    if (session.spotifyExpiresAt && session.spotifyRefreshToken && Date.now() > session.spotifyExpiresAt - 60000) {
       const refreshed = await refreshSpotifyToken(
-        session.spotifyRefreshToken!,
+        session.spotifyRefreshToken,
         c.env.SPOTIFY_CLIENT_ID,
         c.env.SPOTIFY_CLIENT_SECRET
       );
@@ -1326,10 +1326,11 @@ api.post('/preferences', async (c) => {
   }
 
   try {
-    const body = await c.req.json();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const body: Record<string, unknown> = await c.req.json();
 
     // Validate allowed fields
-    const allowedFields = ['theme', 'swedishMode', 'playlistTemplate', 'hiddenGenres', 'showHiddenGenres', 'tutorialCompleted'];
+    const allowedFields = ['theme', 'swedishMode', 'playlistTemplate', 'hiddenGenres', 'showHiddenGenres', 'tutorialCompleted'] as const;
     const updates: Record<string, unknown> = {};
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
