@@ -186,9 +186,14 @@ export async function getLikedTracks(
 }
 
 // Cloudflare Workers free plan has 50 subrequest limit
-// Increased limit with progressive loading - full library support via chunking
-const MAX_TRACKS_FREE_TIER = 2000; // Increased from 1000 - chunks handle larger
-const MAX_TRACK_REQUESTS = 40; // 40 * 50 = 2000 tracks per scan
+// We need to budget for BOTH track fetching AND artist fetching
+// - Track fetching: 50 tracks per request
+// - Artist fetching: 50 artists per request (usually ~60% unique artists per track)
+// Budget: ~20 track requests + ~25 artist requests = 45 (leaving 5 buffer)
+const MAX_SUBREQUESTS = 45; // Conservative limit (free tier = 50)
+const MAX_TRACK_REQUESTS = 20; // 20 * 50 = 1000 tracks
+const MAX_ARTIST_REQUESTS = 25; // 25 * 50 = 1250 unique artists
+const MAX_TRACKS_FREE_TIER = MAX_TRACK_REQUESTS * 50; // 1000 tracks
 
 export interface LikedTracksResult {
   tracks: LikedTrack[];
@@ -230,14 +235,26 @@ export async function getAllLikedTracks(
   };
 }
 
+export interface ArtistsResult {
+  artists: SpotifyArtist[];
+  totalArtists: number;
+  truncated: boolean;
+}
+
 export async function getArtists(
   accessToken: string,
-  artistIds: string[]
-): Promise<SpotifyArtist[]> {
+  artistIds: string[],
+  maxRequests = MAX_ARTIST_REQUESTS
+): Promise<ArtistsResult> {
   // Spotify API allows max 50 artists per request
+  // We also limit total requests to stay within subrequest budget
+  const maxArtists = maxRequests * 50;
+  const truncated = artistIds.length > maxArtists;
+  const idsToFetch = truncated ? artistIds.slice(0, maxArtists) : artistIds;
+
   const chunks: string[][] = [];
-  for (let i = 0; i < artistIds.length; i += 50) {
-    chunks.push(artistIds.slice(i, i + 50));
+  for (let i = 0; i < idsToFetch.length; i += 50) {
+    chunks.push(idsToFetch.slice(i, i + 50));
   }
 
   const results: SpotifyArtist[] = [];
@@ -251,7 +268,11 @@ export async function getArtists(
     results.push(...validArtists);
   }
 
-  return results;
+  return {
+    artists: results,
+    totalArtists: artistIds.length,
+    truncated,
+  };
 }
 
 export async function getTracksWithGenres(
@@ -267,8 +288,8 @@ export async function getTracksWithGenres(
     }
   }
 
-  // Fetch all artists to get genres
-  const artists = await getArtists(accessToken, [...artistIds]);
+  // Fetch all artists to get genres (limited to prevent subrequest overflow)
+  const { artists } = await getArtists(accessToken, [...artistIds]);
   const artistGenreMap = new Map<string, string[]>();
   for (const artist of artists) {
     artistGenreMap.set(artist.id, artist.genres);
