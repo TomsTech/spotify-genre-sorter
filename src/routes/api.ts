@@ -260,10 +260,11 @@ api.get('/genres', async (c) => {
       }
     }
 
-    // Step 3: Fetch all artists to get genres
+    // Step 3: Fetch all artists to get genres (limited to prevent subrequest overflow)
     let artists;
     try {
-      artists = await getArtists(session.spotifyAccessToken, [...artistIds]);
+      const artistResult = await getArtists(session.spotifyAccessToken, [...artistIds]);
+      artists = artistResult.artists;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       console.error('Error fetching artists:', message);
@@ -482,7 +483,7 @@ api.get('/genres/progressive', async (c) => {
       }
     }
 
-    const artists = await getArtists(session.spotifyAccessToken, [...artistIds].slice(0, 500));
+    const { artists } = await getArtists(session.spotifyAccessToken, [...artistIds].slice(0, 500));
     const artistGenreMap = new Map<string, string[]>();
     for (const artist of artists) {
       artistGenreMap.set(artist.id, artist.genres);
@@ -644,7 +645,7 @@ api.get('/genres/chunk', async (c) => {
 
     // Fetch artists (stay under subrequest limit)
     const artistIdArray = [...artistIds].slice(0, MAX_ARTIST_REQUESTS_PER_CHUNK * 50);
-    const artists = await getArtists(session.spotifyAccessToken, artistIdArray);
+    const { artists } = await getArtists(session.spotifyAccessToken, artistIdArray);
 
     const artistGenreMap = new Map<string, string[]>();
     for (const artist of artists) {
@@ -1303,10 +1304,10 @@ api.get('/scan-playlist/:playlistId', async (c) => {
     const artistIdList = Array.from(artistIds);
     const artistGenres = new Map<string, string[]>();
 
-    // Fetch artists in batches of 50
+    // Fetch artists in batches of 50 (limited to stay under subrequest limit)
     for (let i = 0; i < artistIdList.length && i < 500; i += 50) {
       const batch = artistIdList.slice(i, i + 50);
-      const artists = await getArtists(accessToken, batch);
+      const { artists } = await getArtists(accessToken, batch);
       for (const artist of artists) {
         artistGenres.set(artist.id, artist.genres);
       }
