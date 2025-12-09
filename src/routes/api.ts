@@ -1634,6 +1634,9 @@ api.get('/kv-usage', async (c) => {
   try {
     const analytics = await getAnalytics(c.env.SESSIONS);
     const today = analytics.today;
+
+    // Get real-time metrics from the kv-cache layer
+    const realtimeMetrics = getKVMetrics();
     const last7Days = analytics.last7Days;
 
     // Estimate KV operations by category (after optimizations)
@@ -1739,6 +1742,18 @@ api.get('/kv-usage', async (c) => {
         pollingInterval: '3 minutes',
         pageViewTracking: 'disabled (using Cloudflare Analytics)',
         analyticsSampling: '10% (90% reduction in writes)',
+      },
+      // Real-time metrics from kv-cache layer (since worker started)
+      realtime: {
+        reads: realtimeMetrics.reads,
+        writes: realtimeMetrics.writes,
+        deletes: realtimeMetrics.deletes,
+        cacheHits: realtimeMetrics.cacheHits,
+        cacheMisses: realtimeMetrics.cacheMisses,
+        cacheHitRate: realtimeMetrics.cacheHits + realtimeMetrics.cacheMisses > 0
+          ? Math.round((realtimeMetrics.cacheHits / (realtimeMetrics.cacheHits + realtimeMetrics.cacheMisses)) * 100)
+          : 0,
+        lastReset: new Date(realtimeMetrics.lastReset).toISOString(),
       },
     });
   } catch (err) {
