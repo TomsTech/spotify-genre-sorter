@@ -788,10 +788,217 @@
     window.showDeployDetails = showDeployDetails;
     window.closeChangelog = closeChangelog;
 
-    // Start deployment polling
+    // =====================================
+    // KV Status Monitoring
+    // =====================================
+    let kvUsageCache = null;
+    const KV_POLL_INTERVAL = 60000; // Poll every minute
+
+    async function checkKVUsage() {
+      try {
+        const response = await fetch('/api/kv-usage');
+        const data = await response.json();
+        kvUsageCache = data;
+        updateKVStatusIndicator(data);
+      } catch (err) {
+        console.warn('Failed to fetch KV usage:', err);
+        // Update indicator to show unknown state
+        updateKVStatusIndicator(null);
+      }
+    }
+
+    function updateKVStatusIndicator(data) {
+      const indicator = document.getElementById('kv-status-indicator');
+      if (!indicator) return;
+
+      indicator.classList.remove('kv-ok', 'kv-warning', 'kv-critical');
+
+      if (!data) {
+        indicator.innerHTML = '<span class="kv-icon">📊</span><span class="kv-text">KV: ?</span>';
+        return;
+      }
+
+      const statusClass = 'kv-' + data.status;
+      indicator.classList.add(statusClass);
+
+      const statusEmoji = data.status === 'ok' ? '✅' : data.status === 'warning' ? '⚠️' : '🔴';
+      const writePercent = data.usage?.writesPercent || 0;
+      const readPercent = data.usage?.readsPercent || 0;
+
+      // Show the more critical percentage
+      const displayPercent = Math.max(writePercent, readPercent);
+      const displayType = writePercent >= readPercent ? 'W' : 'R';
+
+      indicator.innerHTML = \`<span class="kv-icon">\${statusEmoji}</span><span class="kv-text">KV: \${displayPercent}% \${displayType}</span>\`;
+      indicator.title = \`KV Usage: \${readPercent}% reads, \${writePercent}% writes (click for details)\`;
+    }
+
+    async function showKVStatusModal() {
+      // Fetch fresh data
+      try {
+        const response = await fetch('/api/kv-usage');
+        kvUsageCache = await response.json();
+      } catch {
+        showNotification('Failed to load KV stats', 'error');
+        return;
+      }
+
+      const data = kvUsageCache;
+
+      // Create overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'changelog-overlay';
+      overlay.onclick = (e) => {
+        if (e.target === overlay) closeKVModal();
+      };
+
+      // Create panel (reuse changelog styling)
+      const panel = document.createElement('div');
+      panel.className = 'changelog-panel kv-status-panel';
+
+      const statusEmoji = data.status === 'ok' ? '✅' : data.status === 'warning' ? '⚠️' : '🔴';
+      const statusText = data.status === 'ok' ? (swedishMode ? 'Bra' : 'Healthy') :
+                         data.status === 'warning' ? (swedishMode ? 'Varning' : 'Warning') :
+                         (swedishMode ? 'Kritisk' : 'Critical');
+
+      panel.innerHTML = \`
+        <div class="changelog-header">
+          <h3>\${swedishMode ? '📊 KV Lagring Status' : '📊 KV Storage Status'}</h3>
+          <button class="changelog-close" onclick="closeKVModal()">&times;</button>
+        </div>
+        <div class="kv-status-content">
+          <div class="kv-status-summary">
+            <div class="kv-status-badge \${data.status}">\${statusEmoji} \${statusText}</div>
+            <div class="kv-status-date">\${data.date}</div>
+          </div>
+
+          <div class="kv-usage-bars">
+            <div class="kv-bar-section">
+              <div class="kv-bar-label">\${swedishMode ? 'Läsningar' : 'Reads'} (\${data.estimated?.reads?.toLocaleString() || 0} / \${data.limits?.reads?.toLocaleString() || '100,000'})</div>
+              <div class="kv-bar-container">
+                <div class="kv-bar kv-bar-reads" style="width: \${Math.min(data.usage?.readsPercent || 0, 100)}%"></div>
+              </div>
+              <div class="kv-bar-percent">\${data.usage?.readsPercent || 0}%</div>
+            </div>
+            <div class="kv-bar-section">
+              <div class="kv-bar-label">\${swedishMode ? 'Skrivningar' : 'Writes'} (\${data.estimated?.writes?.toLocaleString() || 0} / \${data.limits?.writes?.toLocaleString() || '1,000'})</div>
+              <div class="kv-bar-container">
+                <div class="kv-bar kv-bar-writes" style="width: \${Math.min(data.usage?.writesPercent || 0, 100)}%"></div>
+              </div>
+              <div class="kv-bar-percent">\${data.usage?.writesPercent || 0}%</div>
+            </div>
+          </div>
+
+          <div class="kv-breakdown">
+            <h4>\${swedishMode ? 'Nedbrytning per kategori' : 'Usage by Category'}</h4>
+            <table class="kv-breakdown-table">
+              <thead>
+                <tr>
+                  <th>\${swedishMode ? 'Kategori' : 'Category'}</th>
+                  <th>\${swedishMode ? 'Läsningar' : 'Reads'}</th>
+                  <th>\${swedishMode ? 'Skrivningar' : 'Writes'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                \${Object.entries(data.breakdown || {}).map(([key, val]) => \`
+                  <tr>
+                    <td>\${key}</td>
+                    <td>\${val.reads?.toLocaleString() || 0}</td>
+                    <td>\${val.writes?.toLocaleString() || 0}</td>
+                  </tr>
+                \`).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          \${data.realtime ? \`
+          <div class="kv-realtime">
+            <h4>\${swedishMode ? 'Realtidsstatistik (denna worker)' : 'Realtime Stats (this worker)'}</h4>
+            <div class="kv-realtime-grid">
+              <div class="kv-stat">
+                <span class="kv-stat-value">\${data.realtime.reads}</span>
+                <span class="kv-stat-label">\${swedishMode ? 'Läsningar' : 'Reads'}</span>
+              </div>
+              <div class="kv-stat">
+                <span class="kv-stat-value">\${data.realtime.writes}</span>
+                <span class="kv-stat-label">\${swedishMode ? 'Skrivningar' : 'Writes'}</span>
+              </div>
+              <div class="kv-stat">
+                <span class="kv-stat-value">\${data.realtime.cacheHitRate}%</span>
+                <span class="kv-stat-label">\${swedishMode ? 'Cache träff' : 'Cache Hit Rate'}</span>
+              </div>
+              <div class="kv-stat">
+                <span class="kv-stat-value">\${data.realtime.cacheHits}</span>
+                <span class="kv-stat-label">\${swedishMode ? 'Cache träffar' : 'Cache Hits'}</span>
+              </div>
+            </div>
+          </div>
+          \` : ''}
+
+          <div class="kv-trend">
+            <h4>\${swedishMode ? 'Trend' : 'Trend'}</h4>
+            <p>\${swedishMode ? 'Riktning' : 'Direction'}: <strong>\${data.trend?.direction || 'stable'}</strong></p>
+            <p>\${swedishMode ? 'Idag vs genomsnitt' : 'Today vs Average'}: \${data.trend?.todayVsAvg || 'N/A'}</p>
+          </div>
+
+          \${data.recommendations && data.recommendations.length > 0 ? \`
+          <div class="kv-recommendations">
+            <h4>\${swedishMode ? '💡 Rekommendationer' : '💡 Recommendations'}</h4>
+            <ul>
+              \${data.recommendations.map(r => \`<li>\${r}</li>\`).join('')}
+            </ul>
+          </div>
+          \` : ''}
+
+          <div class="kv-activity">
+            <h4>\${swedishMode ? 'Dagens aktivitet' : 'Today\\'s Activity'}</h4>
+            <div class="kv-activity-grid">
+              <div class="kv-activity-item">
+                <span class="kv-activity-num">\${data.activity?.signIns || 0}</span>
+                <span class="kv-activity-label">\${swedishMode ? 'Inloggningar' : 'Sign-ins'}</span>
+              </div>
+              <div class="kv-activity-item">
+                <span class="kv-activity-num">\${data.activity?.libraryScans || 0}</span>
+                <span class="kv-activity-label">\${swedishMode ? 'Skanningar' : 'Scans'}</span>
+              </div>
+              <div class="kv-activity-item">
+                <span class="kv-activity-num">\${data.activity?.playlistsCreated || 0}</span>
+                <span class="kv-activity-label">\${swedishMode ? 'Spellistor' : 'Playlists'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      \`;
+
+      overlay.appendChild(panel);
+      document.body.appendChild(overlay);
+
+      // Animate in
+      requestAnimationFrame(() => {
+        overlay.classList.add('visible');
+        panel.classList.add('visible');
+      });
+    }
+
+    function closeKVModal() {
+      const overlay = document.querySelector('.changelog-overlay');
+      const panel = document.querySelector('.kv-status-panel');
+      if (overlay) {
+        overlay.classList.remove('visible');
+        panel?.classList.remove('visible');
+        setTimeout(() => overlay.remove(), 300);
+      }
+    }
+
+    window.showKVStatusModal = showKVStatusModal;
+    window.closeKVModal = closeKVModal;
+
+    // Start deployment and KV status polling
     function startDeployMonitor() {
       checkDeployStatus();
+      checkKVUsage(); // Also check KV status
       deployPollInterval = setInterval(checkDeployStatus, 10000); // Poll every 10s
+      setInterval(checkKVUsage, KV_POLL_INTERVAL); // Poll KV usage every minute
     }
 
     // Swedish translations

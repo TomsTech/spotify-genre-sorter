@@ -1202,6 +1202,268 @@ export function getHtml(): string {
       z-index: 1999;
     }
 
+    /* KV Status Indicator */
+    .kv-status-indicator {
+      position: fixed;
+      top: 1rem;
+      right: 160px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      opacity: 0.8;
+      transition: opacity 0.2s, transform 0.2s;
+      cursor: pointer;
+    }
+
+    .kv-status-indicator:hover {
+      opacity: 1;
+      transform: translateY(-2px);
+    }
+
+    .kv-status-indicator.kv-ok {
+      border-color: var(--success);
+    }
+
+    .kv-status-indicator.kv-warning {
+      border-color: #f0ad4e;
+    }
+
+    .kv-status-indicator.kv-critical {
+      border-color: var(--danger);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    body.light-mode .kv-status-indicator {
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    /* KV Status Modal Content */
+    .kv-status-panel {
+      max-width: 500px;
+    }
+
+    .kv-status-content {
+      padding: 1rem;
+    }
+
+    .kv-status-summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .kv-status-badge {
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .kv-status-badge.ok {
+      background: rgba(29, 185, 84, 0.2);
+      color: var(--success);
+    }
+
+    .kv-status-badge.warning {
+      background: rgba(240, 173, 78, 0.2);
+      color: #f0ad4e;
+    }
+
+    .kv-status-badge.critical {
+      background: rgba(231, 76, 60, 0.2);
+      color: var(--danger);
+    }
+
+    .kv-status-date {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    .kv-usage-bars {
+      margin-bottom: 1.5rem;
+    }
+
+    .kv-bar-section {
+      margin-bottom: 1rem;
+    }
+
+    .kv-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      margin-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+
+    .kv-bar-container {
+      height: 8px;
+      background: var(--surface-2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .kv-bar {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .kv-bar-reads {
+      background: linear-gradient(90deg, #3498db, #2980b9);
+    }
+
+    .kv-bar-writes {
+      background: linear-gradient(90deg, #e67e22, #d35400);
+    }
+
+    .kv-bar-percent {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+      text-align: right;
+    }
+
+    .kv-breakdown h4,
+    .kv-realtime h4,
+    .kv-trend h4,
+    .kv-recommendations h4,
+    .kv-activity h4 {
+      font-size: 0.85rem;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .kv-breakdown-table {
+      width: 100%;
+      font-size: 0.75rem;
+      border-collapse: collapse;
+      margin-bottom: 1.5rem;
+    }
+
+    .kv-breakdown-table th,
+    .kv-breakdown-table td {
+      padding: 0.5rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .kv-breakdown-table th {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .kv-breakdown-table td {
+      color: var(--text);
+    }
+
+    .kv-realtime {
+      margin-bottom: 1.5rem;
+    }
+
+    .kv-realtime-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+    }
+
+    .kv-stat {
+      text-align: center;
+      background: var(--surface-2);
+      padding: 0.75rem;
+      border-radius: 8px;
+    }
+
+    .kv-stat-value {
+      display: block;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .kv-stat-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    .kv-trend {
+      margin-bottom: 1.5rem;
+    }
+
+    .kv-trend p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .kv-recommendations {
+      margin-bottom: 1.5rem;
+      background: rgba(240, 173, 78, 0.1);
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: 1px solid rgba(240, 173, 78, 0.3);
+    }
+
+    .kv-recommendations ul {
+      margin: 0;
+      padding-left: 1.25rem;
+      font-size: 0.8rem;
+    }
+
+    .kv-recommendations li {
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+
+    .kv-activity-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .kv-activity-item {
+      text-align: center;
+    }
+
+    .kv-activity-num {
+      display: block;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .kv-activity-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 600px) {
+      .kv-status-indicator {
+        right: 140px;
+        padding: 0.35rem 0.5rem;
+        font-size: 0.6rem;
+      }
+
+      .kv-realtime-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .kv-activity-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+      }
+    }
+
     /* Hall of Fame */
     .hall-of-fame {
       margin-top: 2rem;
@@ -6088,6 +6350,12 @@ export function getHtml(): string {
     <span class="deploy-text">Checking...</span>
   </div>
 
+  <!-- KV Status Indicator -->
+  <div class="kv-status-indicator" id="kv-status-indicator" onclick="showKVStatusModal()">
+    <span class="kv-icon">📊</span>
+    <span class="kv-text">KV: ...</span>
+  </div>
+
   <!-- SVG Gradient Definition for Swedish mode -->
   <svg style="position:absolute;width:0;height:0;">
     <defs>
@@ -6980,10 +7248,217 @@ export function getHtml(): string {
     window.showDeployDetails = showDeployDetails;
     window.closeChangelog = closeChangelog;
 
-    // Start deployment polling
+    // =====================================
+    // KV Status Monitoring
+    // =====================================
+    let kvUsageCache = null;
+    const KV_POLL_INTERVAL = 60000; // Poll every minute
+
+    async function checkKVUsage() {
+      try {
+        const response = await fetch('/api/kv-usage');
+        const data = await response.json();
+        kvUsageCache = data;
+        updateKVStatusIndicator(data);
+      } catch (err) {
+        console.warn('Failed to fetch KV usage:', err);
+        // Update indicator to show unknown state
+        updateKVStatusIndicator(null);
+      }
+    }
+
+    function updateKVStatusIndicator(data) {
+      const indicator = document.getElementById('kv-status-indicator');
+      if (!indicator) return;
+
+      indicator.classList.remove('kv-ok', 'kv-warning', 'kv-critical');
+
+      if (!data) {
+        indicator.innerHTML = '<span class="kv-icon">📊</span><span class="kv-text">KV: ?</span>';
+        return;
+      }
+
+      const statusClass = 'kv-' + data.status;
+      indicator.classList.add(statusClass);
+
+      const statusEmoji = data.status === 'ok' ? '✅' : data.status === 'warning' ? '⚠️' : '🔴';
+      const writePercent = data.usage?.writesPercent || 0;
+      const readPercent = data.usage?.readsPercent || 0;
+
+      // Show the more critical percentage
+      const displayPercent = Math.max(writePercent, readPercent);
+      const displayType = writePercent >= readPercent ? 'W' : 'R';
+
+      indicator.innerHTML = \`<span class="kv-icon">\${statusEmoji}</span><span class="kv-text">KV: \${displayPercent}% \${displayType}</span>\`;
+      indicator.title = \`KV Usage: \${readPercent}% reads, \${writePercent}% writes (click for details)\`;
+    }
+
+    async function showKVStatusModal() {
+      // Fetch fresh data
+      try {
+        const response = await fetch('/api/kv-usage');
+        kvUsageCache = await response.json();
+      } catch {
+        showNotification('Failed to load KV stats', 'error');
+        return;
+      }
+
+      const data = kvUsageCache;
+
+      // Create overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'changelog-overlay';
+      overlay.onclick = (e) => {
+        if (e.target === overlay) closeKVModal();
+      };
+
+      // Create panel (reuse changelog styling)
+      const panel = document.createElement('div');
+      panel.className = 'changelog-panel kv-status-panel';
+
+      const statusEmoji = data.status === 'ok' ? '✅' : data.status === 'warning' ? '⚠️' : '🔴';
+      const statusText = data.status === 'ok' ? (swedishMode ? 'Bra' : 'Healthy') :
+                         data.status === 'warning' ? (swedishMode ? 'Varning' : 'Warning') :
+                         (swedishMode ? 'Kritisk' : 'Critical');
+
+      panel.innerHTML = \`
+        <div class="changelog-header">
+          <h3>\${swedishMode ? '📊 KV Lagring Status' : '📊 KV Storage Status'}</h3>
+          <button class="changelog-close" onclick="closeKVModal()">&times;</button>
+        </div>
+        <div class="kv-status-content">
+          <div class="kv-status-summary">
+            <div class="kv-status-badge \${data.status}">\${statusEmoji} \${statusText}</div>
+            <div class="kv-status-date">\${data.date}</div>
+          </div>
+
+          <div class="kv-usage-bars">
+            <div class="kv-bar-section">
+              <div class="kv-bar-label">\${swedishMode ? 'Läsningar' : 'Reads'} (\${data.estimated?.reads?.toLocaleString() || 0} / \${data.limits?.reads?.toLocaleString() || '100,000'})</div>
+              <div class="kv-bar-container">
+                <div class="kv-bar kv-bar-reads" style="width: \${Math.min(data.usage?.readsPercent || 0, 100)}%"></div>
+              </div>
+              <div class="kv-bar-percent">\${data.usage?.readsPercent || 0}%</div>
+            </div>
+            <div class="kv-bar-section">
+              <div class="kv-bar-label">\${swedishMode ? 'Skrivningar' : 'Writes'} (\${data.estimated?.writes?.toLocaleString() || 0} / \${data.limits?.writes?.toLocaleString() || '1,000'})</div>
+              <div class="kv-bar-container">
+                <div class="kv-bar kv-bar-writes" style="width: \${Math.min(data.usage?.writesPercent || 0, 100)}%"></div>
+              </div>
+              <div class="kv-bar-percent">\${data.usage?.writesPercent || 0}%</div>
+            </div>
+          </div>
+
+          <div class="kv-breakdown">
+            <h4>\${swedishMode ? 'Nedbrytning per kategori' : 'Usage by Category'}</h4>
+            <table class="kv-breakdown-table">
+              <thead>
+                <tr>
+                  <th>\${swedishMode ? 'Kategori' : 'Category'}</th>
+                  <th>\${swedishMode ? 'Läsningar' : 'Reads'}</th>
+                  <th>\${swedishMode ? 'Skrivningar' : 'Writes'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                \${Object.entries(data.breakdown || {}).map(([key, val]) => \`
+                  <tr>
+                    <td>\${key}</td>
+                    <td>\${val.reads?.toLocaleString() || 0}</td>
+                    <td>\${val.writes?.toLocaleString() || 0}</td>
+                  </tr>
+                \`).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          \${data.realtime ? \`
+          <div class="kv-realtime">
+            <h4>\${swedishMode ? 'Realtidsstatistik (denna worker)' : 'Realtime Stats (this worker)'}</h4>
+            <div class="kv-realtime-grid">
+              <div class="kv-stat">
+                <span class="kv-stat-value">\${data.realtime.reads}</span>
+                <span class="kv-stat-label">\${swedishMode ? 'Läsningar' : 'Reads'}</span>
+              </div>
+              <div class="kv-stat">
+                <span class="kv-stat-value">\${data.realtime.writes}</span>
+                <span class="kv-stat-label">\${swedishMode ? 'Skrivningar' : 'Writes'}</span>
+              </div>
+              <div class="kv-stat">
+                <span class="kv-stat-value">\${data.realtime.cacheHitRate}%</span>
+                <span class="kv-stat-label">\${swedishMode ? 'Cache träff' : 'Cache Hit Rate'}</span>
+              </div>
+              <div class="kv-stat">
+                <span class="kv-stat-value">\${data.realtime.cacheHits}</span>
+                <span class="kv-stat-label">\${swedishMode ? 'Cache träffar' : 'Cache Hits'}</span>
+              </div>
+            </div>
+          </div>
+          \` : ''}
+
+          <div class="kv-trend">
+            <h4>\${swedishMode ? 'Trend' : 'Trend'}</h4>
+            <p>\${swedishMode ? 'Riktning' : 'Direction'}: <strong>\${data.trend?.direction || 'stable'}</strong></p>
+            <p>\${swedishMode ? 'Idag vs genomsnitt' : 'Today vs Average'}: \${data.trend?.todayVsAvg || 'N/A'}</p>
+          </div>
+
+          \${data.recommendations && data.recommendations.length > 0 ? \`
+          <div class="kv-recommendations">
+            <h4>\${swedishMode ? '💡 Rekommendationer' : '💡 Recommendations'}</h4>
+            <ul>
+              \${data.recommendations.map(r => \`<li>\${r}</li>\`).join('')}
+            </ul>
+          </div>
+          \` : ''}
+
+          <div class="kv-activity">
+            <h4>\${swedishMode ? 'Dagens aktivitet' : 'Today\\'s Activity'}</h4>
+            <div class="kv-activity-grid">
+              <div class="kv-activity-item">
+                <span class="kv-activity-num">\${data.activity?.signIns || 0}</span>
+                <span class="kv-activity-label">\${swedishMode ? 'Inloggningar' : 'Sign-ins'}</span>
+              </div>
+              <div class="kv-activity-item">
+                <span class="kv-activity-num">\${data.activity?.libraryScans || 0}</span>
+                <span class="kv-activity-label">\${swedishMode ? 'Skanningar' : 'Scans'}</span>
+              </div>
+              <div class="kv-activity-item">
+                <span class="kv-activity-num">\${data.activity?.playlistsCreated || 0}</span>
+                <span class="kv-activity-label">\${swedishMode ? 'Spellistor' : 'Playlists'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      \`;
+
+      overlay.appendChild(panel);
+      document.body.appendChild(overlay);
+
+      // Animate in
+      requestAnimationFrame(() => {
+        overlay.classList.add('visible');
+        panel.classList.add('visible');
+      });
+    }
+
+    function closeKVModal() {
+      const overlay = document.querySelector('.changelog-overlay');
+      const panel = document.querySelector('.kv-status-panel');
+      if (overlay) {
+        overlay.classList.remove('visible');
+        panel?.classList.remove('visible');
+        setTimeout(() => overlay.remove(), 300);
+      }
+    }
+
+    window.showKVStatusModal = showKVStatusModal;
+    window.closeKVModal = closeKVModal;
+
+    // Start deployment and KV status polling
     function startDeployMonitor() {
       checkDeployStatus();
+      checkKVUsage(); // Also check KV status
       deployPollInterval = setInterval(checkDeployStatus, 10000); // Poll every 10s
+      setInterval(checkKVUsage, KV_POLL_INTERVAL); // Poll KV usage every minute
     }
 
     // Swedish translations
