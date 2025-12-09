@@ -348,8 +348,9 @@ export function getHtml(): string {
     }
 
     .btn-sm {
-      padding: 0.25rem 0.5rem;
-      font-size: 0.7rem;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.85rem;
+      min-height: 32px;
     }
 
     body.swedish-mode .cache-status .btn {
@@ -1549,6 +1550,56 @@ export function getHtml(): string {
       animation-delay: 0.3s;
     }
 
+    /* Donation button theme variants */
+    .donate-coffee {
+      background: linear-gradient(135deg, #4a2c2a, #6f4e37);
+    }
+    .donate-coffee:hover {
+      box-shadow: 0 0 15px rgba(111, 78, 55, 0.5);
+    }
+
+    .donate-genie {
+      background: linear-gradient(135deg, #5b3d8c, #8b5cf6);
+    }
+    .donate-genie:hover {
+      box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+    }
+
+    .donate-spotify {
+      background: linear-gradient(135deg, #1a5c3e, #1DB954);
+    }
+    .donate-spotify:hover {
+      box-shadow: 0 0 15px rgba(29, 185, 84, 0.5);
+    }
+
+    .donate-beer {
+      background: linear-gradient(135deg, #c68c0c, #f0a500);
+    }
+    .donate-beer:hover {
+      box-shadow: 0 0 15px rgba(240, 165, 0, 0.5);
+    }
+
+    .donate-pie {
+      background: linear-gradient(135deg, #8B4513, #D2691E);
+    }
+    .donate-pie:hover {
+      box-shadow: 0 0 15px rgba(210, 105, 30, 0.5);
+    }
+
+    .donate-money {
+      background: linear-gradient(135deg, #1a472a, #228B22);
+    }
+    .donate-money:hover {
+      box-shadow: 0 0 15px rgba(34, 139, 34, 0.5);
+    }
+
+    .donate-snus {
+      background: linear-gradient(135deg, #006AA7, #FECC00);
+    }
+    .donate-snus:hover {
+      box-shadow: 0 0 15px rgba(254, 204, 0, 0.5);
+    }
+
     .sidebar-donate-btn:hover::before,
     .sidebar-donate-btn:hover::after {
       animation: smokeWisp 2s ease-out infinite;
@@ -1875,6 +1926,26 @@ export function getHtml(): string {
     .diversity-info .diversity-label {
       font-size: 0.85rem;
       color: var(--text-muted);
+    }
+
+    .diversity-quote {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: linear-gradient(135deg, rgba(30, 215, 96, 0.1), rgba(30, 215, 96, 0.05));
+      border-left: 3px solid var(--spotify-green);
+      border-radius: 0 8px 8px 0;
+      font-style: italic;
+    }
+
+    .diversity-quote .quote-text {
+      font-size: 0.9rem;
+      line-height: 1.4;
+      color: var(--text-primary);
+    }
+
+    .swedish-mode .diversity-quote {
+      background: linear-gradient(135deg, rgba(254, 204, 0, 0.15), rgba(0, 106, 167, 0.1));
+      border-left-color: #FECC00;
     }
 
     /* Mobile Responsive Styles */
@@ -4466,12 +4537,12 @@ export function getHtml(): string {
       vertical-align: middle;
     }
 
-    .user-tag.creator {
+    .user-tag.owner {
       background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
       color: white;
     }
 
-    .user-tag.queen {
+    .user-tag.heidi {
       background: linear-gradient(135deg, #006AA7 0%, #FECC00 100%);
       color: white;
     }
@@ -4482,11 +4553,11 @@ export function getHtml(): string {
     }
 
     /* Animate special tags */
-    .user-tag.queen {
-      animation: queenShimmer 3s ease-in-out infinite;
+    .user-tag.heidi {
+      animation: heidiShimmer 3s ease-in-out infinite;
     }
 
-    @keyframes queenShimmer {
+    @keyframes heidiShimmer {
       0%, 100% {
         box-shadow: 0 0 5px rgba(254, 204, 0, 0.5);
       }
@@ -4495,15 +4566,51 @@ export function getHtml(): string {
       }
     }
 
+    /* Owners section in pioneers list */
+    .owners-section {
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .owners-header {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--swedish-yellow, #FECC00);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .owner-item {
+      background: linear-gradient(135deg, rgba(0, 106, 167, 0.1) 0%, rgba(254, 204, 0, 0.1) 100%);
+      border: 1px solid rgba(254, 204, 0, 0.3);
+      border-radius: 0.5rem;
+      margin-bottom: 0.25rem;
+    }
+
     /* Pioneer user styling with special tags */
-    .pioneer-item.creator-user .pioneer-name,
-    .user-entry.creator-user .user-name {
+    .pioneer-item.owner-user .pioneer-name,
+    .user-entry.owner-user .user-name,
+    .user-list-item.owner-user .user-name {
       color: #f7931e;
     }
 
-    .pioneer-item.queen-user .pioneer-name,
-    .user-entry.queen-user .user-name {
+    .pioneer-item.heidi-user .pioneer-name,
+    .user-entry.heidi-user .user-name,
+    .user-list-item.heidi-user .user-name {
       color: #FECC00;
+    }
+
+    /* Medal badges */
+    .pioneer-badge.gold {
+      color: #FFD700;
+    }
+    .pioneer-badge.silver {
+      color: #C0C0C0;
+    }
+    .pioneer-badge.bronze {
+      color: #CD7F32;
     }
 
 
@@ -6814,14 +6921,60 @@ export function getHtml(): string {
     let fikaTimerStarted = false;
     let fikaTimerId = null;
 
-    // Special user tags
+    // Special user tags - Owners get Swedish crowns 👑👑👑
     const SPECIAL_USERS = {
-      'tomspseudonym': { tag: 'Creator', class: 'creator', emoji: '👑' },
-      'tomstech': { tag: 'Creator', class: 'creator', emoji: '👑' },
-      '~oogi~': { tag: 'Queen', class: 'queen', emoji: '💙' },
-      'oogi': { tag: 'Queen', class: 'queen', emoji: '💙' },
-      'heidi': { tag: 'Queen', class: 'queen', emoji: '💙' },
+      'tomspseudonym': { tag: 'Owner', class: 'owner', emoji: '👑' },
+      'tomstech': { tag: 'Owner', class: 'owner', emoji: '👑' },
+      '~oogi~': { tag: 'Heidi', class: 'heidi', emoji: '💙' },
+      'oogi': { tag: 'Heidi', class: 'heidi', emoji: '💙' },
+      'heidi': { tag: 'Heidi', class: 'heidi', emoji: '💙' },
     };
+
+    // Check if user is an owner (for special leaderboard treatment)
+    function isOwner(userName) {
+      if (!userName) return false;
+      const lowerName = userName.toLowerCase();
+      return lowerName.includes('tomspseudonym') || lowerName.includes('tomstech') ||
+             lowerName.includes('~oogi~') || lowerName.includes('oogi') || lowerName.includes('heidi');
+    }
+
+    // Rotating donation button configurations - changes on each page load
+    const DONATION_CONFIGS = [
+      { icon: '☕', text: 'Buy me a coffee', title: 'Support the developer', theme: 'coffee' },
+      { icon: '🧞', text: 'Grant the Genie a wish', title: 'Make the Genie happy', theme: 'genie' },
+      { icon: '🎵', text: 'Tip the DJ', title: 'Keep the music playing', theme: 'spotify' },
+      { icon: '🍺', text: 'Shout me a coldie', title: 'Cheers legend', theme: 'beer' },
+      { icon: '🥧', text: 'Buy me a pie', title: 'Aussie dev needs pies', theme: 'pie' },
+      { icon: '💸', text: 'Fund my Spotify Premium', title: 'The irony...', theme: 'money' },
+      { icon: '🎧', text: 'Keep the tunes flowing', title: 'Support development', theme: 'spotify' },
+    ];
+    const DONATION_CONFIGS_SE = [
+      { icon: '🫙', text: 'Bjud mig på snus', title: 'Tack för stödet!', theme: 'snus' },
+      { icon: '☕', text: 'Bjud på fika', title: 'Fika är livet', theme: 'coffee' },
+      { icon: '🧞', text: 'Uppfyll en Genie-önskan', title: 'Gör Genien glad', theme: 'genie' },
+      { icon: '🍺', text: 'Bjud på en öl', title: 'Skål kompis!', theme: 'beer' },
+      { icon: '🎵', text: 'Ge DJ:n dricks', title: 'Håll musiken igång', theme: 'spotify' },
+    ];
+    let currentDonationConfig = null;
+
+    // Initialize donation button with random config
+    function initDonationButton() {
+      const configs = swedishMode ? DONATION_CONFIGS_SE : DONATION_CONFIGS;
+      currentDonationConfig = configs[Math.floor(Math.random() * configs.length)];
+      applyDonationConfig(currentDonationConfig);
+    }
+
+    function applyDonationConfig(config) {
+      const btn = document.getElementById('donation-btn');
+      if (!btn) return;
+      const icon = btn.querySelector('.icon');
+      const text = btn.querySelector('.text');
+      if (icon) icon.textContent = config.icon;
+      if (text) text.innerHTML = config.text;
+      btn.title = config.title;
+      // Apply theme class
+      btn.className = 'sidebar-donate-btn donate-' + config.theme;
+    }
 
     function getSpecialUserTag(userName) {
       if (!userName) return '';
@@ -7155,6 +7308,19 @@ export function getHtml(): string {
       if (diff < 86400) return \`\${Math.floor(diff / 3600)}h ago\`;
       return \`\${Math.floor(diff / 86400)}d ago\`;
     }
+
+    // Update all relative timestamps periodically
+    function refreshRelativeTimestamps() {
+      document.querySelectorAll('.relative-time[data-timestamp]').forEach(el => {
+        const timestamp = el.dataset.timestamp;
+        if (timestamp) {
+          el.textContent = formatTimeAgo(new Date(timestamp));
+        }
+      });
+    }
+
+    // Refresh timestamps every 30 seconds
+    setInterval(refreshRelativeTimestamps, 30000);
 
     function showVersionMismatchPrompt(newVersion) {
       // Don't show multiple times
@@ -7639,21 +7805,8 @@ export function getHtml(): string {
         el.textContent = t(el.dataset.i18n);
       });
 
-      // Update donation button (durry -> snus)
-      const donationBtn = document.getElementById('donation-btn');
-      if (donationBtn) {
-        const icon = donationBtn.querySelector('.icon');
-        const text = donationBtn.querySelector('.text');
-        if (enabled) {
-          if (icon) icon.textContent = '🫙';
-          if (text) text.textContent = 'Bjud mig på snus';
-          donationBtn.title = 'Tack för stödet, kompis!';
-        } else {
-          if (icon) icon.textContent = '🚬';
-          if (text) text.textContent = 'Shout me a durry';
-          donationBtn.title = 'Chuck us a dart, legend';
-        }
-      }
+      // Update donation button for Swedish mode (pick new random option)
+      initDonationButton();
 
       // Update Heidi badge
       const heidiBadge = document.querySelector('.heidi-badge');
@@ -7698,10 +7851,14 @@ export function getHtml(): string {
           // Heidi laughed at "Normal mode huh?" so let's keep the joke!
           const normalJokes = [
             'Normal mode huh? 🤔 How... vanilla',
-            'Normal mode huh? 🙄 Okay boomer',
+            'Leaving Sweden? 🥺 The IKEA furniture will miss you',
             'Normal mode? 😴 *yawns in Swedish*',
             'Back to boring mode! 🥱',
             'Normal mode huh? Vikings disapprove 🪓',
+            'Fine, go. More meatballs for me 🍝',
+            '*sad ABBA noises* 🎵',
+            'You just made a fjord cry 🏔️💧',
+            'The vikings will remember this betrayal ⚔️',
           ];
           const joke = normalJokes[Math.floor(Math.random() * normalJokes.length)];
           showNotification(joke, 'success');
@@ -8757,6 +8914,82 @@ export function getHtml(): string {
       return swedishMode ? 'Mycket fokuserad' : 'Very focused';
     }
 
+    // Fun Spotify Wrapped-style quotes based on diversity score
+    function getDiversityQuote(score) {
+      const highDiversityQuotes = swedishMode ? [
+        'Din musiksmak? Omöjlig att sätta i ett fack. Du är en genre-anomali! 🌈',
+        'Du lyssnar på allt från ABBA till Zeppelin. Respekt! 🎸',
+        'Dina spellistor ger Spotify-algoritmerna existentiell kris 🤖',
+        'Du är typ den där personen som har "lite av allt" på festen 🎉',
+        'Musikalisk kameleont identifierad! Anpassar sig till varje stämning 🦎',
+      ] : [
+        'Your music taste? Impossible to pigeonhole. You are a genre anomaly! 🌈',
+        'You listen to everything from ABBA to Zeppelin. Respect! 🎸',
+        'Your playlists give Spotify algorithms an existential crisis 🤖',
+        'You are that person who has "a bit of everything" at the party 🎉',
+        'Musical chameleon identified! Adapts to every mood 🦎',
+      ];
+
+      const diverseQuotes = swedishMode ? [
+        'Du gillar variation! Dina öron är nyfikna äventyrare 👂',
+        'Bra blandning! Du vet vad du gillar men är öppen för nytt 🎵',
+        'Din musiksmak är som en välbalanserad måltid 🍽️',
+        'Du har huvudspår OCH sidospår. Snyggt! 🛤️',
+      ] : [
+        'You like variety! Your ears are curious adventurers 👂',
+        'Nice mix! You know what you like but stay open to new sounds 🎵',
+        'Your music taste is like a well-balanced meal 🍽️',
+        'You have main tracks AND side tracks. Nice! 🛤️',
+      ];
+
+      const moderateQuotes = swedishMode ? [
+        'Du har hittat din groove och håller dig till den! 💃',
+        'Bekväm i din nisch men med utrymme att utforska 🔍',
+        'Solid grund med plats för tillväxt! 🌱',
+        'Du vet vad du gillar - och det är helt okej! 👍',
+      ] : [
+        'You have found your groove and you stick with it! 💃',
+        'Comfortable in your niche but with room to explore 🔍',
+        'Solid foundation with room to grow! 🌱',
+        'You know what you like - and that is totally fine! 👍',
+      ];
+
+      const focusedQuotes = swedishMode ? [
+        'Du har en typ och du håller dig till den! 🎯',
+        'Dedikerad lyssnare alert! Du vet exakt vad du vill ha 🔊',
+        'Låt ingen säga att du inte är engagerad! 💪',
+        'Genre-specialist i vardande! 🎓',
+      ] : [
+        'You have a type and you stick with it! 🎯',
+        'Dedicated listener alert! You know exactly what you want 🔊',
+        'Let nobody say you are not committed! 💪',
+        'Genre specialist in the making! 🎓',
+      ];
+
+      const veryFocusedQuotes = swedishMode ? [
+        'En genre att styra dem alla! Du är fullt dedikerad 💍',
+        'Du har hittat DET ljudet och du släpper det inte! 🔒',
+        'Laser-fokuserad musiksmak! Inga distraktioner 🎯',
+        'Du vet vad du gillar och du äger det! 👑',
+        'Genremästare! 100% koncentrerad energi ⚡',
+      ] : [
+        'One genre to rule them all! You are fully committed 💍',
+        'You found THE sound and you are not letting go! 🔒',
+        'Laser-focused music taste! No distractions 🎯',
+        'You know what you like and you own it! 👑',
+        'Genre master! 100% concentrated energy ⚡',
+      ];
+
+      let quotes;
+      if (score >= 80) quotes = highDiversityQuotes;
+      else if (score >= 60) quotes = diverseQuotes;
+      else if (score >= 40) quotes = moderateQuotes;
+      else if (score >= 20) quotes = focusedQuotes;
+      else quotes = veryFocusedQuotes;
+
+      return quotes[Math.floor(Math.random() * quotes.length)];
+    }
+
     function calculateAvgGenresPerTrack() {
       if (!genreData?.genres || genreData.totalTracks === 0) return 0;
       const totalGenreAssignments = genreData.genres.reduce((sum, g) => sum + g.count, 0);
@@ -8812,6 +9045,9 @@ export function getHtml(): string {
             <div class="diversity-info">
               <span class="diversity-score">\${diversityScore}%</span>
               <span class="diversity-label">\${getDiversityLabel(diversityScore)}</span>
+            </div>
+            <div class="diversity-quote">
+              <span class="quote-text">\${getDiversityQuote(diversityScore)}</span>
             </div>
           </div>
 
@@ -9853,7 +10089,7 @@ export function getHtml(): string {
       }
     }
 
-    // Render pioneers list in sidebar
+    // Render pioneers list in sidebar - separates owners from regular pioneers
     function renderPioneers() {
       const container = document.getElementById('pioneers-list');
       if (!container) return;
@@ -9863,26 +10099,59 @@ export function getHtml(): string {
         return;
       }
 
-      container.innerHTML = sidebarData.pioneers.map((user, i) => {
-        const posClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-        const regalia = i === 0 ? '<span class="pioneer-badge first">👑 First!</span>' :
-                        i < 3 ? '<span class="pioneer-badge">🏆</span>' :
-                        i < 10 ? '<span class="regalia">⭐</span>' : '';
-        const delay = i * 50; // Stagger by 50ms
+      // Separate owners from regular pioneers
+      const owners = sidebarData.pioneers.filter(u => isOwner(u.spotifyName));
+      const regularPioneers = sidebarData.pioneers.filter(u => !isOwner(u.spotifyName));
 
-        const specialClass = getSpecialUserClass(user.spotifyName);
-        const specialTag = getSpecialUserTag(user.spotifyName);
-        return \`
-          <div class="user-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
-            <span class="position \${posClass}">#\${i + 1}</span>
-            \${user.spotifyAvatar
-              ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
-              : '<div class="user-avatar-placeholder">👤</div>'}
-            <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
-            \${regalia}
-          </div>
-        \`;
-      }).join('');
+      let html = '';
+
+      // Owners section with Swedish crowns
+      if (owners.length > 0) {
+        html += '<div class="owners-section">';
+        html += '<div class="owners-header">👑👑👑 ' + (swedishMode ? 'Ägare' : 'Owners') + '</div>';
+        html += owners.map((user, i) => {
+          const delay = i * 50;
+          const specialClass = getSpecialUserClass(user.spotifyName);
+          const specialTag = getSpecialUserTag(user.spotifyName);
+          return \`
+            <div class="user-list-item animate-in owner-item \${specialClass}" style="animation-delay: \${delay}ms" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
+              \${user.spotifyAvatar
+                ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+                : '<div class="user-avatar-placeholder">👤</div>'}
+              <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
+            </div>
+          \`;
+        }).join('');
+        html += '</div>';
+      }
+
+      // Regular pioneers with gold/silver/bronze medals
+      if (regularPioneers.length > 0) {
+        html += regularPioneers.map((user, i) => {
+          const posClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+          // Use medal emojis for top 3
+          const regalia = i === 0 ? '<span class="pioneer-badge gold">🥇</span>' :
+                          i === 1 ? '<span class="pioneer-badge silver">🥈</span>' :
+                          i === 2 ? '<span class="pioneer-badge bronze">🥉</span>' :
+                          i < 10 ? '<span class="regalia">⭐</span>' : '';
+          const delay = (owners.length + i) * 50;
+
+          const specialClass = getSpecialUserClass(user.spotifyName);
+          const specialTag = getSpecialUserTag(user.spotifyName);
+          return \`
+            <div class="user-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
+              <span class="position \${posClass}">#\${i + 1}</span>
+              \${user.spotifyAvatar
+                ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+                : '<div class="user-avatar-placeholder">👤</div>'}
+              <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
+              \${regalia}
+            </div>
+          \`;
+        }).join('');
+      }
+
+      container.innerHTML = html;
     }
 
     // Render new users list in sidebar
@@ -9905,7 +10174,7 @@ export function getHtml(): string {
               ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
               : '<div class="user-avatar-placeholder">👤</div>'}
             <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
-            <span class="regalia">\${formatTimeAgo(new Date(user.registeredAt))}</span>
+            <span class="regalia relative-time" data-timestamp="\${user.registeredAt}">\${formatTimeAgo(new Date(user.registeredAt))}</span>
           </div>
         \`;
       }).join('');
@@ -9937,7 +10206,7 @@ export function getHtml(): string {
                   \${escapeHtml(playlist.createdBy.spotifyName)}
                 </span>
                 <span>•</span>
-                <span>\${formatTimeAgo(new Date(playlist.createdAt))}</span>
+                <span class="relative-time" data-timestamp="\${playlist.createdAt}">\${formatTimeAgo(new Date(playlist.createdAt))}</span>
               </div>
             </div>
           </a>
@@ -10007,7 +10276,7 @@ export function getHtml(): string {
           </div>
           <div class="scoreboard-footer" title="\${swedishMode ? 'Statistik uppdateras var 1-24 timme. Donera till Bryan för snabbare uppdateringar!' : 'Stats refresh every 1-24 hours. Shout Bryan a durry for faster updates!'}">
             \${scoreboardData.totalUsers} \${swedishMode ? 'användare totalt' : 'total users'} •
-            \${swedishMode ? 'Uppdaterad' : 'Updated'} \${formatTimeAgo(new Date(scoreboardData.updatedAt))}
+            \${swedishMode ? 'Uppdaterad' : 'Updated'} <span class="relative-time" data-timestamp="\${scoreboardData.updatedAt}">\${formatTimeAgo(new Date(scoreboardData.updatedAt))}</span>
             <span style="opacity:0.5;font-size:0.7rem;margin-left:0.5rem">ℹ️</span>
           </div>
         </div>
@@ -10427,6 +10696,8 @@ export function getHtml(): string {
     // Load preferences on page load
     document.addEventListener('DOMContentLoaded', () => {
       setTimeout(loadUserPreferences, 1000); // After initial load
+      // Initialize donation button with random theme
+      initDonationButton();
     });
 
     // ====================================

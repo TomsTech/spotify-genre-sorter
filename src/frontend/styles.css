@@ -325,8 +325,9 @@
     }
 
     .btn-sm {
-      padding: 0.25rem 0.5rem;
-      font-size: 0.7rem;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.85rem;
+      min-height: 32px;
     }
 
     body.swedish-mode .cache-status .btn {
@@ -1526,6 +1527,56 @@
       animation-delay: 0.3s;
     }
 
+    /* Donation button theme variants */
+    .donate-coffee {
+      background: linear-gradient(135deg, #4a2c2a, #6f4e37);
+    }
+    .donate-coffee:hover {
+      box-shadow: 0 0 15px rgba(111, 78, 55, 0.5);
+    }
+
+    .donate-genie {
+      background: linear-gradient(135deg, #5b3d8c, #8b5cf6);
+    }
+    .donate-genie:hover {
+      box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+    }
+
+    .donate-spotify {
+      background: linear-gradient(135deg, #1a5c3e, #1DB954);
+    }
+    .donate-spotify:hover {
+      box-shadow: 0 0 15px rgba(29, 185, 84, 0.5);
+    }
+
+    .donate-beer {
+      background: linear-gradient(135deg, #c68c0c, #f0a500);
+    }
+    .donate-beer:hover {
+      box-shadow: 0 0 15px rgba(240, 165, 0, 0.5);
+    }
+
+    .donate-pie {
+      background: linear-gradient(135deg, #8B4513, #D2691E);
+    }
+    .donate-pie:hover {
+      box-shadow: 0 0 15px rgba(210, 105, 30, 0.5);
+    }
+
+    .donate-money {
+      background: linear-gradient(135deg, #1a472a, #228B22);
+    }
+    .donate-money:hover {
+      box-shadow: 0 0 15px rgba(34, 139, 34, 0.5);
+    }
+
+    .donate-snus {
+      background: linear-gradient(135deg, #006AA7, #FECC00);
+    }
+    .donate-snus:hover {
+      box-shadow: 0 0 15px rgba(254, 204, 0, 0.5);
+    }
+
     .sidebar-donate-btn:hover::before,
     .sidebar-donate-btn:hover::after {
       animation: smokeWisp 2s ease-out infinite;
@@ -1852,6 +1903,26 @@
     .diversity-info .diversity-label {
       font-size: 0.85rem;
       color: var(--text-muted);
+    }
+
+    .diversity-quote {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: linear-gradient(135deg, rgba(30, 215, 96, 0.1), rgba(30, 215, 96, 0.05));
+      border-left: 3px solid var(--spotify-green);
+      border-radius: 0 8px 8px 0;
+      font-style: italic;
+    }
+
+    .diversity-quote .quote-text {
+      font-size: 0.9rem;
+      line-height: 1.4;
+      color: var(--text-primary);
+    }
+
+    .swedish-mode .diversity-quote {
+      background: linear-gradient(135deg, rgba(254, 204, 0, 0.15), rgba(0, 106, 167, 0.1));
+      border-left-color: #FECC00;
     }
 
     /* Mobile Responsive Styles */
@@ -4443,12 +4514,12 @@
       vertical-align: middle;
     }
 
-    .user-tag.creator {
+    .user-tag.owner {
       background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
       color: white;
     }
 
-    .user-tag.queen {
+    .user-tag.heidi {
       background: linear-gradient(135deg, #006AA7 0%, #FECC00 100%);
       color: white;
     }
@@ -4459,11 +4530,11 @@
     }
 
     /* Animate special tags */
-    .user-tag.queen {
-      animation: queenShimmer 3s ease-in-out infinite;
+    .user-tag.heidi {
+      animation: heidiShimmer 3s ease-in-out infinite;
     }
 
-    @keyframes queenShimmer {
+    @keyframes heidiShimmer {
       0%, 100% {
         box-shadow: 0 0 5px rgba(254, 204, 0, 0.5);
       }
@@ -4472,15 +4543,51 @@
       }
     }
 
+    /* Owners section in pioneers list */
+    .owners-section {
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .owners-header {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--swedish-yellow, #FECC00);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .owner-item {
+      background: linear-gradient(135deg, rgba(0, 106, 167, 0.1) 0%, rgba(254, 204, 0, 0.1) 100%);
+      border: 1px solid rgba(254, 204, 0, 0.3);
+      border-radius: 0.5rem;
+      margin-bottom: 0.25rem;
+    }
+
     /* Pioneer user styling with special tags */
-    .pioneer-item.creator-user .pioneer-name,
-    .user-entry.creator-user .user-name {
+    .pioneer-item.owner-user .pioneer-name,
+    .user-entry.owner-user .user-name,
+    .user-list-item.owner-user .user-name {
       color: #f7931e;
     }
 
-    .pioneer-item.queen-user .pioneer-name,
-    .user-entry.queen-user .user-name {
+    .pioneer-item.heidi-user .pioneer-name,
+    .user-entry.heidi-user .user-name,
+    .user-list-item.heidi-user .user-name {
       color: #FECC00;
+    }
+
+    /* Medal badges */
+    .pioneer-badge.gold {
+      color: #FFD700;
+    }
+    .pioneer-badge.silver {
+      color: #C0C0C0;
+    }
+    .pioneer-badge.bronze {
+      color: #CD7F32;
     }
 
 
