@@ -366,83 +366,120 @@
       return '';
     }
 
-    // Admin panel state
+    // Admin panel state - reuses existing caches to minimize API calls
     let isAdminUser = false;
-    let adminData = null;
+    let analyticsCache = null;
+    let analyticsLastFetch = 0;
+    const ANALYTICS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-    async function checkAdminStatus() {
-      try {
-        const response = await fetch('/api/admin');
-        if (response.ok) {
-          isAdminUser = true;
-          adminData = await response.json();
-          showAdminButton();
-        }
-      } catch { /* Not admin */ }
-    }
-
+    // Show admin button for logged-in users (uses existing session check)
     function showAdminButton() {
       const headerActions = document.getElementById('header-actions');
       if (headerActions && !document.getElementById('admin-btn')) {
         const adminBtn = document.createElement('button');
         adminBtn.id = 'admin-btn';
         adminBtn.className = 'btn btn-ghost btn-sm admin-btn';
-        adminBtn.innerHTML = '⚙️ Admin';
+        adminBtn.innerHTML = '⚙️';
         adminBtn.onclick = showAdminPanel;
-        adminBtn.title = 'Open admin debug panel';
+        adminBtn.title = 'Debug panel - reuses cached data';
         headerActions.insertBefore(adminBtn, headerActions.firstChild);
+        isAdminUser = true;
       }
     }
 
-    function showAdminPanel() {
-      if (!adminData) return;
+    // Get analytics from cache or fetch once (5 min TTL)
+    async function getAnalyticsData() {
+      const now = Date.now();
+      if (analyticsCache && (now - analyticsLastFetch) < ANALYTICS_CACHE_TTL) {
+        return analyticsCache;
+      }
+      try {
+        const response = await fetch('/api/analytics');
+        if (response.ok) {
+          analyticsCache = await response.json();
+          analyticsLastFetch = now;
+        }
+      } catch { /* Use stale cache */ }
+      return analyticsCache;
+    }
+
+    async function showAdminPanel() {
+      // Gather data from existing caches - NO new API calls for KV/version
+      const version = deployStatus?.version || changelogCache?.changelog?.[0]?.version || '?';
+      const kvMetrics = kvUsageCache?.realtime || {};
+      const kvUsage = kvUsageCache || {};
+
+      // Only fetch analytics if cache expired (5 min TTL)
+      const analytics = await getAnalyticsData();
+      const today = analytics?.today || {};
+      const totalUsers = analytics?.totalUsers || 0;
 
       const modal = document.createElement('div');
       modal.className = 'modal-overlay admin-modal';
       modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 
+      // Calculate KV usage percentages
+      const readPct = kvUsage.readUsagePercent || 0;
+      const writePct = kvUsage.writeUsagePercent || 0;
+      const readStatus = readPct > 80 ? 'critical' : readPct > 50 ? 'warning' : 'ok';
+      const writeStatus = writePct > 80 ? 'critical' : writePct > 50 ? 'warning' : 'ok';
+
       modal.innerHTML = \`
         <div class="modal-content admin-panel">
           <div class="modal-header">
-            <h2>⚙️ Admin Debug Panel</h2>
+            <h2>⚙️ Debug Panel</h2>
             <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
           </div>
           <div class="admin-grid">
             <div class="admin-card">
-              <h3>📊 KV Metrics</h3>
+              <h3>📊 KV Usage (Today)</h3>
               <div class="admin-stats">
-                <div class="stat"><span class="label">Reads:</span> <span class="value">\${adminData.kvMetrics?.reads || 0}</span></div>
-                <div class="stat"><span class="label">Writes:</span> <span class="value">\${adminData.kvMetrics?.writes || 0}</span></div>
-                <div class="stat"><span class="label">Cache Hits:</span> <span class="value">\${adminData.kvMetrics?.cacheHits || 0}</span></div>
-              </div>
-            </div>
-            <div class="admin-card">
-              <h3>👥 Users</h3>
-              <div class="admin-stats">
-                <div class="stat"><span class="label">Total Users:</span> <span class="value">\${adminData.health?.totalUsers || 0}</span></div>
-                <div class="stat"><span class="label">Active Sessions:</span> <span class="value">\${adminData.health?.activeSessions || 0}</span></div>
+                <div class="stat">
+                  <span class="label">Reads:</span>
+                  <span class="value kv-\${readStatus}">\${kvUsage.estimatedReads || 0} / 100k (\${readPct}%)</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Writes:</span>
+                  <span class="value kv-\${writeStatus}">\${kvUsage.estimatedWrites || 0} / 1k (\${writePct}%)</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Cache Hits:</span>
+                  <span class="value">\${kvMetrics.cacheHits || 0} (\${kvMetrics.cacheHitRate || 0}%)</span>
+                </div>
               </div>
             </div>
             <div class="admin-card">
               <h3>📈 Analytics (Today)</h3>
               <div class="admin-stats">
-                <div class="stat"><span class="label">Visits:</span> <span class="value">\${adminData.analytics?.today?.visits || 0}</span></div>
-                <div class="stat"><span class="label">Logins:</span> <span class="value">\${adminData.analytics?.today?.logins || 0}</span></div>
-                <div class="stat"><span class="label">Playlists:</span> <span class="value">\${adminData.analytics?.today?.playlistsCreated || 0}</span></div>
+                <div class="stat"><span class="label">Page Views:</span> <span class="value">\${today.pageViews || 0}</span></div>
+                <div class="stat"><span class="label">Sign-ins:</span> <span class="value">\${today.signIns || 0}</span></div>
+                <div class="stat"><span class="label">Playlists:</span> <span class="value">\${today.playlistsCreated || 0}</span></div>
+                <div class="stat"><span class="label">Library Scans:</span> <span class="value">\${today.libraryScans || 0}</span></div>
               </div>
             </div>
             <div class="admin-card">
-              <h3>🗑️ Cache Actions</h3>
-              <div class="admin-actions">
-                <button class="btn btn-secondary btn-sm" onclick="clearCache('leaderboard')">Clear Leaderboard</button>
-                <button class="btn btn-secondary btn-sm" onclick="clearCache('scoreboard')">Clear Scoreboard</button>
-                <button class="btn btn-secondary btn-sm" onclick="clearCache('all_genre_caches')">Clear All Genre Caches</button>
-                <button class="btn btn-primary btn-sm" onclick="rebuildCaches()">Rebuild All Caches</button>
+              <h3>👥 Users</h3>
+              <div class="admin-stats">
+                <div class="stat"><span class="label">Total Users:</span> <span class="value">\${totalUsers}</span></div>
+                <div class="stat"><span class="label">Unique Artists:</span> <span class="value">\${today.uniqueArtists || 0}</span></div>
+                <div class="stat"><span class="label">Unique Genres:</span> <span class="value">\${today.uniqueGenres || 0}</span></div>
+              </div>
+            </div>
+            <div class="admin-card">
+              <h3>⚡ Realtime (This Worker)</h3>
+              <div class="admin-stats">
+                <div class="stat"><span class="label">KV Reads:</span> <span class="value">\${kvMetrics.reads || 0}</span></div>
+                <div class="stat"><span class="label">KV Writes:</span> <span class="value">\${kvMetrics.writes || 0}</span></div>
+                <div class="stat"><span class="label">Cache Misses:</span> <span class="value">\${kvMetrics.cacheMisses || 0}</span></div>
               </div>
             </div>
           </div>
           <div class="admin-footer">
-            <small>Version: \${adminData.version || '?'} | User: \${adminData.admin?.user || '?'}</small>
+            <small>
+              v\${version} |
+              Data from existing caches (no extra API calls) |
+              Analytics TTL: 5min
+            </small>
           </div>
         </div>
       \`;
@@ -450,43 +487,7 @@
       document.body.appendChild(modal);
     }
 
-    async function clearCache(cache) {
-      try {
-        const response = await fetch('/api/admin/clear-cache', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cache })
-        });
-        const result = await response.json();
-        showNotification(\`Cleared \${result.keysCleared} keys\`, 'success');
-        refreshAdminData();
-      } catch (err) {
-        showNotification('Failed to clear cache', 'error');
-      }
-    }
-
-    async function rebuildCaches() {
-      try {
-        const response = await fetch('/api/admin/rebuild-caches', { method: 'POST' });
-        const result = await response.json();
-        showNotification('Caches rebuilt!', 'success');
-        refreshAdminData();
-      } catch (err) {
-        showNotification('Failed to rebuild caches', 'error');
-      }
-    }
-
-    async function refreshAdminData() {
-      try {
-        const response = await fetch('/api/admin');
-        if (response.ok) {
-          adminData = await response.json();
-        }
-      } catch { /* ignore */ }
-    }
-
-    window.clearCache = clearCache;
-    window.rebuildCaches = rebuildCaches;
+    window.showAdminPanel = showAdminPanel;
 
 
     function startFikaTimer() {
@@ -1375,7 +1376,7 @@
       }
 
       renderHeaderUser(session);
-      checkAdminStatus(); // Check if user is admin
+      showAdminButton(); // Show debug panel button (no API call needed)
 
       // In Spotify-only mode, we're already connected if authenticated
       if (!spotifyOnlyMode && !session.spotifyConnected) {
