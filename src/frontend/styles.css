@@ -4347,6 +4347,25 @@
       background: #f5f5f5;
     }
 
+    /* Admin panel KV status colors */
+    .admin-stats .value.kv-ok {
+      color: var(--success);
+    }
+
+    .admin-stats .value.kv-warning {
+      color: #f0ad4e;
+    }
+
+    .admin-stats .value.kv-critical {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    .admin-footer small {
+      font-size: 0.75rem;
+      line-height: 1.4;
+    }
+
 
     /* Genie Click Animation */
     .genie-mascot.talking {
