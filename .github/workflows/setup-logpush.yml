@@ -17,7 +17,6 @@ env:
   ACCOUNT_ID: df52a0cfc6c1765f726a830ef84ba78c
   WORKER_NAME: spotify-genre-sorter
   BETTERSTACK_HOST: s1616980.eu-nbg-2.betterstackdata.com
-  BETTERSTACK_TOKEN: bjS8g5FPFeDxCVHBHxCzHPFr
 
 jobs:
   logpush:
@@ -38,7 +37,7 @@ jobs:
           echo "🔧 Creating Logpush job for Workers Trace Events..."
 
           # URL-encode the destination with BetterStack auth header
-          DESTINATION="https://${{ env.BETTERSTACK_HOST }}?header_Authorization=Bearer%20${{ env.BETTERSTACK_TOKEN }}"
+          DESTINATION="https://${{ env.BETTERSTACK_HOST }}?header_Authorization=Bearer%20${{ secrets.BETTERSTACK_LOGPUSH_TOKEN }}"
 
           # Create the logpush job
           RESPONSE=$(curl -s -X POST \
