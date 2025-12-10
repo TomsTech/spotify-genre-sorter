@@ -28,7 +28,7 @@ jobs:
           echo "📋 Listing existing Logpush jobs..."
           curl -s -X GET \
             "https://api.cloudflare.com/client/v4/accounts/${{ env.ACCOUNT_ID }}/logpush/jobs" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_LOGPUSH_TOKEN }}" \
             -H "Content-Type: application/json" | jq '.'
 
       - name: Create Logpush job for Workers Trace Events
@@ -42,7 +42,7 @@ jobs:
           # Create the logpush job
           RESPONSE=$(curl -s -X POST \
             "https://api.cloudflare.com/client/v4/accounts/${{ env.ACCOUNT_ID }}/logpush/jobs" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_LOGPUSH_TOKEN }}" \
             -H "Content-Type: application/json" \
             --data '{
               "name": "'"${{ env.WORKER_NAME }}"'-traces-to-betterstack",
@@ -105,7 +105,7 @@ jobs:
           # Get all jobs
           JOBS=$(curl -s -X GET \
             "https://api.cloudflare.com/client/v4/accounts/${{ env.ACCOUNT_ID }}/logpush/jobs" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_LOGPUSH_TOKEN }}" \
             -H "Content-Type: application/json")
 
           # Find jobs matching our worker
@@ -120,7 +120,7 @@ jobs:
             echo "Deleting job $JOB_ID..."
             curl -s -X DELETE \
               "https://api.cloudflare.com/client/v4/accounts/${{ env.ACCOUNT_ID }}/logpush/jobs/$JOB_ID" \
-              -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+              -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_LOGPUSH_TOKEN }}" \
               -H "Content-Type: application/json" | jq '.'
           done
 
