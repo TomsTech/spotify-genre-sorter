@@ -5,6 +5,7 @@ import auth from './routes/auth';
 import api from './routes/api';
 import { getSession, trackAnalyticsEvent, getAnalytics, getKVMetrics } from './lib/session';
 import { getHtml } from './generated/frontend';
+import { createLogger, generateRequestId } from './lib/logger';
 
 // App version - increment on each deployment
 const APP_VERSION = '3.4.0'; // Share modal, genre families, artist deep dive, completion messages
@@ -12,9 +13,17 @@ const GITHUB_REPO = 'TomsTech/spotify-genre-sorter';
 
 const app = new Hono<{ Bindings: Env }>();
 
-// Global error handler with analytics tracking
+// Global error handler with analytics tracking and BetterStack logging
 app.onError(async (err, c) => {
   console.error('Worker error:', err);
+
+  // Send to BetterStack
+  const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+    path: c.req.path,
+    method: c.req.method,
+  });
+  log.logError('Worker error', err, { path: c.req.path });
+
   // Track error in analytics
   try {
     await trackAnalyticsEvent(c.env.SESSIONS, 'error', {
@@ -45,6 +54,27 @@ app.use('*', async (c, next) => {
   c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
   c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+});
+
+// BetterStack request logging middleware (logs errors and slow requests)
+app.use('*', async (c, next) => {
+  const start = Date.now();
+  const requestId = generateRequestId();
+
+  await next();
+
+  const duration = Date.now() - start;
+  const status = c.res.status;
+
+  // Only log errors (4xx/5xx) or slow requests (>2s) to reduce noise
+  if (status >= 400 || duration > 2000) {
+    const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+      requestId,
+      path: c.req.path,
+      method: c.req.method,
+    });
+    log.logRequest(status, duration);
+  }
 });
 
 // Serve intro video asset

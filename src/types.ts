@@ -7,6 +7,7 @@ interface Env {
   SPOTIFY_CLIENT_SECRET: string;
   ALLOWED_GITHUB_USERS?: string;
   SPOTIFY_ONLY_AUTH?: string; // "true" to skip GitHub auth
+  BETTERSTACK_LOG_TOKEN?: string; // BetterStack Logs API token
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
