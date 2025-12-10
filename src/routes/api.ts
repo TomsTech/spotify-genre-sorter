@@ -28,6 +28,7 @@ import {
   addTracksToPlaylist,
   getCurrentUser,
   getUserPlaylists,
+  getCurrentPlayback,
   getPlaylistTracks,
 } from '../lib/spotify';
 
@@ -180,6 +181,40 @@ api.get('/me', async (c) => {
   } catch (err) {
     console.error('Error fetching user:', err);
     return c.json({ error: 'Failed to fetch user info' }, 500);
+  }
+});
+
+// Get current playback state (Now Playing)
+api.get('/now-playing', async (c) => {
+  const session = await getSession(c);
+  if (!session?.spotifyAccessToken) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+
+  try {
+    const playback = await getCurrentPlayback(session.spotifyAccessToken);
+
+    if (!playback || !playback.item) {
+      return c.json({ playing: false });
+    }
+
+    return c.json({
+      playing: playback.is_playing,
+      track: {
+        id: playback.item.id,
+        name: playback.item.name,
+        artists: playback.item.artists.map(a => a.name).join(', '),
+        album: playback.item.album.name,
+        albumArt: playback.item.album.images[0]?.url || null,
+        duration: playback.item.duration_ms,
+        progress: playback.progress_ms,
+        url: playback.item.external_urls.spotify,
+      },
+      device: playback.device?.name || 'Unknown device',
+    });
+  } catch (err) {
+    console.error('Error fetching playback:', err);
+    return c.json({ playing: false, error: 'Failed to fetch playback' });
   }
 });
 
@@ -1866,6 +1901,134 @@ api.post('/admin/rebuild-caches', async (c) => {
   await buildLeaderboard(kv);
   await buildScoreboard(kv);
   return c.json({ success: true, timestamp: new Date().toISOString() });
+});
+
+// List all users for admin management
+api.get('/admin/users', async (c) => {
+  const session = await getSession(c);
+  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+
+  const kv = c.env.SESSIONS;
+  const userStatsList = await kv.list({ prefix: 'user_stats:', limit: 500 });
+
+  const users: Array<{
+    spotifyId: string;
+    spotifyName: string;
+    spotifyAvatar: string | null;
+    playlistCount: number;
+    registeredAt: string;
+    lastActive: string | null;
+  }> = [];
+
+  for (const key of userStatsList.keys) {
+    try {
+      const statsJson = await kv.get(key.name);
+      if (statsJson) {
+        const stats = JSON.parse(statsJson) as {
+          spotifyId: string;
+          spotifyName: string;
+          spotifyAvatar?: string;
+          playlistCount?: number;
+          registeredAt?: string;
+          lastPlaylistAt?: string;
+        };
+        users.push({
+          spotifyId: stats.spotifyId,
+          spotifyName: stats.spotifyName || 'Unknown',
+          spotifyAvatar: stats.spotifyAvatar || null,
+          playlistCount: stats.playlistCount || 0,
+          registeredAt: stats.registeredAt || 'Unknown',
+          lastActive: stats.lastPlaylistAt || null,
+        });
+      }
+    } catch { /* skip malformed entries */ }
+  }
+
+  // Sort by registration date (newest first)
+  users.sort((a, b) => {
+    if (a.registeredAt === 'Unknown') return 1;
+    if (b.registeredAt === 'Unknown') return -1;
+    return new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime();
+  });
+
+  return c.json({ users, total: users.length });
+});
+
+// Delete a user and all their data
+api.delete('/admin/user/:spotifyId', async (c) => {
+  const session = await getSession(c);
+  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+
+  const spotifyId = c.req.param('spotifyId');
+  if (!spotifyId) return c.json({ error: 'Spotify ID required' }, 400);
+
+  const kv = c.env.SESSIONS;
+  const deleted: string[] = [];
+
+  // Delete user_stats
+  const userStatsKey = `user_stats:${spotifyId}`;
+  if (await kv.get(userStatsKey)) {
+    await kv.delete(userStatsKey);
+    deleted.push(userStatsKey);
+  }
+
+  // Delete user lookup
+  const userKey = `user:${spotifyId}`;
+  if (await kv.get(userKey)) {
+    await kv.delete(userKey);
+    deleted.push(userKey);
+  }
+
+  // Delete Hall of Fame entry
+  const hofKey = `hof:${spotifyId}`;
+  if (await kv.get(hofKey)) {
+    await kv.delete(hofKey);
+    deleted.push(hofKey);
+  }
+
+  // Delete genre cache for this user
+  const genreCacheKey = `genre_cache_${spotifyId}`;
+  if (await kv.get(genreCacheKey)) {
+    await kv.delete(genreCacheKey);
+    deleted.push(genreCacheKey);
+  }
+
+  // Find and delete any active sessions for this user
+  const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
+  for (const key of sessionsList.keys) {
+    try {
+      const sessionJson = await kv.get(key.name);
+      if (sessionJson) {
+        const sessionData = JSON.parse(sessionJson) as { spotifyUserId?: string };
+        if (sessionData.spotifyUserId === spotifyId) {
+          await kv.delete(key.name);
+          deleted.push(key.name);
+        }
+      }
+    } catch { /* skip malformed sessions */ }
+  }
+
+  // Decrement user count if we deleted a user_stats entry
+  if (deleted.includes(userStatsKey)) {
+    try {
+      const countStr = await kv.get('stats:user_count');
+      const count = countStr ? parseInt(countStr, 10) : 0;
+      if (count > 0) {
+        await kv.put('stats:user_count', String(count - 1));
+      }
+    } catch { /* ignore count errors */ }
+  }
+
+  // Clear leaderboard and scoreboard caches so they rebuild without this user
+  await kv.delete('leaderboard_cache');
+  await kv.delete('scoreboard_cache');
+
+  return c.json({
+    success: true,
+    spotifyId,
+    keysDeleted: deleted,
+    message: `User ${spotifyId} removed from system`,
+  });
 });
 
 // Request Access - for non-whitelisted users to request an invite

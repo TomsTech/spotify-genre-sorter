@@ -149,6 +149,28 @@ export function getHtml(): string {
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
 
+    /* Skip to main content link - visible only when focused */
+    .skip-to-content {
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0 0 8px 8px;
+      font-weight: 600;
+      text-decoration: none;
+      z-index: 10000;
+      transition: top 0.2s ease;
+    }
+
+    .skip-to-content:focus {
+      top: 0;
+      outline: 3px solid white;
+      outline-offset: 2px;
+    }
+
     body.swedish-mode {
       --accent: #006AA7;
       --accent-hover: #0077b6;
@@ -355,6 +377,39 @@ export function getHtml(): string {
 
     body.swedish-mode .cache-status .btn {
       background: var(--swedish-blue);
+    }
+
+    /* Select all row above genre list */
+    .select-all-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 0.5rem;
+      background: var(--surface-2);
+      border-radius: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .select-all-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .select-all-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .selection-info {
+      font-size: 0.85rem;
+      color: var(--text-muted);
     }
 
     .genre-list {
@@ -591,6 +646,63 @@ export function getHtml(): string {
       gap: 0.75rem;
       justify-content: flex-end;
       margin-top: 1.5rem;
+    }
+
+    /* Custom prompt modal (replaces native prompt()) */
+    .prompt-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .prompt-modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      max-width: 400px;
+      width: 90%;
+      animation: slideUp 0.3s ease;
+    }
+
+    .prompt-modal h3 {
+      margin: 0 0 0.75rem;
+      color: var(--text);
+      font-size: 1.1rem;
+    }
+
+    .prompt-message {
+      margin: 0 0 1rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .prompt-input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .prompt-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.2);
+    }
+
+    .prompt-buttons {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
     }
 
     /* Playlist Customize Modal */
@@ -1246,6 +1358,166 @@ export function getHtml(): string {
       background: var(--surface);
     }
 
+    /* === Now Playing Widget === */
+    .now-playing-widget {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, rgba(30, 30, 30, 0.95), rgba(18, 18, 18, 0.98));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      z-index: 1000;
+      min-width: 280px;
+      max-width: 400px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+      animation: slideUpFadeIn 0.3s ease;
+    }
+
+    @keyframes slideUpFadeIn {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    .now-playing-art {
+      position: relative;
+      width: 56px;
+      height: 56px;
+      flex-shrink: 0;
+    }
+
+    .now-playing-art img {
+      width: 100%;
+      height: 100%;
+      border-radius: 6px;
+      object-fit: cover;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .now-playing-equalizer {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      padding: 3px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 4px;
+    }
+
+    .now-playing-equalizer span {
+      width: 3px;
+      background: var(--accent);
+      border-radius: 1px;
+      animation: equalizerBounce 0.5s ease-in-out infinite alternate;
+    }
+
+    .now-playing-equalizer span:nth-child(1) {
+      height: 8px;
+      animation-delay: 0s;
+    }
+
+    .now-playing-equalizer span:nth-child(2) {
+      height: 12px;
+      animation-delay: 0.2s;
+    }
+
+    .now-playing-equalizer span:nth-child(3) {
+      height: 6px;
+      animation-delay: 0.4s;
+    }
+
+    @keyframes equalizerBounce {
+      from { transform: scaleY(0.4); }
+      to { transform: scaleY(1); }
+    }
+
+    .now-playing-widget:not(.is-playing) .now-playing-equalizer {
+      display: none;
+    }
+
+    .now-playing-info {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .now-playing-track {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+
+    .now-playing-artist {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 6px;
+    }
+
+    .now-playing-progress {
+      width: 100%;
+    }
+
+    .now-playing-progress-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .now-playing-progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 1s linear;
+    }
+
+    body.light-mode .now-playing-widget {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(245, 245, 245, 0.98));
+      border: 1px solid var(--border);
+    }
+
+    @media (max-width: 600px) {
+      .now-playing-widget {
+        bottom: 1rem;
+        left: 1rem;
+        right: 1rem;
+        transform: none;
+        min-width: unset;
+        max-width: unset;
+      }
+
+      @keyframes slideUpFadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    }
+
     /* KV Status Modal Content */
     .kv-status-panel {
       max-width: 500px;
@@ -1784,8 +2056,24 @@ export function getHtml(): string {
       height: 100%;
       background: linear-gradient(90deg, var(--accent), var(--accent-hover));
       border-radius: 3px;
-      transition: width 0.5s ease;
+      transition: width 0.5s ease, transform 0.2s ease;
     }
+
+    .genre-bar-row:hover .genre-bar-fill {
+      transform: scaleY(1.2);
+    }
+
+    /* Genre bar color variants for variety */
+    .genre-bar-fill.bar-1 { background: linear-gradient(90deg, #1ed760, #1db954); }
+    .genre-bar-fill.bar-2 { background: linear-gradient(90deg, #1db954, #18a34a); }
+    .genre-bar-fill.bar-3 { background: linear-gradient(90deg, #18a34a, #16993d); }
+    .genre-bar-fill.bar-4 { background: linear-gradient(90deg, #16993d, #148f35); }
+    .genre-bar-fill.bar-5 { background: linear-gradient(90deg, #148f35, #12852e); }
+    .genre-bar-fill.bar-6 { background: linear-gradient(90deg, #12852e, #107b27); }
+    .genre-bar-fill.bar-7 { background: linear-gradient(90deg, #107b27, #0e7120); }
+    .genre-bar-fill.bar-8 { background: linear-gradient(90deg, #0e7120, #0c671a); }
+    .genre-bar-fill.bar-9 { background: linear-gradient(90deg, #0c671a, #0a5d14); }
+    .genre-bar-fill.bar-10 { background: linear-gradient(90deg, #0a5d14, #08530e); }
 
     .genre-bar-count {
       font-size: 0.7rem;
@@ -1877,8 +2165,24 @@ export function getHtml(): string {
       height: 100%;
       background: linear-gradient(90deg, var(--accent), var(--accent-hover));
       border-radius: 3px;
-      transition: width 0.5s ease;
+      transition: width 0.5s ease, transform 0.2s ease;
     }
+
+    .genre-bar-row:hover .genre-bar-container .genre-bar {
+      transform: scaleY(1.15);
+    }
+
+    /* Stats dashboard genre bar color variants */
+    .genre-bar-container .genre-bar.bar-1 { background: linear-gradient(90deg, #1ed760, #1db954); }
+    .genre-bar-container .genre-bar.bar-2 { background: linear-gradient(90deg, #1db954, #18a34a); }
+    .genre-bar-container .genre-bar.bar-3 { background: linear-gradient(90deg, #18a34a, #16993d); }
+    .genre-bar-container .genre-bar.bar-4 { background: linear-gradient(90deg, #16993d, #148f35); }
+    .genre-bar-container .genre-bar.bar-5 { background: linear-gradient(90deg, #148f35, #12852e); }
+    .genre-bar-container .genre-bar.bar-6 { background: linear-gradient(90deg, #12852e, #107b27); }
+    .genre-bar-container .genre-bar.bar-7 { background: linear-gradient(90deg, #107b27, #0e7120); }
+    .genre-bar-container .genre-bar.bar-8 { background: linear-gradient(90deg, #0e7120, #0c671a); }
+    .genre-bar-container .genre-bar.bar-9 { background: linear-gradient(90deg, #0c671a, #0a5d14); }
+    .genre-bar-container .genre-bar.bar-10 { background: linear-gradient(90deg, #0a5d14, #08530e); }
 
     .genre-bar-row .genre-bar-count {
       font-size: 0.7rem;
@@ -1895,15 +2199,42 @@ export function getHtml(): string {
 
     .stat-box {
       background: var(--surface-2);
-      padding: 1rem;
-      border-radius: 6px;
+      padding: 1.25rem;
+      border-radius: 10px;
       text-align: center;
+      border: 1px solid var(--border);
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .stat-box:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+      border-color: var(--accent);
+    }
+
+    .stat-box:hover::before {
+      opacity: 1;
     }
 
     .stat-box-value {
-      font-size: 1.5rem;
-      font-weight: bold;
+      font-size: 1.75rem;
+      font-weight: 700;
       color: var(--accent);
+      line-height: 1.2;
     }
 
     .stat-box-label {
@@ -1928,24 +2259,168 @@ export function getHtml(): string {
       color: var(--text-muted);
     }
 
+    /* Wrapped-style Diversity Card */
+    .wrapped-diversity-card {
+      margin-top: 1.5rem;
+      padding: 1.5rem;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      position: relative;
+      overflow: hidden;
+      animation: cardGlow 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes cardGlow {
+      0% { box-shadow: 0 0 20px rgba(30, 215, 96, 0.2); }
+      100% { box-shadow: 0 0 30px rgba(30, 215, 96, 0.4); }
+    }
+
+    .wrapped-diversity-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(from 0deg, transparent, rgba(30, 215, 96, 0.1), transparent 30%);
+      animation: cardRotate 10s linear infinite;
+    }
+
+    @keyframes cardRotate {
+      100% { transform: rotate(360deg); }
+    }
+
+    .wrapped-diversity-card .wrapped-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .wrapped-score-display {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .wrapped-score-big {
+      font-size: 4rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #1ed760, #1db954, #1ed760);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: scoreGradient 3s ease infinite;
+      line-height: 1;
+    }
+
+    @keyframes scoreGradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .wrapped-score-label {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-top: 0.25rem;
+    }
+
+    .wrapped-divider {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--spotify-green), transparent);
+      margin: 1rem 0;
+      opacity: 0.5;
+    }
+
     .diversity-quote {
-      margin-top: 1rem;
-      padding: 0.75rem 1rem;
-      background: linear-gradient(135deg, rgba(30, 215, 96, 0.1), rgba(30, 215, 96, 0.05));
-      border-left: 3px solid var(--spotify-green);
-      border-radius: 0 8px 8px 0;
-      font-style: italic;
+      text-align: center;
+      padding: 0.5rem;
     }
 
     .diversity-quote .quote-text {
-      font-size: 0.9rem;
-      line-height: 1.4;
-      color: var(--text-primary);
+      font-size: 1.1rem;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.95);
+      font-weight: 500;
     }
 
-    .swedish-mode .diversity-quote {
-      background: linear-gradient(135deg, rgba(254, 204, 0, 0.15), rgba(0, 106, 167, 0.1));
-      border-left-color: #FECC00;
+    .wrapped-personality {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .wrapped-personality-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 0.25rem;
+    }
+
+    .wrapped-personality-type {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--spotify-green);
+    }
+
+    /* Swedish mode Wrapped card */
+    .swedish-mode .wrapped-diversity-card {
+      background: linear-gradient(135deg, #002f6c 0%, #003d8f 50%, #1a5aa8 100%);
+    }
+
+    .swedish-mode .wrapped-diversity-card::before {
+      background: conic-gradient(from 0deg, transparent, rgba(254, 204, 0, 0.15), transparent 30%);
+    }
+
+    .swedish-mode .wrapped-score-big {
+      background: linear-gradient(135deg, #FECC00, #ffd633, #FECC00);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .swedish-mode .wrapped-divider {
+      background: linear-gradient(90deg, transparent, #FECC00, transparent);
+    }
+
+    .swedish-mode .wrapped-personality-type {
+      color: #FECC00;
+    }
+
+    @keyframes cardGlow {
+      0% { box-shadow: 0 0 20px rgba(254, 204, 0, 0.2); }
+      100% { box-shadow: 0 0 30px rgba(254, 204, 0, 0.4); }
+    }
+
+    /* Light mode adjustments */
+    body:not(.dark-mode) .wrapped-diversity-card {
+      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 50%, #a5d6a7 100%);
+    }
+
+    body:not(.dark-mode) .wrapped-diversity-card::before {
+      background: conic-gradient(from 0deg, transparent, rgba(30, 215, 96, 0.2), transparent 30%);
+    }
+
+    body:not(.dark-mode) .wrapped-score-label,
+    body:not(.dark-mode) .diversity-quote .quote-text {
+      color: #1a1a1a;
+    }
+
+    body:not(.dark-mode) .wrapped-personality {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    body:not(.dark-mode) .wrapped-personality-label {
+      color: rgba(0, 0, 0, 0.5);
+    }
+
+    body:not(.dark-mode).swedish-mode .wrapped-diversity-card {
+      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 50%, #90caf9 100%);
     }
 
     /* Mobile Responsive Styles */
@@ -3275,29 +3750,37 @@ export function getHtml(): string {
       padding: 1rem 1.5rem;
       border-bottom: 1px solid var(--border);
       overflow-x: auto;
+      background: var(--surface-2);
     }
 
     .scoreboard-tab {
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      background: var(--surface-2);
-      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 20px;
+      background: transparent;
+      border: 1.5px solid var(--border);
       cursor: pointer;
       font-size: 0.85rem;
-      font-weight: 500;
+      font-weight: 600;
       color: var(--text-muted);
       white-space: nowrap;
-      transition: all 0.2s;
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
     }
 
     .scoreboard-tab:hover {
-      background: var(--surface-2);
-      color: var(--text);
+      background: rgba(30, 215, 96, 0.1);
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-1px);
     }
 
     .scoreboard-tab.active {
-      background: var(--accent);
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
       color: #000;
+      border-color: transparent;
+      box-shadow: 0 4px 12px rgba(30, 215, 96, 0.3);
     }
 
     .scoreboard-content {
@@ -3316,21 +3799,60 @@ export function getHtml(): string {
       display: flex;
       align-items: center;
       gap: 1rem;
-      padding: 0.75rem;
-      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      border-radius: 10px;
       background: var(--surface-2);
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scoreboard-entry:hover {
+      background: var(--surface);
+      border-color: var(--border);
+      transform: translateX(4px);
+    }
+
+    .scoreboard-entry.top-3::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: linear-gradient(180deg, #FFD700, #FFA500);
     }
 
     .scoreboard-entry .rank {
       font-weight: 700;
       font-size: 1rem;
-      min-width: 32px;
+      min-width: 36px;
+      height: 36px;
       text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--surface);
     }
 
-    .scoreboard-entry .rank.gold { color: #FFD700; }
-    .scoreboard-entry .rank.silver { color: #C0C0C0; }
-    .scoreboard-entry .rank.bronze { color: #CD7F32; }
+    .scoreboard-entry .rank.gold {
+      color: #FFD700;
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.1));
+      border: 1px solid rgba(255, 215, 0, 0.4);
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+    .scoreboard-entry .rank.silver {
+      color: #C0C0C0;
+      background: linear-gradient(135deg, rgba(192, 192, 192, 0.2), rgba(169, 169, 169, 0.1));
+      border: 1px solid rgba(192, 192, 192, 0.4);
+    }
+    .scoreboard-entry .rank.bronze {
+      color: #CD7F32;
+      background: linear-gradient(135deg, rgba(205, 127, 50, 0.2), rgba(184, 115, 51, 0.1));
+      border: 1px solid rgba(205, 127, 50, 0.4);
+    }
 
     .scoreboard-entry .entry-avatar {
       width: 40px;
@@ -4382,26 +4904,56 @@ export function getHtml(): string {
     .admin-card {
       background: var(--card-bg);
       border-radius: 0.75rem;
-      padding: 1rem;
+      padding: 1.25rem;
       border: 1px solid var(--border);
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .admin-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
     .admin-card h3 {
-      margin: 0 0 0.75rem 0;
+      margin: 0 0 1rem 0;
       font-size: 1rem;
-      color: var(--text-muted);
+      color: var(--text);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .admin-card h3::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 1rem;
+      background: var(--accent);
+      border-radius: 2px;
     }
 
     .admin-stats {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 0.625rem;
     }
 
     .admin-stats .stat {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 0.5rem 0.75rem;
+      background: var(--surface-2);
+      border-radius: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .admin-stats .stat:hover {
+      background: var(--surface);
     }
 
     .admin-stats .label {
@@ -4412,7 +4964,7 @@ export function getHtml(): string {
     .admin-stats .value {
       font-weight: 600;
       font-size: 1rem;
-      color: var(--primary);
+      color: var(--accent);
     }
 
     .admin-actions {
@@ -4458,6 +5010,163 @@ export function getHtml(): string {
     .admin-footer small {
       font-size: 0.75rem;
       line-height: 1.4;
+    }
+
+    /* Admin Tabs */
+    .admin-tabs {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0 1.5rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1rem;
+    }
+
+    .admin-tab {
+      padding: 0.75rem 1rem;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.2s;
+    }
+
+    .admin-tab:hover {
+      color: var(--text);
+    }
+
+    .admin-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .admin-tab-content {
+      padding: 0 1.5rem;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    /* Admin Users List */
+    .admin-users-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      gap: 1rem;
+    }
+
+    .admin-search {
+      flex: 1;
+      max-width: 250px;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    .admin-search:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .admin-users-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .admin-user-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: var(--surface-2);
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+
+    .admin-user-row:hover {
+      background: var(--surface-3);
+    }
+
+    .admin-user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .admin-user-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .admin-user-avatar .avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface);
+      font-size: 1.2rem;
+    }
+
+    .admin-user-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .admin-user-name {
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .admin-user-meta {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .admin-delete-user {
+      flex-shrink: 0;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .admin-user-row:hover .admin-delete-user {
+      opacity: 1;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+      border: none;
+    }
+
+    .btn-danger:hover {
+      background: #c0392b;
+    }
+
+    .admin-loading,
+    .admin-empty,
+    .admin-error {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+    }
+
+    .admin-error {
+      color: var(--danger);
     }
 
 
@@ -6467,9 +7176,86 @@ export function getHtml(): string {
       to { opacity: 1; }
     }
 
+    /* =========================================
+       COMPREHENSIVE REDUCED MOTION SUPPORT
+       Respects users who prefer reduced motion
+       ========================================= */
+    @media (prefers-reduced-motion: reduce) {
+      /* Disable all decorative animations globally */
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+
+      /* Keep loading spinner visible (essential feedback) */
+      .spinner,
+      .loading .spinner,
+      .progress-spinner {
+        animation: spin 0.8s linear infinite !important;
+      }
+
+      /* Disable floating/pulsing decorative elements */
+      .swedish-crowns .crown,
+      .viking-ship,
+      .genie-mascot,
+      .genie-sparkle,
+      .now-playing-equalizer span,
+      .heidi-crown,
+      .heidi-hearts {
+        animation: none !important;
+      }
+
+      /* Disable progress bar animations but keep width changes */
+      .progress-bar,
+      .now-playing-progress-fill {
+        transition: none !important;
+      }
+
+      /* Disable confetti completely */
+      .confetti-piece {
+        animation: none !important;
+        display: none !important;
+      }
+
+      /* Ensure modals appear instantly without animation */
+      .modal,
+      .overlay,
+      .scoreboard-overlay,
+      .kv-status-overlay,
+      .playlist-modal,
+      .request-access-modal {
+        animation: none !important;
+        opacity: 1 !important;
+      }
+
+      /* Disable hover transforms that cause motion */
+      .btn:hover,
+      .genre-card:hover,
+      .stat-box:hover,
+      .sidebar-section:hover,
+      .pioneer-entry:hover,
+      .scoreboard-entry:hover,
+      .admin-card:hover {
+        transform: none !important;
+      }
+
+      /* Keep focus indicators visible but remove motion */
+      :focus {
+        outline-offset: 2px;
+        transition: none !important;
+      }
+    }
+
   </style>
 </head>
 <body>
+  <!-- Skip to main content link for keyboard users -->
+  <a href="#app" class="skip-to-content">Skip to main content</a>
+
   <!-- Deployment Monitor Widget -->
   <div class="deploy-widget" id="deploy-widget" style="display: none;" onclick="showDeployDetails()">
     <span class="status-icon"></span>
@@ -6480,6 +7266,25 @@ export function getHtml(): string {
   <div class="kv-status-indicator" id="kv-status-indicator" onclick="showKVStatusModal()">
     <span class="kv-icon">📊</span>
     <span class="kv-text">KV: ...</span>
+  </div>
+
+  <!-- Now Playing Widget -->
+  <div class="now-playing-widget" id="now-playing-widget" style="display: none;">
+    <div class="now-playing-art">
+      <img id="now-playing-art" src="" alt="Album art">
+      <div class="now-playing-equalizer">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+    <div class="now-playing-info">
+      <div class="now-playing-track" id="now-playing-track">Not playing</div>
+      <div class="now-playing-artist" id="now-playing-artist"></div>
+      <div class="now-playing-progress">
+        <div class="now-playing-progress-bar">
+          <div class="now-playing-progress-fill" id="now-playing-progress"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- SVG Gradient Definition for Swedish mode -->
@@ -6589,6 +7394,93 @@ export function getHtml(): string {
 
     let genreData = null;
     
+    // Custom prompt modal to replace native prompt()
+    function showPromptModal(message, defaultValue = '') {
+      return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'prompt-modal-overlay';
+
+        const cleanup = (value) => {
+          overlay.remove();
+          resolve(value);
+        };
+
+        overlay.onclick = (e) => { if (e.target === overlay) cleanup(null); };
+
+        const modal = document.createElement('div');
+        modal.className = 'prompt-modal';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-labelledby', 'prompt-title');
+
+        modal.innerHTML = [
+          '<h3 id="prompt-title">' + (swedishMode ? '📝 Ange namn' : '📝 Enter name') + '</h3>',
+          '<p class="prompt-message">' + message + '</p>',
+          '<input type="text" class="prompt-input" id="prompt-input" value="' + escapeForHtml(defaultValue) + '" maxlength="100">',
+          '<div class="prompt-buttons">',
+          '  <button class="btn btn-ghost" id="prompt-cancel">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
+          '  <button class="btn btn-primary" id="prompt-confirm">' + (swedishMode ? 'OK' : 'OK') + '</button>',
+          '</div>',
+        ].join('\\n');
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        const input = document.getElementById('prompt-input');
+        const confirmBtn = document.getElementById('prompt-confirm');
+        const cancelBtn = document.getElementById('prompt-cancel');
+
+        // Focus input and select text
+        input.focus();
+        input.select();
+
+        // Handle Enter key
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            cleanup(input.value.trim() || null);
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cleanup(null);
+          }
+        });
+
+        confirmBtn.onclick = () => cleanup(input.value.trim() || null);
+        cancelBtn.onclick = () => cleanup(null);
+
+        // Apply focus trap to keep keyboard navigation within modal
+        trapFocus(modal);
+      });
+    }
+
+    // Focus trap utility for modals - keeps Tab cycling within the modal
+    function trapFocus(container) {
+      const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+      const focusableElements = container.querySelectorAll(focusableSelector);
+      if (focusableElements.length === 0) return;
+
+      const firstFocusable = focusableElements[0];
+      const lastFocusable = focusableElements[focusableElements.length - 1];
+
+      container.addEventListener('keydown', (e) => {
+        if (e.key !== 'Tab') return;
+
+        if (e.shiftKey) {
+          // Shift+Tab: if on first element, wrap to last
+          if (document.activeElement === firstFocusable) {
+            e.preventDefault();
+            lastFocusable.focus();
+          }
+        } else {
+          // Tab: if on last element, wrap to first
+          if (document.activeElement === lastFocusable) {
+            e.preventDefault();
+            firstFocusable.focus();
+          }
+        }
+      });
+    }
+
     // Create merged playlist from selected genres
     async function createMergedFromSelection() {
       if (selectedGenres.size < 2) {
@@ -6599,8 +7491,8 @@ export function getHtml(): string {
       const genreNames = [...selectedGenres];
       const suggestedName = genreNames.slice(0, 3).join(' + ') + (genreNames.length > 3 ? ' +more' : '');
 
-      // Prompt for playlist name
-      const playlistName = prompt(
+      // Show custom prompt modal for playlist name
+      const playlistName = await showPromptModal(
         swedishMode ? 'Namn på sammanslagen spellista:' : 'Name for merged playlist:',
         suggestedName
       );
@@ -6761,7 +7653,7 @@ export function getHtml(): string {
         '<div class="modal-content">',
         '  <div class="modal-header">',
         '    <h3>' + (swedishMode ? '📦 Slå ihop genrer' : '📦 Merge Genres') + '</h3>',
-        '    <button class="modal-close" onclick="this.closest(\\'.modal-overlay\\').remove()">×</button>',
+        '    <button class="modal-close" onclick="this.closest(\\'.modal-overlay\\').remove()" aria-label="Close modal">×</button>',
         '  </div>',
         '  <div class="modal-body">',
         '    <label>' + (swedishMode ? 'Spellistans namn' : 'Playlist Name') + '</label>',
@@ -6875,7 +7767,7 @@ export function getHtml(): string {
     // Add theme toggle to header immediately (visible before login)
     if (headerActions) {
       headerActions.innerHTML = \`
-        <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
+        <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}" aria-label="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
           \${lightMode ? '🌙' : '☀️'}
         </button>
       \`;
@@ -7059,50 +7951,56 @@ export function getHtml(): string {
       modal.innerHTML = \`
         <div class="modal-content admin-panel">
           <div class="modal-header">
-            <h2>⚙️ Debug Panel</h2>
-            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+            <h2>⚙️ Admin Panel</h2>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()" aria-label="Close admin panel">×</button>
           </div>
-          <div class="admin-grid">
-            <div class="admin-card">
-              <h3>📊 KV Usage (Today)</h3>
-              <div class="admin-stats">
-                <div class="stat">
-                  <span class="label">Reads:</span>
-                  <span class="value kv-\${readStatus}">\${kvUsage.estimatedReads || 0} / 100k (\${readPct}%)</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Writes:</span>
-                  <span class="value kv-\${writeStatus}">\${kvUsage.estimatedWrites || 0} / 1k (\${writePct}%)</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Cache Hits:</span>
-                  <span class="value">\${kvMetrics.cacheHits || 0} (\${kvMetrics.cacheHitRate || 0}%)</span>
+          <div class="admin-tabs">
+            <button class="admin-tab active" data-tab="stats">📊 Stats</button>
+            <button class="admin-tab" data-tab="users">👥 Users</button>
+          </div>
+          <div class="admin-tab-content" id="admin-tab-content">
+            <div class="admin-grid">
+              <div class="admin-card">
+                <h3>📊 KV Usage (Today)</h3>
+                <div class="admin-stats">
+                  <div class="stat">
+                    <span class="label">Reads:</span>
+                    <span class="value kv-\${readStatus}">\${kvUsage.estimatedReads || 0} / 100k (\${readPct}%)</span>
+                  </div>
+                  <div class="stat">
+                    <span class="label">Writes:</span>
+                    <span class="value kv-\${writeStatus}">\${kvUsage.estimatedWrites || 0} / 1k (\${writePct}%)</span>
+                  </div>
+                  <div class="stat">
+                    <span class="label">Cache Hits:</span>
+                    <span class="value">\${kvMetrics.cacheHits || 0} (\${kvMetrics.cacheHitRate || 0}%)</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="admin-card">
-              <h3>📈 Analytics (Today)</h3>
-              <div class="admin-stats">
-                <div class="stat"><span class="label">Page Views:</span> <span class="value">\${today.pageViews || 0}</span></div>
-                <div class="stat"><span class="label">Sign-ins:</span> <span class="value">\${today.signIns || 0}</span></div>
-                <div class="stat"><span class="label">Playlists:</span> <span class="value">\${today.playlistsCreated || 0}</span></div>
-                <div class="stat"><span class="label">Library Scans:</span> <span class="value">\${today.libraryScans || 0}</span></div>
+              <div class="admin-card">
+                <h3>📈 Analytics (Today)</h3>
+                <div class="admin-stats">
+                  <div class="stat"><span class="label">Page Views:</span> <span class="value">\${today.pageViews || 0}</span></div>
+                  <div class="stat"><span class="label">Sign-ins:</span> <span class="value">\${today.signIns || 0}</span></div>
+                  <div class="stat"><span class="label">Playlists:</span> <span class="value">\${today.playlistsCreated || 0}</span></div>
+                  <div class="stat"><span class="label">Library Scans:</span> <span class="value">\${today.libraryScans || 0}</span></div>
+                </div>
               </div>
-            </div>
-            <div class="admin-card">
-              <h3>👥 Users</h3>
-              <div class="admin-stats">
-                <div class="stat"><span class="label">Total Users:</span> <span class="value">\${totalUsers}</span></div>
-                <div class="stat"><span class="label">Unique Artists:</span> <span class="value">\${today.uniqueArtists || 0}</span></div>
-                <div class="stat"><span class="label">Unique Genres:</span> <span class="value">\${today.uniqueGenres || 0}</span></div>
+              <div class="admin-card">
+                <h3>👥 Users</h3>
+                <div class="admin-stats">
+                  <div class="stat"><span class="label">Total Users:</span> <span class="value">\${totalUsers}</span></div>
+                  <div class="stat"><span class="label">Unique Artists:</span> <span class="value">\${today.uniqueArtists || 0}</span></div>
+                  <div class="stat"><span class="label">Unique Genres:</span> <span class="value">\${today.uniqueGenres || 0}</span></div>
+                </div>
               </div>
-            </div>
-            <div class="admin-card">
-              <h3>⚡ Realtime (This Worker)</h3>
-              <div class="admin-stats">
-                <div class="stat"><span class="label">KV Reads:</span> <span class="value">\${kvMetrics.reads || 0}</span></div>
-                <div class="stat"><span class="label">KV Writes:</span> <span class="value">\${kvMetrics.writes || 0}</span></div>
-                <div class="stat"><span class="label">Cache Misses:</span> <span class="value">\${kvMetrics.cacheMisses || 0}</span></div>
+              <div class="admin-card">
+                <h3>⚡ Realtime (This Worker)</h3>
+                <div class="admin-stats">
+                  <div class="stat"><span class="label">KV Reads:</span> <span class="value">\${kvMetrics.reads || 0}</span></div>
+                  <div class="stat"><span class="label">KV Writes:</span> <span class="value">\${kvMetrics.writes || 0}</span></div>
+                  <div class="stat"><span class="label">Cache Misses:</span> <span class="value">\${kvMetrics.cacheMisses || 0}</span></div>
+                </div>
               </div>
             </div>
           </div>
@@ -7117,7 +8015,156 @@ export function getHtml(): string {
       \`;
 
       document.body.appendChild(modal);
+
+      // Apply focus trap for accessibility
+      trapFocus(modal.querySelector('.admin-panel'));
+
+      // Handle tab switching
+      modal.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.onclick = async () => {
+          modal.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          const tabName = tab.dataset.tab;
+
+          if (tabName === 'users') {
+            await loadAdminUsersTab(modal);
+          } else {
+            // Reload stats tab content
+            const content = modal.querySelector('#admin-tab-content');
+            content.innerHTML = \`
+              <div class="admin-grid">
+                <div class="admin-card">
+                  <h3>📊 KV Usage (Today)</h3>
+                  <div class="admin-stats">
+                    <div class="stat">
+                      <span class="label">Reads:</span>
+                      <span class="value kv-\${readStatus}">\${kvUsage.estimatedReads || 0} / 100k (\${readPct}%)</span>
+                    </div>
+                    <div class="stat">
+                      <span class="label">Writes:</span>
+                      <span class="value kv-\${writeStatus}">\${kvUsage.estimatedWrites || 0} / 1k (\${writePct}%)</span>
+                    </div>
+                    <div class="stat">
+                      <span class="label">Cache Hits:</span>
+                      <span class="value">\${kvMetrics.cacheHits || 0} (\${kvMetrics.cacheHitRate || 0}%)</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="admin-card">
+                  <h3>📈 Analytics (Today)</h3>
+                  <div class="admin-stats">
+                    <div class="stat"><span class="label">Page Views:</span> <span class="value">\${today.pageViews || 0}</span></div>
+                    <div class="stat"><span class="label">Sign-ins:</span> <span class="value">\${today.signIns || 0}</span></div>
+                    <div class="stat"><span class="label">Playlists:</span> <span class="value">\${today.playlistsCreated || 0}</span></div>
+                    <div class="stat"><span class="label">Library Scans:</span> <span class="value">\${today.libraryScans || 0}</span></div>
+                  </div>
+                </div>
+                <div class="admin-card">
+                  <h3>👥 Users</h3>
+                  <div class="admin-stats">
+                    <div class="stat"><span class="label">Total Users:</span> <span class="value">\${totalUsers}</span></div>
+                    <div class="stat"><span class="label">Unique Artists:</span> <span class="value">\${today.uniqueArtists || 0}</span></div>
+                    <div class="stat"><span class="label">Unique Genres:</span> <span class="value">\${today.uniqueGenres || 0}</span></div>
+                  </div>
+                </div>
+                <div class="admin-card">
+                  <h3>⚡ Realtime (This Worker)</h3>
+                  <div class="admin-stats">
+                    <div class="stat"><span class="label">KV Reads:</span> <span class="value">\${kvMetrics.reads || 0}</span></div>
+                    <div class="stat"><span class="label">KV Writes:</span> <span class="value">\${kvMetrics.writes || 0}</span></div>
+                    <div class="stat"><span class="label">Cache Misses:</span> <span class="value">\${kvMetrics.cacheMisses || 0}</span></div>
+                  </div>
+                </div>
+              </div>
+            \`;
+          }
+        };
+      });
     }
+
+    async function loadAdminUsersTab(modal) {
+      const content = modal.querySelector('#admin-tab-content');
+      content.innerHTML = '<div class="admin-loading">Loading users...</div>';
+
+      try {
+        const response = await fetch('/api/admin/users');
+        if (!response.ok) throw new Error('Failed to load users');
+        const data = await response.json();
+
+        if (data.users.length === 0) {
+          content.innerHTML = '<div class="admin-empty">No users found</div>';
+          return;
+        }
+
+        content.innerHTML = \`
+          <div class="admin-users-header">
+            <span>\${data.total} users total</span>
+            <input type="text" class="admin-search" id="admin-user-search" placeholder="Search users..." />
+          </div>
+          <div class="admin-users-list" id="admin-users-list">
+            \${data.users.map(user => \`
+              <div class="admin-user-row" data-spotify-id="\${user.spotifyId}" data-name="\${user.spotifyName.toLowerCase()}">
+                <div class="admin-user-avatar">
+                  \${user.spotifyAvatar
+                    ? \`<img src="\${user.spotifyAvatar}" alt="" />\`
+                    : '<span class="avatar-placeholder">👤</span>'}
+                </div>
+                <div class="admin-user-info">
+                  <div class="admin-user-name">\${escapeHtml(user.spotifyName)}</div>
+                  <div class="admin-user-meta">
+                    <span title="Spotify ID">\${user.spotifyId.substring(0, 8)}...</span>
+                    <span>•</span>
+                    <span>\${user.playlistCount} playlists</span>
+                    <span>•</span>
+                    <span>Joined \${formatTimeAgo(new Date(user.registeredAt))}</span>
+                  </div>
+                </div>
+                <button class="btn btn-danger btn-sm admin-delete-user" onclick="confirmDeleteUser('\${user.spotifyId}', '\${escapeForHtml(user.spotifyName)}')" title="Remove user">
+                  🗑️
+                </button>
+              </div>
+            \`).join('')}
+          </div>
+        \`;
+
+        // Add search functionality
+        const searchInput = content.querySelector('#admin-user-search');
+        searchInput?.addEventListener('input', (e) => {
+          const query = e.target.value.toLowerCase();
+          content.querySelectorAll('.admin-user-row').forEach(row => {
+            const name = row.dataset.name || '';
+            const id = row.dataset.spotifyId || '';
+            row.style.display = (name.includes(query) || id.includes(query)) ? '' : 'none';
+          });
+        });
+      } catch (err) {
+        content.innerHTML = \`<div class="admin-error">Failed to load users: \${err.message}</div>\`;
+      }
+    }
+
+    async function confirmDeleteUser(spotifyId, userName) {
+      const confirmed = confirm(\`Are you sure you want to delete user "\${userName}"?\\n\\nThis will remove:\\n- Their session (logging them out)\\n- User statistics\\n- Hall of Fame entry\\n- Genre cache\\n\\nThis action cannot be undone.\`);
+
+      if (!confirmed) return;
+
+      try {
+        const response = await fetch(\`/api/admin/user/\${spotifyId}\`, { method: 'DELETE' });
+        const result = await response.json();
+
+        if (result.success) {
+          showNotification(\`User "\${userName}" removed successfully. Deleted \${result.keysDeleted.length} keys.\`, 'success');
+          // Remove the row from the UI
+          const row = document.querySelector(\`.admin-user-row[data-spotify-id="\${spotifyId}"]\`);
+          if (row) row.remove();
+        } else {
+          throw new Error(result.error || 'Failed to delete user');
+        }
+      } catch (err) {
+        showNotification(\`Failed to delete user: \${err.message}\`, 'error');
+      }
+    }
+
+    window.confirmDeleteUser = confirmDeleteUser;
 
     window.showAdminPanel = showAdminPanel;
 
@@ -7376,7 +8423,7 @@ export function getHtml(): string {
       header.className = 'changelog-header';
       header.innerHTML = \`
         <h3>\${swedishMode ? 'Versionshistorik' : 'Version History'}</h3>
-        <button class="changelog-close" onclick="closeChangelog()">&times;</button>
+        <button class="changelog-close" onclick="closeChangelog()" aria-label="Close changelog">&times;</button>
       \`;
 
       const timeline = document.createElement('div');
@@ -7510,7 +8557,7 @@ export function getHtml(): string {
       panel.innerHTML = \`
         <div class="changelog-header">
           <h3>\${swedishMode ? '📊 KV Lagring Status' : '📊 KV Storage Status'}</h3>
-          <button class="changelog-close" onclick="closeKVModal()">&times;</button>
+          <button class="changelog-close" onclick="closeKVModal()" aria-label="Close KV status">&times;</button>
         </div>
         <div class="kv-status-content">
           <div class="kv-status-summary">
@@ -7647,6 +8694,116 @@ export function getHtml(): string {
       setInterval(checkKVUsage, KV_POLL_INTERVAL); // Poll KV usage every minute
     }
 
+    // ====================================
+    // Now Playing Widget
+    // ====================================
+    let nowPlayingInterval = null;
+    let currentTrackId = null;
+    let progressInterval = null;
+    let currentProgress = 0;
+    let currentDuration = 0;
+
+    async function updateNowPlaying() {
+      try {
+        const response = await fetch('/api/now-playing');
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const widget = document.getElementById('now-playing-widget');
+        const trackEl = document.getElementById('now-playing-track');
+        const artistEl = document.getElementById('now-playing-artist');
+        const artEl = document.getElementById('now-playing-art');
+        const progressEl = document.getElementById('now-playing-progress');
+
+        if (!widget || !trackEl || !artistEl || !artEl || !progressEl) return;
+
+        if (data.playing && data.track) {
+          // Show widget
+          widget.style.display = 'flex';
+          widget.classList.add('is-playing');
+
+          // Update track info
+          trackEl.textContent = data.track.name;
+          artistEl.textContent = data.track.artists;
+
+          // Update album art
+          if (data.track.albumArt) {
+            artEl.src = data.track.albumArt;
+            artEl.alt = data.track.album;
+          }
+
+          // Set up click to open in Spotify
+          if (data.track.url) {
+            widget.onclick = () => window.open(data.track.url, '_blank');
+            widget.style.cursor = 'pointer';
+            widget.title = t('openInSpotify');
+          }
+
+          // Update progress
+          currentProgress = data.track.progress || 0;
+          currentDuration = data.track.duration || 1;
+          updateProgressBar();
+
+          // Start local progress updates if track changed
+          if (currentTrackId !== data.track.id) {
+            currentTrackId = data.track.id;
+            startProgressUpdates();
+          }
+        } else {
+          // Hide widget or show not playing state
+          widget.classList.remove('is-playing');
+          widget.style.display = 'none';
+          currentTrackId = null;
+          stopProgressUpdates();
+        }
+      } catch (err) {
+        // Silently fail - Now Playing is non-critical
+        console.debug('Now Playing fetch failed:', err);
+      }
+    }
+
+    function updateProgressBar() {
+      const progressEl = document.getElementById('now-playing-progress');
+      if (!progressEl || currentDuration <= 0) return;
+
+      const percent = Math.min((currentProgress / currentDuration) * 100, 100);
+      progressEl.style.width = \`\${percent}%\`;
+    }
+
+    function startProgressUpdates() {
+      stopProgressUpdates();
+      // Update progress locally every second for smooth animation
+      progressInterval = setInterval(() => {
+        currentProgress += 1000;
+        if (currentProgress >= currentDuration) {
+          currentProgress = currentDuration;
+        }
+        updateProgressBar();
+      }, 1000);
+    }
+
+    function stopProgressUpdates() {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+    }
+
+    function startNowPlayingMonitor() {
+      // Initial fetch
+      updateNowPlaying();
+      // Poll every 10 seconds (Spotify rate limits are generous for playback)
+      nowPlayingInterval = setInterval(updateNowPlaying, 10000);
+    }
+
+    function stopNowPlayingMonitor() {
+      if (nowPlayingInterval) {
+        clearInterval(nowPlayingInterval);
+        nowPlayingInterval = null;
+      }
+      stopProgressUpdates();
+    }
+
     // Swedish translations
     const i18n = {
       en: {
@@ -7714,6 +8871,9 @@ export function getHtml(): string {
         privacySecure: 'Enterprise-grade security',
         privacySecureDesc: 'Built by a Solutions Architect with security-first design',
         privacyReviewDocs: 'Review our security architecture',
+        nowPlaying: 'Now Playing',
+        notPlaying: 'Not playing',
+        openInSpotify: 'Open in Spotify',
       },
       sv: {
         title: 'Genre Genie',
@@ -7780,6 +8940,9 @@ export function getHtml(): string {
         privacySecure: 'Företagsklass säkerhet',
         privacySecureDesc: 'Byggd av en lösningsarkitekt med säkerhet i fokus',
         privacyReviewDocs: 'Granska vår säkerhetsarkitektur',
+        nowPlaying: 'Spelar nu',
+        notPlaying: 'Spelar inte',
+        openInSpotify: 'Öppna i Spotify',
       }
     };
 
@@ -8014,6 +9177,9 @@ export function getHtml(): string {
       renderHeaderUser(session);
       showAdminButton(); // Show debug panel button (no API call needed)
 
+      // Start Now Playing monitor for authenticated users
+      startNowPlayingMonitor();
+
       // In Spotify-only mode, we're already connected if authenticated
       if (!spotifyOnlyMode && !session.spotifyConnected) {
         renderConnectSpotify();
@@ -8156,7 +9322,7 @@ export function getHtml(): string {
 
       // Keep theme toggle in header, add user info next to it
       headerActions.innerHTML = \`
-        <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
+        <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}" aria-label="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
           \${lightMode ? '🌙' : '☀️'}
         </button>
         <div class="user-info">
@@ -8493,6 +9659,22 @@ export function getHtml(): string {
         const detail = document.getElementById('progress-detail');
         if (fill) fill.style.width = \`\${progress}%\`;
         if (detail) detail.textContent = \`\${loaded.toLocaleString()} / \${total.toLocaleString()} \${swedishMode ? 'låtar' : 'tracks'}\`;
+      }
+
+      // Populate album art URLs from partial genres for the carousel
+      if (partialGenres && partialGenres.length > 0 && albumArtUrls.length === 0) {
+        const artUrls = [];
+        for (const genre of partialGenres) {
+          if (genre.albumArts && genre.albumArts.length > 0) {
+            artUrls.push(...genre.albumArts);
+            if (artUrls.length >= 20) break; // Enough for rotation
+          }
+        }
+        if (artUrls.length >= 3) {
+          // Shuffle and set album art URLs
+          albumArtUrls = artUrls.sort(() => 0.5 - Math.random()).slice(0, 20);
+          updateAlbumCarousel(); // Update carousel with real images
+        }
       }
 
       // Update live genres grid with emojis
@@ -8917,67 +10099,97 @@ export function getHtml(): string {
     // Fun Spotify Wrapped-style quotes based on diversity score
     function getDiversityQuote(score) {
       const highDiversityQuotes = swedishMode ? [
-        'Din musiksmak? Omöjlig att sätta i ett fack. Du är en genre-anomali! 🌈',
-        'Du lyssnar på allt från ABBA till Zeppelin. Respekt! 🎸',
-        'Dina spellistor ger Spotify-algoritmerna existentiell kris 🤖',
-        'Du är typ den där personen som har "lite av allt" på festen 🎉',
-        'Musikalisk kameleont identifierad! Anpassar sig till varje stämning 🦎',
+        'Din musiksmak? Omöjlig att sätta i ett fack. Du är en genre-anomali!',
+        'Du lyssnar på allt från ABBA till death metal. Respekt.',
+        'Dina spellistor ger Spotify-algoritmerna existentiell kris.',
+        'Du är typ den där personen som DJ:ar på fester med "vänta, ni MÅSTE höra den här".',
+        'Musikalisk kameleont med oförutsägbar nästa låt.',
+        'Du har sagt "jag gillar typ allt" och faktiskt menat det.',
+        'Din shuffle är en berg-och-dalbana ingen bad om men alla behöver.',
+        'Genre? Aldrig hört talas om henne.',
       ] : [
-        'Your music taste? Impossible to pigeonhole. You are a genre anomaly! 🌈',
-        'You listen to everything from ABBA to Zeppelin. Respect! 🎸',
-        'Your playlists give Spotify algorithms an existential crisis 🤖',
-        'You are that person who has "a bit of everything" at the party 🎉',
-        'Musical chameleon identified! Adapts to every mood 🦎',
+        'Your music taste? Impossible to pigeonhole. You are a genre anomaly.',
+        'You listen to everything from ABBA to death metal. Respect.',
+        'Your playlists give Spotify algorithms an existential crisis.',
+        'You are that person who DJs at parties with "wait, you HAVE to hear this one".',
+        'Musical chameleon with an unpredictable next track.',
+        'You have said "I like basically everything" and actually meant it.',
+        'Your shuffle is a rollercoaster nobody asked for but everyone needs.',
+        'Genre? Never heard of her.',
       ];
 
       const diverseQuotes = swedishMode ? [
-        'Du gillar variation! Dina öron är nyfikna äventyrare 👂',
-        'Bra blandning! Du vet vad du gillar men är öppen för nytt 🎵',
-        'Din musiksmak är som en välbalanserad måltid 🍽️',
-        'Du har huvudspår OCH sidospår. Snyggt! 🛤️',
+        'Du gillar variation! Dina öron är nyfikna äventyrare.',
+        'Bra blandning! Du vet vad du gillar men är öppen för överraskningar.',
+        'Din musiksmak är som en välkryddad måltid - lite av varje.',
+        'Du har en bred smak men det är inte kaotiskt. Organiserat eklektiskt.',
+        'Du växlar mellan stämningar som en proffs.',
+        'Mångsidighet är ditt mellannamn. Eller borde vara.',
+        'Du är den vännen alla frågar om musikrekommendationer.',
       ] : [
-        'You like variety! Your ears are curious adventurers 👂',
-        'Nice mix! You know what you like but stay open to new sounds 🎵',
-        'Your music taste is like a well-balanced meal 🍽️',
-        'You have main tracks AND side tracks. Nice! 🛤️',
+        'You like variety! Your ears are curious adventurers.',
+        'Nice mix! You know what you like but stay open to surprises.',
+        'Your music taste is like a well-seasoned meal - a bit of everything.',
+        'You have broad taste but it is not chaotic. Organised eclectic.',
+        'You switch between moods like a pro.',
+        'Versatility is your middle name. Or should be.',
+        'You are the friend everyone asks for music recommendations.',
       ];
 
       const moderateQuotes = swedishMode ? [
-        'Du har hittat din groove och håller dig till den! 💃',
-        'Bekväm i din nisch men med utrymme att utforska 🔍',
-        'Solid grund med plats för tillväxt! 🌱',
-        'Du vet vad du gillar - och det är helt okej! 👍',
+        'Du har hittat din groove och du äger den!',
+        'Bekväm i dina favoritgenrer, men du tar ibland en omväg.',
+        'Solid grund med plats för utforskning när stämningen stämmer.',
+        'Du vet vad du gillar - ingen skam i det spelet.',
+        'Din musiksmak har en tydlig identitet och det är vackert.',
+        'Balanserad som en bra playlist. Lagom är bäst.',
+        'Du har dina go-to-genrer och det är helt rätt.',
       ] : [
-        'You have found your groove and you stick with it! 💃',
-        'Comfortable in your niche but with room to explore 🔍',
-        'Solid foundation with room to grow! 🌱',
-        'You know what you like - and that is totally fine! 👍',
+        'You have found your groove and you own it!',
+        'Comfortable in your favourite genres, but you take a detour sometimes.',
+        'Solid foundation with room for exploration when the mood strikes.',
+        'You know what you like - no shame in that game.',
+        'Your music taste has a clear identity and that is beautiful.',
+        'Balanced like a good playlist. Goldilocks approved.',
+        'You have your go-to genres and that is perfectly valid.',
       ];
 
       const focusedQuotes = swedishMode ? [
-        'Du har en typ och du håller dig till den! 🎯',
-        'Dedikerad lyssnare alert! Du vet exakt vad du vill ha 🔊',
-        'Låt ingen säga att du inte är engagerad! 💪',
-        'Genre-specialist i vardande! 🎓',
+        'Du har en typ och du håller dig till den. Konsekvent legend.',
+        'Dedikerad lyssnare alert! Du vet exakt vad du vill ha.',
+        'Låt ingen säga att du inte är engagerad.',
+        'Genre-specialist! Du har valt din bana och du kör hårt.',
+        'Djup kunskap > bred kunskap. Du gräver djupt.',
+        'Du är den där vännen som vet ALLT om en specifik genre.',
+        'Fokuserad energi. Inga distraktioner. Ren musiksmak.',
       ] : [
-        'You have a type and you stick with it! 🎯',
-        'Dedicated listener alert! You know exactly what you want 🔊',
-        'Let nobody say you are not committed! 💪',
-        'Genre specialist in the making! 🎓',
+        'You have a type and you stick with it. Consistent legend.',
+        'Dedicated listener alert! You know exactly what you want.',
+        'Let nobody say you are not committed.',
+        'Genre specialist! You picked your lane and you are thriving.',
+        'Deep knowledge > broad knowledge. You dig deep.',
+        'You are that friend who knows EVERYTHING about one specific genre.',
+        'Focused energy. No distractions. Pure music taste.',
       ];
 
       const veryFocusedQuotes = swedishMode ? [
-        'En genre att styra dem alla! Du är fullt dedikerad 💍',
-        'Du har hittat DET ljudet och du släpper det inte! 🔒',
-        'Laser-fokuserad musiksmak! Inga distraktioner 🎯',
-        'Du vet vad du gillar och du äger det! 👑',
-        'Genremästare! 100% koncentrerad energi ⚡',
+        'En genre att styra dem alla! Du är fullt dedikerad.',
+        'Du har hittat DET ljudet och du släpper det inte.',
+        'Laser-fokuserad musiksmak. Ingen ifrågasätter din dedikation.',
+        'Du vet vad du gillar och du äger det. Absolut inga ursäkter.',
+        'Genremästare! 100% koncentrerad passion.',
+        'När du gillar något, gillar du det PÅ RIKTIGT.',
+        'Din musikbibliotek har en estetik och den är tight.',
+        'Dedikation nivå: Expert. Du har valt din grej.',
       ] : [
-        'One genre to rule them all! You are fully committed 💍',
-        'You found THE sound and you are not letting go! 🔒',
-        'Laser-focused music taste! No distractions 🎯',
-        'You know what you like and you own it! 👑',
-        'Genre master! 100% concentrated energy ⚡',
+        'One genre to rule them all! You are fully committed.',
+        'You found THE sound and you are not letting go.',
+        'Laser-focused music taste. Nobody questions your dedication.',
+        'You know what you like and you own it. Zero apologies.',
+        'Genre master! 100% concentrated passion.',
+        'When you like something, you REALLY like it.',
+        'Your music library has an aesthetic and it is tight.',
+        'Dedication level: Expert. You picked your thing.',
       ];
 
       let quotes;
@@ -8988,6 +10200,31 @@ export function getHtml(): string {
       else quotes = veryFocusedQuotes;
 
       return quotes[Math.floor(Math.random() * quotes.length)];
+    }
+
+    // Get a fun personality type based on diversity score
+    function getMusicPersonality(score) {
+      if (score >= 80) {
+        return swedishMode
+          ? { type: 'The Sonic Explorer', emoji: '🌍', desc: 'Gränslös musikresenär' }
+          : { type: 'The Sonic Explorer', emoji: '🌍', desc: 'Boundless music traveller' };
+      } else if (score >= 60) {
+        return swedishMode
+          ? { type: 'The Curator', emoji: '🎨', desc: 'Smakfull samlare' }
+          : { type: 'The Curator', emoji: '🎨', desc: 'Tasteful collector' };
+      } else if (score >= 40) {
+        return swedishMode
+          ? { type: 'The Comfort Seeker', emoji: '☕', desc: 'Mysig lyssnare' }
+          : { type: 'The Comfort Seeker', emoji: '☕', desc: 'Cozy listener' };
+      } else if (score >= 20) {
+        return swedishMode
+          ? { type: 'The Specialist', emoji: '🔬', desc: 'Djupdykare i ljudet' }
+          : { type: 'The Specialist', emoji: '🔬', desc: 'Deep diver in sound' };
+      } else {
+        return swedishMode
+          ? { type: 'The Purist', emoji: '💎', desc: 'Kristallklar smak' }
+          : { type: 'The Purist', emoji: '💎', desc: 'Crystal clear taste' };
+      }
     }
 
     function calculateAvgGenresPerTrack() {
@@ -9025,11 +10262,11 @@ export function getHtml(): string {
           <div class="stats-section">
             <h4>\${swedishMode ? 'Topp 10 Genrer' : 'Top 10 Genres'}</h4>
             <div class="genre-bars">
-              \${top10.map(g => \`
+              \${top10.map((g, i) => \`
                 <div class="genre-bar-row">
                   <span class="genre-bar-name">\${g.name}</span>
                   <div class="genre-bar-container">
-                    <div class="genre-bar" style="width: \${(g.count / maxCount * 100)}%"></div>
+                    <div class="genre-bar bar-\${i + 1}" style="width: \${(g.count / maxCount * 100)}%"></div>
                   </div>
                   <span class="genre-bar-count">\${g.count}</span>
                 </div>
@@ -9037,17 +10274,20 @@ export function getHtml(): string {
             </div>
           </div>
 
-          <div class="stats-section">
-            <h4>\${swedishMode ? 'Mångfaldsmätare' : 'Diversity Score'}</h4>
-            <div class="diversity-meter">
-              <div class="diversity-fill" style="width: \${diversityScore}%"></div>
-            </div>
-            <div class="diversity-info">
-              <span class="diversity-score">\${diversityScore}%</span>
-              <span class="diversity-label">\${getDiversityLabel(diversityScore)}</span>
-            </div>
-            <div class="diversity-quote">
-              <span class="quote-text">\${getDiversityQuote(diversityScore)}</span>
+          <div class="wrapped-diversity-card">
+            <div class="wrapped-content">
+              <div class="wrapped-score-display">
+                <div class="wrapped-score-big">\${diversityScore}%</div>
+                <div class="wrapped-score-label">\${swedishMode ? 'Mångfald' : 'Diversity'}</div>
+              </div>
+              <div class="wrapped-divider"></div>
+              <div class="diversity-quote">
+                <span class="quote-text">"\${getDiversityQuote(diversityScore)}"</span>
+              </div>
+              <div class="wrapped-personality">
+                <div class="wrapped-personality-label">\${swedishMode ? 'Din musikpersonlighet' : 'Your music personality'}</div>
+                <div class="wrapped-personality-type">\${getMusicPersonality(diversityScore).emoji} \${getMusicPersonality(diversityScore).type}</div>
+              </div>
             </div>
           </div>
 
@@ -9154,7 +10394,7 @@ export function getHtml(): string {
                 oninput="updatePlaylistTemplate(this.value)"
                 placeholder="{genre} (from Likes)"
               >
-              <button onclick="resetTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}">↺</button>
+              <button onclick="resetTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ mall' : 'Reset template'}">↺</button>
             </div>
             <div class="template-preview">
               \${swedishMode ? 'Förhandsvisning:' : 'Preview:'} <span id="template-preview">\${getTemplatePreview()}</span>
@@ -9168,6 +10408,18 @@ export function getHtml(): string {
             data-i18n-placeholder="searchGenres"
             oninput="filterAndRenderGenres(this.value)"
           >
+          <div class="select-all-row">
+            <label class="select-all-label">
+              <input
+                type="checkbox"
+                id="select-all-checkbox"
+                onchange="toggleSelectAll(this)"
+                aria-label="\${swedishMode ? 'Välj alla genrer' : 'Select all genres'}"
+              >
+              <span>\${swedishMode ? 'Välj alla' : 'Select all'}</span>
+            </label>
+            <span class="selection-info" id="selection-info"></span>
+          </div>
           <div class="genre-list" id="genre-list"></div>
           <div class="actions">
             <button onclick="selectAll()" class="btn btn-secondary" data-i18n="selectAll">\${t('selectAll')}</button>
@@ -9252,6 +10504,9 @@ export function getHtml(): string {
       document.getElementById('selected-count').textContent = selectedGenres.size;
       document.getElementById('create-btn').disabled = selectedGenres.size === 0;
 
+      // Update select-all checkbox state
+      updateSelectAllCheckbox();
+
       // Show/hide merge selected button based on selection count
       let mergeSelectedBtn = document.getElementById('merge-selected-btn');
       if (selectedGenres.size >= 2) {
@@ -9268,6 +10523,47 @@ export function getHtml(): string {
         }
       } else if (mergeSelectedBtn) {
         mergeSelectedBtn.remove();
+      }
+    }
+
+    // Update select-all checkbox to reflect current selection state
+    function updateSelectAllCheckbox() {
+      const selectAllCb = document.getElementById('select-all-checkbox');
+      const selectionInfo = document.getElementById('selection-info');
+      if (!selectAllCb) return;
+
+      const totalCheckboxes = document.querySelectorAll('.genre-checkbox').length;
+      const selectedCount = selectedGenres.size;
+
+      if (selectedCount === 0) {
+        selectAllCb.checked = false;
+        selectAllCb.indeterminate = false;
+      } else if (selectedCount === totalCheckboxes) {
+        selectAllCb.checked = true;
+        selectAllCb.indeterminate = false;
+      } else {
+        selectAllCb.checked = false;
+        selectAllCb.indeterminate = true;
+      }
+
+      // Update selection info text
+      if (selectionInfo) {
+        if (selectedCount > 0) {
+          selectionInfo.textContent = swedishMode
+            ? \`\${selectedCount} av \${totalCheckboxes} valda\`
+            : \`\${selectedCount} of \${totalCheckboxes} selected\`;
+        } else {
+          selectionInfo.textContent = '';
+        }
+      }
+    }
+
+    // Toggle select all/none via the master checkbox
+    function toggleSelectAll(checkbox) {
+      if (checkbox.checked) {
+        selectAll();
+      } else {
+        selectNone();
       }
     }
 
@@ -9329,7 +10625,7 @@ export function getHtml(): string {
         '<div class="customise-panel">',
         '  <div class="customise-header">',
         '    <h3>' + (swedishMode ? '✏️ Anpassa spellista' : '✏️ Customise Playlist') + '</h3>',
-        '    <button class="customise-close" onclick="this.closest(\\'.customise-modal\\').remove()">&times;</button>',
+        '    <button class="customise-close" onclick="this.closest(\\'.customise-modal\\').remove()" aria-label="Close">&times;</button>',
         '  </div>',
         '  <div class="customise-body">',
         '    <div class="customise-field">',
@@ -9362,6 +10658,9 @@ export function getHtml(): string {
       ].join('');
 
       document.body.appendChild(modal);
+
+      // Apply focus trap for accessibility
+      trapFocus(modal.querySelector('.customise-panel'));
 
       // Update preview on input
       const nameInput = document.getElementById('custom-name');
@@ -9486,6 +10785,9 @@ export function getHtml(): string {
       \`;
 
       document.body.appendChild(modal);
+
+      // Apply focus trap for accessibility
+      trapFocus(modal.querySelector('.playlist-customize-modal'));
 
       // Update character count
       const descTextarea = modal.querySelector('#playlist-description');
@@ -9970,6 +11272,9 @@ export function getHtml(): string {
       overlay.appendChild(panel);
       document.body.appendChild(overlay);
 
+      // Apply focus trap for accessibility
+      trapFocus(panel);
+
       // Focus the close button for accessibility
       panel.querySelector('button')?.focus();
     }
@@ -10262,7 +11567,7 @@ export function getHtml(): string {
         <div class="scoreboard-panel">
           <div class="scoreboard-header">
             <h2>📊 \${swedishMode ? 'Resultattavla' : 'Scoreboard'}</h2>
-            <button class="btn btn-ghost" onclick="closeScoreboard()">✕</button>
+            <button class="btn btn-ghost" onclick="closeScoreboard()" aria-label="Close scoreboard">✕</button>
           </div>
           <div class="scoreboard-tabs">
             <button class="scoreboard-tab active" data-tab="playlists">🎵 \${swedishMode ? 'Spellistor' : 'Playlists'}</button>
@@ -10283,6 +11588,9 @@ export function getHtml(): string {
       \`;
 
       document.body.appendChild(modal);
+
+      // Apply focus trap for accessibility
+      trapFocus(modal.querySelector('.scoreboard-panel'));
 
       // Add tab click handlers
       modal.querySelectorAll('.scoreboard-tab').forEach(tab => {
@@ -10318,9 +11626,11 @@ export function getHtml(): string {
         <div class="scoreboard-list">
           \${data.map(entry => {
             const rankClass = entry.rank === 1 ? 'gold' : entry.rank === 2 ? 'silver' : entry.rank === 3 ? 'bronze' : '';
+            const top3Class = entry.rank <= 3 ? 'top-3' : '';
+            const medalEmoji = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : '';
             return \`
-              <div class="scoreboard-entry">
-                <span class="rank \${rankClass}">#\${entry.rank}</span>
+              <div class="scoreboard-entry \${top3Class}">
+                <span class="rank \${rankClass}">\${medalEmoji || '#' + entry.rank}</span>
                 \${entry.spotifyAvatar
                   ? \`<img class="entry-avatar" src="\${entry.spotifyAvatar}" alt="" onerror="this.style.display='none'">\`
                   : '<div class="entry-avatar" style="background:var(--surface-2);display:flex;align-items:center;justify-content:center">👤</div>'}
@@ -10472,7 +11782,7 @@ export function getHtml(): string {
       return '<div class="playlist-modal-content">' +
         '<div class="playlist-modal-header">' +
           '<h2>' + title + '</h2>' +
-          '<button class="playlist-modal-close" onclick="closePlaylistModal()">&times;</button>' +
+          '<button class="playlist-modal-close" onclick="closePlaylistModal()" aria-label="Close">&times;</button>' +
         '</div>' +
         '<div id="playlist-list-container">' +
           '<div class="scanning-indicator"><div class="spinner"></div>' + loading + '</div>' +
@@ -10958,7 +12268,7 @@ export function getHtml(): string {
       banner.innerHTML = '<strong>' + title + '</strong> — ' + msg +
         ' <a href="https://status.tomstech.dev" target="_blank">' +
         (swedishMode ? 'Statussida' : 'Status Page') + '</a>' +
-        '<button class="close-btn" onclick="dismissRateLimitBanner()">&times;</button>';
+        '<button class="close-btn" onclick="dismissRateLimitBanner()" aria-label="Dismiss banner">&times;</button>';
 
       document.body.prepend(banner);
       document.body.classList.add('has-banner');
@@ -11322,7 +12632,7 @@ export function getHtml(): string {
       modal.className = 'share-modal-overlay';
       modal.innerHTML = [
         '<div class="share-modal">',
-        '  <button class="share-close" onclick="this.closest(\\'.share-modal-overlay\\').remove()">&times;</button>',
+        '  <button class="share-close" onclick="this.closest(\\'.share-modal-overlay\\').remove()" aria-label="Close">&times;</button>',
         '  <h3>' + (swedishMode ? '🎉 Dela din spellista!' : '🎉 Share your playlist!') + '</h3>',
         '  <p class="share-playlist-name">' + playlistName + '</p>',
         '  <div class="share-qr-container">',
@@ -11342,6 +12652,9 @@ export function getHtml(): string {
       ].join('');
 
       document.body.appendChild(modal);
+
+      // Apply focus trap for accessibility
+      trapFocus(modal.querySelector('.share-modal'));
 
       // Close on backdrop click
       modal.addEventListener('click', (e) => {
@@ -11905,8 +13218,8 @@ export function getHtml(): string {
       const existing = document.querySelector('.wrapped-overlay');
       if (existing) existing.remove();
 
-      // Calculate stats
-      const totalTracks = genres.reduce((sum, g) => sum + g.count, 0);
+      // Calculate stats - use actual track count, not genre assignment sum
+      const totalTracks = genreData?.totalTracks || window.totalTracks || genres.length;
       const topGenres = genres.slice(0, 5);
       const topFamily = getGenreFamily(topGenres[0]?.name || '');
       const diversityScore = calculateDiversityScore(genres);
@@ -11915,8 +13228,8 @@ export function getHtml(): string {
       const gradient = swedishMode ? GENRE_GRADIENTS.swedish : (GENRE_GRADIENTS[topFamily] || GENRE_GRADIENTS.other);
       const reading = getRandomReading(topFamily, lang);
 
-      // Get unique artists count (estimate from genres)
-      const uniqueArtists = Math.round(totalTracks * 0.6); // rough estimate
+      // Get unique artists count from actual data or estimate
+      const uniqueArtists = genreData?.totalArtists || Math.round(totalTracks * 0.6);
 
       // Random fun fact
       const facts = WRAPPED_FACTS[lang];
@@ -11948,7 +13261,7 @@ export function getHtml(): string {
       modal.className = 'wrapped-overlay';
       modal.innerHTML = [
         '<div class="wrapped-container">',
-        '  <button class="wrapped-close" onclick="this.closest(\\'.wrapped-overlay\\').remove()">&times;</button>',
+        '  <button class="wrapped-close" onclick="this.closest(\\'.wrapped-overlay\\').remove()" aria-label="Close">&times;</button>',
         '  <div class="wrapped-card" id="wrapped-card" style="background: ' + gradient + '">',
         '    <div class="wrapped-header">',
         '      <div class="wrapped-logo">',
@@ -12006,6 +13319,9 @@ export function getHtml(): string {
       document.body.appendChild(modal);
       modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 
+      // Apply focus trap for accessibility
+      trapFocus(modal.querySelector('.wrapped-container'));
+
       // Animate in
       requestAnimationFrame(() => {
         modal.classList.add('wrapped-visible');
@@ -12029,14 +13345,25 @@ export function getHtml(): string {
           link.href = canvas.toDataURL('image/png');
           link.click();
         } else {
-          // Fallback: prompt user to screenshot
-          alert(swedishMode
-            ? 'Ta en skärmbild av ditt kort! (html2canvas behövs för automatisk nedladdning)'
-            : 'Take a screenshot of your card! (html2canvas needed for automatic download)');
+          // Fallback: show friendly toast with screenshot hint and highlight card
+          const card = document.getElementById('wrapped-card');
+          if (card) {
+            card.style.outline = '3px solid white';
+            card.style.outlineOffset = '4px';
+            setTimeout(() => {
+              if (card.style) {
+                card.style.outline = '';
+                card.style.outlineOffset = '';
+              }
+            }, 3000);
+          }
+          showToast(swedishMode
+            ? '📸 Ta en skärmbild av kortet ovan!'
+            : '📸 Take a screenshot of the card above!', 4000);
         }
       } catch (err) {
         console.error('Download error:', err);
-        alert(swedishMode ? 'Kunde inte ladda ner. Ta en skärmbild istället!' : 'Could not download. Take a screenshot instead!');
+        showToast(swedishMode ? '📸 Ta en skärmbild istället!' : '📸 Take a screenshot instead!', 3000);
       }
     }
 
@@ -12156,7 +13483,7 @@ export function getHtml(): string {
       modal.className = 'request-access-overlay';
       modal.innerHTML = \`
         <div class="request-access-modal">
-          <button class="modal-close" onclick="this.closest('.request-access-overlay').remove()">&times;</button>
+          <button class="modal-close" onclick="this.closest('.request-access-overlay').remove()" aria-label="Close">&times;</button>
           <h2>🔑 \${t('requestAccessTitle')}</h2>
           <p>\${t('requestAccessDesc')}</p>
           <form onsubmit="submitAccessRequest(event)" class="request-access-form">
@@ -12181,6 +13508,9 @@ export function getHtml(): string {
 
       document.body.appendChild(modal);
       modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+      // Apply focus trap for accessibility
+      trapFocus(modal.querySelector('.request-access-modal'));
 
       // Focus first input
       requestAnimationFrame(() => {

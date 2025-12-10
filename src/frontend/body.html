@@ -1,3 +1,6 @@
+  <!-- Skip to main content link for keyboard users -->
+  <a href="#app" class="skip-to-content">Skip to main content</a>
+
   <!-- Deployment Monitor Widget -->
   <div class="deploy-widget" id="deploy-widget" style="display: none;" onclick="showDeployDetails()">
     <span class="status-icon"></span>
@@ -8,6 +11,25 @@
   <div class="kv-status-indicator" id="kv-status-indicator" onclick="showKVStatusModal()">
     <span class="kv-icon">📊</span>
     <span class="kv-text">KV: ...</span>
+  </div>
+
+  <!-- Now Playing Widget -->
+  <div class="now-playing-widget" id="now-playing-widget" style="display: none;">
+    <div class="now-playing-art">
+      <img id="now-playing-art" src="" alt="Album art">
+      <div class="now-playing-equalizer">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+    <div class="now-playing-info">
+      <div class="now-playing-track" id="now-playing-track">Not playing</div>
+      <div class="now-playing-artist" id="now-playing-artist"></div>
+      <div class="now-playing-progress">
+        <div class="now-playing-progress-bar">
+          <div class="now-playing-progress-fill" id="now-playing-progress"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- SVG Gradient Definition for Swedish mode -->
