@@ -3,7 +3,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import auth from './routes/auth';
 import api from './routes/api';
-import { getSession, trackAnalyticsEvent } from './lib/session';
+import { getSession, trackAnalyticsEvent, getAnalytics, getKVMetrics } from './lib/session';
 import { getHtml } from './generated/frontend';
 
 // App version - increment on each deployment
@@ -101,6 +101,109 @@ app.get('/health', async (c) => {
     components,
     timestamp: new Date().toISOString(),
   });
+});
+
+// KV Health check - PUBLIC endpoint for BetterStack monitoring
+// Returns status based on KV usage (reads/writes vs free tier limits)
+// Returns 503 when critical to trigger BetterStack alerts
+app.get('/kv-health', async (c) => {
+  try {
+    const analytics = await getAnalytics(c.env.SESSIONS);
+    const today = analytics.today;
+    const realtimeMetrics = getKVMetrics();
+
+    // Free tier limits (reset daily at midnight UTC)
+    const READ_LIMIT = 100000;
+    const WRITE_LIMIT = 1000;
+
+    // Estimate KV operations based on today's activity
+    const breakdown = {
+      sessions: {
+        reads: Math.round(today.libraryScans * 2 + today.playlistsCreated * 2),
+        writes: today.signIns * 2,
+      },
+      caches: {
+        reads: Math.round(today.pageViews * 0.5),
+        writes: Math.round(today.pageViews * 0.02),
+      },
+      userStats: {
+        reads: today.playlistsCreated,
+        writes: today.playlistsCreated,
+      },
+      recentPlaylists: {
+        reads: Math.round(today.pageViews * 0.3),
+        writes: today.playlistsCreated,
+      },
+      auth: {
+        reads: today.signIns * 3,
+        writes: today.signIns * 2,
+      },
+    };
+
+    const estimatedReads = Object.values(breakdown).reduce((sum, cat) => sum + cat.reads, 0);
+    const estimatedWrites = Object.values(breakdown).reduce((sum, cat) => sum + cat.writes, 0);
+
+    const readUsagePercent = Math.round((estimatedReads / READ_LIMIT) * 100);
+    const writeUsagePercent = Math.round((estimatedWrites / WRITE_LIMIT) * 100);
+
+    // Determine status
+    let status: 'ok' | 'warning' | 'critical' = 'ok';
+    let message = 'KV storage operating normally';
+
+    if (writeUsagePercent >= 100 || readUsagePercent >= 100) {
+      status = 'critical';
+      message = writeUsagePercent >= 100
+        ? `KV write limit exceeded (${writeUsagePercent}%)`
+        : `KV read limit exceeded (${readUsagePercent}%)`;
+    } else if (writeUsagePercent > 90 || readUsagePercent > 90) {
+      status = 'critical';
+      message = `KV approaching limit - writes: ${writeUsagePercent}%, reads: ${readUsagePercent}%`;
+    } else if (writeUsagePercent > 80 || readUsagePercent > 80) {
+      status = 'warning';
+      message = `KV usage elevated - writes: ${writeUsagePercent}%, reads: ${readUsagePercent}%`;
+    }
+
+    // Calculate time until reset (midnight UTC)
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setUTCDate(midnight.getUTCDate() + 1);
+    midnight.setUTCHours(0, 0, 0, 0);
+    const hoursUntilReset = Math.round((midnight.getTime() - now.getTime()) / 3600000);
+
+    const response = {
+      status,
+      message,
+      usage: {
+        reads: { estimated: estimatedReads, limit: READ_LIMIT, percent: readUsagePercent },
+        writes: { estimated: estimatedWrites, limit: WRITE_LIMIT, percent: writeUsagePercent },
+      },
+      realtime: {
+        reads: realtimeMetrics.reads,
+        writes: realtimeMetrics.writes,
+        cacheHitRate: realtimeMetrics.cacheHits + realtimeMetrics.cacheMisses > 0
+          ? Math.round((realtimeMetrics.cacheHits / (realtimeMetrics.cacheHits + realtimeMetrics.cacheMisses)) * 100)
+          : 0,
+      },
+      limitsResetIn: `${hoursUntilReset} hours`,
+      timestamp: new Date().toISOString(),
+      version: APP_VERSION,
+    };
+
+    // Return 503 for critical status so BetterStack detects the issue
+    if (status === 'critical') {
+      return c.json(response, 503);
+    }
+
+    return c.json(response);
+  } catch (err) {
+    console.error('KV health check failed:', err);
+    return c.json({
+      status: 'error',
+      message: 'Failed to check KV health',
+      timestamp: new Date().toISOString(),
+      version: APP_VERSION,
+    }, 503);
+  }
 });
 
 // Middleware (after health check so it doesn't block health)

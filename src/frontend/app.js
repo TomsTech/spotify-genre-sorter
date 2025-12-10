@@ -3,6 +3,93 @@
 
     let genreData = null;
     
+    // Custom prompt modal to replace native prompt()
+    function showPromptModal(message, defaultValue = '') {
+      return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'prompt-modal-overlay';
+
+        const cleanup = (value) => {
+          overlay.remove();
+          resolve(value);
+        };
+
+        overlay.onclick = (e) => { if (e.target === overlay) cleanup(null); };
+
+        const modal = document.createElement('div');
+        modal.className = 'prompt-modal';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-labelledby', 'prompt-title');
+
+        modal.innerHTML = [
+          '<h3 id="prompt-title">' + (swedishMode ? '📝 Ange namn' : '📝 Enter name') + '</h3>',
+          '<p class="prompt-message">' + message + '</p>',
+          '<input type="text" class="prompt-input" id="prompt-input" value="' + escapeForHtml(defaultValue) + '" maxlength="100">',
+          '<div class="prompt-buttons">',
+          '  <button class="btn btn-ghost" id="prompt-cancel">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
+          '  <button class="btn btn-primary" id="prompt-confirm">' + (swedishMode ? 'OK' : 'OK') + '</button>',
+          '</div>',
+        ].join('\\n');
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        const input = document.getElementById('prompt-input');
+        const confirmBtn = document.getElementById('prompt-confirm');
+        const cancelBtn = document.getElementById('prompt-cancel');
+
+        // Focus input and select text
+        input.focus();
+        input.select();
+
+        // Handle Enter key
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            cleanup(input.value.trim() || null);
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cleanup(null);
+          }
+        });
+
+        confirmBtn.onclick = () => cleanup(input.value.trim() || null);
+        cancelBtn.onclick = () => cleanup(null);
+
+        // Apply focus trap to keep keyboard navigation within modal
+        trapFocus(modal);
+      });
+    }
+
+    // Focus trap utility for modals - keeps Tab cycling within the modal
+    function trapFocus(container) {
+      const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+      const focusableElements = container.querySelectorAll(focusableSelector);
+      if (focusableElements.length === 0) return;
+
+      const firstFocusable = focusableElements[0];
+      const lastFocusable = focusableElements[focusableElements.length - 1];
+
+      container.addEventListener('keydown', (e) => {
+        if (e.key !== 'Tab') return;
+
+        if (e.shiftKey) {
+          // Shift+Tab: if on first element, wrap to last
+          if (document.activeElement === firstFocusable) {
+            e.preventDefault();
+            lastFocusable.focus();
+          }
+        } else {
+          // Tab: if on last element, wrap to first
+          if (document.activeElement === lastFocusable) {
+            e.preventDefault();
+            firstFocusable.focus();
+          }
+        }
+      });
+    }
+
     // Create merged playlist from selected genres
     async function createMergedFromSelection() {
       if (selectedGenres.size < 2) {
@@ -13,8 +100,8 @@
       const genreNames = [...selectedGenres];
       const suggestedName = genreNames.slice(0, 3).join(' + ') + (genreNames.length > 3 ? ' +more' : '');
 
-      // Prompt for playlist name
-      const playlistName = prompt(
+      // Show custom prompt modal for playlist name
+      const playlistName = await showPromptModal(
         swedishMode ? 'Namn på sammanslagen spellista:' : 'Name for merged playlist:',
         suggestedName
       );
@@ -175,7 +262,7 @@
         '<div class="modal-content">',
         '  <div class="modal-header">',
         '    <h3>' + (swedishMode ? '📦 Slå ihop genrer' : '📦 Merge Genres') + '</h3>',
-        '    <button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()">×</button>',
+        '    <button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()" aria-label="Close modal">×</button>',
         '  </div>',
         '  <div class="modal-body">',
         '    <label>' + (swedishMode ? 'Spellistans namn' : 'Playlist Name') + '</label>',
@@ -289,7 +376,7 @@
     // Add theme toggle to header immediately (visible before login)
     if (headerActions) {
       headerActions.innerHTML = \`
-        <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
+        <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}" aria-label="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
           \${lightMode ? '🌙' : '☀️'}
         </button>
       \`;
@@ -473,50 +560,56 @@
       modal.innerHTML = \`
         <div class="modal-content admin-panel">
           <div class="modal-header">
-            <h2>⚙️ Debug Panel</h2>
-            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+            <h2>⚙️ Admin Panel</h2>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()" aria-label="Close admin panel">×</button>
           </div>
-          <div class="admin-grid">
-            <div class="admin-card">
-              <h3>📊 KV Usage (Today)</h3>
-              <div class="admin-stats">
-                <div class="stat">
-                  <span class="label">Reads:</span>
-                  <span class="value kv-\${readStatus}">\${kvUsage.estimatedReads || 0} / 100k (\${readPct}%)</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Writes:</span>
-                  <span class="value kv-\${writeStatus}">\${kvUsage.estimatedWrites || 0} / 1k (\${writePct}%)</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Cache Hits:</span>
-                  <span class="value">\${kvMetrics.cacheHits || 0} (\${kvMetrics.cacheHitRate || 0}%)</span>
+          <div class="admin-tabs">
+            <button class="admin-tab active" data-tab="stats">📊 Stats</button>
+            <button class="admin-tab" data-tab="users">👥 Users</button>
+          </div>
+          <div class="admin-tab-content" id="admin-tab-content">
+            <div class="admin-grid">
+              <div class="admin-card">
+                <h3>📊 KV Usage (Today)</h3>
+                <div class="admin-stats">
+                  <div class="stat">
+                    <span class="label">Reads:</span>
+                    <span class="value kv-\${readStatus}">\${kvUsage.estimatedReads || 0} / 100k (\${readPct}%)</span>
+                  </div>
+                  <div class="stat">
+                    <span class="label">Writes:</span>
+                    <span class="value kv-\${writeStatus}">\${kvUsage.estimatedWrites || 0} / 1k (\${writePct}%)</span>
+                  </div>
+                  <div class="stat">
+                    <span class="label">Cache Hits:</span>
+                    <span class="value">\${kvMetrics.cacheHits || 0} (\${kvMetrics.cacheHitRate || 0}%)</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="admin-card">
-              <h3>📈 Analytics (Today)</h3>
-              <div class="admin-stats">
-                <div class="stat"><span class="label">Page Views:</span> <span class="value">\${today.pageViews || 0}</span></div>
-                <div class="stat"><span class="label">Sign-ins:</span> <span class="value">\${today.signIns || 0}</span></div>
-                <div class="stat"><span class="label">Playlists:</span> <span class="value">\${today.playlistsCreated || 0}</span></div>
-                <div class="stat"><span class="label">Library Scans:</span> <span class="value">\${today.libraryScans || 0}</span></div>
+              <div class="admin-card">
+                <h3>📈 Analytics (Today)</h3>
+                <div class="admin-stats">
+                  <div class="stat"><span class="label">Page Views:</span> <span class="value">\${today.pageViews || 0}</span></div>
+                  <div class="stat"><span class="label">Sign-ins:</span> <span class="value">\${today.signIns || 0}</span></div>
+                  <div class="stat"><span class="label">Playlists:</span> <span class="value">\${today.playlistsCreated || 0}</span></div>
+                  <div class="stat"><span class="label">Library Scans:</span> <span class="value">\${today.libraryScans || 0}</span></div>
+                </div>
               </div>
-            </div>
-            <div class="admin-card">
-              <h3>👥 Users</h3>
-              <div class="admin-stats">
-                <div class="stat"><span class="label">Total Users:</span> <span class="value">\${totalUsers}</span></div>
-                <div class="stat"><span class="label">Unique Artists:</span> <span class="value">\${today.uniqueArtists || 0}</span></div>
-                <div class="stat"><span class="label">Unique Genres:</span> <span class="value">\${today.uniqueGenres || 0}</span></div>
+              <div class="admin-card">
+                <h3>👥 Users</h3>
+                <div class="admin-stats">
+                  <div class="stat"><span class="label">Total Users:</span> <span class="value">\${totalUsers}</span></div>
+                  <div class="stat"><span class="label">Unique Artists:</span> <span class="value">\${today.uniqueArtists || 0}</span></div>
+                  <div class="stat"><span class="label">Unique Genres:</span> <span class="value">\${today.uniqueGenres || 0}</span></div>
+                </div>
               </div>
-            </div>
-            <div class="admin-card">
-              <h3>⚡ Realtime (This Worker)</h3>
-              <div class="admin-stats">
-                <div class="stat"><span class="label">KV Reads:</span> <span class="value">\${kvMetrics.reads || 0}</span></div>
-                <div class="stat"><span class="label">KV Writes:</span> <span class="value">\${kvMetrics.writes || 0}</span></div>
-                <div class="stat"><span class="label">Cache Misses:</span> <span class="value">\${kvMetrics.cacheMisses || 0}</span></div>
+              <div class="admin-card">
+                <h3>⚡ Realtime (This Worker)</h3>
+                <div class="admin-stats">
+                  <div class="stat"><span class="label">KV Reads:</span> <span class="value">\${kvMetrics.reads || 0}</span></div>
+                  <div class="stat"><span class="label">KV Writes:</span> <span class="value">\${kvMetrics.writes || 0}</span></div>
+                  <div class="stat"><span class="label">Cache Misses:</span> <span class="value">\${kvMetrics.cacheMisses || 0}</span></div>
+                </div>
               </div>
             </div>
           </div>
@@ -531,7 +624,156 @@
       \`;
 
       document.body.appendChild(modal);
+
+      // Apply focus trap for accessibility
+      trapFocus(modal.querySelector('.admin-panel'));
+
+      // Handle tab switching
+      modal.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.onclick = async () => {
+          modal.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          const tabName = tab.dataset.tab;
+
+          if (tabName === 'users') {
+            await loadAdminUsersTab(modal);
+          } else {
+            // Reload stats tab content
+            const content = modal.querySelector('#admin-tab-content');
+            content.innerHTML = \`
+              <div class="admin-grid">
+                <div class="admin-card">
+                  <h3>📊 KV Usage (Today)</h3>
+                  <div class="admin-stats">
+                    <div class="stat">
+                      <span class="label">Reads:</span>
+                      <span class="value kv-\${readStatus}">\${kvUsage.estimatedReads || 0} / 100k (\${readPct}%)</span>
+                    </div>
+                    <div class="stat">
+                      <span class="label">Writes:</span>
+                      <span class="value kv-\${writeStatus}">\${kvUsage.estimatedWrites || 0} / 1k (\${writePct}%)</span>
+                    </div>
+                    <div class="stat">
+                      <span class="label">Cache Hits:</span>
+                      <span class="value">\${kvMetrics.cacheHits || 0} (\${kvMetrics.cacheHitRate || 0}%)</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="admin-card">
+                  <h3>📈 Analytics (Today)</h3>
+                  <div class="admin-stats">
+                    <div class="stat"><span class="label">Page Views:</span> <span class="value">\${today.pageViews || 0}</span></div>
+                    <div class="stat"><span class="label">Sign-ins:</span> <span class="value">\${today.signIns || 0}</span></div>
+                    <div class="stat"><span class="label">Playlists:</span> <span class="value">\${today.playlistsCreated || 0}</span></div>
+                    <div class="stat"><span class="label">Library Scans:</span> <span class="value">\${today.libraryScans || 0}</span></div>
+                  </div>
+                </div>
+                <div class="admin-card">
+                  <h3>👥 Users</h3>
+                  <div class="admin-stats">
+                    <div class="stat"><span class="label">Total Users:</span> <span class="value">\${totalUsers}</span></div>
+                    <div class="stat"><span class="label">Unique Artists:</span> <span class="value">\${today.uniqueArtists || 0}</span></div>
+                    <div class="stat"><span class="label">Unique Genres:</span> <span class="value">\${today.uniqueGenres || 0}</span></div>
+                  </div>
+                </div>
+                <div class="admin-card">
+                  <h3>⚡ Realtime (This Worker)</h3>
+                  <div class="admin-stats">
+                    <div class="stat"><span class="label">KV Reads:</span> <span class="value">\${kvMetrics.reads || 0}</span></div>
+                    <div class="stat"><span class="label">KV Writes:</span> <span class="value">\${kvMetrics.writes || 0}</span></div>
+                    <div class="stat"><span class="label">Cache Misses:</span> <span class="value">\${kvMetrics.cacheMisses || 0}</span></div>
+                  </div>
+                </div>
+              </div>
+            \`;
+          }
+        };
+      });
     }
+
+    async function loadAdminUsersTab(modal) {
+      const content = modal.querySelector('#admin-tab-content');
+      content.innerHTML = '<div class="admin-loading">Loading users...</div>';
+
+      try {
+        const response = await fetch('/api/admin/users');
+        if (!response.ok) throw new Error('Failed to load users');
+        const data = await response.json();
+
+        if (data.users.length === 0) {
+          content.innerHTML = '<div class="admin-empty">No users found</div>';
+          return;
+        }
+
+        content.innerHTML = \`
+          <div class="admin-users-header">
+            <span>\${data.total} users total</span>
+            <input type="text" class="admin-search" id="admin-user-search" placeholder="Search users..." />
+          </div>
+          <div class="admin-users-list" id="admin-users-list">
+            \${data.users.map(user => \`
+              <div class="admin-user-row" data-spotify-id="\${user.spotifyId}" data-name="\${user.spotifyName.toLowerCase()}">
+                <div class="admin-user-avatar">
+                  \${user.spotifyAvatar
+                    ? \`<img src="\${user.spotifyAvatar}" alt="" />\`
+                    : '<span class="avatar-placeholder">👤</span>'}
+                </div>
+                <div class="admin-user-info">
+                  <div class="admin-user-name">\${escapeHtml(user.spotifyName)}</div>
+                  <div class="admin-user-meta">
+                    <span title="Spotify ID">\${user.spotifyId.substring(0, 8)}...</span>
+                    <span>•</span>
+                    <span>\${user.playlistCount} playlists</span>
+                    <span>•</span>
+                    <span>Joined \${formatTimeAgo(new Date(user.registeredAt))}</span>
+                  </div>
+                </div>
+                <button class="btn btn-danger btn-sm admin-delete-user" onclick="confirmDeleteUser('\${user.spotifyId}', '\${escapeForHtml(user.spotifyName)}')" title="Remove user">
+                  🗑️
+                </button>
+              </div>
+            \`).join('')}
+          </div>
+        \`;
+
+        // Add search functionality
+        const searchInput = content.querySelector('#admin-user-search');
+        searchInput?.addEventListener('input', (e) => {
+          const query = e.target.value.toLowerCase();
+          content.querySelectorAll('.admin-user-row').forEach(row => {
+            const name = row.dataset.name || '';
+            const id = row.dataset.spotifyId || '';
+            row.style.display = (name.includes(query) || id.includes(query)) ? '' : 'none';
+          });
+        });
+      } catch (err) {
+        content.innerHTML = \`<div class="admin-error">Failed to load users: \${err.message}</div>\`;
+      }
+    }
+
+    async function confirmDeleteUser(spotifyId, userName) {
+      const confirmed = confirm(\`Are you sure you want to delete user "\${userName}"?\\n\\nThis will remove:\\n- Their session (logging them out)\\n- User statistics\\n- Hall of Fame entry\\n- Genre cache\\n\\nThis action cannot be undone.\`);
+
+      if (!confirmed) return;
+
+      try {
+        const response = await fetch(\`/api/admin/user/\${spotifyId}\`, { method: 'DELETE' });
+        const result = await response.json();
+
+        if (result.success) {
+          showNotification(\`User "\${userName}" removed successfully. Deleted \${result.keysDeleted.length} keys.\`, 'success');
+          // Remove the row from the UI
+          const row = document.querySelector(\`.admin-user-row[data-spotify-id="\${spotifyId}"]\`);
+          if (row) row.remove();
+        } else {
+          throw new Error(result.error || 'Failed to delete user');
+        }
+      } catch (err) {
+        showNotification(\`Failed to delete user: \${err.message}\`, 'error');
+      }
+    }
+
+    window.confirmDeleteUser = confirmDeleteUser;
 
     window.showAdminPanel = showAdminPanel;
 
@@ -790,7 +1032,7 @@
       header.className = 'changelog-header';
       header.innerHTML = \`
         <h3>\${swedishMode ? 'Versionshistorik' : 'Version History'}</h3>
-        <button class="changelog-close" onclick="closeChangelog()">&times;</button>
+        <button class="changelog-close" onclick="closeChangelog()" aria-label="Close changelog">&times;</button>
       \`;
 
       const timeline = document.createElement('div');
@@ -924,7 +1166,7 @@
       panel.innerHTML = \`
         <div class="changelog-header">
           <h3>\${swedishMode ? '📊 KV Lagring Status' : '📊 KV Storage Status'}</h3>
-          <button class="changelog-close" onclick="closeKVModal()">&times;</button>
+          <button class="changelog-close" onclick="closeKVModal()" aria-label="Close KV status">&times;</button>
         </div>
         <div class="kv-status-content">
           <div class="kv-status-summary">
@@ -1061,6 +1303,116 @@
       setInterval(checkKVUsage, KV_POLL_INTERVAL); // Poll KV usage every minute
     }
 
+    // ====================================
+    // Now Playing Widget
+    // ====================================
+    let nowPlayingInterval = null;
+    let currentTrackId = null;
+    let progressInterval = null;
+    let currentProgress = 0;
+    let currentDuration = 0;
+
+    async function updateNowPlaying() {
+      try {
+        const response = await fetch('/api/now-playing');
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const widget = document.getElementById('now-playing-widget');
+        const trackEl = document.getElementById('now-playing-track');
+        const artistEl = document.getElementById('now-playing-artist');
+        const artEl = document.getElementById('now-playing-art');
+        const progressEl = document.getElementById('now-playing-progress');
+
+        if (!widget || !trackEl || !artistEl || !artEl || !progressEl) return;
+
+        if (data.playing && data.track) {
+          // Show widget
+          widget.style.display = 'flex';
+          widget.classList.add('is-playing');
+
+          // Update track info
+          trackEl.textContent = data.track.name;
+          artistEl.textContent = data.track.artists;
+
+          // Update album art
+          if (data.track.albumArt) {
+            artEl.src = data.track.albumArt;
+            artEl.alt = data.track.album;
+          }
+
+          // Set up click to open in Spotify
+          if (data.track.url) {
+            widget.onclick = () => window.open(data.track.url, '_blank');
+            widget.style.cursor = 'pointer';
+            widget.title = t('openInSpotify');
+          }
+
+          // Update progress
+          currentProgress = data.track.progress || 0;
+          currentDuration = data.track.duration || 1;
+          updateProgressBar();
+
+          // Start local progress updates if track changed
+          if (currentTrackId !== data.track.id) {
+            currentTrackId = data.track.id;
+            startProgressUpdates();
+          }
+        } else {
+          // Hide widget or show not playing state
+          widget.classList.remove('is-playing');
+          widget.style.display = 'none';
+          currentTrackId = null;
+          stopProgressUpdates();
+        }
+      } catch (err) {
+        // Silently fail - Now Playing is non-critical
+        console.debug('Now Playing fetch failed:', err);
+      }
+    }
+
+    function updateProgressBar() {
+      const progressEl = document.getElementById('now-playing-progress');
+      if (!progressEl || currentDuration <= 0) return;
+
+      const percent = Math.min((currentProgress / currentDuration) * 100, 100);
+      progressEl.style.width = \`\${percent}%\`;
+    }
+
+    function startProgressUpdates() {
+      stopProgressUpdates();
+      // Update progress locally every second for smooth animation
+      progressInterval = setInterval(() => {
+        currentProgress += 1000;
+        if (currentProgress >= currentDuration) {
+          currentProgress = currentDuration;
+        }
+        updateProgressBar();
+      }, 1000);
+    }
+
+    function stopProgressUpdates() {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+    }
+
+    function startNowPlayingMonitor() {
+      // Initial fetch
+      updateNowPlaying();
+      // Poll every 10 seconds (Spotify rate limits are generous for playback)
+      nowPlayingInterval = setInterval(updateNowPlaying, 10000);
+    }
+
+    function stopNowPlayingMonitor() {
+      if (nowPlayingInterval) {
+        clearInterval(nowPlayingInterval);
+        nowPlayingInterval = null;
+      }
+      stopProgressUpdates();
+    }
+
     // Swedish translations
     const i18n = {
       en: {
@@ -1128,6 +1480,9 @@
         privacySecure: 'Enterprise-grade security',
         privacySecureDesc: 'Built by a Solutions Architect with security-first design',
         privacyReviewDocs: 'Review our security architecture',
+        nowPlaying: 'Now Playing',
+        notPlaying: 'Not playing',
+        openInSpotify: 'Open in Spotify',
       },
       sv: {
         title: 'Genre Genie',
@@ -1194,6 +1549,9 @@
         privacySecure: 'Företagsklass säkerhet',
         privacySecureDesc: 'Byggd av en lösningsarkitekt med säkerhet i fokus',
         privacyReviewDocs: 'Granska vår säkerhetsarkitektur',
+        nowPlaying: 'Spelar nu',
+        notPlaying: 'Spelar inte',
+        openInSpotify: 'Öppna i Spotify',
       }
     };
 
@@ -1428,6 +1786,9 @@
       renderHeaderUser(session);
       showAdminButton(); // Show debug panel button (no API call needed)
 
+      // Start Now Playing monitor for authenticated users
+      startNowPlayingMonitor();
+
       // In Spotify-only mode, we're already connected if authenticated
       if (!spotifyOnlyMode && !session.spotifyConnected) {
         renderConnectSpotify();
@@ -1570,7 +1931,7 @@
 
       // Keep theme toggle in header, add user info next to it
       headerActions.innerHTML = \`
-        <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
+        <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}" aria-label="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
           \${lightMode ? '🌙' : '☀️'}
         </button>
         <div class="user-info">
@@ -1907,6 +2268,22 @@
         const detail = document.getElementById('progress-detail');
         if (fill) fill.style.width = \`\${progress}%\`;
         if (detail) detail.textContent = \`\${loaded.toLocaleString()} / \${total.toLocaleString()} \${swedishMode ? 'låtar' : 'tracks'}\`;
+      }
+
+      // Populate album art URLs from partial genres for the carousel
+      if (partialGenres && partialGenres.length > 0 && albumArtUrls.length === 0) {
+        const artUrls = [];
+        for (const genre of partialGenres) {
+          if (genre.albumArts && genre.albumArts.length > 0) {
+            artUrls.push(...genre.albumArts);
+            if (artUrls.length >= 20) break; // Enough for rotation
+          }
+        }
+        if (artUrls.length >= 3) {
+          // Shuffle and set album art URLs
+          albumArtUrls = artUrls.sort(() => 0.5 - Math.random()).slice(0, 20);
+          updateAlbumCarousel(); // Update carousel with real images
+        }
       }
 
       // Update live genres grid with emojis
@@ -2331,67 +2708,97 @@
     // Fun Spotify Wrapped-style quotes based on diversity score
     function getDiversityQuote(score) {
       const highDiversityQuotes = swedishMode ? [
-        'Din musiksmak? Omöjlig att sätta i ett fack. Du är en genre-anomali! 🌈',
-        'Du lyssnar på allt från ABBA till Zeppelin. Respekt! 🎸',
-        'Dina spellistor ger Spotify-algoritmerna existentiell kris 🤖',
-        'Du är typ den där personen som har "lite av allt" på festen 🎉',
-        'Musikalisk kameleont identifierad! Anpassar sig till varje stämning 🦎',
+        'Din musiksmak? Omöjlig att sätta i ett fack. Du är en genre-anomali!',
+        'Du lyssnar på allt från ABBA till death metal. Respekt.',
+        'Dina spellistor ger Spotify-algoritmerna existentiell kris.',
+        'Du är typ den där personen som DJ:ar på fester med "vänta, ni MÅSTE höra den här".',
+        'Musikalisk kameleont med oförutsägbar nästa låt.',
+        'Du har sagt "jag gillar typ allt" och faktiskt menat det.',
+        'Din shuffle är en berg-och-dalbana ingen bad om men alla behöver.',
+        'Genre? Aldrig hört talas om henne.',
       ] : [
-        'Your music taste? Impossible to pigeonhole. You are a genre anomaly! 🌈',
-        'You listen to everything from ABBA to Zeppelin. Respect! 🎸',
-        'Your playlists give Spotify algorithms an existential crisis 🤖',
-        'You are that person who has "a bit of everything" at the party 🎉',
-        'Musical chameleon identified! Adapts to every mood 🦎',
+        'Your music taste? Impossible to pigeonhole. You are a genre anomaly.',
+        'You listen to everything from ABBA to death metal. Respect.',
+        'Your playlists give Spotify algorithms an existential crisis.',
+        'You are that person who DJs at parties with "wait, you HAVE to hear this one".',
+        'Musical chameleon with an unpredictable next track.',
+        'You have said "I like basically everything" and actually meant it.',
+        'Your shuffle is a rollercoaster nobody asked for but everyone needs.',
+        'Genre? Never heard of her.',
       ];
 
       const diverseQuotes = swedishMode ? [
-        'Du gillar variation! Dina öron är nyfikna äventyrare 👂',
-        'Bra blandning! Du vet vad du gillar men är öppen för nytt 🎵',
-        'Din musiksmak är som en välbalanserad måltid 🍽️',
-        'Du har huvudspår OCH sidospår. Snyggt! 🛤️',
+        'Du gillar variation! Dina öron är nyfikna äventyrare.',
+        'Bra blandning! Du vet vad du gillar men är öppen för överraskningar.',
+        'Din musiksmak är som en välkryddad måltid - lite av varje.',
+        'Du har en bred smak men det är inte kaotiskt. Organiserat eklektiskt.',
+        'Du växlar mellan stämningar som en proffs.',
+        'Mångsidighet är ditt mellannamn. Eller borde vara.',
+        'Du är den vännen alla frågar om musikrekommendationer.',
       ] : [
-        'You like variety! Your ears are curious adventurers 👂',
-        'Nice mix! You know what you like but stay open to new sounds 🎵',
-        'Your music taste is like a well-balanced meal 🍽️',
-        'You have main tracks AND side tracks. Nice! 🛤️',
+        'You like variety! Your ears are curious adventurers.',
+        'Nice mix! You know what you like but stay open to surprises.',
+        'Your music taste is like a well-seasoned meal - a bit of everything.',
+        'You have broad taste but it is not chaotic. Organised eclectic.',
+        'You switch between moods like a pro.',
+        'Versatility is your middle name. Or should be.',
+        'You are the friend everyone asks for music recommendations.',
       ];
 
       const moderateQuotes = swedishMode ? [
-        'Du har hittat din groove och håller dig till den! 💃',
-        'Bekväm i din nisch men med utrymme att utforska 🔍',
-        'Solid grund med plats för tillväxt! 🌱',
-        'Du vet vad du gillar - och det är helt okej! 👍',
+        'Du har hittat din groove och du äger den!',
+        'Bekväm i dina favoritgenrer, men du tar ibland en omväg.',
+        'Solid grund med plats för utforskning när stämningen stämmer.',
+        'Du vet vad du gillar - ingen skam i det spelet.',
+        'Din musiksmak har en tydlig identitet och det är vackert.',
+        'Balanserad som en bra playlist. Lagom är bäst.',
+        'Du har dina go-to-genrer och det är helt rätt.',
       ] : [
-        'You have found your groove and you stick with it! 💃',
-        'Comfortable in your niche but with room to explore 🔍',
-        'Solid foundation with room to grow! 🌱',
-        'You know what you like - and that is totally fine! 👍',
+        'You have found your groove and you own it!',
+        'Comfortable in your favourite genres, but you take a detour sometimes.',
+        'Solid foundation with room for exploration when the mood strikes.',
+        'You know what you like - no shame in that game.',
+        'Your music taste has a clear identity and that is beautiful.',
+        'Balanced like a good playlist. Goldilocks approved.',
+        'You have your go-to genres and that is perfectly valid.',
       ];
 
       const focusedQuotes = swedishMode ? [
-        'Du har en typ och du håller dig till den! 🎯',
-        'Dedikerad lyssnare alert! Du vet exakt vad du vill ha 🔊',
-        'Låt ingen säga att du inte är engagerad! 💪',
-        'Genre-specialist i vardande! 🎓',
+        'Du har en typ och du håller dig till den. Konsekvent legend.',
+        'Dedikerad lyssnare alert! Du vet exakt vad du vill ha.',
+        'Låt ingen säga att du inte är engagerad.',
+        'Genre-specialist! Du har valt din bana och du kör hårt.',
+        'Djup kunskap > bred kunskap. Du gräver djupt.',
+        'Du är den där vännen som vet ALLT om en specifik genre.',
+        'Fokuserad energi. Inga distraktioner. Ren musiksmak.',
       ] : [
-        'You have a type and you stick with it! 🎯',
-        'Dedicated listener alert! You know exactly what you want 🔊',
-        'Let nobody say you are not committed! 💪',
-        'Genre specialist in the making! 🎓',
+        'You have a type and you stick with it. Consistent legend.',
+        'Dedicated listener alert! You know exactly what you want.',
+        'Let nobody say you are not committed.',
+        'Genre specialist! You picked your lane and you are thriving.',
+        'Deep knowledge > broad knowledge. You dig deep.',
+        'You are that friend who knows EVERYTHING about one specific genre.',
+        'Focused energy. No distractions. Pure music taste.',
       ];
 
       const veryFocusedQuotes = swedishMode ? [
-        'En genre att styra dem alla! Du är fullt dedikerad 💍',
-        'Du har hittat DET ljudet och du släpper det inte! 🔒',
-        'Laser-fokuserad musiksmak! Inga distraktioner 🎯',
-        'Du vet vad du gillar och du äger det! 👑',
-        'Genremästare! 100% koncentrerad energi ⚡',
+        'En genre att styra dem alla! Du är fullt dedikerad.',
+        'Du har hittat DET ljudet och du släpper det inte.',
+        'Laser-fokuserad musiksmak. Ingen ifrågasätter din dedikation.',
+        'Du vet vad du gillar och du äger det. Absolut inga ursäkter.',
+        'Genremästare! 100% koncentrerad passion.',
+        'När du gillar något, gillar du det PÅ RIKTIGT.',
+        'Din musikbibliotek har en estetik och den är tight.',
+        'Dedikation nivå: Expert. Du har valt din grej.',
       ] : [
-        'One genre to rule them all! You are fully committed 💍',
-        'You found THE sound and you are not letting go! 🔒',
-        'Laser-focused music taste! No distractions 🎯',
-        'You know what you like and you own it! 👑',
-        'Genre master! 100% concentrated energy ⚡',
+        'One genre to rule them all! You are fully committed.',
+        'You found THE sound and you are not letting go.',
+        'Laser-focused music taste. Nobody questions your dedication.',
+        'You know what you like and you own it. Zero apologies.',
+        'Genre master! 100% concentrated passion.',
+        'When you like something, you REALLY like it.',
+        'Your music library has an aesthetic and it is tight.',
+        'Dedication level: Expert. You picked your thing.',
       ];
 
       let quotes;
@@ -2402,6 +2809,31 @@
       else quotes = veryFocusedQuotes;
 
       return quotes[Math.floor(Math.random() * quotes.length)];
+    }
+
+    // Get a fun personality type based on diversity score
+    function getMusicPersonality(score) {
+      if (score >= 80) {
+        return swedishMode
+          ? { type: 'The Sonic Explorer', emoji: '🌍', desc: 'Gränslös musikresenär' }
+          : { type: 'The Sonic Explorer', emoji: '🌍', desc: 'Boundless music traveller' };
+      } else if (score >= 60) {
+        return swedishMode
+          ? { type: 'The Curator', emoji: '🎨', desc: 'Smakfull samlare' }
+          : { type: 'The Curator', emoji: '🎨', desc: 'Tasteful collector' };
+      } else if (score >= 40) {
+        return swedishMode
+          ? { type: 'The Comfort Seeker', emoji: '☕', desc: 'Mysig lyssnare' }
+          : { type: 'The Comfort Seeker', emoji: '☕', desc: 'Cozy listener' };
+      } else if (score >= 20) {
+        return swedishMode
+          ? { type: 'The Specialist', emoji: '🔬', desc: 'Djupdykare i ljudet' }
+          : { type: 'The Specialist', emoji: '🔬', desc: 'Deep diver in sound' };
+      } else {
+        return swedishMode
+          ? { type: 'The Purist', emoji: '💎', desc: 'Kristallklar smak' }
+          : { type: 'The Purist', emoji: '💎', desc: 'Crystal clear taste' };
+      }
     }
 
     function calculateAvgGenresPerTrack() {
@@ -2439,11 +2871,11 @@
           <div class="stats-section">
             <h4>\${swedishMode ? 'Topp 10 Genrer' : 'Top 10 Genres'}</h4>
             <div class="genre-bars">
-              \${top10.map(g => \`
+              \${top10.map((g, i) => \`
                 <div class="genre-bar-row">
                   <span class="genre-bar-name">\${g.name}</span>
                   <div class="genre-bar-container">
-                    <div class="genre-bar" style="width: \${(g.count / maxCount * 100)}%"></div>
+                    <div class="genre-bar bar-\${i + 1}" style="width: \${(g.count / maxCount * 100)}%"></div>
                   </div>
                   <span class="genre-bar-count">\${g.count}</span>
                 </div>
@@ -2451,17 +2883,20 @@
             </div>
           </div>
 
-          <div class="stats-section">
-            <h4>\${swedishMode ? 'Mångfaldsmätare' : 'Diversity Score'}</h4>
-            <div class="diversity-meter">
-              <div class="diversity-fill" style="width: \${diversityScore}%"></div>
-            </div>
-            <div class="diversity-info">
-              <span class="diversity-score">\${diversityScore}%</span>
-              <span class="diversity-label">\${getDiversityLabel(diversityScore)}</span>
-            </div>
-            <div class="diversity-quote">
-              <span class="quote-text">\${getDiversityQuote(diversityScore)}</span>
+          <div class="wrapped-diversity-card">
+            <div class="wrapped-content">
+              <div class="wrapped-score-display">
+                <div class="wrapped-score-big">\${diversityScore}%</div>
+                <div class="wrapped-score-label">\${swedishMode ? 'Mångfald' : 'Diversity'}</div>
+              </div>
+              <div class="wrapped-divider"></div>
+              <div class="diversity-quote">
+                <span class="quote-text">"\${getDiversityQuote(diversityScore)}"</span>
+              </div>
+              <div class="wrapped-personality">
+                <div class="wrapped-personality-label">\${swedishMode ? 'Din musikpersonlighet' : 'Your music personality'}</div>
+                <div class="wrapped-personality-type">\${getMusicPersonality(diversityScore).emoji} \${getMusicPersonality(diversityScore).type}</div>
+              </div>
             </div>
           </div>
 
@@ -2568,7 +3003,7 @@
                 oninput="updatePlaylistTemplate(this.value)"
                 placeholder="{genre} (from Likes)"
               >
-              <button onclick="resetTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}">↺</button>
+              <button onclick="resetTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ mall' : 'Reset template'}">↺</button>
             </div>
             <div class="template-preview">
               \${swedishMode ? 'Förhandsvisning:' : 'Preview:'} <span id="template-preview">\${getTemplatePreview()}</span>
@@ -2582,6 +3017,18 @@
             data-i18n-placeholder="searchGenres"
             oninput="filterAndRenderGenres(this.value)"
           >
+          <div class="select-all-row">
+            <label class="select-all-label">
+              <input
+                type="checkbox"
+                id="select-all-checkbox"
+                onchange="toggleSelectAll(this)"
+                aria-label="\${swedishMode ? 'Välj alla genrer' : 'Select all genres'}"
+              >
+              <span>\${swedishMode ? 'Välj alla' : 'Select all'}</span>
+            </label>
+            <span class="selection-info" id="selection-info"></span>
+          </div>
           <div class="genre-list" id="genre-list"></div>
           <div class="actions">
             <button onclick="selectAll()" class="btn btn-secondary" data-i18n="selectAll">\${t('selectAll')}</button>
@@ -2666,6 +3113,9 @@
       document.getElementById('selected-count').textContent = selectedGenres.size;
       document.getElementById('create-btn').disabled = selectedGenres.size === 0;
 
+      // Update select-all checkbox state
+      updateSelectAllCheckbox();
+
       // Show/hide merge selected button based on selection count
       let mergeSelectedBtn = document.getElementById('merge-selected-btn');
       if (selectedGenres.size >= 2) {
@@ -2682,6 +3132,47 @@
         }
       } else if (mergeSelectedBtn) {
         mergeSelectedBtn.remove();
+      }
+    }
+
+    // Update select-all checkbox to reflect current selection state
+    function updateSelectAllCheckbox() {
+      const selectAllCb = document.getElementById('select-all-checkbox');
+      const selectionInfo = document.getElementById('selection-info');
+      if (!selectAllCb) return;
+
+      const totalCheckboxes = document.querySelectorAll('.genre-checkbox').length;
+      const selectedCount = selectedGenres.size;
+
+      if (selectedCount === 0) {
+        selectAllCb.checked = false;
+        selectAllCb.indeterminate = false;
+      } else if (selectedCount === totalCheckboxes) {
+        selectAllCb.checked = true;
+        selectAllCb.indeterminate = false;
+      } else {
+        selectAllCb.checked = false;
+        selectAllCb.indeterminate = true;
+      }
+
+      // Update selection info text
+      if (selectionInfo) {
+        if (selectedCount > 0) {
+          selectionInfo.textContent = swedishMode
+            ? \`\${selectedCount} av \${totalCheckboxes} valda\`
+            : \`\${selectedCount} of \${totalCheckboxes} selected\`;
+        } else {
+          selectionInfo.textContent = '';
+        }
+      }
+    }
+
+    // Toggle select all/none via the master checkbox
+    function toggleSelectAll(checkbox) {
+      if (checkbox.checked) {
+        selectAll();
+      } else {
+        selectNone();
       }
     }
 
@@ -2743,7 +3234,7 @@
         '<div class="customise-panel">',
         '  <div class="customise-header">',
         '    <h3>' + (swedishMode ? '✏️ Anpassa spellista' : '✏️ Customise Playlist') + '</h3>',
-        '    <button class="customise-close" onclick="this.closest(\\'.customise-modal\\').remove()">&times;</button>',
+        '    <button class="customise-close" onclick="this.closest(\\'.customise-modal\\').remove()" aria-label="Close">&times;</button>',
         '  </div>',
         '  <div class="customise-body">',
         '    <div class="customise-field">',
@@ -2776,6 +3267,9 @@
       ].join('');
 
       document.body.appendChild(modal);
+
+      // Apply focus trap for accessibility
+      trapFocus(modal.querySelector('.customise-panel'));
 
       // Update preview on input
       const nameInput = document.getElementById('custom-name');
@@ -2900,6 +3394,9 @@
       \`;
 
       document.body.appendChild(modal);
+
+      // Apply focus trap for accessibility
+      trapFocus(modal.querySelector('.playlist-customize-modal'));
 
       // Update character count
       const descTextarea = modal.querySelector('#playlist-description');
@@ -3384,6 +3881,9 @@
       overlay.appendChild(panel);
       document.body.appendChild(overlay);
 
+      // Apply focus trap for accessibility
+      trapFocus(panel);
+
       // Focus the close button for accessibility
       panel.querySelector('button')?.focus();
     }
@@ -3676,7 +4176,7 @@
         <div class="scoreboard-panel">
           <div class="scoreboard-header">
             <h2>📊 \${swedishMode ? 'Resultattavla' : 'Scoreboard'}</h2>
-            <button class="btn btn-ghost" onclick="closeScoreboard()">✕</button>
+            <button class="btn btn-ghost" onclick="closeScoreboard()" aria-label="Close scoreboard">✕</button>
           </div>
           <div class="scoreboard-tabs">
             <button class="scoreboard-tab active" data-tab="playlists">🎵 \${swedishMode ? 'Spellistor' : 'Playlists'}</button>
@@ -3697,6 +4197,9 @@
       \`;
 
       document.body.appendChild(modal);
+
+      // Apply focus trap for accessibility
+      trapFocus(modal.querySelector('.scoreboard-panel'));
 
       // Add tab click handlers
       modal.querySelectorAll('.scoreboard-tab').forEach(tab => {
@@ -3732,9 +4235,11 @@
         <div class="scoreboard-list">
           \${data.map(entry => {
             const rankClass = entry.rank === 1 ? 'gold' : entry.rank === 2 ? 'silver' : entry.rank === 3 ? 'bronze' : '';
+            const top3Class = entry.rank <= 3 ? 'top-3' : '';
+            const medalEmoji = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : '';
             return \`
-              <div class="scoreboard-entry">
-                <span class="rank \${rankClass}">#\${entry.rank}</span>
+              <div class="scoreboard-entry \${top3Class}">
+                <span class="rank \${rankClass}">\${medalEmoji || '#' + entry.rank}</span>
                 \${entry.spotifyAvatar
                   ? \`<img class="entry-avatar" src="\${entry.spotifyAvatar}" alt="" onerror="this.style.display='none'">\`
                   : '<div class="entry-avatar" style="background:var(--surface-2);display:flex;align-items:center;justify-content:center">👤</div>'}
@@ -3886,7 +4391,7 @@
       return '<div class="playlist-modal-content">' +
         '<div class="playlist-modal-header">' +
           '<h2>' + title + '</h2>' +
-          '<button class="playlist-modal-close" onclick="closePlaylistModal()">&times;</button>' +
+          '<button class="playlist-modal-close" onclick="closePlaylistModal()" aria-label="Close">&times;</button>' +
         '</div>' +
         '<div id="playlist-list-container">' +
           '<div class="scanning-indicator"><div class="spinner"></div>' + loading + '</div>' +
@@ -4372,7 +4877,7 @@
       banner.innerHTML = '<strong>' + title + '</strong> — ' + msg +
         ' <a href="https://status.tomstech.dev" target="_blank">' +
         (swedishMode ? 'Statussida' : 'Status Page') + '</a>' +
-        '<button class="close-btn" onclick="dismissRateLimitBanner()">&times;</button>';
+        '<button class="close-btn" onclick="dismissRateLimitBanner()" aria-label="Dismiss banner">&times;</button>';
 
       document.body.prepend(banner);
       document.body.classList.add('has-banner');
@@ -4736,7 +5241,7 @@
       modal.className = 'share-modal-overlay';
       modal.innerHTML = [
         '<div class="share-modal">',
-        '  <button class="share-close" onclick="this.closest(\'.share-modal-overlay\').remove()">&times;</button>',
+        '  <button class="share-close" onclick="this.closest(\'.share-modal-overlay\').remove()" aria-label="Close">&times;</button>',
         '  <h3>' + (swedishMode ? '🎉 Dela din spellista!' : '🎉 Share your playlist!') + '</h3>',
         '  <p class="share-playlist-name">' + playlistName + '</p>',
         '  <div class="share-qr-container">',
@@ -4756,6 +5261,9 @@
       ].join('');
 
       document.body.appendChild(modal);
+
+      // Apply focus trap for accessibility
+      trapFocus(modal.querySelector('.share-modal'));
 
       // Close on backdrop click
       modal.addEventListener('click', (e) => {
@@ -5319,8 +5827,8 @@
       const existing = document.querySelector('.wrapped-overlay');
       if (existing) existing.remove();
 
-      // Calculate stats
-      const totalTracks = genres.reduce((sum, g) => sum + g.count, 0);
+      // Calculate stats - use actual track count, not genre assignment sum
+      const totalTracks = genreData?.totalTracks || window.totalTracks || genres.length;
       const topGenres = genres.slice(0, 5);
       const topFamily = getGenreFamily(topGenres[0]?.name || '');
       const diversityScore = calculateDiversityScore(genres);
@@ -5329,8 +5837,8 @@
       const gradient = swedishMode ? GENRE_GRADIENTS.swedish : (GENRE_GRADIENTS[topFamily] || GENRE_GRADIENTS.other);
       const reading = getRandomReading(topFamily, lang);
 
-      // Get unique artists count (estimate from genres)
-      const uniqueArtists = Math.round(totalTracks * 0.6); // rough estimate
+      // Get unique artists count from actual data or estimate
+      const uniqueArtists = genreData?.totalArtists || Math.round(totalTracks * 0.6);
 
       // Random fun fact
       const facts = WRAPPED_FACTS[lang];
@@ -5362,7 +5870,7 @@
       modal.className = 'wrapped-overlay';
       modal.innerHTML = [
         '<div class="wrapped-container">',
-        '  <button class="wrapped-close" onclick="this.closest(\'.wrapped-overlay\').remove()">&times;</button>',
+        '  <button class="wrapped-close" onclick="this.closest(\'.wrapped-overlay\').remove()" aria-label="Close">&times;</button>',
         '  <div class="wrapped-card" id="wrapped-card" style="background: ' + gradient + '">',
         '    <div class="wrapped-header">',
         '      <div class="wrapped-logo">',
@@ -5420,6 +5928,9 @@
       document.body.appendChild(modal);
       modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 
+      // Apply focus trap for accessibility
+      trapFocus(modal.querySelector('.wrapped-container'));
+
       // Animate in
       requestAnimationFrame(() => {
         modal.classList.add('wrapped-visible');
@@ -5443,14 +5954,25 @@
           link.href = canvas.toDataURL('image/png');
           link.click();
         } else {
-          // Fallback: prompt user to screenshot
-          alert(swedishMode
-            ? 'Ta en skärmbild av ditt kort! (html2canvas behövs för automatisk nedladdning)'
-            : 'Take a screenshot of your card! (html2canvas needed for automatic download)');
+          // Fallback: show friendly toast with screenshot hint and highlight card
+          const card = document.getElementById('wrapped-card');
+          if (card) {
+            card.style.outline = '3px solid white';
+            card.style.outlineOffset = '4px';
+            setTimeout(() => {
+              if (card.style) {
+                card.style.outline = '';
+                card.style.outlineOffset = '';
+              }
+            }, 3000);
+          }
+          showToast(swedishMode
+            ? '📸 Ta en skärmbild av kortet ovan!'
+            : '📸 Take a screenshot of the card above!', 4000);
         }
       } catch (err) {
         console.error('Download error:', err);
-        alert(swedishMode ? 'Kunde inte ladda ner. Ta en skärmbild istället!' : 'Could not download. Take a screenshot instead!');
+        showToast(swedishMode ? '📸 Ta en skärmbild istället!' : '📸 Take a screenshot instead!', 3000);
       }
     }
 
@@ -5570,7 +6092,7 @@
       modal.className = 'request-access-overlay';
       modal.innerHTML = \`
         <div class="request-access-modal">
-          <button class="modal-close" onclick="this.closest('.request-access-overlay').remove()">&times;</button>
+          <button class="modal-close" onclick="this.closest('.request-access-overlay').remove()" aria-label="Close">&times;</button>
           <h2>🔑 \${t('requestAccessTitle')}</h2>
           <p>\${t('requestAccessDesc')}</p>
           <form onsubmit="submitAccessRequest(event)" class="request-access-form">
@@ -5595,6 +6117,9 @@
 
       document.body.appendChild(modal);
       modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+      // Apply focus trap for accessibility
+      trapFocus(modal.querySelector('.request-access-modal'));
 
       // Focus first input
       requestAnimationFrame(() => {

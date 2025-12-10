@@ -81,6 +81,8 @@ export function getSpotifyAuthUrl(
     'playlist-modify-public',
     'playlist-modify-private',
     'user-read-private',
+    'user-read-currently-playing',
+    'user-read-playback-state',
   ].join(' ');
 
   const params = new URLSearchParams({
@@ -189,8 +191,7 @@ export async function getLikedTracks(
 // We need to budget for BOTH track fetching AND artist fetching
 // - Track fetching: 50 tracks per request
 // - Artist fetching: 50 artists per request (usually ~60% unique artists per track)
-// Budget: ~20 track requests + ~25 artist requests = 45 (leaving 5 buffer)
-const MAX_SUBREQUESTS = 45; // Conservative limit (free tier = 50)
+// Budget: ~20 track requests + ~25 artist requests = 45 (leaving 5 buffer for overhead)
 const MAX_TRACK_REQUESTS = 20; // 20 * 50 = 1000 tracks
 const MAX_ARTIST_REQUESTS = 25; // 25 * 50 = 1250 unique artists
 const MAX_TRACKS_FREE_TIER = MAX_TRACK_REQUESTS * 50; // 1000 tracks
@@ -409,4 +410,50 @@ export async function getPlaylistTracks(
   }
 
   return allTracks.slice(0, limit);
+}
+
+export interface CurrentPlayback {
+  is_playing: boolean;
+  item: {
+    id: string;
+    name: string;
+    artists: { id: string; name: string }[];
+    album: {
+      name: string;
+      images: { url: string; width: number; height: number }[];
+    };
+    duration_ms: number;
+    external_urls: { spotify: string };
+  } | null;
+  progress_ms: number | null;
+  device: {
+    name: string;
+    type: string;
+  } | null;
+}
+
+export async function getCurrentPlayback(
+  accessToken: string
+): Promise<CurrentPlayback | null> {
+  try {
+    const response = await fetchWithRetry(`${SPOTIFY_API}/me/player`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    // 204 means no active device/playback
+    if (response.status === 204) {
+      return null;
+    }
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data: CurrentPlayback = await response.json();
+    return data;
+  } catch {
+    return null;
+  }
 }
