@@ -63,13 +63,7 @@ jobs:
                   "DispatchNamespace"
                 ]
               },
-              "filter": {
-                "where": {
-                  "key": "ScriptName",
-                  "operator": "eq",
-                  "value": "'"${{ env.WORKER_NAME }}"'"
-                }
-              }
+              "filter": "{\"where\":{\"key\":\"ScriptName\",\"operator\":\"eq\",\"value\":\"'"${{ env.WORKER_NAME }}"'\"}}"
             }')
 
           echo "$RESPONSE" | jq '.'
