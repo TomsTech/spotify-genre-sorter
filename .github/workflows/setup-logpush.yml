@@ -16,7 +16,7 @@ on:
 env:
   ACCOUNT_ID: df52a0cfc6c1765f726a830ef84ba78c
   WORKER_NAME: spotify-genre-sorter
-  BETTERSTACK_HOST: s1616980.eu-nbg-2.betterstackdata.com
+  BETTERSTACK_HOST: s1624750.eu-nbg-2.betterstackdata.com
 
 jobs:
   logpush:
