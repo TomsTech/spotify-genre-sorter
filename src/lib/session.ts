@@ -111,9 +111,13 @@ export async function updateSession(
   const sessionId = getCookie(c, SESSION_COOKIE);
   if (!sessionId) return;
 
-  const existing = await getSession(c);
-  if (!existing) return;
+  // PERF-008 FIX: Read directly from KV instead of calling getSession() wrapper
+  // This avoids the double read that was happening before
+  const data = await c.env.SESSIONS.get(`session:${sessionId}`);
+  if (!data) return;
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const existing: Session = JSON.parse(data);
   const updated = { ...existing, ...updates };
   await c.env.SESSIONS.put(
     `session:${sessionId}`,
@@ -340,10 +344,13 @@ const AVERAGE_TRACKS_PER_PLAYLIST = 25;
 export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
   // List all user_stats keys
   const list = await kv.list({ prefix: 'user_stats:' });
-  const allStats: UserStats[] = [];
 
-  for (const key of list.keys) {
-    const data = await kv.get(key.name);
+  // PERF-001 FIX: Use Promise.all for parallel reads instead of sequential
+  const dataPromises = list.keys.map(key => kv.get(key.name));
+  const dataResults = await Promise.all(dataPromises);
+
+  const allStats: UserStats[] = [];
+  for (const data of dataResults) {
     if (data) {
       const stats = JSON.parse(data) as UserStats;
 
@@ -428,23 +435,30 @@ export async function getLeaderboard(kv: KVNamespace): Promise<LeaderboardData |
 }
 
 export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData> {
-  // Get pioneers (first 10 users)
+  // PERF-002 FIX: Use Promise.all for parallel reads instead of sequential
+
+  // Get pioneers (first 10 users) - parallel reads
+  const pioneerKeys = Array.from({ length: 10 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
+  const pioneerPromises = pioneerKeys.map(key => kv.get(key));
+  const pioneerResults = await Promise.all(pioneerPromises);
+
   const pioneers: LeaderboardData['pioneers'] = [];
-  for (let i = 1; i <= 10; i++) {
-    const hofKey = `hof:${String(i).padStart(3, '0')}`;
-    const data = await kv.get(hofKey);
+  for (const data of pioneerResults) {
     if (data) {
       pioneers.push(JSON.parse(data) as LeaderboardData['pioneers'][number]);
     }
   }
 
-  // Get recent users (last 10 registered)
+  // Get recent users (last 10 registered) - parallel reads
   const userList = await kv.list({ prefix: 'user:' });
-  const recentUsers: LeaderboardData['newUsers'] = [];
 
-  // Only fetch up to 50 users to limit KV reads
-  for (const key of userList.keys.slice(0, 50)) {
-    const data = await kv.get(key.name);
+  // Only fetch up to 50 users to limit KV reads - but do it in parallel
+  const userKeys = userList.keys.slice(0, 50);
+  const userPromises = userKeys.map(key => kv.get(key.name));
+  const userResults = await Promise.all(userPromises);
+
+  const recentUsers: LeaderboardData['newUsers'] = [];
+  for (const data of userResults) {
     if (data) {
       recentUsers.push(JSON.parse(data) as LeaderboardData['newUsers'][number]);
     }
@@ -614,7 +628,20 @@ export async function trackAnalyticsEvent(
 }
 
 export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
-  const today = await getDailyAnalytics(kv);
+  // PERF-005 FIX: Use Promise.all for parallel reads instead of sequential
+
+  // Build all keys for the last 7 days
+  const dateKeys = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    return date.toISOString().split('T')[0];
+  });
+
+  const analyticsKeys = dateKeys.map(dateKey => `${ANALYTICS_KEY}:${dateKey}`);
+
+  // Fetch all 7 days in parallel
+  const dataPromises = analyticsKeys.map(key => kv.get(key));
+  const dataResults = await Promise.all(dataPromises);
 
   // Get last 7 days
   const last7Days = {
@@ -628,16 +655,18 @@ export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
   };
 
   const allErrors: { message: string; path: string; timestamp: string }[] = [];
+  let today: AnalyticsData | null = null;
 
-  for (let i = 0; i < 7; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    const dateKey = date.toISOString().split('T')[0];
-    const key = `${ANALYTICS_KEY}:${dateKey}`;
-    const data = await kv.get(key);
-
+  for (let i = 0; i < dataResults.length; i++) {
+    const data = dataResults[i];
     if (data) {
       const dayData = JSON.parse(data) as AnalyticsData;
+
+      // First result is today
+      if (i === 0) {
+        today = dayData;
+      }
+
       last7Days.pageViews += dayData.pageViews;
       dayData.uniqueVisitors.forEach(v => last7Days.uniqueVisitors.add(v));
       last7Days.signIns += dayData.signIns;
@@ -647,6 +676,11 @@ export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
       last7Days.playlistsCreated += dayData.playlistsCreated;
       allErrors.push(...dayData.errors);
     }
+  }
+
+  // If today wasn't in cache, get it fresh
+  if (!today) {
+    today = await getDailyAnalytics(kv);
   }
 
   // Sort errors by timestamp descending and take last 20

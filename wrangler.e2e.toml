@@ -1,0 +1,27 @@
+# E2E Testing Configuration
+# Uses local KV persistence - no Cloudflare credits burned
+# Run with: npm run dev:e2e
+
+name = "spotify-genre-sorter-e2e"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Local KV namespace for E2E tests
+# Uses wrangler's --local flag for file-based persistence
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "e2e-local-sessions"
+
+[vars]
+# E2E test mode flag - enables mock endpoints and bypasses real OAuth
+E2E_TEST_MODE = "true"
+
+# Use Spotify-only auth (simpler flow for testing)
+SPOTIFY_ONLY_AUTH = "true"
+
+# No GitHub users needed in test mode
+ALLOWED_GITHUB_USERS = ""
+
+# Test OAuth credentials (used by mock server, not real Spotify)
+# Real secrets are NOT needed - the mock server intercepts all OAuth calls

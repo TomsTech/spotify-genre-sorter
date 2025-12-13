@@ -24,10 +24,17 @@
     "docs:check": "node scripts/build-docs.mjs --check",
     "backup:kv": "node scripts/backup-kv.mjs",
     "restore:kv": "node scripts/restore-kv.mjs",
+    "kv:export": "node scripts/kv-export.mjs",
+    "kv:import": "node scripts/kv-import.mjs",
+    "kv:sync": "npm run kv:export && npm run kv:import",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:debug": "playwright test --debug"
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:ci": "playwright install chromium && playwright test --project=chromium",
+    "dev:e2e": "wrangler dev --config wrangler.e2e.toml --local --port 8787",
+    "e2e:install": "playwright install chromium",
+    "deps:check": "node scripts/check-deps.mjs"
   },
   "dependencies": {
     "hono": "^4.6.0"
@@ -39,6 +46,7 @@
     "@typescript-eslint/parser": "^8.15.0",
     "eslint": "^8.57.0",
     "md-to-pdf": "^5.2.4",
+    "msw": "^2.7.0",
     "typescript": "^5.6.0",
     "vitest": "^4.0.14",
     "wrangler": "^4.51.0"

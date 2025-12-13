@@ -1094,7 +1094,8 @@
     // KV Status Monitoring
     // =====================================
     let kvUsageCache = null;
-    const KV_POLL_INTERVAL = 60000; // Poll every minute
+    // PERF-006 FIX: Reduced polling frequencies to save API calls
+    const KV_POLL_INTERVAL = 300000; // Poll every 5 minutes (was 1 min)
 
     async function checkKVUsage() {
       try {
@@ -1295,12 +1296,28 @@
     window.showKVStatusModal = showKVStatusModal;
     window.closeKVModal = closeKVModal;
 
+    // PERF-006 FIX: Track all polling intervals for visibility API cleanup
+    let kvPollInterval = null;
+
     // Start deployment and KV status polling
     function startDeployMonitor() {
       checkDeployStatus();
       checkKVUsage(); // Also check KV status
-      deployPollInterval = setInterval(checkDeployStatus, 10000); // Poll every 10s
-      setInterval(checkKVUsage, KV_POLL_INTERVAL); // Poll KV usage every minute
+      // PERF-006 FIX: Reduced deploy polling from 10s to 60s
+      deployPollInterval = setInterval(checkDeployStatus, 60000); // Poll every 60s (was 10s)
+      kvPollInterval = setInterval(checkKVUsage, KV_POLL_INTERVAL); // Poll KV usage every 5 min
+    }
+
+    // PERF-006 FIX: Stop polling intervals
+    function stopDeployMonitor() {
+      if (deployPollInterval) {
+        clearInterval(deployPollInterval);
+        deployPollInterval = null;
+      }
+      if (kvPollInterval) {
+        clearInterval(kvPollInterval);
+        kvPollInterval = null;
+      }
     }
 
     // ====================================
@@ -1401,8 +1418,8 @@
     function startNowPlayingMonitor() {
       // Initial fetch
       updateNowPlaying();
-      // Poll every 10 seconds (Spotify rate limits are generous for playback)
-      nowPlayingInterval = setInterval(updateNowPlaying, 10000);
+      // PERF-006 FIX: Reduced polling from 10s to 30s
+      nowPlayingInterval = setInterval(updateNowPlaying, 30000); // Poll every 30s (was 10s)
     }
 
     function stopNowPlayingMonitor() {
@@ -1821,14 +1838,14 @@
 
       // Different login button based on mode
       const loginButton = spotifyOnlyMode ? \`
-        <a href="/auth/spotify" class="btn btn-primary">
+        <a href="/auth/spotify" class="btn btn-primary" data-testid="sign-in-button">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 01-.277-1.215c3.809-.87 7.076-.496 9.712 1.115.293.18.386.563.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.972c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.071zm.105-2.835c-3.223-1.914-8.54-2.09-11.618-1.156a.935.935 0 11-.543-1.79c3.533-1.072 9.404-.865 13.115 1.338a.935.935 0 11-.954 1.608z"/>
           </svg>
           <span>\${t('signInSpotify')}</span>
         </a>
       \` : \`
-        <a href="/auth/github" class="btn btn-primary">
+        <a href="/auth/github" class="btn btn-primary" data-testid="sign-in-button">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
           </svg>
@@ -1931,13 +1948,13 @@
 
       // Keep theme toggle in header, add user info next to it
       headerActions.innerHTML = \`
-        <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}" aria-label="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
+        <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" data-testid="theme-toggle" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}" aria-label="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
           \${lightMode ? '🌙' : '☀️'}
         </button>
-        <div class="user-info">
-          \${avatar ? \`<img src="\${avatar}" alt="" class="avatar" onerror="this.style.display='none'">\` : ''}
-          <span>\${user || 'User'}</span>
-          <a href="/auth/logout" class="btn btn-ghost" data-i18n="logout">\${t('logout')}</a>
+        <div class="user-info" data-testid="user-info">
+          \${avatar ? \`<img src="\${avatar}" alt="" class="avatar" data-testid="user-avatar" onerror="this.style.display='none'">\` : ''}
+          <span data-testid="user-name">\${user || 'User'}</span>
+          <a href="/auth/logout" class="btn btn-ghost" data-testid="logout-button" data-i18n="logout">\${t('logout')}</a>
         </div>
       \`;
     }
@@ -5221,10 +5238,36 @@
       showNotification(details.join(' | '), healthStatus.ok ? 'success' : 'warning');
     }
 
+    // PERF-006 FIX: Track health check interval for visibility API
+    let healthCheckInterval = null;
+
     // Check health on load and periodically
     document.addEventListener('DOMContentLoaded', () => {
       setTimeout(checkHealth, 3000); // Initial check after 3s
-      setInterval(checkHealth, 60000); // Then every minute
+      // PERF-006 FIX: Reduced from 60s to 5 minutes
+      healthCheckInterval = setInterval(checkHealth, 300000); // Then every 5 min (was 1 min)
+    });
+
+    // PERF-006 FIX: Master visibility handler to stop ALL polling when tab is hidden
+    // This saves significant API calls when user switches tabs
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        // Stop all polling when tab is hidden
+        stopDeployMonitor();
+        stopNowPlayingMonitor();
+        if (healthCheckInterval) {
+          clearInterval(healthCheckInterval);
+          healthCheckInterval = null;
+        }
+      } else {
+        // Resume polling when tab becomes visible
+        startDeployMonitor();
+        if (window.isAuthenticated) {
+          startNowPlayingMonitor();
+        }
+        checkHealth();
+        healthCheckInterval = setInterval(checkHealth, 300000);
+      }
     });
 
     // ====================================
