@@ -1,0 +1,268 @@
+[
+  {
+    "id": "track001",
+    "name": "Rock Anthem",
+    "artists": [{ "id": "artist001", "name": "The Rock Band" }],
+    "album": {
+      "id": "album001",
+      "name": "Rock Collection",
+      "images": [{ "url": "https://picsum.photos/seed/album001/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 245000,
+    "popularity": 72,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track001" }
+  },
+  {
+    "id": "track002",
+    "name": "Alternative Vibes",
+    "artists": [{ "id": "artist001", "name": "The Rock Band" }],
+    "album": {
+      "id": "album001",
+      "name": "Rock Collection",
+      "images": [{ "url": "https://picsum.photos/seed/album001/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 198000,
+    "popularity": 65,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track002" }
+  },
+  {
+    "id": "track003",
+    "name": "Pop Hit Summer",
+    "artists": [{ "id": "artist002", "name": "Pop Princess" }],
+    "album": {
+      "id": "album002",
+      "name": "Summer Hits",
+      "images": [{ "url": "https://picsum.photos/seed/album002/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 210000,
+    "popularity": 88,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track003" }
+  },
+  {
+    "id": "track004",
+    "name": "Dance Floor",
+    "artists": [{ "id": "artist002", "name": "Pop Princess" }],
+    "album": {
+      "id": "album002",
+      "name": "Summer Hits",
+      "images": [{ "url": "https://picsum.photos/seed/album002/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 185000,
+    "popularity": 82,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track004" }
+  },
+  {
+    "id": "track005",
+    "name": "Electronic Pulse",
+    "artists": [{ "id": "artist003", "name": "Electronic Dreams" }],
+    "album": {
+      "id": "album003",
+      "name": "Digital Waves",
+      "images": [{ "url": "https://picsum.photos/seed/album003/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 320000,
+    "popularity": 68,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track005" }
+  },
+  {
+    "id": "track006",
+    "name": "House Party",
+    "artists": [{ "id": "artist003", "name": "Electronic Dreams" }],
+    "album": {
+      "id": "album003",
+      "name": "Digital Waves",
+      "images": [{ "url": "https://picsum.photos/seed/album003/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 285000,
+    "popularity": 62,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track006" }
+  },
+  {
+    "id": "track007",
+    "name": "Flow State",
+    "artists": [{ "id": "artist004", "name": "Hip Hop Hero" }],
+    "album": {
+      "id": "album004",
+      "name": "Street Poetry",
+      "images": [{ "url": "https://picsum.photos/seed/album004/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 225000,
+    "popularity": 78,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track007" }
+  },
+  {
+    "id": "track008",
+    "name": "Trap Beat",
+    "artists": [{ "id": "artist004", "name": "Hip Hop Hero" }],
+    "album": {
+      "id": "album004",
+      "name": "Street Poetry",
+      "images": [{ "url": "https://picsum.photos/seed/album004/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 195000,
+    "popularity": 75,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track008" }
+  },
+  {
+    "id": "track009",
+    "name": "Smooth Jazz Evening",
+    "artists": [{ "id": "artist005", "name": "Jazz Ensemble" }],
+    "album": {
+      "id": "album005",
+      "name": "Late Night Jazz",
+      "images": [{ "url": "https://picsum.photos/seed/album005/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 380000,
+    "popularity": 42,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track009" }
+  },
+  {
+    "id": "track010",
+    "name": "Metal Storm",
+    "artists": [{ "id": "artist006", "name": "Metal Mayhem" }],
+    "album": {
+      "id": "album006",
+      "name": "Chaos Rising",
+      "images": [{ "url": "https://picsum.photos/seed/album006/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 295000,
+    "popularity": 68,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track010" }
+  },
+  {
+    "id": "track011",
+    "name": "Country Morning",
+    "artists": [{ "id": "artist007", "name": "Country Roads" }],
+    "album": {
+      "id": "album007",
+      "name": "Open Highway",
+      "images": [{ "url": "https://picsum.photos/seed/album007/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 235000,
+    "popularity": 55,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track011" }
+  },
+  {
+    "id": "track012",
+    "name": "Soul Connection",
+    "artists": [{ "id": "artist008", "name": "R&B Smooth" }],
+    "album": {
+      "id": "album008",
+      "name": "Heartfelt",
+      "images": [{ "url": "https://picsum.photos/seed/album008/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 265000,
+    "popularity": 70,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track012" }
+  },
+  {
+    "id": "track013",
+    "name": "Symphony No. 5",
+    "artists": [{ "id": "artist009", "name": "Classical Orchestra" }],
+    "album": {
+      "id": "album009",
+      "name": "Classical Masters",
+      "images": [{ "url": "https://picsum.photos/seed/album009/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 720000,
+    "popularity": 38,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track013" }
+  },
+  {
+    "id": "track014",
+    "name": "Swedish Summer",
+    "artists": [{ "id": "artist010", "name": "Swedish Pop Star" }],
+    "album": {
+      "id": "album010",
+      "name": "Scandinavian Nights",
+      "images": [{ "url": "https://picsum.photos/seed/album010/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 205000,
+    "popularity": 76,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track014" }
+  },
+  {
+    "id": "track015",
+    "name": "Dream Sequence",
+    "artists": [{ "id": "artist011", "name": "Indie Dreamer" }],
+    "album": {
+      "id": "album011",
+      "name": "Hazy Memories",
+      "images": [{ "url": "https://picsum.photos/seed/album011/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 275000,
+    "popularity": 52,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track015" }
+  },
+  {
+    "id": "track016",
+    "name": "Punk Rebellion",
+    "artists": [{ "id": "artist012", "name": "Punk Revival" }],
+    "album": {
+      "id": "album012",
+      "name": "Anarchy Now",
+      "images": [{ "url": "https://picsum.photos/seed/album012/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 165000,
+    "popularity": 56,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track016" }
+  },
+  {
+    "id": "track017",
+    "name": "Collaboration Track",
+    "artists": [
+      { "id": "artist001", "name": "The Rock Band" },
+      { "id": "artist004", "name": "Hip Hop Hero" }
+    ],
+    "album": {
+      "id": "album013",
+      "name": "Crossover",
+      "images": [{ "url": "https://picsum.photos/seed/album013/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 240000,
+    "popularity": 80,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track017" }
+  },
+  {
+    "id": "track018",
+    "name": "Unknown Track",
+    "artists": [{ "id": "unknownArtist", "name": "Unknown Artist" }],
+    "album": {
+      "id": "album014",
+      "name": "Obscure Album",
+      "images": []
+    },
+    "duration_ms": 200000,
+    "popularity": 5,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track018" }
+  },
+  {
+    "id": "track019",
+    "name": "Pop Rock Fusion",
+    "artists": [
+      { "id": "artist001", "name": "The Rock Band" },
+      { "id": "artist002", "name": "Pop Princess" }
+    ],
+    "album": {
+      "id": "album015",
+      "name": "Genre Blend",
+      "images": [{ "url": "https://picsum.photos/seed/album015/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 218000,
+    "popularity": 85,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track019" }
+  },
+  {
+    "id": "track020",
+    "name": "Midnight Vibes",
+    "artists": [{ "id": "artist008", "name": "R&B Smooth" }],
+    "album": {
+      "id": "album008",
+      "name": "Heartfelt",
+      "images": [{ "url": "https://picsum.photos/seed/album008/300", "height": 300, "width": 300 }]
+    },
+    "duration_ms": 248000,
+    "popularity": 68,
+    "external_urls": { "spotify": "https://open.spotify.com/track/track020" }
+  }
+]

@@ -1,0 +1,80 @@
+{
+  "today": {
+    "date": "2025-01-11",
+    "pageViews": 150,
+    "uniqueVisitors": 42,
+    "signIns": 8,
+    "libraryScans": 25,
+    "playlistsCreated": 12,
+    "authFailures": 2
+  },
+  "last7Days": {
+    "pageViews": 850,
+    "uniqueVisitors": 180,
+    "signIns": 45,
+    "libraryScans": 120,
+    "playlistsCreated": 68,
+    "authFailures": 8
+  },
+  "kvUsage": {
+    "estimated": {
+      "reads": 450,
+      "writes": 85
+    },
+    "limits": {
+      "reads": 100000,
+      "writes": 1000
+    },
+    "usage": {
+      "readsPercent": 0,
+      "writesPercent": 8,
+      "readsRemaining": 99550,
+      "writesRemaining": 915
+    },
+    "status": "ok"
+  },
+  "kvMetrics": {
+    "reads": 234,
+    "writes": 45,
+    "deletes": 12,
+    "cacheHits": 890,
+    "cacheMisses": 234,
+    "lastReset": "2025-01-11T00:00:00.000Z"
+  },
+  "performance": {
+    "samples": [
+      {
+        "pageLoadTime": 1250,
+        "domContentLoaded": 850,
+        "timeToFirstByte": 120,
+        "serverResponse": 95,
+        "timestamp": "2025-01-11T10:30:00.000Z",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+      },
+      {
+        "pageLoadTime": 980,
+        "domContentLoaded": 720,
+        "timeToFirstByte": 85,
+        "serverResponse": 65,
+        "timestamp": "2025-01-11T10:25:00.000Z",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+      }
+    ],
+    "averages": {
+      "pageLoadTime": 1115,
+      "domContentLoaded": 785,
+      "timeToFirstByte": 102,
+      "serverResponse": 80
+    }
+  },
+  "clientErrors": [
+    {
+      "message": "TypeError: Cannot read property 'id' of undefined",
+      "stack": "at Object.handleClick (/app.js:1234:15)",
+      "url": "https://genre-genie.com/",
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0)",
+      "timestamp": "2025-01-11T08:45:00.000Z",
+      "serverTime": "2025-01-11T08:45:01.000Z"
+    }
+  ]
+}

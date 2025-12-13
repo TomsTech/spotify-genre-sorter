@@ -1,0 +1,119 @@
+{
+  "artist001": {
+    "id": "artist001",
+    "name": "The Rock Band",
+    "genres": ["rock", "alternative rock", "indie rock"],
+    "images": [{ "url": "https://i.pravatar.cc/300?u=artist001", "height": 300, "width": 300 }],
+    "popularity": 75,
+    "followers": { "total": 500000 },
+    "external_urls": { "spotify": "https://open.spotify.com/artist/artist001" }
+  },
+  "artist002": {
+    "id": "artist002",
+    "name": "Pop Princess",
+    "genres": ["pop", "dance pop", "electropop"],
+    "images": [{ "url": "https://i.pravatar.cc/300?u=artist002", "height": 300, "width": 300 }],
+    "popularity": 85,
+    "followers": { "total": 2000000 },
+    "external_urls": { "spotify": "https://open.spotify.com/artist/artist002" }
+  },
+  "artist003": {
+    "id": "artist003",
+    "name": "Electronic Dreams",
+    "genres": ["electronic", "house", "techno"],
+    "images": [{ "url": "https://i.pravatar.cc/300?u=artist003", "height": 300, "width": 300 }],
+    "popularity": 65,
+    "followers": { "total": 300000 },
+    "external_urls": { "spotify": "https://open.spotify.com/artist/artist003" }
+  },
+  "artist004": {
+    "id": "artist004",
+    "name": "Hip Hop Hero",
+    "genres": ["hip hop", "rap", "trap"],
+    "images": [{ "url": "https://i.pravatar.cc/300?u=artist004", "height": 300, "width": 300 }],
+    "popularity": 80,
+    "followers": { "total": 1500000 },
+    "external_urls": { "spotify": "https://open.spotify.com/artist/artist004" }
+  },
+  "artist005": {
+    "id": "artist005",
+    "name": "Jazz Ensemble",
+    "genres": ["jazz", "contemporary jazz", "smooth jazz"],
+    "images": [{ "url": "https://i.pravatar.cc/300?u=artist005", "height": 300, "width": 300 }],
+    "popularity": 45,
+    "followers": { "total": 100000 },
+    "external_urls": { "spotify": "https://open.spotify.com/artist/artist005" }
+  },
+  "artist006": {
+    "id": "artist006",
+    "name": "Metal Mayhem",
+    "genres": ["metal", "heavy metal", "thrash metal"],
+    "images": [{ "url": "https://i.pravatar.cc/300?u=artist006", "height": 300, "width": 300 }],
+    "popularity": 70,
+    "followers": { "total": 750000 },
+    "external_urls": { "spotify": "https://open.spotify.com/artist/artist006" }
+  },
+  "artist007": {
+    "id": "artist007",
+    "name": "Country Roads",
+    "genres": ["country", "americana", "folk"],
+    "images": [{ "url": "https://i.pravatar.cc/300?u=artist007", "height": 300, "width": 300 }],
+    "popularity": 60,
+    "followers": { "total": 400000 },
+    "external_urls": { "spotify": "https://open.spotify.com/artist/artist007" }
+  },
+  "artist008": {
+    "id": "artist008",
+    "name": "R&B Smooth",
+    "genres": ["r&b", "soul", "neo soul"],
+    "images": [{ "url": "https://i.pravatar.cc/300?u=artist008", "height": 300, "width": 300 }],
+    "popularity": 72,
+    "followers": { "total": 600000 },
+    "external_urls": { "spotify": "https://open.spotify.com/artist/artist008" }
+  },
+  "artist009": {
+    "id": "artist009",
+    "name": "Classical Orchestra",
+    "genres": ["classical", "orchestral", "contemporary classical"],
+    "images": [{ "url": "https://i.pravatar.cc/300?u=artist009", "height": 300, "width": 300 }],
+    "popularity": 40,
+    "followers": { "total": 80000 },
+    "external_urls": { "spotify": "https://open.spotify.com/artist/artist009" }
+  },
+  "artist010": {
+    "id": "artist010",
+    "name": "Swedish Pop Star",
+    "genres": ["swedish pop", "scandipop", "europop"],
+    "images": [{ "url": "https://i.pravatar.cc/300?u=artist010", "height": 300, "width": 300 }],
+    "popularity": 78,
+    "followers": { "total": 900000 },
+    "external_urls": { "spotify": "https://open.spotify.com/artist/artist010" }
+  },
+  "artist011": {
+    "id": "artist011",
+    "name": "Indie Dreamer",
+    "genres": ["indie", "dream pop", "shoegaze"],
+    "images": [{ "url": "https://i.pravatar.cc/300?u=artist011", "height": 300, "width": 300 }],
+    "popularity": 55,
+    "followers": { "total": 200000 },
+    "external_urls": { "spotify": "https://open.spotify.com/artist/artist011" }
+  },
+  "artist012": {
+    "id": "artist012",
+    "name": "Punk Revival",
+    "genres": ["punk", "punk rock", "post-punk"],
+    "images": [{ "url": "https://i.pravatar.cc/300?u=artist012", "height": 300, "width": 300 }],
+    "popularity": 58,
+    "followers": { "total": 250000 },
+    "external_urls": { "spotify": "https://open.spotify.com/artist/artist012" }
+  },
+  "unknownArtist": {
+    "id": "unknownArtist",
+    "name": "Unknown Artist",
+    "genres": [],
+    "images": [],
+    "popularity": 10,
+    "followers": { "total": 100 },
+    "external_urls": { "spotify": "https://open.spotify.com/artist/unknownArtist" }
+  }
+}

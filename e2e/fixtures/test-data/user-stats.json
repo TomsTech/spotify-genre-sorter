@@ -1,0 +1,139 @@
+{
+  "pioneers": [
+    {
+      "spotifyId": "pioneer-user-001",
+      "spotifyName": "First Pioneer",
+      "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer1",
+      "totalGenresDiscovered": 45,
+      "totalArtistsDiscovered": 320,
+      "totalTracksAnalysed": 1500,
+      "playlistsCreated": 12,
+      "totalTracksInPlaylists": 485,
+      "firstSeen": "2024-01-15T10:30:00.000Z",
+      "lastActive": "2025-01-10T14:22:00.000Z",
+      "createdPlaylistIds": ["pl-001", "pl-002", "pl-003"]
+    },
+    {
+      "spotifyId": "pioneer-user-002",
+      "spotifyName": "Second Pioneer",
+      "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer2",
+      "totalGenresDiscovered": 38,
+      "totalArtistsDiscovered": 275,
+      "totalTracksAnalysed": 1200,
+      "playlistsCreated": 8,
+      "totalTracksInPlaylists": 312,
+      "firstSeen": "2024-01-16T08:45:00.000Z",
+      "lastActive": "2025-01-08T11:15:00.000Z",
+      "createdPlaylistIds": ["pl-004", "pl-005"]
+    },
+    {
+      "spotifyId": "pioneer-user-003",
+      "spotifyName": "Third Pioneer",
+      "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer3",
+      "totalGenresDiscovered": 52,
+      "totalArtistsDiscovered": 410,
+      "totalTracksAnalysed": 2100,
+      "playlistsCreated": 15,
+      "totalTracksInPlaylists": 720,
+      "firstSeen": "2024-01-17T15:20:00.000Z",
+      "lastActive": "2025-01-11T09:30:00.000Z",
+      "createdPlaylistIds": ["pl-006", "pl-007", "pl-008"]
+    }
+  ],
+  "newUsers": [
+    {
+      "spotifyId": "new-user-001",
+      "spotifyName": "Recent Joiner 1",
+      "spotifyAvatar": "https://i.pravatar.cc/150?u=new1",
+      "totalGenresDiscovered": 15,
+      "totalArtistsDiscovered": 89,
+      "totalTracksAnalysed": 250,
+      "playlistsCreated": 2,
+      "totalTracksInPlaylists": 45,
+      "firstSeen": "2025-01-10T18:00:00.000Z",
+      "lastActive": "2025-01-11T10:00:00.000Z",
+      "createdPlaylistIds": ["pl-new-001"]
+    },
+    {
+      "spotifyId": "new-user-002",
+      "spotifyName": "Recent Joiner 2",
+      "spotifyAvatar": null,
+      "totalGenresDiscovered": 8,
+      "totalArtistsDiscovered": 42,
+      "totalTracksAnalysed": 120,
+      "playlistsCreated": 1,
+      "totalTracksInPlaylists": 18,
+      "firstSeen": "2025-01-11T09:15:00.000Z",
+      "lastActive": "2025-01-11T09:45:00.000Z",
+      "createdPlaylistIds": ["pl-new-002"]
+    }
+  ],
+  "scoreboard": {
+    "byPlaylists": [
+      { "spotifyId": "pioneer-user-003", "spotifyName": "Third Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer3", "value": 15 },
+      { "spotifyId": "pioneer-user-001", "spotifyName": "First Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer1", "value": 12 },
+      { "spotifyId": "pioneer-user-002", "spotifyName": "Second Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer2", "value": 8 }
+    ],
+    "byGenres": [
+      { "spotifyId": "pioneer-user-003", "spotifyName": "Third Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer3", "value": 52 },
+      { "spotifyId": "pioneer-user-001", "spotifyName": "First Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer1", "value": 45 },
+      { "spotifyId": "pioneer-user-002", "spotifyName": "Second Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer2", "value": 38 }
+    ],
+    "byArtists": [
+      { "spotifyId": "pioneer-user-003", "spotifyName": "Third Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer3", "value": 410 },
+      { "spotifyId": "pioneer-user-001", "spotifyName": "First Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer1", "value": 320 },
+      { "spotifyId": "pioneer-user-002", "spotifyName": "Second Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer2", "value": 275 }
+    ],
+    "byTracks": [
+      { "spotifyId": "pioneer-user-003", "spotifyName": "Third Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer3", "value": 2100 },
+      { "spotifyId": "pioneer-user-001", "spotifyName": "First Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer1", "value": 1500 },
+      { "spotifyId": "pioneer-user-002", "spotifyName": "Second Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer2", "value": 1200 }
+    ],
+    "byTracksInPlaylists": [
+      { "spotifyId": "pioneer-user-003", "spotifyName": "Third Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer3", "value": 720 },
+      { "spotifyId": "pioneer-user-001", "spotifyName": "First Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer1", "value": 485 },
+      { "spotifyId": "pioneer-user-002", "spotifyName": "Second Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer2", "value": 312 }
+    ]
+  },
+  "recentPlaylists": [
+    {
+      "playlistId": "recent-pl-001",
+      "playlistName": "rock (from Likes)",
+      "genre": "rock",
+      "trackCount": 45,
+      "createdBy": {
+        "spotifyId": "pioneer-user-001",
+        "spotifyName": "First Pioneer",
+        "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer1"
+      },
+      "createdAt": "2025-01-11T10:00:00.000Z",
+      "spotifyUrl": "https://open.spotify.com/playlist/recent-pl-001"
+    },
+    {
+      "playlistId": "recent-pl-002",
+      "playlistName": "pop (from Likes)",
+      "genre": "pop",
+      "trackCount": 62,
+      "createdBy": {
+        "spotifyId": "new-user-001",
+        "spotifyName": "Recent Joiner 1",
+        "spotifyAvatar": "https://i.pravatar.cc/150?u=new1"
+      },
+      "createdAt": "2025-01-11T09:30:00.000Z",
+      "spotifyUrl": "https://open.spotify.com/playlist/recent-pl-002"
+    },
+    {
+      "playlistId": "recent-pl-003",
+      "playlistName": "electronic (from Likes)",
+      "genre": "electronic",
+      "trackCount": 28,
+      "createdBy": {
+        "spotifyId": "pioneer-user-003",
+        "spotifyName": "Third Pioneer",
+        "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer3"
+      },
+      "createdAt": "2025-01-11T08:15:00.000Z",
+      "spotifyUrl": "https://open.spotify.com/playlist/recent-pl-003"
+    }
+  ]
+}

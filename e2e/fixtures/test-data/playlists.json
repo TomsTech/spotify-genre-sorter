@@ -1,0 +1,94 @@
+{
+  "created": {
+    "rock": {
+      "id": "playlist-rock-001",
+      "name": "rock (from Likes)",
+      "description": "Created by Genre Genie - Rock tracks from your liked songs",
+      "public": false,
+      "collaborative": false,
+      "images": [{ "url": "https://picsum.photos/seed/rock/300", "height": 300, "width": 300 }],
+      "owner": {
+        "id": "e2e-test-user-123",
+        "display_name": "E2E Test User"
+      },
+      "tracks": {
+        "total": 3
+      },
+      "external_urls": { "spotify": "https://open.spotify.com/playlist/playlist-rock-001" },
+      "snapshot_id": "snapshot-rock-001"
+    },
+    "pop": {
+      "id": "playlist-pop-001",
+      "name": "pop (from Likes)",
+      "description": "Created by Genre Genie - Pop tracks from your liked songs",
+      "public": false,
+      "collaborative": false,
+      "images": [{ "url": "https://picsum.photos/seed/pop/300", "height": 300, "width": 300 }],
+      "owner": {
+        "id": "e2e-test-user-123",
+        "display_name": "E2E Test User"
+      },
+      "tracks": {
+        "total": 2
+      },
+      "external_urls": { "spotify": "https://open.spotify.com/playlist/playlist-pop-001" },
+      "snapshot_id": "snapshot-pop-001"
+    },
+    "electronic": {
+      "id": "playlist-electronic-001",
+      "name": "electronic (from Likes)",
+      "description": "Created by Genre Genie - Electronic tracks from your liked songs",
+      "public": false,
+      "collaborative": false,
+      "images": [{ "url": "https://picsum.photos/seed/electronic/300", "height": 300, "width": 300 }],
+      "owner": {
+        "id": "e2e-test-user-123",
+        "display_name": "E2E Test User"
+      },
+      "tracks": {
+        "total": 2
+      },
+      "external_urls": { "spotify": "https://open.spotify.com/playlist/playlist-electronic-001" },
+      "snapshot_id": "snapshot-electronic-001"
+    }
+  },
+  "existing": [
+    {
+      "id": "existing-playlist-001",
+      "name": "My Existing Playlist",
+      "description": "A playlist that already exists",
+      "public": true,
+      "owner": {
+        "id": "e2e-test-user-123",
+        "display_name": "E2E Test User"
+      },
+      "tracks": { "total": 50 }
+    },
+    {
+      "id": "existing-rock-likes",
+      "name": "rock (from Likes)",
+      "description": "Previously created rock playlist",
+      "public": false,
+      "owner": {
+        "id": "e2e-test-user-123",
+        "display_name": "E2E Test User"
+      },
+      "tracks": { "total": 25 }
+    }
+  ],
+  "createResponse": {
+    "id": "new-playlist-{timestamp}",
+    "name": "{genre} (from Likes)",
+    "description": "Created by Genre Genie",
+    "public": false,
+    "collaborative": false,
+    "images": [],
+    "owner": {
+      "id": "{userId}",
+      "display_name": "{userName}"
+    },
+    "tracks": { "total": 0 },
+    "external_urls": { "spotify": "https://open.spotify.com/playlist/new-playlist-{timestamp}" },
+    "snapshot_id": "initial-snapshot"
+  }
+}

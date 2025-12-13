@@ -19,3 +19,6 @@ backups/
 e2e-report/
 playwright-report/
 test-results/
+
+# E2E test artifacts
+e2e/.seed-data.json

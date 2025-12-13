@@ -29,13 +29,14 @@ export interface LogEntry {
  * Send a log entry to BetterStack
  * Uses waitUntil to not block the response
  */
-export async function sendLog(
+export function sendLog(
   ctx: ExecutionContext,
   token: string | undefined,
   entry: LogEntry
-): Promise<void> {
+): void {
   if (!token) {
-    // No token configured, skip logging
+    // No token configured, fallback to console (intentional for local dev)
+    // eslint-disable-next-line no-console
     console.log(`[${entry.level.toUpperCase()}] ${entry.message}`);
     return;
   }

@@ -1,25 +1,37 @@
 import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
+
+const IS_CI = !!process.env.CI;
+const USE_MOCKS = process.env.E2E_USE_MOCKS !== 'false';
 
 /**
  * Playwright E2E Test Configuration for Genre Genie
  *
  * Run tests with:
- *   npm run test:e2e           - Run all E2E tests
+ *   npm run test:e2e           - Run all E2E tests with mocks
  *   npm run test:e2e:ui        - Run with UI mode
  *   npm run test:e2e:headed    - Run in headed browser
+ *   npm run test:e2e:debug     - Debug mode
+ *
+ * Environment variables:
+ *   E2E_BASE_URL       - Override base URL (default: http://localhost:8787)
+ *   E2E_USE_MOCKS      - Set to 'false' to use real Spotify API
  */
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  forbidOnly: IS_CI,
+  retries: IS_CI ? 2 : 0,
+  workers: IS_CI ? 1 : undefined,
+
   reporter: [
-    ['html', { outputFolder: 'e2e-report' }],
-    ['list']
+    ['html', { outputFolder: 'e2e-report', open: 'never' }],
+    ['list'],
+    ...(IS_CI ? [['github'] as const] : []),
   ],
+
   use: {
-    // Base URL - defaults to local dev server, can override with E2E_BASE_URL
+    // Base URL - defaults to local dev server
     baseURL: process.env.E2E_BASE_URL || 'http://localhost:8787',
 
     // Capture traces on first retry
@@ -30,20 +42,60 @@ export default defineConfig({
 
     // Video on failure
     video: 'retain-on-failure',
+
+    // Extended timeout for Cloudflare Workers cold start
+    actionTimeout: 10000,
+    navigationTimeout: 30000,
+  },
+
+  // Test timeout
+  timeout: 60000,
+
+  // Expect timeout
+  expect: {
+    timeout: 10000,
   },
 
   projects: [
+    // Main browser tests
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+
+    // Mobile tests (for responsive UI testing)
+    {
+      name: 'mobile',
+      use: { ...devices['iPhone 13'] },
+      testMatch: /ui\/.*\.spec\.ts/,
+    },
+
+    // Firefox (optional, for cross-browser testing)
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+      testIgnore: /progressive-scan\.spec\.ts/, // Skip slow tests
+    },
   ],
 
-  // Start local dev server before running tests (if not testing production)
-  webServer: process.env.E2E_BASE_URL ? undefined : {
-    command: 'npm run dev',
-    url: 'http://localhost:8787',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  // Start dev server before tests
+  webServer: process.env.E2E_BASE_URL
+    ? undefined
+    : {
+        command: USE_MOCKS
+          ? 'npx wrangler dev --config wrangler.e2e.toml --local --port 8787'
+          : 'npm run dev',
+        url: 'http://localhost:8787/health',
+        reuseExistingServer: !IS_CI,
+        timeout: 120000,
+        stdout: 'pipe',
+        stderr: 'pipe',
+      },
+
+  // Global setup for seeding test data
+  globalSetup: path.resolve('./e2e/global-setup.ts'),
+  globalTeardown: path.resolve('./e2e/global-teardown.ts'),
+
+  // Output directory for test artifacts
+  outputDir: 'test-results',
 });

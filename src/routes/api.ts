@@ -72,8 +72,10 @@ const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 30; // 30 requests per minute
 const SPOTIFY_TRACK_ID_REGEX = /^[a-zA-Z0-9]{22}$/;
 
-// Simple in-memory rate limiter (resets on worker restart, but good enough for abuse prevention)
+// PERF-003 FIX: Bounded rate limiter with deterministic cleanup
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX_ENTRIES = 10000; // Prevent unbounded memory growth
+let rateLimitRequestCount = 0;
 
 // Rate limiting middleware
 api.use('/*', async (c, next) => {
@@ -95,12 +97,24 @@ api.use('/*', async (c, next) => {
     rateLimitMap.set(clientIP, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
   }
 
-  // Clean up old entries periodically (every 100 requests)
-  if (Math.random() < 0.01) {
+  // Deterministic cleanup every 100 requests (not random)
+  rateLimitRequestCount++;
+  if (rateLimitRequestCount % 100 === 0) {
     for (const [ip, data] of rateLimitMap.entries()) {
       if (now > data.resetAt + RATE_LIMIT_WINDOW_MS) {
         rateLimitMap.delete(ip);
       }
+    }
+  }
+
+  // Emergency cleanup if map grows too large (prevents OOM)
+  if (rateLimitMap.size > RATE_LIMIT_MAX_ENTRIES) {
+    // Remove oldest 20% of entries
+    const entriesToRemove = Math.floor(RATE_LIMIT_MAX_ENTRIES * 0.2);
+    const sortedEntries = [...rateLimitMap.entries()]
+      .sort((a, b) => a[1].resetAt - b[1].resetAt);
+    for (let i = 0; i < entriesToRemove && i < sortedEntries.length; i++) {
+      rateLimitMap.delete(sortedEntries[i][0]);
     }
   }
 

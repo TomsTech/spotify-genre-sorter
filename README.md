@@ -49,6 +49,7 @@
 | [Architecture](#architecture) | How it all works |
 | [API Reference](#api-endpoints) | Available endpoints |
 | [Security](#security) | Protection measures |
+| [Testing](#testing) | Unit and E2E tests |
 | [Development](#local-development) | For contributors |
 | [Version History](#version-history) | The journey so far |
 
@@ -388,18 +389,42 @@ All responses include:
 
 ## Testing
 
+### Unit Tests (Vitest)
+
 ```bash
-npm test              # Run all tests
+npm test              # Run all unit tests
 npm run test:watch    # Watch mode
 npm run test:coverage # With coverage report
 ```
 
-**Test Coverage:**
+**Unit Test Coverage:**
 - OAuth URL generation
 - Genre extraction logic
 - Playlist creation chunking
 - Session management
 - API response formats
+
+### E2E Tests (Playwright)
+
+Full end-to-end testing with mocked Spotify API - **no Cloudflare KV credits consumed**.
+
+```bash
+npm run test:e2e        # Run all E2E tests
+npm run test:e2e:ui     # Playwright UI mode
+npm run test:e2e:headed # Run in visible browser
+npm run test:e2e:debug  # Debug mode with inspector
+npm run dev:e2e         # Dev server with local KV
+```
+
+**E2E Test Coverage:**
+- Complete OAuth flow
+- Genre fetching and caching
+- Single and bulk playlist creation
+- Duplicate detection
+- Theme toggle (light/dark)
+- Swedish mode Easter egg
+- Leaderboard and scoreboard
+- Progressive scanning for large libraries
 
 ---
 
@@ -490,13 +515,18 @@ gitGraph
    commit id: "v1.2.1" tag: "v1.2.1"
    commit id: "v1.3.0" tag: "v1.3.0"
    commit id: "v2.0.0" tag: "v2.0.0" type: HIGHLIGHT
-   commit id: "v2.2.0" tag: "v2.2.0"
+   commit id: "v2.0.1" tag: "v2.0.1"
    commit id: "v3.0.0" tag: "v3.0.0" type: HIGHLIGHT
    commit id: "v3.0.1" tag: "v3.0.1"
+   commit id: "v3.1.0" tag: "v3.1.0"
+   commit id: "v3.2.0" tag: "v3.2.0"
+   commit id: "v3.3.0" tag: "v3.3.0"
+   commit id: "v3.4.0" tag: "v3.4.0" type: HIGHLIGHT
 ```
 
 | Era | Version | Chronicle |
 |-----|---------|-----------|
+| | **v3.4.0** | E2E testing infrastructure with Playwright + MSW, mock KV |
 | | v3.0.1 | Release workflow fix, README cleanup |
 | | **v3.0.0** | Progressive scanning for vast libraries, admin sanctum, celebratory confetti, the Goldblum enigma |
 | | v2.2.0 | Sorted rankings, track counting |

@@ -1,0 +1,48 @@
+{
+  "default": {
+    "id": "e2e-test-user-123",
+    "display_name": "E2E Test User",
+    "email": "test@example.com",
+    "images": [
+      { "url": "https://i.pravatar.cc/300?u=e2e-test-user", "height": 300, "width": 300 }
+    ],
+    "country": "AU",
+    "product": "premium",
+    "followers": { "total": 42 },
+    "external_urls": { "spotify": "https://open.spotify.com/user/e2e-test-user-123" }
+  },
+  "heidi": {
+    "id": "heidi-swedish-user-456",
+    "display_name": "Heidi",
+    "email": "heidi@example.se",
+    "images": [
+      { "url": "https://i.pravatar.cc/300?u=heidi", "height": 300, "width": 300 }
+    ],
+    "country": "SE",
+    "product": "premium",
+    "followers": { "total": 100 },
+    "external_urls": { "spotify": "https://open.spotify.com/user/heidi-swedish-user-456" }
+  },
+  "newUser": {
+    "id": "new-user-789",
+    "display_name": "New User",
+    "email": "newuser@example.com",
+    "images": [],
+    "country": "US",
+    "product": "free",
+    "followers": { "total": 0 },
+    "external_urls": { "spotify": "https://open.spotify.com/user/new-user-789" }
+  },
+  "largeLibraryUser": {
+    "id": "large-library-user",
+    "display_name": "Music Collector",
+    "email": "collector@example.com",
+    "images": [
+      { "url": "https://i.pravatar.cc/300?u=collector", "height": 300, "width": 300 }
+    ],
+    "country": "GB",
+    "product": "premium",
+    "followers": { "total": 250 },
+    "external_urls": { "spotify": "https://open.spotify.com/user/large-library-user" }
+  }
+}

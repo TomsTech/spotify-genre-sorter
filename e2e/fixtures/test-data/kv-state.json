@@ -1,0 +1,46 @@
+{
+  "importedAt": "2025-12-11T16:11:48.128Z",
+  "sourceExport": "./e2e/fixtures/kv-export.json",
+  "keys": {
+    "client_perf": {
+      "value": [
+        {
+          "pageLoadTime": 302,
+          "domContentLoaded": 301,
+          "timeToFirstByte": 57,
+          "serverResponse": 11,
+          "timestamp": "2025-12-09T15:01:08.084Z",
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Sa"
+        },
+        {
+          "pageLoadTime": 624,
+          "domContentLoaded": 623,
+          "timeToFirstByte": 422,
+          "serverResponse": 83,
+          "timestamp": "2025-12-09T02:40:51.519Z",
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Sa"
+        },
+        {
+          "pageLoadTime": 347,
+          "domContentLoaded": 346,
+          "timeToFirstByte": 96,
+          "serverResponse": 84,
+          "timestamp": "2025-12-09T02:22:46.836Z",
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Sa"
+        },
+        {
+          "pageLoadTime": 176,
+          "domContentLoaded": 176,
+          "timeToFirstByte": 26,
+          "serverResponse": 35,
+          "timestamp": "2025-12-08T20:05:44.910Z",
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143."
+        }
+      ],
+      "metadata": {
+        "expiration": 1767884468,
+        "expiresAt": "2026-01-08T15:01:08.000Z"
+      }
+    }
+  }
+}
