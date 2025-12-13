@@ -38,9 +38,20 @@ test.describe('Spotify OAuth Flow', () => {
     await page.waitForTimeout(1000);
 
     // Check we're either at Spotify or back home with session
-    const url = page.url();
-    const isAtSpotify = url.includes('spotify.com');
-    const isAtHome = url.includes('localhost:8787') || url === '/';
+    // Using proper URL parsing to avoid incomplete substring matching (security best practice)
+    const currentUrl = page.url();
+    let isAtSpotify = false;
+    let isAtHome = false;
+
+    try {
+      const parsedUrl = new URL(currentUrl);
+      // Check hostname ends with spotify.com (allows accounts.spotify.com, api.spotify.com, etc.)
+      isAtSpotify = parsedUrl.hostname === 'spotify.com' || parsedUrl.hostname.endsWith('.spotify.com');
+      isAtHome = parsedUrl.hostname === 'localhost' && parsedUrl.port === '8787';
+    } catch {
+      // If URL parsing fails, check if it's a relative URL (home)
+      isAtHome = currentUrl === '/';
+    }
 
     expect(isAtSpotify || isAtHome).toBe(true);
   });

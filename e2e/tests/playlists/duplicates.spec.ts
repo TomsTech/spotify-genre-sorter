@@ -58,12 +58,15 @@ test.describe('Duplicate Detection', () => {
       await authenticatedPage.waitForTimeout(2000);
 
       // Check page content for link or warning
+      // Note: We're checking HTML content strings, not validating URLs for redirection
       const pageContent = await authenticatedPage.content();
+      // Use regex to match Spotify playlist links precisely (not substring matching)
+      const hasSpotifyPlaylistLink = /https:\/\/open\.spotify\.com\/playlist\/[a-zA-Z0-9]+/.test(pageContent);
       const hasDuplicateHandling =
         pageContent.includes('already exists') ||
         pageContent.includes('duplicate') ||
         pageContent.includes('finns redan') || // Swedish
-        pageContent.includes('open.spotify.com');
+        hasSpotifyPlaylistLink;
 
       // Implementation may vary
       expect(true).toBe(true);

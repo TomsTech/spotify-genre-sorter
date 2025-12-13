@@ -4,6 +4,7 @@
  * Mock handlers for playlist creation and modification.
  */
 import { http, HttpResponse } from 'msw';
+import { randomBytes } from 'crypto';
 import testPlaylists from '../../fixtures/test-data/playlists.json' with { type: 'json' };
 import testUsers from '../../fixtures/test-data/users.json' with { type: 'json' };
 
@@ -63,7 +64,7 @@ export const spotifyPlaylistHandlers = [
     };
 
     const { userId } = params;
-    const playlistId = `mock-playlist-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const playlistId = `mock-playlist-${Date.now()}-${randomBytes(4).toString('hex')}`;
 
     const newPlaylist = {
       id: playlistId,
