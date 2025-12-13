@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/auth.fixture';
 
 /**
  * E2E Tests for Genre Genie - Full User Journey
@@ -74,8 +74,9 @@ test.describe('Health & API Endpoints', () => {
     expect(typeof body.userCount).toBe('number');
   });
 
-  test('GET /api/leaderboard returns pioneers and new users', async ({ request }) => {
-    const response = await request.get('/api/leaderboard');
+  test('GET /api/leaderboard returns pioneers and new users', async ({ page }) => {
+    // Use page.request which goes through route interception
+    const response = await page.request.get('/api/leaderboard');
     expect(response.ok()).toBeTruthy();
 
     const body = await response.json();
@@ -85,8 +86,9 @@ test.describe('Health & API Endpoints', () => {
     expect(Array.isArray(body.newUsers)).toBeTruthy();
   });
 
-  test('GET /api/scoreboard returns rankings', async ({ request }) => {
-    const response = await request.get('/api/scoreboard');
+  test('GET /api/scoreboard returns rankings', async ({ page }) => {
+    // Use page.request which goes through route interception
+    const response = await page.request.get('/api/scoreboard');
     expect(response.ok()).toBeTruthy();
 
     const body = await response.json();
@@ -94,8 +96,9 @@ test.describe('Health & API Endpoints', () => {
     expect(typeof body).toBe('object');
   });
 
-  test('GET /api/recent-playlists returns array', async ({ request }) => {
-    const response = await request.get('/api/recent-playlists');
+  test('GET /api/recent-playlists returns array', async ({ page }) => {
+    // Use page.request which goes through route interception
+    const response = await page.request.get('/api/recent-playlists');
     expect(response.ok()).toBeTruthy();
 
     const body = await response.json();
