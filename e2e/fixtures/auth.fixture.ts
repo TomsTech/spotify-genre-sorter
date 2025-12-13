@@ -46,6 +46,124 @@ interface AuthFixtures {
  * Extended test with auth fixtures
  */
 export const test = base.extend<AuthFixtures>({
+  // Override base page fixture to add default route interception for public APIs
+  // This ensures all tests (not just authenticatedPage) have mocked API responses
+  page: async ({ page }, use) => {
+    // Set up route interception for public APIs that don't require auth
+    // This prevents tests from failing when wrangler dev has no KV data
+
+    // Import user stats data for leaderboard/scoreboard
+    const userStatsData = await import('./test-data/user-stats.json', { with: { type: 'json' } });
+
+    // /stats endpoint
+    await page.route('**/stats', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          userCount: 42,
+          hallOfFame: [
+            { position: 1, spotifyName: 'First Pioneer', spotifyAvatar: 'https://i.pravatar.cc/300?u=1' },
+            { position: 2, spotifyName: 'Second Pioneer', spotifyAvatar: 'https://i.pravatar.cc/300?u=2' },
+          ],
+        }),
+      });
+    });
+
+    // /api/leaderboard endpoint
+    await page.route('**/api/leaderboard', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          pioneers: userStatsData.default.pioneers.map((p: { spotifyId: string; spotifyName: string; spotifyAvatar?: string; firstSeen: string }, i: number) => ({
+            spotifyId: p.spotifyId,
+            spotifyName: p.spotifyName,
+            spotifyAvatar: p.spotifyAvatar,
+            registeredAt: p.firstSeen,
+            order: i + 1,
+          })),
+          newUsers: userStatsData.default.newUsers.map((u: { spotifyId: string; spotifyName: string; spotifyAvatar?: string; firstSeen: string }) => ({
+            spotifyId: u.spotifyId,
+            spotifyName: u.spotifyName,
+            spotifyAvatar: u.spotifyAvatar,
+            registeredAt: u.firstSeen,
+          })),
+          totalUsers: userStatsData.default.pioneers.length + userStatsData.default.newUsers.length,
+          _cache: {
+            updatedAt: new Date().toISOString(),
+            ageSeconds: 0,
+            nextRefreshSeconds: 900,
+            fromCache: false,
+            ttl: '15 minutes',
+          },
+        }),
+      });
+    });
+
+    // /api/scoreboard endpoint
+    await page.route('**/api/scoreboard', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ...userStatsData.default.scoreboard,
+          totalUsers: userStatsData.default.pioneers.length + userStatsData.default.newUsers.length,
+          updatedAt: new Date().toISOString(),
+          _cache: {
+            ageSeconds: 0,
+            nextRefreshSeconds: 3600,
+            fromCache: false,
+            ttl: '1 hour',
+          },
+        }),
+      });
+    });
+
+    // /api/recent-playlists endpoint
+    await page.route('**/api/recent-playlists', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          playlists: userStatsData.default.recentPlaylists || [],
+        }),
+      });
+    });
+
+    // /session endpoint for unauthenticated tests
+    await page.route('**/session', async (route, request) => {
+      const cookieHeader = request.headers()['cookie'] || '';
+      const hasSessionCookie = cookieHeader.includes('session_id=');
+
+      // If there's a session cookie, let it through (authenticatedPage will override)
+      // If no cookie, return unauthenticated
+      if (!hasSessionCookie) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            authenticated: false,
+            spotifyOnly: true,
+            spotifyConnected: false,
+          }),
+        });
+      } else {
+        // Continue to server or let authenticatedPage fixture handle it
+        await route.continue();
+      }
+    });
+
+    await use(page);
+
+    // Clean up routes
+    await page.unroute('**/stats');
+    await page.unroute('**/api/leaderboard');
+    await page.unroute('**/api/scoreboard');
+    await page.unroute('**/api/recent-playlists');
+    await page.unroute('**/session');
+  },
+
   // Fresh MockKV for each test
   mockKV: async ({}, use) => {
     const kv = new MockKVNamespace();
@@ -252,6 +370,96 @@ export const test = base.extend<AuthFixtures>({
       });
     });
 
+    // Import user stats data for leaderboard/scoreboard
+    const userStatsData = await import('./test-data/user-stats.json', { with: { type: 'json' } });
+
+    // Intercept /api/leaderboard
+    await page.route('**/api/leaderboard', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          pioneers: userStatsData.default.pioneers.map((p: { spotifyId: string; spotifyName: string; spotifyAvatar?: string; firstSeen: string }, i: number) => ({
+            spotifyId: p.spotifyId,
+            spotifyName: p.spotifyName,
+            spotifyAvatar: p.spotifyAvatar,
+            registeredAt: p.firstSeen,
+            order: i + 1,
+          })),
+          newUsers: userStatsData.default.newUsers.map((u: { spotifyId: string; spotifyName: string; spotifyAvatar?: string; firstSeen: string }) => ({
+            spotifyId: u.spotifyId,
+            spotifyName: u.spotifyName,
+            spotifyAvatar: u.spotifyAvatar,
+            registeredAt: u.firstSeen,
+          })),
+          totalUsers: userStatsData.default.pioneers.length + userStatsData.default.newUsers.length,
+          _cache: {
+            updatedAt: new Date().toISOString(),
+            ageSeconds: 0,
+            nextRefreshSeconds: 900,
+            fromCache: false,
+            ttl: '15 minutes',
+          },
+        }),
+      });
+    });
+
+    // Intercept /api/scoreboard
+    await page.route('**/api/scoreboard', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ...userStatsData.default.scoreboard,
+          totalUsers: userStatsData.default.pioneers.length + userStatsData.default.newUsers.length,
+          updatedAt: new Date().toISOString(),
+          _cache: {
+            ageSeconds: 0,
+            nextRefreshSeconds: 3600,
+            fromCache: false,
+            ttl: '1 hour',
+          },
+        }),
+      });
+    });
+
+    // Intercept /api/recent-playlists
+    await page.route('**/api/recent-playlists', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          playlists: userStatsData.default.recentPlaylists || [],
+        }),
+      });
+    });
+
+    // Intercept /api/me
+    await page.route('**/api/me', async (route, request) => {
+      const cookieHeader = request.headers()['cookie'] || '';
+      const hasSessionCookie = cookieHeader.includes('session_id=');
+
+      if (!hasSessionCookie || !sessionState.authenticated) {
+        await route.fulfill({
+          status: 401,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Not authenticated' }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: testUsers.default.id,
+          display_name: testUsers.default.display_name,
+          email: testUsers.default.email,
+          images: testUsers.default.images,
+        }),
+      });
+    });
+
     // Navigate to home to establish session
     await page.goto('/');
 
@@ -266,6 +474,10 @@ export const test = base.extend<AuthFixtures>({
     await page.unroute('**/stats');
     await page.unroute('**/api/genres');
     await page.unroute('**/api/playlist');
+    await page.unroute('**/api/leaderboard');
+    await page.unroute('**/api/scoreboard');
+    await page.unroute('**/api/recent-playlists');
+    await page.unroute('**/api/me');
   },
 });
 
