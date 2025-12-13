@@ -501,6 +501,8 @@
 
     // Admin panel state - reuses existing caches to minimize API calls
     let isAdminUser = false;
+    let isOwnerUser = false; // Set to true if logged in as owner (shows KV stats)
+    const OWNER_USERNAMES = ['tomstech', 'tom_houston', 'tom houston']; // Owner's Spotify display names (case-insensitive)
     let analyticsCache = null;
     let analyticsLastFetch = 0;
     const ANALYTICS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -517,6 +519,24 @@
         adminBtn.title = 'Debug panel - reuses cached data';
         headerActions.insertBefore(adminBtn, headerActions.firstChild);
         isAdminUser = true;
+      }
+    }
+
+    // Show KV status indicator only for the owner
+    function showKVStatusIndicator() {
+      if (!isOwnerUser) return;
+      const kvIndicator = document.getElementById('kv-status-indicator');
+      if (kvIndicator) {
+        kvIndicator.style.display = 'flex';
+      }
+    }
+
+    // Check if current user is the owner (matches OWNER_USERNAMES)
+    function checkOwnerStatus(session) {
+      const userName = (session.user || session.spotifyUser || '').toLowerCase().trim();
+      isOwnerUser = OWNER_USERNAMES.some(name => userName.includes(name.toLowerCase()));
+      if (isOwnerUser) {
+        showKVStatusIndicator();
       }
     }
 
@@ -551,9 +571,11 @@
       modal.className = 'modal-overlay admin-modal';
       modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 
-      // Calculate KV usage percentages
-      const readPct = kvUsage.readUsagePercent || 0;
-      const writePct = kvUsage.writeUsagePercent || 0;
+      // Calculate KV usage percentages - use correct API response structure
+      const readPct = kvUsage.usage?.readsPercent || 0;
+      const writePct = kvUsage.usage?.writesPercent || 0;
+      const estimatedReads = kvUsage.estimated?.reads || 0;
+      const estimatedWrites = kvUsage.estimated?.writes || 0;
       const readStatus = readPct > 80 ? 'critical' : readPct > 50 ? 'warning' : 'ok';
       const writeStatus = writePct > 80 ? 'critical' : writePct > 50 ? 'warning' : 'ok';
 
@@ -574,11 +596,11 @@
                 <div class="admin-stats">
                   <div class="stat">
                     <span class="label">Reads:</span>
-                    <span class="value kv-\${readStatus}">\${kvUsage.estimatedReads || 0} / 100k (\${readPct}%)</span>
+                    <span class="value kv-\${readStatus}">\${estimatedReads} / 100k (\${readPct}%)</span>
                   </div>
                   <div class="stat">
                     <span class="label">Writes:</span>
-                    <span class="value kv-\${writeStatus}">\${kvUsage.estimatedWrites || 0} / 1k (\${writePct}%)</span>
+                    <span class="value kv-\${writeStatus}">\${estimatedWrites} / 1k (\${writePct}%)</span>
                   </div>
                   <div class="stat">
                     <span class="label">Cache Hits:</span>
@@ -647,11 +669,11 @@
                   <div class="admin-stats">
                     <div class="stat">
                       <span class="label">Reads:</span>
-                      <span class="value kv-\${readStatus}">\${kvUsage.estimatedReads || 0} / 100k (\${readPct}%)</span>
+                      <span class="value kv-\${readStatus}">\${estimatedReads} / 100k (\${readPct}%)</span>
                     </div>
                     <div class="stat">
                       <span class="label">Writes:</span>
-                      <span class="value kv-\${writeStatus}">\${kvUsage.estimatedWrites || 0} / 1k (\${writePct}%)</span>
+                      <span class="value kv-\${writeStatus}">\${estimatedWrites} / 1k (\${writePct}%)</span>
                     </div>
                     <div class="stat">
                       <span class="label">Cache Hits:</span>
@@ -1098,15 +1120,29 @@
     const KV_POLL_INTERVAL = 300000; // Poll every 5 minutes (was 1 min)
 
     async function checkKVUsage() {
+      // Fetch KV usage for all users (needed for rate limit banner)
+      // But only update KV status indicator for owner
       try {
         const response = await fetch('/api/kv-usage');
         const data = await response.json();
         kvUsageCache = data;
-        updateKVStatusIndicator(data);
+        kvUsageData = data; // Also update kvUsageData for banner/reporting
+
+        // Update KV status indicator (owner only)
+        if (isOwnerUser) {
+          updateKVStatusIndicator(data);
+        }
+
+        // Show rate limit banner for all users when critical/warning
+        if (data.status === 'critical' || data.status === 'warning') {
+          showRateLimitBanner(data);
+        }
       } catch (err) {
         console.warn('Failed to fetch KV usage:', err);
-        // Update indicator to show unknown state
-        updateKVStatusIndicator(null);
+        // Update indicator to show unknown state (owner only)
+        if (isOwnerUser) {
+          updateKVStatusIndicator(null);
+        }
       }
     }
 
@@ -1802,6 +1838,7 @@
 
       renderHeaderUser(session);
       showAdminButton(); // Show debug panel button (no API call needed)
+      checkOwnerStatus(session); // Check if owner to show KV status
 
       // Start Now Playing monitor for authenticated users
       startNowPlayingMonitor();
@@ -4842,19 +4879,8 @@
 
     let kvUsageData = null;
 
-    async function checkKVUsage() {
-      try {
-        const response = await fetch('/api/kv-usage');
-        if (response.ok) {
-          kvUsageData = await response.json();
-          if (kvUsageData.status === 'critical' || kvUsageData.status === 'warning') {
-            showRateLimitBanner(kvUsageData);
-          }
-        }
-      } catch (err) {
-        console.log('Could not check KV usage');
-      }
-    }
+    // NOTE: checkKVUsage() is defined earlier in this file (line ~1120)
+    // It handles both KV status indicator (owner only) and rate limit banner (all users)
 
     function showRateLimitBanner(data) {
       // Don't show if already dismissed recently

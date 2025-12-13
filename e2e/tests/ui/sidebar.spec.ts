@@ -238,10 +238,11 @@ test.describe('Sidebar Scoreboard Button', () => {
     const homePage = new HomePage(page);
     await homePage.goto();
 
-    const scoreboardBtn = page.locator('.sidebar-scoreboard-btn, button:has-text("Scoreboard")');
+    // Include Swedish "Topplista" and "View Scoreboard" variants
+    const scoreboardBtn = page.locator('.sidebar-scoreboard-btn, button:has-text("Scoreboard"), button:has-text("View Scoreboard"), button:has-text("Topplista")');
 
-    if (await scoreboardBtn.isVisible()) {
-      await expect(scoreboardBtn).toBeVisible();
+    if (await scoreboardBtn.first().isVisible().catch(() => false)) {
+      await expect(scoreboardBtn.first()).toBeVisible();
     }
   });
 
@@ -249,10 +250,11 @@ test.describe('Sidebar Scoreboard Button', () => {
     const homePage = new HomePage(page);
     await homePage.goto();
 
-    const scoreboardBtn = page.locator('.sidebar-scoreboard-btn, button:has-text("Scoreboard")');
+    // Include Swedish "Topplista" and "View Scoreboard" variants
+    const scoreboardBtn = page.locator('.sidebar-scoreboard-btn, button:has-text("Scoreboard"), button:has-text("View Scoreboard"), button:has-text("Topplista")');
 
-    if (await scoreboardBtn.isVisible()) {
-      await scoreboardBtn.click();
+    if (await scoreboardBtn.first().isVisible().catch(() => false)) {
+      await scoreboardBtn.first().click();
 
       // Wait for modal
       await page.waitForTimeout(500);

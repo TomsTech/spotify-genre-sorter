@@ -52,9 +52,17 @@ test.describe('Logout Functionality', () => {
 
     await authPage.logout();
 
-    // User avatar/name should not be visible
-    await expect(homePage.userAvatar).not.toBeVisible();
-    await expect(homePage.userName).not.toBeVisible();
+    // Wait for page to settle after logout redirect
+    await authenticatedPage.waitForLoadState('domcontentloaded');
+
+    // User avatar/name should not be visible after logout
+    // Use soft assertions since elements may not exist at all in logged-out state
+    const avatarVisible = await homePage.userAvatar.isVisible().catch(() => false);
+    const nameVisible = await homePage.userName.isVisible().catch(() => false);
+
+    // After logout, neither should be visible (or they don't exist - both are valid)
+    expect(avatarVisible).toBe(false);
+    expect(nameVisible).toBe(false);
   });
 
   test('should handle logout when already logged out', async ({ page }) => {

@@ -71,15 +71,15 @@ test.describe('Scoreboard', () => {
     const homePage = new HomePage(page);
     await homePage.goto();
 
-    // Look for scoreboard button/link
+    // Look for scoreboard button/link - include Swedish "Topplista" and "View Scoreboard"
     const scoreboardTrigger = page.locator(
-      'button:has-text("Scoreboard"), a:has-text("Scoreboard"), [data-testid="scoreboard-btn"]'
+      'button:has-text("Scoreboard"), button:has-text("View Scoreboard"), button:has-text("Topplista"), a:has-text("Scoreboard"), a:has-text("Topplista"), [data-testid="scoreboard-btn"], .sidebar-scoreboard-btn'
     );
 
-    const isVisible = await scoreboardTrigger.isVisible().catch(() => false);
+    const isVisible = await scoreboardTrigger.first().isVisible().catch(() => false);
 
     if (isVisible) {
-      await scoreboardTrigger.click();
+      await scoreboardTrigger.first().click();
 
       // Modal should open
       await expect(homePage.scoreboardModal).toBeVisible({ timeout: 5000 });
@@ -93,13 +93,13 @@ test.describe('Scoreboard', () => {
     const homePage = new HomePage(page);
     await homePage.goto();
 
-    // Try to open scoreboard
+    // Try to open scoreboard - include Swedish "Topplista" and "View Scoreboard"
     const scoreboardTrigger = page.locator(
-      'button:has-text("Scoreboard"), [data-testid="scoreboard-btn"]'
+      'button:has-text("Scoreboard"), button:has-text("View Scoreboard"), button:has-text("Topplista"), [data-testid="scoreboard-btn"], .sidebar-scoreboard-btn'
     );
 
-    if (await scoreboardTrigger.isVisible().catch(() => false)) {
-      await scoreboardTrigger.click();
+    if (await scoreboardTrigger.first().isVisible().catch(() => false)) {
+      await scoreboardTrigger.first().click();
       await page.waitForTimeout(500);
     }
 

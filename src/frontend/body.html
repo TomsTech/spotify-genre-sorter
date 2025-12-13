@@ -1,16 +1,19 @@
   <!-- Skip to main content link for keyboard users -->
   <a href="#app" class="skip-to-content">Skip to main content</a>
 
-  <!-- Deployment Monitor Widget -->
-  <div class="deploy-widget" id="deploy-widget" style="display: none;" onclick="showDeployDetails()">
-    <span class="status-icon"></span>
-    <span class="deploy-text">Checking...</span>
-  </div>
+  <!-- Status Widgets Container (top-right corner) -->
+  <div class="status-widgets" id="status-widgets">
+    <!-- Deployment Monitor Widget -->
+    <div class="deploy-widget" id="deploy-widget" style="display: none;" onclick="showDeployDetails()">
+      <span class="status-icon"></span>
+      <span class="deploy-text">Checking...</span>
+    </div>
 
-  <!-- KV Status Indicator -->
-  <div class="kv-status-indicator" id="kv-status-indicator" onclick="showKVStatusModal()">
-    <span class="kv-icon">📊</span>
-    <span class="kv-text">KV: ...</span>
+    <!-- KV Status Indicator (hidden by default, shown for owner) -->
+    <div class="kv-status-indicator" id="kv-status-indicator" style="display: none;" onclick="showKVStatusModal()">
+      <span class="kv-icon">📊</span>
+      <span class="kv-text">KV: ...</span>
+    </div>
   </div>
 
   <!-- Now Playing Widget -->

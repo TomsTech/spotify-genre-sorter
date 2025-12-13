@@ -1193,18 +1193,26 @@
       color: #fff;
     }
 
-    /* Deployment Monitor Widget */
-    .deploy-widget {
+    /* Status Widgets Container (top-right corner) */
+    .status-widgets {
       position: fixed;
       top: 1rem;
       right: 1rem;
+      display: flex;
+      flex-direction: row;
+      gap: 0.5rem;
+      z-index: 1000;
+      align-items: center;
+    }
+
+    /* Deployment Monitor Widget */
+    .deploy-widget {
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 0.5rem 0.75rem;
       font-size: 0.7rem;
       color: var(--text-muted);
-      z-index: 1000;
       display: flex;
       align-items: center;
       gap: 0.5rem;
@@ -1294,16 +1302,12 @@
 
     /* KV Status Indicator */
     .kv-status-indicator {
-      position: fixed;
-      top: 1rem;
-      right: 160px;
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 0.5rem 0.75rem;
       font-size: 0.7rem;
       color: var(--text-muted);
-      z-index: 1000;
       display: flex;
       align-items: center;
       gap: 0.35rem;
