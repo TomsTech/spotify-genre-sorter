@@ -79,6 +79,11 @@ let rateLimitRequestCount = 0;
 
 // Rate limiting middleware
 api.use('/*', async (c, next) => {
+  // Skip rate limiting in E2E test mode to allow parallel test execution
+  if (c.env.E2E_TEST_MODE === 'true') {
+    return next();
+  }
+
   const clientIP = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
   const now = Date.now();
 

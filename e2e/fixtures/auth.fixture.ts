@@ -217,6 +217,10 @@ export const test = base.extend<AuthFixtures>({
       },
     ]);
 
+    // First, unroute any existing /session handler from base page fixture
+    // This ensures our handler takes precedence
+    await page.unroute('**/session');
+
     // Intercept /session requests to return mock data
     await page.route('**/session', async (route, request) => {
       // Check if the session cookie exists in the request
