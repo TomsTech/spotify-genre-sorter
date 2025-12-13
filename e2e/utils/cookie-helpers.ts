@@ -4,6 +4,7 @@
  * Utilities for managing session cookies in tests.
  */
 import { BrowserContext, Page } from '@playwright/test';
+import { randomBytes } from 'crypto';
 
 /**
  * Session cookie configuration
@@ -91,10 +92,11 @@ export async function hasSessionCookie(
 
 /**
  * Generate a unique session ID for testing
+ * Uses crypto.randomBytes for security-compliant random generation
  */
 export function generateTestSessionId(prefix = 'e2e-test'): string {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).slice(2, 8);
+  const random = randomBytes(4).toString('hex');
   return `${prefix}-${timestamp}-${random}`;
 }
 

@@ -5,6 +5,7 @@
  * Uses Playwright's route API to intercept /session and return mock data.
  */
 import { test as base, Page, BrowserContext, expect } from '@playwright/test';
+import { randomBytes } from 'crypto';
 import { MockKVNamespace } from './mock-kv';
 import { createMockSession, defaultTestUser, testUsers } from './index';
 import { configureMockServer, resetMockServer, MockServerConfig } from '../mocks/mock-server';
@@ -201,7 +202,7 @@ export const test = base.extend<AuthFixtures>({
     };
 
     // Create a session ID
-    const sessionId = `e2e-session-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const sessionId = `e2e-session-${Date.now()}-${randomBytes(4).toString('hex')}`;
 
     // Set session cookie
     await context.addCookies([
