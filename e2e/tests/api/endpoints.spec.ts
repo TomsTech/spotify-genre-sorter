@@ -321,6 +321,37 @@ test.describe('API Error Responses', () => {
 });
 
 test.describe('API Caching', () => {
+  // Set up route interception for API tests (CI has no KV data)
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/api/leaderboard', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          pioneers: [],
+          newUsers: [],
+          totalUsers: 0,
+          _cache: { fromCache: true, ageSeconds: 10 },
+        }),
+      });
+    });
+
+    await page.route('**/api/scoreboard', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          topByPlaylists: [],
+          topByGenres: [],
+          topByArtists: [],
+          topByTracks: [],
+          totalUsers: 0,
+          _cache: { fromCache: true, ageSeconds: 10 },
+        }),
+      });
+    });
+  });
+
   test('leaderboard responses are fast (cached)', async ({ page }) => {
     // First request (may populate cache)
     await page.request.get('/api/leaderboard');

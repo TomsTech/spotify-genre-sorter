@@ -66,8 +66,8 @@ export class GenresPage {
     this.bulkCreateButton = page.locator('button:has-text("Create All"), button:has-text("Bulk Create")');
     this.selectedGenres = page.locator('label.genre-item input.genre-checkbox:checked');
 
-    // Feedback
-    this.successToast = page.locator('.toast-success, .success-message, [data-testid="success-toast"]');
+    // Feedback - notification element uses .notification.success class
+    this.successToast = page.locator('.notification.success, .toast-success, .success-message, [data-testid="success-toast"]');
     this.playlistLink = page.locator('a[href*="open.spotify.com/playlist"]');
 
     // Cache
