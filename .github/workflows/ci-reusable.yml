@@ -1,0 +1,82 @@
+# =============================================================================
+# CI Pipeline using Docflow Reusable Workflows
+# =============================================================================
+# This workflow demonstrates using reusable workflows from docflow-template
+# to simplify CI configuration while retaining full functionality.
+# =============================================================================
+
+name: CI (Reusable)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Testing with Coverage & HTML Report
+  # ---------------------------------------------------------------------------
+  test:
+    name: Tests
+    uses: TomsTech/docflow-template/.github/workflows/reusable-test.yml@main
+    with:
+      node-version: '20'
+      coverage-threshold: 70
+      generate-html-report: true
+      report-title: 'Genre Genie Test Report'
+      typecheck: true
+      version-sync-check: true
+      validate-links: true
+
+  # ---------------------------------------------------------------------------
+  # Comprehensive Security Scanning
+  # ---------------------------------------------------------------------------
+  security:
+    name: Security
+    uses: TomsTech/docflow-template/.github/workflows/reusable-security.yml@main
+    with:
+      run-secrets: true
+      run-sca: true
+      run-sast: true
+      run-npm-audit: true
+      npm-audit-level: 'high'
+      run-codeql: true
+      codeql-languages: 'javascript,typescript'
+      run-dependency-check: true
+      fail-on-findings: false
+    secrets:
+      snyk-token: ${{ secrets.SNYK_TOKEN }}
+
+  # ---------------------------------------------------------------------------
+  # Build (after tests pass)
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build worker
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker-build
+          path: dist/
+          retention-days: 7
