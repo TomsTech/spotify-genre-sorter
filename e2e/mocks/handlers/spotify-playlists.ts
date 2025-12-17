@@ -25,6 +25,10 @@ export function setFailPlaylistCreation(fail: boolean): void {
   failPlaylistCreation = fail;
 }
 
+export function isFailPlaylistCreation(): boolean {
+  return failPlaylistCreation;
+}
+
 export function setExistingPlaylistNames(names: string[]): void {
   existingPlaylistNames = names;
 }
