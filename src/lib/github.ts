@@ -58,8 +58,9 @@ export async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
 
 export function isUserAllowed(username: string, allowedUsers: string): boolean {
   if (!allowedUsers || allowedUsers.trim() === '') {
-    // If no allowed users configured, allow all
-    return true;
+    // Security: If no allowlist configured, default to DENY (not allow all)
+    // This prevents accidental exposure if ALLOWED_GITHUB_USERS env var is missing
+    return false;
   }
   const allowed = allowedUsers.split(',').map(u => u.trim().toLowerCase());
   return allowed.includes(username.toLowerCase());

@@ -520,11 +520,8 @@ export const test = base.extend<AuthFixtures>({
       });
     });
 
-    // Navigate to home to establish session
-    await page.goto('/');
-
-    // Wait for page to be ready (use domcontentloaded for speed)
-    await page.waitForLoadState('domcontentloaded');
+    // Navigate to home to establish session (use domcontentloaded for speed under load)
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     await use(page);
 
