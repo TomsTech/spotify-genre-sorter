@@ -1,0 +1,123 @@
+name: Security Vulnerability Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 6 AM UTC
+  workflow_dispatch:
+
+jobs:
+  trivy-scan:
+    name: Trivy Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'json'
+          output: 'trivy-results.json'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Process and send to New Relic
+        if: always()
+        env:
+          NEW_RELIC_LICENSE_KEY: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
+        run: |
+          # Check if results exist
+          if [ ! -f trivy-results.json ]; then
+            echo "No scan results found"
+            exit 0
+          fi
+
+          # Count vulnerabilities
+          VULN_COUNT=$(jq '.Results[]?.Vulnerabilities // [] | length' trivy-results.json | paste -sd+ | bc || echo "0")
+          CRITICAL=$(jq '[.Results[]?.Vulnerabilities // [] | .[] | select(.Severity == "CRITICAL")] | length' trivy-results.json || echo "0")
+          HIGH=$(jq '[.Results[]?.Vulnerabilities // [] | .[] | select(.Severity == "HIGH")] | length' trivy-results.json || echo "0")
+          MEDIUM=$(jq '[.Results[]?.Vulnerabilities // [] | .[] | select(.Severity == "MEDIUM")] | length' trivy-results.json || echo "0")
+
+          # Create summary log
+          SUMMARY=$(cat <<EOF
+          {
+            "message": "Security scan completed for ${{ github.repository }}",
+            "logtype": "security-scan",
+            "source": "trivy",
+            "repository": "${{ github.repository }}",
+            "branch": "${{ github.ref_name }}",
+            "commit": "${{ github.sha }}",
+            "scan_type": "filesystem",
+            "total_vulnerabilities": ${VULN_COUNT:-0},
+            "critical": ${CRITICAL:-0},
+            "high": ${HIGH:-0},
+            "medium": ${MEDIUM:-0},
+            "workflow_run": "${{ github.run_id }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+          )
+
+          # Send summary to New Relic
+          curl -s -X POST "https://log-api.eu.newrelic.com/log/v1" \
+            -H "Api-Key: ${NEW_RELIC_LICENSE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "[${SUMMARY}]"
+
+          # Send individual vulnerabilities (if any, limit to first 50)
+          if [ "$VULN_COUNT" -gt 0 ]; then
+            jq -c '[.Results[]?.Vulnerabilities // [] | .[] | {
+              message: ("Vulnerability: " + .VulnerabilityID + " in " + .PkgName),
+              logtype: "security-vulnerability",
+              source: "trivy",
+              repository: "${{ github.repository }}",
+              vulnerability_id: .VulnerabilityID,
+              package: .PkgName,
+              installed_version: .InstalledVersion,
+              fixed_version: .FixedVersion,
+              severity: .Severity,
+              title: .Title,
+              description: (.Description // "No description")[:500]
+            }] | .[0:50]' trivy-results.json > vulns.json
+
+            curl -s -X POST "https://log-api.eu.newrelic.com/log/v1" \
+              -H "Api-Key: ${NEW_RELIC_LICENSE_KEY}" \
+              -H "Content-Type: application/json" \
+              -d @vulns.json
+          fi
+
+          echo "Sent scan results to New Relic"
+
+      - name: Upload Trivy results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-results
+          path: trivy-results.json
+          retention-days: 30
+
+      - name: Create GitHub Security Summary
+        if: always()
+        run: |
+          echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f trivy-results.json ]; then
+            CRITICAL=$(jq '[.Results[]?.Vulnerabilities // [] | .[] | select(.Severity == "CRITICAL")] | length' trivy-results.json || echo "0")
+            HIGH=$(jq '[.Results[]?.Vulnerabilities // [] | .[] | select(.Severity == "HIGH")] | length' trivy-results.json || echo "0")
+            MEDIUM=$(jq '[.Results[]?.Vulnerabilities // [] | .[] | select(.Severity == "MEDIUM")] | length' trivy-results.json || echo "0")
+
+            echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| 🔴 Critical | ${CRITICAL:-0} |" >> $GITHUB_STEP_SUMMARY
+            echo "| 🟠 High | ${HIGH:-0} |" >> $GITHUB_STEP_SUMMARY
+            echo "| 🟡 Medium | ${MEDIUM:-0} |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No vulnerabilities found ✅" >> $GITHUB_STEP_SUMMARY
+          fi
