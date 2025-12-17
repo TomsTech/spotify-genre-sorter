@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genre Genie - Security Backlog</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #0f3460 100%);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .glow-green { box-shadow: 0 0 20px rgba(34, 197, 94, 0.3); border-color: rgba(34, 197, 94, 0.5); }
+        .glow-red { box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); border-color: rgba(239, 68, 68, 0.5); }
+        .glow-yellow { box-shadow: 0 0 20px rgba(234, 179, 8, 0.3); border-color: rgba(234, 179, 8, 0.5); }
+        .glow-blue { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); border-color: rgba(59, 130, 246, 0.5); }
+        .glow-purple { box-shadow: 0 0 20px rgba(168, 85, 247, 0.3); border-color: rgba(168, 85, 247, 0.5); }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+        }
+
+        .severity-high { color: #ef4444; }
+        .severity-medium { color: #f59e0b; }
+        .severity-low { color: #22c55e; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .risk-badge {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-gray-100">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 backdrop-blur-lg bg-black/30 border-b border-white/10">
+        <div class="max-w-6xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                        🧞 Genre Genie
+                    </h1>
+                    <p class="text-sm text-gray-400">Security Backlog & OWASP Audit Results</p>
+                </div>
+                <div class="flex items-center gap-6">
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-green-400">✅</p>
+                        <p class="text-xs text-gray-400">Phase 1 Done</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-yellow-400">5</p>
+                        <p class="text-xs text-gray-400">Remaining</p>
+                    </div>
+                    <div class="text-right text-xs text-gray-500">
+                        <p>Audit Date: 2025-12-18</p>
+                        <p>Version: 3.4.1</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 py-8">
+        <!-- Admin Config Section -->
+        <section class="mb-8 animate-in">
+            <div class="card rounded-xl p-6 glow-purple">
+                <h2 class="text-lg font-semibold text-purple-400 mb-4 flex items-center gap-2">
+                    <span>🔐</span> Admin Configuration
+                </h2>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-sm text-gray-400 mb-2">ADMIN_USERS Environment Variable</p>
+                        <div class="code-block rounded-lg p-4">
+                            <code class="text-green-400">tomspseudonym,tomstech</code>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-400 mb-2">Location</p>
+                        <div class="code-block rounded-lg p-4">
+                            <code class="text-blue-400">Cloudflare Workers Secret</code>
+                            <p class="text-gray-500 text-xs mt-2"># Set via: echo 'users' | npx wrangler secret put ADMIN_USERS</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Completed Section -->
+        <section class="mb-8 animate-in" style="animation-delay: 0.1s">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <span class="text-green-400">✅</span> Phase 1: Completed (v3.4.1)
+            </h2>
+            <div class="card rounded-xl p-6 glow-green">
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div class="space-y-2">
+                        <p class="flex items-center gap-2"><span class="text-green-400">✓</span> Full OWASP Top 10 audit performed</p>
+                        <p class="flex items-center gap-2"><span class="text-green-400">✓</span> Security headers comprehensive</p>
+                        <p class="flex items-center gap-2"><span class="text-green-400">✓</span> Rate limiting (30 req/min)</p>
+                        <p class="flex items-center gap-2"><span class="text-green-400">✓</span> Session token rotation (7-day TTL)</p>
+                    </div>
+                    <div class="space-y-2">
+                        <p class="flex items-center gap-2"><span class="text-green-400">✓</span> Input sanitization validated</p>
+                        <p class="flex items-center gap-2"><span class="text-green-400">✓</span> Snyk dependency audit in CI</p>
+                        <p class="flex items-center gap-2"><span class="text-green-400">✓</span> Hardcoded admins → env variable</p>
+                        <p class="flex items-center gap-2"><span class="text-green-400">✓</span> Allowlist defaults to DENY</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Summary Cards -->
+        <section class="mb-8 grid md:grid-cols-4 gap-4">
+            <div class="card rounded-xl p-4 text-center">
+                <p class="text-3xl font-bold text-red-400">1</p>
+                <p class="text-xs text-gray-400">High Priority</p>
+            </div>
+            <div class="card rounded-xl p-4 text-center">
+                <p class="text-3xl font-bold text-yellow-400">3</p>
+                <p class="text-xs text-gray-400">Medium Priority</p>
+            </div>
+            <div class="card rounded-xl p-4 text-center">
+                <p class="text-3xl font-bold text-green-400">1</p>
+                <p class="text-xs text-gray-400">Low Priority</p>
+            </div>
+            <div class="card rounded-xl p-4 text-center">
+                <p class="text-3xl font-bold text-blue-400">~12h</p>
+                <p class="text-xs text-gray-400">Total Effort</p>
+            </div>
+        </section>
+
+        <!-- Backlog Items -->
+        <section class="space-y-6">
+            <h2 class="text-xl font-semibold flex items-center gap-2">
+                <span class="text-yellow-400">⏳</span> Pending Security Items
+            </h2>
+
+            <!-- 99b: PKCE -->
+            <div class="card rounded-xl p-6 glow-red animate-in" style="animation-delay: 0.2s">
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <span class="risk-badge bg-red-500/20 text-red-400 mr-2">P1 HIGH</span>
+                        <span class="risk-badge bg-purple-500/20 text-purple-400">3-4 hours</span>
+                    </div>
+                    <span class="text-gray-500 text-sm">99b</span>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Implement PKCE in OAuth Flow</h3>
+                <p class="text-gray-400 text-sm mb-4">
+                    OAuth code exchanges lack PKCE (Proof Key for Code Exchange), making them vulnerable to
+                    authorization code interception attacks. RFC 7636 requirement for public clients.
+                </p>
+
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p class="text-gray-500 mb-2 font-medium">Implementation Steps</p>
+                        <ul class="space-y-1 text-gray-400">
+                            <li>• Generate code_verifier (random 43-128 chars)</li>
+                            <li>• Create code_challenge (SHA256, base64url)</li>
+                            <li>• Store verifier in state/session</li>
+                            <li>• Include in auth request & token exchange</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 mb-2 font-medium">Risks</p>
+                        <ul class="space-y-1 text-gray-400">
+                            <li class="text-yellow-400">⚠ Could break existing OAuth sessions</li>
+                            <li>• State management complexity increases</li>
+                            <li>• Both Spotify/GitHub support PKCE ✓</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-4 code-block rounded-lg p-3">
+                    <p class="text-gray-500 text-xs mb-1">Files to modify:</p>
+                    <code class="text-blue-400 text-xs">src/routes/auth.ts, src/lib/spotify.ts, src/lib/github.ts</code>
+                </div>
+            </div>
+
+            <!-- 99a: CSP -->
+            <div class="card rounded-xl p-6 glow-yellow animate-in" style="animation-delay: 0.3s">
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <span class="risk-badge bg-yellow-500/20 text-yellow-400 mr-2">P2 MEDIUM</span>
+                        <span class="risk-badge bg-purple-500/20 text-purple-400">4-6 hours</span>
+                    </div>
+                    <span class="text-gray-500 text-sm">99a</span>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Remove unsafe-inline from CSP</h3>
+                <p class="text-gray-400 text-sm mb-4">
+                    CSP has 'unsafe-inline' in script-src, which weakens XSS protection. Need to implement
+                    nonce-based approach for inline scripts.
+                </p>
+
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p class="text-gray-500 mb-2 font-medium">Implementation Steps</p>
+                        <ul class="space-y-1 text-gray-400">
+                            <li>• Generate nonces server-side per request</li>
+                            <li>• Update inline scripts with nonce attribute</li>
+                            <li>• Update CSP header to use nonce</li>
+                            <li>• Test all pages for broken functionality</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 mb-2 font-medium">Risks</p>
+                        <ul class="space-y-1 text-gray-400">
+                            <li class="text-yellow-400">⚠ Could break onclick handlers</li>
+                            <li class="text-yellow-400">⚠ Requires frontend HTML changes</li>
+                            <li>• CDN scripts may need integrity hashes</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-4 code-block rounded-lg p-3">
+                    <p class="text-gray-500 text-xs mb-1">Files to modify:</p>
+                    <code class="text-blue-400 text-xs">src/index.ts, src/frontend/index.html, src/frontend/app.js</code>
+                </div>
+            </div>
+
+            <!-- 99c: CSRF -->
+            <div class="card rounded-xl p-6 glow-yellow animate-in" style="animation-delay: 0.4s">
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <span class="risk-badge bg-yellow-500/20 text-yellow-400 mr-2">P2 MEDIUM</span>
+                        <span class="risk-badge bg-purple-500/20 text-purple-400">2-3 hours</span>
+                    </div>
+                    <span class="text-gray-500 text-sm">99c</span>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Add CSRF Tokens to API Endpoints</h3>
+                <p class="text-gray-400 text-sm mb-4">
+                    POST/DELETE API endpoints lack explicit CSRF token validation. SameSite=Lax cookies provide
+                    partial protection, but explicit tokens are stronger defense-in-depth.
+                </p>
+
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p class="text-gray-500 mb-2 font-medium">Implementation Steps</p>
+                        <ul class="space-y-1 text-gray-400">
+                            <li>• Generate CSRF token on session creation</li>
+                            <li>• Include token in HTML (meta tag)</li>
+                            <li>• Validate X-CSRF-Token header</li>
+                            <li>• Add middleware for verification</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 mb-2 font-medium">Risks</p>
+                        <ul class="space-y-1 text-gray-400">
+                            <li>• No external API consumers (safe)</li>
+                            <li>• Token leakage if exposed incorrectly</li>
+                            <li>• Frontend complexity for header inclusion</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-4 code-block rounded-lg p-3">
+                    <p class="text-gray-500 text-xs mb-1">Files to modify:</p>
+                    <code class="text-blue-400 text-xs">src/lib/session.ts, src/routes/api.ts, src/frontend/app.js</code>
+                </div>
+            </div>
+
+            <!-- 99d: CORS -->
+            <div class="card rounded-xl p-6 glow-yellow animate-in" style="animation-delay: 0.5s">
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <span class="risk-badge bg-yellow-500/20 text-yellow-400 mr-2">P2 MEDIUM</span>
+                        <span class="risk-badge bg-green-500/20 text-green-400">30-60 min</span>
+                    </div>
+                    <span class="text-gray-500 text-sm">99d</span>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Set Explicit CORS Policy</h3>
+                <p class="text-gray-400 text-sm mb-4">
+                    No explicit CORS headers configured. Currently relying on Hono framework defaults.
+                    Should explicitly restrict to production domain.
+                </p>
+
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p class="text-gray-500 mb-2 font-medium">Implementation Steps</p>
+                        <ul class="space-y-1 text-gray-400">
+                            <li>• Add CORS middleware to Hono app</li>
+                            <li>• Set Access-Control-Allow-Origin</li>
+                            <li>• Configure allowed methods/headers</li>
+                            <li>• Handle preflight requests</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 mb-2 font-medium">Risks</p>
+                        <ul class="space-y-1 text-gray-400">
+                            <li>• Could break cross-origin uses (none expected)</li>
+                            <li>• May need multiple origins for subdomains</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-4 code-block rounded-lg p-3">
+                    <p class="text-gray-500 text-xs mb-1">Files to modify:</p>
+                    <code class="text-blue-400 text-xs">src/index.ts</code>
+                </div>
+            </div>
+
+            <!-- 99e: Genre Sanitization -->
+            <div class="card rounded-xl p-6 animate-in" style="animation-delay: 0.6s">
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <span class="risk-badge bg-green-500/20 text-green-400 mr-2">P3 LOW</span>
+                        <span class="risk-badge bg-green-500/20 text-green-400">1 hour</span>
+                    </div>
+                    <span class="text-gray-500 text-sm">99e</span>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Whitelist-based Genre Sanitization</h3>
+                <p class="text-gray-400 text-sm mb-4">
+                    Genre name sanitization uses blacklist approach (removing &lt;&gt;"'&). Whitelist approach
+                    is more secure against Unicode bypasses.
+                </p>
+
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p class="text-gray-500 mb-2 font-medium">Implementation Steps</p>
+                        <ul class="space-y-1 text-gray-400">
+                            <li>• Define allowed character set</li>
+                            <li>• Replace blacklist with whitelist regex</li>
+                            <li>• Test international genre names</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 mb-2 font-medium">Risks</p>
+                        <ul class="space-y-1 text-gray-400">
+                            <li>• Could reject legitimate genre names</li>
+                            <li>• Some Spotify genres have unusual chars</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-4 code-block rounded-lg p-3">
+                    <p class="text-gray-500 text-xs mb-1">Files to modify:</p>
+                    <code class="text-blue-400 text-xs">src/routes/api.ts (sanitiseGenreName function)</code>
+                </div>
+            </div>
+        </section>
+
+        <!-- Risk Matrix -->
+        <section class="mt-12 mb-8">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <span>📊</span> Risk Assessment Matrix
+            </h2>
+            <div class="card rounded-xl overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead class="bg-white/5">
+                        <tr class="border-b border-white/10">
+                            <th class="px-4 py-3 text-left text-gray-400">Item</th>
+                            <th class="px-4 py-3 text-left text-gray-400">Severity</th>
+                            <th class="px-4 py-3 text-left text-gray-400">Likelihood</th>
+                            <th class="px-4 py-3 text-left text-gray-400">Effort</th>
+                            <th class="px-4 py-3 text-left text-gray-400">Breaking Risk</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b border-white/5 hover:bg-white/5">
+                            <td class="px-4 py-3">PKCE in OAuth</td>
+                            <td class="px-4 py-3"><span class="severity-high font-medium">HIGH</span></td>
+                            <td class="px-4 py-3 text-gray-400">Low</td>
+                            <td class="px-4 py-3 text-gray-400">3-4h</td>
+                            <td class="px-4 py-3 text-yellow-400">Medium</td>
+                        </tr>
+                        <tr class="border-b border-white/5 hover:bg-white/5">
+                            <td class="px-4 py-3">Remove unsafe-inline</td>
+                            <td class="px-4 py-3"><span class="severity-medium font-medium">MEDIUM</span></td>
+                            <td class="px-4 py-3 text-gray-400">Low</td>
+                            <td class="px-4 py-3 text-gray-400">4-6h</td>
+                            <td class="px-4 py-3 text-red-400">High</td>
+                        </tr>
+                        <tr class="border-b border-white/5 hover:bg-white/5">
+                            <td class="px-4 py-3">CSRF Tokens</td>
+                            <td class="px-4 py-3"><span class="severity-medium font-medium">MEDIUM</span></td>
+                            <td class="px-4 py-3 text-gray-400">Low</td>
+                            <td class="px-4 py-3 text-gray-400">2-3h</td>
+                            <td class="px-4 py-3 text-green-400">Low</td>
+                        </tr>
+                        <tr class="border-b border-white/5 hover:bg-white/5">
+                            <td class="px-4 py-3">Explicit CORS</td>
+                            <td class="px-4 py-3"><span class="severity-medium font-medium">MEDIUM</span></td>
+                            <td class="px-4 py-3 text-gray-400">Low</td>
+                            <td class="px-4 py-3 text-gray-400">30-60m</td>
+                            <td class="px-4 py-3 text-green-400">Low</td>
+                        </tr>
+                        <tr class="hover:bg-white/5">
+                            <td class="px-4 py-3">Whitelist Sanitization</td>
+                            <td class="px-4 py-3"><span class="severity-low font-medium">LOW</span></td>
+                            <td class="px-4 py-3 text-gray-400">Very Low</td>
+                            <td class="px-4 py-3 text-gray-400">1h</td>
+                            <td class="px-4 py-3 text-yellow-400">Medium</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center text-gray-500 text-sm py-8 border-t border-white/10">
+            <p>Security Audit by Claude Opus 4.5 • 2025-12-18</p>
+            <p class="text-xs mt-1">spotify.houstons.tech • v3.4.1</p>
+        </footer>
+    </main>
+</body>
+</html>
