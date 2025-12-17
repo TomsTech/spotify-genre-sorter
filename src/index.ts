@@ -44,7 +44,7 @@ app.use('*', async (c, next) => {
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https://flagcdn.com https://i.scdn.co https://avatars.githubusercontent.com https://img.shields.io",
+    "img-src 'self' data: https://flagcdn.com https://i.scdn.co https://avatars.githubusercontent.com https://img.shields.io https://uptime.betterstack.com",
     "connect-src 'self' https://api.spotify.com https://ko-fi.com https://cloudflareinsights.com",
     "frame-ancestors 'none'",
   ].join('; '));
