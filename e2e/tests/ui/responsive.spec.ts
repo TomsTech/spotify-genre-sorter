@@ -45,16 +45,28 @@ test.describe('Mobile Layout (375px)', () => {
 
     const sidebar = homePage.sidebar;
 
-    // Sidebar may be collapsed or have different layout on mobile
-    const sidebarVisible = await sidebar.isVisible().catch(() => false);
+    // On mobile, sidebar should have 'collapsed' class (slides off-screen via transform)
+    // OR not be visible at all
+    const sidebarExists = await sidebar.count() > 0;
 
-    if (sidebarVisible) {
-      const sidebarWidth = await sidebar.evaluate(el => el.getBoundingClientRect().width).catch(() => 0);
-      // On mobile, sidebar should be narrow (less than 300px)
-      expect(sidebarWidth).toBeLessThan(300);
+    if (sidebarExists) {
+      const isCollapsed = await sidebar.evaluate(el => el.classList.contains('collapsed')).catch(() => false);
+      const sidebarRect = await sidebar.evaluate(el => {
+        const rect = el.getBoundingClientRect();
+        return { left: rect.left, width: rect.width, right: rect.right };
+      }).catch(() => ({ left: 0, width: 0, right: 0 }));
+
+      // Sidebar is collapsed if:
+      // 1. Has 'collapsed' class (transforms off-screen), OR
+      // 2. Its right edge is <= 0 (fully off-screen), OR
+      // 3. Width is less than 300px (narrow mode)
+      const isOffScreen = sidebarRect.right <= 0;
+      const isNarrow = sidebarRect.width < 300;
+
+      expect(isCollapsed || isOffScreen || isNarrow).toBe(true);
     } else {
-      // Sidebar is completely hidden on mobile - this is expected behavior
-      expect(sidebarVisible).toBe(false);
+      // Sidebar doesn't exist - that's also acceptable
+      expect(true).toBe(true);
     }
   });
 

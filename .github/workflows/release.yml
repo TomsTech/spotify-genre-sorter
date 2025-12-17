@@ -17,9 +17,31 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Get version from tag
         id: version
         run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Generate test report
+        id: test-report
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          # Run tests and generate HTML report
+          node scripts/generate-test-report.mjs \
+            --title "Genre Genie $VERSION - Test Report" \
+            --description "Automated test results for release $VERSION"
+          # Rename to include version
+          mv test-report.html test-report-$VERSION.html
+          echo "report_file=test-report-$VERSION.html" >> $GITHUB_OUTPUT
+        continue-on-error: true
 
       - name: Extract changelog for version
         id: changelog
@@ -45,5 +67,7 @@ jobs:
           body_path: release_notes.md
           draft: false
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+          files: |
+            ${{ steps.test-report.outputs.report_file }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

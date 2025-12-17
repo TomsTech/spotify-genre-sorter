@@ -1193,15 +1193,15 @@
       color: #fff;
     }
 
-    /* Status Widgets Container (top-right corner) */
+    /* Status Widgets Container (below header, right side) */
     .status-widgets {
       position: fixed;
-      top: 1rem;
+      top: 4.5rem; /* Below the sticky header */
       right: 1rem;
       display: flex;
       flex-direction: row;
       gap: 0.5rem;
-      z-index: 1000;
+      z-index: 999; /* Below header z-index */
       align-items: center;
     }
 
@@ -1342,7 +1342,7 @@
     /* === Now Playing Widget === */
     .now-playing-widget {
       position: fixed;
-      bottom: 1.5rem;
+      bottom: 4rem;
       left: 50%;
       transform: translateX(-50%);
       background: linear-gradient(135deg, rgba(30, 30, 30, 0.95), rgba(18, 18, 18, 0.98));
@@ -1479,7 +1479,7 @@
 
     @media (max-width: 600px) {
       .now-playing-widget {
-        bottom: 1rem;
+        bottom: 4rem;
         left: 1rem;
         right: 1rem;
         transform: none;
@@ -1501,11 +1501,17 @@
 
     /* KV Status Modal Content */
     .kv-status-panel {
-      max-width: 500px;
+      max-width: 550px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
     }
 
     .kv-status-content {
       padding: 1rem;
+      overflow-y: auto;
+      flex: 1;
+      min-height: 0;
     }
 
     .kv-status-summary {
@@ -3528,6 +3534,133 @@
 
     .user-list-item .regalia {
       font-size: 0.85rem;
+    }
+
+    /* Now Playing indicator and tooltip */
+    .user-list-item.is-listening {
+      position: relative;
+    }
+
+    .user-list-item.is-listening::before {
+      content: '';
+      position: absolute;
+      left: -4px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: listeningPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes listeningPulse {
+      0%, 100% { opacity: 1; transform: translateY(-50%) scale(1); }
+      50% { opacity: 0.5; transform: translateY(-50%) scale(0.8); }
+    }
+
+    .now-playing-tooltip {
+      position: absolute;
+      left: calc(100% + 12px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-width: 220px;
+      max-width: 280px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s, visibility 0.2s;
+      pointer-events: none;
+    }
+
+    .user-list-item.is-listening:hover .now-playing-tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .now-playing-tooltip::before {
+      content: '';
+      position: absolute;
+      left: -6px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: 6px solid transparent;
+      border-right-color: var(--border);
+    }
+
+    .now-playing-tooltip::after {
+      content: '';
+      position: absolute;
+      left: -5px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: 5px solid transparent;
+      border-right-color: var(--surface);
+    }
+
+    .now-playing-album-art {
+      width: 48px;
+      height: 48px;
+      border-radius: 4px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: var(--surface-2);
+    }
+
+    .now-playing-info {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .now-playing-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--accent);
+      margin-bottom: 0.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .now-playing-track {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .now-playing-artists {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Light mode tooltip adjustments */
+    body.light-mode .now-playing-tooltip {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Swedish mode - use Swedish colors */
+    body.swedish-mode .user-list-item.is-listening::before {
+      background: var(--swedish-yellow);
+    }
+
+    body.swedish-mode .now-playing-label {
+      color: var(--swedish-blue);
     }
 
     /* Pioneer regalia badges */
@@ -6292,10 +6425,10 @@
       letter-spacing: 0.5px;
     }
 
-    /* Health Status Indicator - positioned below deploy widget */
+    /* Health Status Indicator - positioned below status widgets */
     .health-indicator {
       position: fixed;
-      top: 3rem;
+      top: 6.5rem;
       right: 1rem;
       display: flex;
       align-items: center;
@@ -6307,7 +6440,7 @@
       font-size: 0.75rem;
       color: var(--text-muted);
       cursor: pointer;
-      z-index: 1000;
+      z-index: 998;
       transition: all 0.2s ease;
       backdrop-filter: blur(10px);
       opacity: 0.7;
@@ -6379,8 +6512,10 @@
       background: var(--surface);
       border-radius: 1rem;
       padding: 2rem;
-      max-width: 400px;
+      max-width: 450px;
       width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
       text-align: center;
       position: relative;
       animation: shareModalIn 0.3s ease;
@@ -6941,7 +7076,7 @@
     /* Toast notification */
     .toast-notification {
       position: fixed;
-      bottom: 2rem;
+      bottom: 5rem;
       left: 50%;
       transform: translateX(-50%) translateY(100px);
       background: var(--surface-2);
@@ -6954,11 +7089,15 @@
       z-index: 100000;
       opacity: 0;
       transition: all 0.3s ease;
+      pointer-events: none;
+      max-width: 90vw;
+      text-align: center;
     }
 
     .toast-notification.toast-visible {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
     }
 
     /* Mobile adjustments for wrapped card */
@@ -7228,5 +7367,20 @@
       :focus {
         outline-offset: 2px;
         transition: none !important;
+      }
+    }
+
+    /* Mobile toast notification */
+    @media (max-width: 480px) {
+      .toast-notification {
+        bottom: 4rem;
+        left: 1rem;
+        right: 1rem;
+        transform: translateX(0) translateY(100px);
+        max-width: none;
+      }
+
+      .toast-notification.toast-visible {
+        transform: translateX(0) translateY(0);
       }
     }

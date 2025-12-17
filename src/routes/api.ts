@@ -18,6 +18,7 @@ import {
   type RecentPlaylist,
   getUserPreferences,
   updateUserPreferences,
+  cachedKV,
 } from '../lib/session';
 import {
   refreshSpotifyToken,
@@ -127,7 +128,7 @@ api.use('/*', async (c, next) => {
 });
 
 // Public endpoints that don't require authentication
-const PUBLIC_ENDPOINTS = ['/scoreboard', '/leaderboard', '/recent-playlists', '/deploy-status', '/changelog', '/analytics', '/kv-usage', '/kv-metrics', '/log-error', '/log-perf'];
+const PUBLIC_ENDPOINTS = ['/scoreboard', '/leaderboard', '/recent-playlists', '/deploy-status', '/changelog', '/analytics', '/kv-usage', '/kv-metrics', '/log-error', '/log-perf', '/listening'];
 
 // Auth middleware - check auth and refresh tokens if needed
 api.use('/*', async (c, next) => {
@@ -204,6 +205,7 @@ api.get('/me', async (c) => {
 });
 
 // Get current playback state (Now Playing)
+// Also stores listening status in KV for public "who's listening" feature
 api.get('/now-playing', async (c) => {
   const session = await getSession(c);
   if (!session?.spotifyAccessToken) {
@@ -212,6 +214,29 @@ api.get('/now-playing', async (c) => {
 
   try {
     const playback = await getCurrentPlayback(session.spotifyAccessToken);
+    const kv = c.env.SESSIONS;
+
+    // If user is listening, store it in KV with 90-second TTL
+    if (playback?.is_playing && playback.item && session.spotifyUserId) {
+      const listeningData = {
+        spotifyId: session.spotifyUserId,
+        spotifyName: session.spotifyUser || session.spotifyUserId,
+        spotifyAvatar: session.spotifyAvatar || null,
+        track: {
+          name: playback.item.name,
+          artists: playback.item.artists.map(a => a.name).join(', '),
+          albumArt: playback.item.album.images[1]?.url || playback.item.album.images[0]?.url || null,
+          url: playback.item.external_urls.spotify,
+        },
+        updatedAt: new Date().toISOString(),
+      };
+      await kv.put(`listening:${session.spotifyUserId}`, JSON.stringify(listeningData), {
+        expirationTtl: 90, // 90 seconds - auto-expires if user stops polling
+      });
+    } else if (session.spotifyUserId) {
+      // User not playing - delete their listening entry
+      await kv.delete(`listening:${session.spotifyUserId}`);
+    }
 
     if (!playback || !playback.item) {
       return c.json({ playing: false });
@@ -1254,6 +1279,47 @@ api.get('/leaderboard', async (c) => {
   }
 });
 
+// Get all users currently listening to music (public endpoint)
+// Reads listening:* keys from KV (auto-expiring entries set by /now-playing)
+api.get('/listening', async (c) => {
+  try {
+    const kv = c.env.SESSIONS;
+    const list = await kv.list({ prefix: 'listening:', limit: 50 });
+
+    interface ListeningEntry {
+      spotifyId: string;
+      spotifyName: string;
+      spotifyAvatar: string | null;
+      track: {
+        name: string;
+        artists: string;
+        albumArt: string | null;
+        url: string;
+      };
+      updatedAt: string;
+    }
+
+    const listeners: ListeningEntry[] = [];
+    for (const key of list.keys) {
+      try {
+        const data = await kv.get(key.name);
+        if (data) {
+          const entry = JSON.parse(data) as ListeningEntry;
+          listeners.push(entry);
+        }
+      } catch { /* skip malformed entries */ }
+    }
+
+    return c.json({
+      listeners,
+      count: listeners.length,
+    });
+  } catch (err) {
+    console.error('Error fetching listening data:', err);
+    return c.json({ listeners: [], count: 0 });
+  }
+});
+
 // Get recent playlists feed
 api.get('/recent-playlists', async (c) => {
   try {
@@ -1947,17 +2013,17 @@ api.get('/admin/users', async (c) => {
           spotifyId: string;
           spotifyName: string;
           spotifyAvatar?: string;
-          playlistCount?: number;
-          registeredAt?: string;
-          lastPlaylistAt?: string;
+          playlistsCreated?: number;
+          firstSeen?: string;
+          lastActive?: string;
         };
         users.push({
           spotifyId: stats.spotifyId,
           spotifyName: stats.spotifyName || 'Unknown',
           spotifyAvatar: stats.spotifyAvatar || null,
-          playlistCount: stats.playlistCount || 0,
-          registeredAt: stats.registeredAt || 'Unknown',
-          lastActive: stats.lastPlaylistAt || null,
+          playlistCount: stats.playlistsCreated || 0,
+          registeredAt: stats.firstSeen || 'Unknown',
+          lastActive: stats.lastActive || null,
         });
       }
     } catch { /* skip malformed entries */ }
@@ -1978,38 +2044,46 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   const session = await getSession(c);
   if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
 
-  const spotifyId = c.req.param('spotifyId');
+  // URL decode the spotifyId in case it contains special characters
+  const spotifyId = decodeURIComponent(c.req.param('spotifyId') || '');
   if (!spotifyId) return c.json({ error: 'Spotify ID required' }, 400);
 
   const kv = c.env.SESSIONS;
   const deleted: string[] = [];
 
-  // Delete user_stats
+  // Delete user_stats - use cachedKV for proper cache invalidation
   const userStatsKey = `user_stats:${spotifyId}`;
   if (await kv.get(userStatsKey)) {
-    await kv.delete(userStatsKey);
+    await cachedKV.delete(kv, userStatsKey);
     deleted.push(userStatsKey);
   }
 
   // Delete user lookup
   const userKey = `user:${spotifyId}`;
   if (await kv.get(userKey)) {
-    await kv.delete(userKey);
+    await cachedKV.delete(kv, userKey);
     deleted.push(userKey);
   }
 
   // Delete Hall of Fame entry
   const hofKey = `hof:${spotifyId}`;
   if (await kv.get(hofKey)) {
-    await kv.delete(hofKey);
+    await cachedKV.delete(kv, hofKey);
     deleted.push(hofKey);
   }
 
   // Delete genre cache for this user
   const genreCacheKey = `genre_cache_${spotifyId}`;
   if (await kv.get(genreCacheKey)) {
-    await kv.delete(genreCacheKey);
+    await cachedKV.delete(kv, genreCacheKey);
     deleted.push(genreCacheKey);
+  }
+
+  // Delete scan progress if exists
+  const scanProgressKey = `scan_progress:${spotifyId}`;
+  if (await kv.get(scanProgressKey)) {
+    await cachedKV.delete(kv, scanProgressKey);
+    deleted.push(scanProgressKey);
   }
 
   // Find and delete any active sessions for this user
@@ -2020,7 +2094,7 @@ api.delete('/admin/user/:spotifyId', async (c) => {
       if (sessionJson) {
         const sessionData = JSON.parse(sessionJson) as { spotifyUserId?: string };
         if (sessionData.spotifyUserId === spotifyId) {
-          await kv.delete(key.name);
+          await cachedKV.delete(kv, key.name);
           deleted.push(key.name);
         }
       }
@@ -2039,8 +2113,9 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   }
 
   // Clear leaderboard and scoreboard caches so they rebuild without this user
-  await kv.delete('leaderboard_cache');
-  await kv.delete('scoreboard_cache');
+  // Use cachedKV to also clear in-memory cache
+  await cachedKV.delete(kv, 'leaderboard_cache');
+  await cachedKV.delete(kv, 'scoreboard_cache');
 
   return c.json({
     success: true,

@@ -34,7 +34,8 @@
     "test:e2e:ci": "playwright install chromium && playwright test --project=chromium",
     "dev:e2e": "wrangler dev --config wrangler.e2e.toml --local --port 8787",
     "e2e:install": "playwright install chromium",
-    "deps:check": "node scripts/check-deps.mjs"
+    "deps:check": "node scripts/check-deps.mjs",
+    "test:report": "node scripts/generate-test-report.mjs"
   },
   "dependencies": {
     "hono": "^4.6.0"

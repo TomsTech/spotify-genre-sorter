@@ -979,12 +979,19 @@
     }
 
     function formatTimeAgo(date) {
+      // Handle invalid dates (NaN, Invalid Date, "Unknown" strings)
+      if (!date || isNaN(date.getTime())) return 'Unknown';
+
       const now = new Date();
       const diff = Math.floor((now - date) / 1000);
+
+      // Handle future dates or very old dates
+      if (diff < 0) return 'just now';
       if (diff < 60) return 'just now';
       if (diff < 3600) return \`\${Math.floor(diff / 60)}m ago\`;
       if (diff < 86400) return \`\${Math.floor(diff / 3600)}h ago\`;
-      return \`\${Math.floor(diff / 86400)}d ago\`;
+      if (diff < 2592000) return \`\${Math.floor(diff / 86400)}d ago\`; // Less than 30 days
+      return \`\${Math.floor(diff / 2592000)}mo ago\`; // Months
     }
 
     // Update all relative timestamps periodically
@@ -1633,12 +1640,17 @@
       // Update donation button for Swedish mode (pick new random option)
       initDonationButton();
 
-      // Update Heidi badge
+      // Update Heidi badge - preserve the two-span structure
       const heidiBadge = document.querySelector('.heidi-badge');
       if (heidiBadge) {
-        const heidiText = heidiBadge.querySelector('.heidi-text span');
-        if (heidiText) {
-          heidiText.textContent = enabled ? 'För Heidi' : 'For Heidi';
+        const heidiTextSpans = heidiBadge.querySelectorAll('.heidi-text > span');
+        if (heidiTextSpans.length >= 2) {
+          // First span: "Made with inspiration from" / "Gjord med inspiration från"
+          heidiTextSpans[0].textContent = enabled ? 'Gjord med inspiration från' : 'Made with inspiration from';
+          // Second span keeps the name and heart structure
+          heidiTextSpans[1].innerHTML = enabled
+            ? '<strong>Heidi</strong> <span class="heart">💛</span>'
+            : '<strong>Heidi</strong> <span class="heart">♥</span>';
         }
       }
 
@@ -4022,10 +4034,101 @@
     let sidebarData = {
       pioneers: [],
       newUsers: [],
-      recentPlaylists: []
+      recentPlaylists: [],
+      listening: [] // Users currently listening to music
     };
     let scoreboardData = null;
     let sidebarPollInterval = null;
+    let nowPlayingPollInterval = null;
+
+    // Load listening data (users currently playing music)
+    async function loadListeningData() {
+      try {
+        const response = await fetch('/api/listening');
+        if (!response.ok) return;
+        const data = await response.json();
+        sidebarData.listening = data.listeners || [];
+        updateListeningIndicators();
+      } catch (err) {
+        // Silent fail - listening is optional
+      }
+    }
+
+    // Update user list items to show listening indicators
+    function updateListeningIndicators() {
+      // Create a map of spotifyId -> listening data for fast lookup
+      const listeningMap = new Map();
+      for (const listener of sidebarData.listening) {
+        listeningMap.set(listener.spotifyId, listener);
+      }
+
+      // Update all user list items
+      document.querySelectorAll('.user-list-item[data-spotify-id]').forEach(item => {
+        const spotifyId = item.getAttribute('data-spotify-id');
+        const existingTooltip = item.querySelector('.now-playing-tooltip');
+
+        if (listeningMap.has(spotifyId)) {
+          const data = listeningMap.get(spotifyId);
+          item.classList.add('is-listening');
+
+          // Create or update tooltip
+          if (existingTooltip) {
+            existingTooltip.querySelector('.now-playing-track').textContent = data.track.name;
+            existingTooltip.querySelector('.now-playing-artists').textContent = data.track.artists;
+            const img = existingTooltip.querySelector('.now-playing-album-art');
+            if (data.track.albumArt) {
+              img.src = data.track.albumArt;
+              img.style.display = '';
+            } else {
+              img.style.display = 'none';
+            }
+          } else {
+            // Create tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'now-playing-tooltip';
+            tooltip.innerHTML = \`
+              <img class="now-playing-album-art" src="\${data.track.albumArt || ''}" alt="" \${data.track.albumArt ? '' : 'style="display:none"'}>
+              <div class="now-playing-info">
+                <div class="now-playing-label">\${swedishMode ? 'Spelar nu' : 'Now Playing'}</div>
+                <div class="now-playing-track">\${escapeHtml(data.track.name)}</div>
+                <div class="now-playing-artists">\${escapeHtml(data.track.artists)}</div>
+              </div>
+            \`;
+            item.appendChild(tooltip);
+          }
+        } else {
+          item.classList.remove('is-listening');
+          if (existingTooltip) {
+            existingTooltip.remove();
+          }
+        }
+      });
+    }
+
+    // Poll the current user's now playing status (to broadcast to others)
+    async function pollNowPlaying() {
+      try {
+        await fetch('/api/now-playing');
+        // Response doesn't matter - the endpoint updates KV as a side effect
+      } catch {
+        // Silent fail
+      }
+    }
+
+    // Start polling now playing status for authenticated users
+    function startNowPlayingPoll() {
+      if (nowPlayingPollInterval) return;
+      // Poll every 30 seconds to keep listening status fresh
+      pollNowPlaying(); // Initial poll
+      nowPlayingPollInterval = setInterval(pollNowPlaying, 30000);
+    }
+
+    function stopNowPlayingPoll() {
+      if (nowPlayingPollInterval) {
+        clearInterval(nowPlayingPollInterval);
+        nowPlayingPollInterval = null;
+      }
+    }
 
     // Load leaderboard data (pioneers + new users)
     async function loadLeaderboard() {
@@ -4082,7 +4185,7 @@
           const specialClass = getSpecialUserClass(user.spotifyName);
           const specialTag = getSpecialUserTag(user.spotifyName);
           return \`
-            <div class="user-list-item animate-in owner-item \${specialClass}" style="animation-delay: \${delay}ms" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
+            <div class="user-list-item animate-in owner-item \${specialClass}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
               \${user.spotifyAvatar
                 ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
                 : '<div class="user-avatar-placeholder">👤</div>'}
@@ -4107,7 +4210,7 @@
           const specialClass = getSpecialUserClass(user.spotifyName);
           const specialTag = getSpecialUserTag(user.spotifyName);
           return \`
-            <div class="user-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
+            <div class="user-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
               <span class="position \${posClass}">#\${i + 1}</span>
               \${user.spotifyAvatar
                 ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
@@ -4222,6 +4325,9 @@
       const modal = document.createElement('div');
       modal.className = 'scoreboard-modal active';
       modal.id = 'scoreboard-modal';
+      modal.setAttribute('data-testid', 'scoreboard-modal');
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-modal', 'true');
       modal.onclick = (e) => {
         if (e.target === modal) closeScoreboard();
       };

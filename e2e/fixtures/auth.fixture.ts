@@ -361,16 +361,71 @@ export const test = base.extend<AuthFixtures>({
       }
 
       const playlistId = `mock-playlist-${Date.now()}`;
+      const playlistName = `${genreName} (from Likes)`;
+      const playlistUrl = `https://open.spotify.com/playlist/${playlistId}`;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          id: playlistId,
-          name: `${genreName} (from Likes)`,
-          external_urls: {
-            spotify: `https://open.spotify.com/playlist/${playlistId}`,
+          success: true,
+          url: playlistUrl, // For backwards compatibility with some frontend code paths
+          playlist: {
+            id: playlistId,
+            url: playlistUrl,
+            name: playlistName,
+            trackCount: 10,
           },
-          tracks: { total: 10 },
+        }),
+      });
+    });
+
+    // Intercept POST /api/playlists/bulk to return mock success
+    await page.route('**/api/playlists/bulk', async (route, request) => {
+      if (request.method() !== 'POST') {
+        await route.continue();
+        return;
+      }
+
+      const cookieHeader = request.headers()['cookie'] || '';
+      const hasSessionCookie = cookieHeader.includes('session_id=');
+
+      if (!hasSessionCookie || !sessionState.authenticated) {
+        await route.fulfill({
+          status: 401,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Not authenticated' }),
+        });
+        return;
+      }
+
+      // Parse request body to get genres
+      let genres: { name: string; trackIds: string[] }[] = [];
+      try {
+        const body = await request.postDataJSON();
+        genres = body?.genres || [];
+      } catch {
+        // Ignore parse errors
+      }
+
+      // Generate mock results for each genre
+      const results = genres.map((genre) => {
+        const playlistId = `mock-bulk-playlist-${Date.now()}-${genre.name.replace(/\s+/g, '-')}`;
+        const playlistUrl = `https://open.spotify.com/playlist/${playlistId}`;
+        return {
+          genre: genre.name,
+          success: true,
+          url: playlistUrl,
+        };
+      });
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          total: genres.length,
+          successful: genres.length,
+          skipped: 0,
+          results,
         }),
       });
     });
@@ -479,6 +534,7 @@ export const test = base.extend<AuthFixtures>({
     await page.unroute('**/stats');
     await page.unroute('**/api/genres');
     await page.unroute('**/api/playlist');
+    await page.unroute('**/api/playlists/bulk');
     await page.unroute('**/api/leaderboard');
     await page.unroute('**/api/scoreboard');
     await page.unroute('**/api/recent-playlists');
