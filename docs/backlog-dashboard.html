@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genre Genie - Full Backlog Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #0f3460 100%); }
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+        .card:hover { border-color: rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.05); }
+        .task-done { opacity: 0.5; }
+        .task-done:hover { opacity: 0.8; }
+        .priority-p0 { border-left: 3px solid #ef4444; }
+        .priority-p1 { border-left: 3px solid #f97316; }
+        .priority-p2 { border-left: 3px solid #eab308; }
+        .priority-p3 { border-left: 3px solid #22c55e; }
+        .priority-p4 { border-left: 3px solid #6b7280; }
+        .filter-btn.active { background: rgba(59, 130, 246, 0.3); border-color: rgba(59, 130, 246, 0.5); }
+        .search-highlight { background: rgba(234, 179, 8, 0.3); }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-gray-100">
+    <header class="sticky top-0 z-50 backdrop-blur-lg bg-black/30 border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                        🧞 Genre Genie Backlog
+                    </h1>
+                    <p class="text-sm text-gray-400">58 items • 13 done • 45 pending</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <input type="text" id="search" placeholder="Search tasks..."
+                        class="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm w-64 focus:outline-none focus:border-blue-500">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
+            <div class="card rounded-xl p-4 text-center">
+                <p class="text-3xl font-bold text-green-400">13</p>
+                <p class="text-xs text-gray-400">Done</p>
+            </div>
+            <div class="card rounded-xl p-4 text-center">
+                <p class="text-3xl font-bold text-yellow-400">45</p>
+                <p class="text-xs text-gray-400">Pending</p>
+            </div>
+            <div class="card rounded-xl p-4 text-center">
+                <p class="text-3xl font-bold text-red-400">10</p>
+                <p class="text-xs text-gray-400">High Priority</p>
+            </div>
+            <div class="card rounded-xl p-4 text-center">
+                <p class="text-3xl font-bold text-blue-400">~466h</p>
+                <p class="text-xs text-gray-400">Est. Remaining</p>
+            </div>
+            <div class="card rounded-xl p-4 text-center">
+                <p class="text-3xl font-bold text-purple-400">22%</p>
+                <p class="text-xs text-gray-400">Complete</p>
+            </div>
+            <div class="card rounded-xl p-4 text-center">
+                <p class="text-3xl font-bold text-gray-400">0</p>
+                <p class="text-xs text-gray-400">Phases</p>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="flex flex-wrap gap-2 mb-6">
+            <button class="filter-btn active card px-3 py-1 rounded-lg text-sm" data-filter="all">All</button>
+            <button class="filter-btn card px-3 py-1 rounded-lg text-sm" data-filter="pending">Pending</button>
+            <button class="filter-btn card px-3 py-1 rounded-lg text-sm" data-filter="done">Done</button>
+            <span class="text-gray-600 mx-2">|</span>
+            <button class="filter-btn card px-3 py-1 rounded-lg text-sm text-red-400" data-filter="P0">P0</button>
+            <button class="filter-btn card px-3 py-1 rounded-lg text-sm text-orange-400" data-filter="P1">P1</button>
+            <button class="filter-btn card px-3 py-1 rounded-lg text-sm text-yellow-400" data-filter="P2">P2</button>
+            <button class="filter-btn card px-3 py-1 rounded-lg text-sm text-green-400" data-filter="P3">P3</button>
+            <button class="filter-btn card px-3 py-1 rounded-lg text-sm text-gray-400" data-filter="P4">P4</button>
+        </div>
+
+        <!-- Task List -->
+        <div id="task-list" class="space-y-2">
+            
+            <div class="task-item card rounded-lg p-4 priority-p0 "
+                 data-status="pending" data-priority="P0" data-title="kv quota exhaustion fix">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#53</span>
+                        <span class="text-white font-medium">KV Quota Exhaustion Fix</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400">P0</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">L</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p0 "
+                 data-status="pending" data-priority="P0" data-title="1000 track limit bug fix">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#54</span>
+                        <span class="text-white font-medium">1000 Track Limit Bug Fix</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400">P0</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p0 task-done"
+                 data-status="done" data-priority="P0" data-title="sorted scoreboard tab empty fix">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#55</span>
+                        <span class="text-white font-medium">Sorted Scoreboard Tab Empty Fix</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400">P0</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">S</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">✓ Done</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p1 task-done"
+                 data-status="done" data-priority="P1" data-title="mobile ui fixes (tiny buttons/arrows/clocks)">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#56</span>
+                        <span class="text-white font-medium">Mobile UI Fixes (Tiny Buttons/Arrows/Clocks)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">P1</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">✓ Done</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p1 "
+                 data-status="pending" data-priority="P1" data-title="admin debug panel for tomspseudonym">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#57</span>
+                        <span class="text-white font-medium">Admin Debug Panel for tomspseudonym</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">P1</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">XL</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p1 "
+                 data-status="pending" data-priority="P1" data-title="kv monitoring dashboard">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#58</span>
+                        <span class="text-white font-medium">KV Monitoring Dashboard</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">P1</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">L</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="documentation infrastructure with mermaid">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#59</span>
+                        <span class="text-white font-medium">Documentation Infrastructure with Mermaid</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="automated test suite expansion">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#60</span>
+                        <span class="text-white font-medium">Automated Test Suite Expansion</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">L</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 task-done"
+                 data-status="done" data-priority="P2" data-title="smoke animation on durry button">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#61</span>
+                        <span class="text-white font-medium">Smoke Animation on Durry Button</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">✓ Done</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 task-done"
+                 data-status="done" data-priority="P3" data-title="jeff goldblum easter egg">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#62</span>
+                        <span class="text-white font-medium">Jeff Goldblum Easter Egg</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">✓ Done</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="music taste analysis redesign">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#63</span>
+                        <span class="text-white font-medium">Music Taste Analysis Redesign</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">L</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p1 task-done"
+                 data-status="done" data-priority="P1" data-title="secret heidi features (~oogi~ detection)">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#64</span>
+                        <span class="text-white font-medium">SECRET Heidi Features (~oogi~ Detection)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">P1</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">✓ Done</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="user activity status (green/blue indicators)">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#65</span>
+                        <span class="text-white font-medium">User Activity Status (Green/Blue Indicators)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="user profile cards">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#66</span>
+                        <span class="text-white font-medium">User Profile Cards</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">L</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 "
+                 data-status="pending" data-priority="P3" data-title="user registration/approval system">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#67</span>
+                        <span class="text-white font-medium">User Registration/Approval System</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">XL</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 task-done"
+                 data-status="done" data-priority="P2" data-title="playlist preview before creation">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#68</span>
+                        <span class="text-white font-medium">Playlist Preview Before Creation</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">✓ Done</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 "
+                 data-status="pending" data-priority="P3" data-title="multi-genre playlist merge">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#69</span>
+                        <span class="text-white font-medium">Multi-Genre Playlist Merge</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 "
+                 data-status="pending" data-priority="P3" data-title="custom playlist cover art">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#70</span>
+                        <span class="text-white font-medium">Custom Playlist Cover Art</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 task-done"
+                 data-status="done" data-priority="P3" data-title="swedish release names & versioning">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#71</span>
+                        <span class="text-white font-medium">Swedish Release Names &amp; Versioning</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">S</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">✓ Done</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="betterstack status page integration">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#72</span>
+                        <span class="text-white font-medium">BetterStack Status Page Integration</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="scan playlists feature">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#73</span>
+                        <span class="text-white font-medium">Scan Playlists Feature</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">L</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p1 "
+                 data-status="pending" data-priority="P1" data-title="persistent genre cache">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#74</span>
+                        <span class="text-white font-medium">Persistent Genre Cache</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">P1</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="library size display">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#75</span>
+                        <span class="text-white font-medium">Library Size Display</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">S</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p1 "
+                 data-status="pending" data-priority="P1" data-title="progressive scan with resume">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#76</span>
+                        <span class="text-white font-medium">Progressive Scan with Resume</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">P1</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">L</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 "
+                 data-status="pending" data-priority="P3" data-title="duplicate track detection">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#77</span>
+                        <span class="text-white font-medium">Duplicate Track Detection</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 task-done"
+                 data-status="done" data-priority="P3" data-title="artist deep dive">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#78</span>
+                        <span class="text-white font-medium">Artist Deep Dive</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">✓ Done</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 task-done"
+                 data-status="done" data-priority="P2" data-title="genre family grouping">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#79</span>
+                        <span class="text-white font-medium">Genre Family Grouping</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">✓ Done</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 "
+                 data-status="pending" data-priority="P3" data-title="smart playlist suggestions">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#80</span>
+                        <span class="text-white font-medium">Smart Playlist Suggestions</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">L</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 task-done"
+                 data-status="done" data-priority="P2" data-title="vinyl loading animation (enhanced)">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#81</span>
+                        <span class="text-white font-medium">Vinyl Loading Animation (Enhanced)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">✓ Done</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 task-done"
+                 data-status="done" data-priority="P3" data-title="confetti celebration">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#82</span>
+                        <span class="text-white font-medium">Confetti Celebration</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">S</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">✓ Done</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="keyboard shortcuts enhancement">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#83</span>
+                        <span class="text-white font-medium">Keyboard Shortcuts Enhancement</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">S</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p1 "
+                 data-status="pending" data-priority="P1" data-title="accessibility audit & fixes">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#84</span>
+                        <span class="text-white font-medium">Accessibility Audit &amp; Fixes</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">P1</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">L</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 "
+                 data-status="pending" data-priority="P3" data-title="internationalisation framework">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#85</span>
+                        <span class="text-white font-medium">Internationalisation Framework</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">L</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="dark mode improvements">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#86</span>
+                        <span class="text-white font-medium">Dark Mode Improvements</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">S</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p1 "
+                 data-status="pending" data-priority="P1" data-title="error boundary & recovery">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#87</span>
+                        <span class="text-white font-medium">Error Boundary &amp; Recovery</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">P1</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 "
+                 data-status="pending" data-priority="P3" data-title="offline mode (basic)">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#88</span>
+                        <span class="text-white font-medium">Offline Mode (Basic)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">L</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="playlist history">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#89</span>
+                        <span class="text-white font-medium">Playlist History</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 task-done"
+                 data-status="done" data-priority="P3" data-title="share playlist modal">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#90</span>
+                        <span class="text-white font-medium">Share Playlist Modal</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">S</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">✓ Done</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="playlist description templates">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#91</span>
+                        <span class="text-white font-medium">Playlist Description Templates</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">S</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="batch playlist creation">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#92</span>
+                        <span class="text-white font-medium">Batch Playlist Creation</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 "
+                 data-status="pending" data-priority="P3" data-title="user preferences sync">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#93</span>
+                        <span class="text-white font-medium">User Preferences Sync</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 "
+                 data-status="pending" data-priority="P3" data-title="analytics dashboard (personal)">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#94</span>
+                        <span class="text-white font-medium">Analytics Dashboard (Personal)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">L</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 "
+                 data-status="pending" data-priority="P3" data-title="notification system">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#95</span>
+                        <span class="text-white font-medium">Notification System</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="rate limit dashboard">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#96</span>
+                        <span class="text-white font-medium">Rate Limit Dashboard</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 "
+                 data-status="pending" data-priority="P3" data-title="webhook notifications">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#97</span>
+                        <span class="text-white font-medium">Webhook Notifications</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="ci/cd enhancements">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#98</span>
+                        <span class="text-white font-medium">CI/CD Enhancements</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p1 task-done"
+                 data-status="done" data-priority="P1" data-title="security hardening (phase 1)">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#99</span>
+                        <span class="text-white font-medium">Security Hardening (Phase 1)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">P1</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">✓ Done</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="security: remove unsafe-inline from csp">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#99a</span>
+                        <span class="text-white font-medium">Security: Remove unsafe-inline from CSP</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">L</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p1 "
+                 data-status="pending" data-priority="P1" data-title="security: implement pkce in oauth flow">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#99b</span>
+                        <span class="text-white font-medium">Security: Implement PKCE in OAuth Flow</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">P1</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">L</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="security: add csrf tokens to api endpoints">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#99c</span>
+                        <span class="text-white font-medium">Security: Add CSRF Tokens to API Endpoints</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="security: set explicit cors policy">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#99d</span>
+                        <span class="text-white font-medium">Security: Set Explicit CORS Policy</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">S</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 "
+                 data-status="pending" data-priority="P3" data-title="security: whitelist-based genre sanitization">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#99e</span>
+                        <span class="text-white font-medium">Security: Whitelist-based Genre Sanitization</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">S</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="performance optimisation">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#100</span>
+                        <span class="text-white font-medium">Performance Optimisation</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 "
+                 data-status="pending" data-priority="P3" data-title="documentation site">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#101</span>
+                        <span class="text-white font-medium">Documentation Site</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">L</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p1 "
+                 data-status="pending" data-priority="P1" data-title="heidi anniversary mode">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#102</span>
+                        <span class="text-white font-medium">Heidi Anniversary Mode</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">P1</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">S</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p3 "
+                 data-status="pending" data-priority="P3" data-title="easter egg collection">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#103</span>
+                        <span class="text-white font-medium">Easter Egg Collection</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">P3</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">M</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="changelog modal">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#104</span>
+                        <span class="text-white font-medium">Changelog Modal</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">S</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-item card rounded-lg p-4 priority-p2 "
+                 data-status="pending" data-priority="P2" data-title="telemetry & analytics (admin)">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-sm w-12">#105</span>
+                        <span class="text-white font-medium">Telemetry &amp; Analytics (Admin)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">P2</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-400">L</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">⏳ Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </main>
+
+    <footer class="text-center text-gray-500 text-sm py-8 border-t border-white/10">
+        <p>Genre Genie Backlog Dashboard • Generated 2025-12-17</p>
+        <p class="text-xs mt-1">spotify.houstons.tech</p>
+    </footer>
+
+    <script>
+        // Filter functionality
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const taskItems = document.querySelectorAll('.task-item');
+        const searchInput = document.getElementById('search');
+
+        let currentFilter = 'all';
+        let searchTerm = '';
+
+        function applyFilters() {
+            taskItems.forEach(item => {
+                const status = item.dataset.status;
+                const priority = item.dataset.priority;
+                const title = item.dataset.title;
+
+                let show = true;
+
+                // Status/Priority filter
+                if (currentFilter === 'pending') show = status === 'pending';
+                else if (currentFilter === 'done') show = status === 'done';
+                else if (currentFilter.startsWith('P')) show = priority === currentFilter;
+
+                // Search filter
+                if (show && searchTerm) {
+                    show = title.includes(searchTerm.toLowerCase());
+                }
+
+                item.style.display = show ? 'block' : 'none';
+            });
+        }
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                applyFilters();
+            });
+        });
+
+        searchInput.addEventListener('input', (e) => {
+            searchTerm = e.target.value;
+            applyFilters();
+        });
+    </script>
+</body>
+</html>
