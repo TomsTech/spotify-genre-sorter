@@ -45,6 +45,8 @@ jobs:
       run-sast: true
       run-npm-audit: true
       npm-audit-level: 'high'
+      run-snyk: true
+      snyk-severity: 'high'
       run-codeql: true
       codeql-languages: 'javascript,typescript'
       run-dependency-check: true
