@@ -51,8 +51,7 @@ jobs:
       codeql-languages: 'javascript,typescript'
       run-dependency-check: true
       fail-on-findings: false
-    secrets:
-      snyk-token: ${{ secrets.SNYK_TOKEN }}
+    secrets: inherit
 
   # ---------------------------------------------------------------------------
   # Build (after tests pass)
