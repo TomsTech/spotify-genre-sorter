@@ -27,10 +27,12 @@ jobs:
           output: 'trivy-results.json'
           severity: 'CRITICAL,HIGH,MEDIUM'
 
-      - name: Process and send to New Relic
+      - name: Process and send to New Relic & Grafana
         if: always()
         env:
           NEW_RELIC_LICENSE_KEY: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
+          GRAFANA_API_KEY: ${{ secrets.GRAFANA_API_KEY }}
+          GRAFANA_LOKI_URL: https://logs-prod-eu-west-0.grafana.net/loki/api/v1/push
         run: |
           # Check if results exist
           if [ ! -f trivy-results.json ]; then
@@ -70,6 +72,31 @@ jobs:
             -H "Content-Type: application/json" \
             -d "[${SUMMARY}]"
 
+          # Send summary to Grafana Loki
+          TIMESTAMP_NS=$(date +%s)000000000
+          LOKI_PAYLOAD=$(cat <<EOF
+          {
+            "streams": [{
+              "stream": {
+                "job": "security-scan",
+                "source": "trivy",
+                "repository": "${{ github.repository }}",
+                "severity_level": "info"
+              },
+              "values": [[
+                "${TIMESTAMP_NS}",
+                "Security scan: total=${VULN_COUNT:-0} critical=${CRITICAL:-0} high=${HIGH:-0} medium=${MEDIUM:-0} repo=${{ github.repository }} branch=${{ github.ref_name }}"
+              ]]
+            }]
+          }
+          EOF
+          )
+
+          curl -s -X POST "${GRAFANA_LOKI_URL}" \
+            -H "Authorization: Bearer ${GRAFANA_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "${LOKI_PAYLOAD}"
+
           # Send individual vulnerabilities (if any, limit to first 50)
           if [ "$VULN_COUNT" -gt 0 ]; then
             jq -c '[.Results[]?.Vulnerabilities // [] | .[] | {
@@ -90,9 +117,42 @@ jobs:
               -H "Api-Key: ${NEW_RELIC_LICENSE_KEY}" \
               -H "Content-Type: application/json" \
               -d @vulns.json
+
+            # Send individual vulnerabilities to Grafana Loki
+            jq -c '.Results[]?.Vulnerabilities // [] | .[] | {id: .VulnerabilityID, pkg: .PkgName, severity: .Severity, title: .Title}' trivy-results.json | head -50 | while read vuln; do
+              VULN_ID=$(echo "$vuln" | jq -r '.id')
+              VULN_PKG=$(echo "$vuln" | jq -r '.pkg')
+              VULN_SEV=$(echo "$vuln" | jq -r '.severity')
+              VULN_TITLE=$(echo "$vuln" | jq -r '.title')
+              SEV_LEVEL=$(echo "$VULN_SEV" | tr '[:upper:]' '[:lower:]')
+
+              VULN_LOKI=$(cat <<EOFV
+          {
+            "streams": [{
+              "stream": {
+                "job": "security-scan",
+                "source": "trivy",
+                "repository": "${{ github.repository }}",
+                "severity_level": "${SEV_LEVEL}",
+                "vulnerability_id": "${VULN_ID}"
+              },
+              "values": [[
+                "$(date +%s)000000000",
+                "VULN ${VULN_SEV}: ${VULN_ID} in ${VULN_PKG} - ${VULN_TITLE}"
+              ]]
+            }]
+          }
+          EOFV
+              )
+
+              curl -s -X POST "${GRAFANA_LOKI_URL}" \
+                -H "Authorization: Bearer ${GRAFANA_API_KEY}" \
+                -H "Content-Type: application/json" \
+                -d "${VULN_LOKI}"
+            done
           fi
 
-          echo "Sent scan results to New Relic"
+          echo "Sent scan results to New Relic and Grafana"
 
       - name: Upload Trivy results
         if: always()
