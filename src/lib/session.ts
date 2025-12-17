@@ -2,8 +2,8 @@ import { Context } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { cachedKV, CACHE_TTL } from './kv-cache';
 
-// Re-export metrics for API access
-export { getKVMetrics } from './kv-cache';
+// Re-export metrics and cachedKV for API access
+export { getKVMetrics, cachedKV } from './kv-cache';
 
 // ================== Scan Progress Tracking ==================
 

@@ -70,29 +70,29 @@
   ],
   "scoreboard": {
     "byPlaylists": [
-      { "spotifyId": "pioneer-user-003", "spotifyName": "Third Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer3", "value": 15 },
-      { "spotifyId": "pioneer-user-001", "spotifyName": "First Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer1", "value": 12 },
-      { "spotifyId": "pioneer-user-002", "spotifyName": "Second Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer2", "value": 8 }
+      { "spotifyId": "pioneer-user-003", "spotifyName": "Third Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer3", "rank": 1, "count": 15 },
+      { "spotifyId": "pioneer-user-001", "spotifyName": "First Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer1", "rank": 2, "count": 12 },
+      { "spotifyId": "pioneer-user-002", "spotifyName": "Second Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer2", "rank": 3, "count": 8 }
     ],
     "byGenres": [
-      { "spotifyId": "pioneer-user-003", "spotifyName": "Third Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer3", "value": 52 },
-      { "spotifyId": "pioneer-user-001", "spotifyName": "First Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer1", "value": 45 },
-      { "spotifyId": "pioneer-user-002", "spotifyName": "Second Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer2", "value": 38 }
+      { "spotifyId": "pioneer-user-003", "spotifyName": "Third Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer3", "rank": 1, "count": 52 },
+      { "spotifyId": "pioneer-user-001", "spotifyName": "First Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer1", "rank": 2, "count": 45 },
+      { "spotifyId": "pioneer-user-002", "spotifyName": "Second Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer2", "rank": 3, "count": 38 }
     ],
     "byArtists": [
-      { "spotifyId": "pioneer-user-003", "spotifyName": "Third Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer3", "value": 410 },
-      { "spotifyId": "pioneer-user-001", "spotifyName": "First Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer1", "value": 320 },
-      { "spotifyId": "pioneer-user-002", "spotifyName": "Second Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer2", "value": 275 }
+      { "spotifyId": "pioneer-user-003", "spotifyName": "Third Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer3", "rank": 1, "count": 410 },
+      { "spotifyId": "pioneer-user-001", "spotifyName": "First Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer1", "rank": 2, "count": 320 },
+      { "spotifyId": "pioneer-user-002", "spotifyName": "Second Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer2", "rank": 3, "count": 275 }
     ],
     "byTracks": [
-      { "spotifyId": "pioneer-user-003", "spotifyName": "Third Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer3", "value": 2100 },
-      { "spotifyId": "pioneer-user-001", "spotifyName": "First Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer1", "value": 1500 },
-      { "spotifyId": "pioneer-user-002", "spotifyName": "Second Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer2", "value": 1200 }
+      { "spotifyId": "pioneer-user-003", "spotifyName": "Third Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer3", "rank": 1, "count": 2100 },
+      { "spotifyId": "pioneer-user-001", "spotifyName": "First Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer1", "rank": 2, "count": 1500 },
+      { "spotifyId": "pioneer-user-002", "spotifyName": "Second Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer2", "rank": 3, "count": 1200 }
     ],
     "byTracksInPlaylists": [
-      { "spotifyId": "pioneer-user-003", "spotifyName": "Third Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer3", "value": 720 },
-      { "spotifyId": "pioneer-user-001", "spotifyName": "First Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer1", "value": 485 },
-      { "spotifyId": "pioneer-user-002", "spotifyName": "Second Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer2", "value": 312 }
+      { "spotifyId": "pioneer-user-003", "spotifyName": "Third Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer3", "rank": 1, "count": 720 },
+      { "spotifyId": "pioneer-user-001", "spotifyName": "First Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer1", "rank": 2, "count": 485 },
+      { "spotifyId": "pioneer-user-002", "spotifyName": "Second Pioneer", "spotifyAvatar": "https://i.pravatar.cc/150?u=pioneer2", "rank": 3, "count": 312 }
     ]
   },
   "recentPlaylists": [

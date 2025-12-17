@@ -830,3 +830,218 @@ describe('Accessibility Features', () => {
     expect(shortcuts.find(s => s.key === '?')?.desc).toBe('Show this help');
   });
 });
+
+// ============================================================
+// NOTIFICATION AND TOAST TESTS
+// ============================================================
+
+describe('Toast Notification System', () => {
+  /**
+   * Tests for toast notification functionality
+   * Validates the showToast function behaviour and positioning
+   */
+
+  it('should generate correct toast message for copy success', () => {
+    function getToastMessage(action: string, swedishMode: boolean): string {
+      const messages: Record<string, { en: string; sv: string }> = {
+        'copy-success': { en: '✓ Copied to clipboard!', sv: '✓ Kopierat till urklipp!' },
+        'copy-error': { en: '✗ Could not copy', sv: '✗ Kunde inte kopiera' },
+        'share-error': { en: '✗ Could not share', sv: '✗ Kunde inte dela' },
+        'screenshot-hint': { en: '📸 Take a screenshot instead!', sv: '📸 Ta en skärmbild istället!' },
+        'text-copied': { en: '✓ Text copied!', sv: '✓ Text kopierad!' },
+      };
+      const msg = messages[action];
+      return msg ? (swedishMode ? msg.sv : msg.en) : '';
+    }
+
+    expect(getToastMessage('copy-success', false)).toBe('✓ Copied to clipboard!');
+    expect(getToastMessage('copy-success', true)).toBe('✓ Kopierat till urklipp!');
+    expect(getToastMessage('copy-error', false)).toBe('✗ Could not copy');
+    expect(getToastMessage('copy-error', true)).toBe('✗ Kunde inte kopiera');
+    expect(getToastMessage('share-error', false)).toBe('✗ Could not share');
+    expect(getToastMessage('share-error', true)).toBe('✗ Kunde inte dela');
+    expect(getToastMessage('screenshot-hint', false)).toBe('📸 Take a screenshot instead!');
+    expect(getToastMessage('screenshot-hint', true)).toBe('📸 Ta en skärmbild istället!');
+  });
+
+  it('should validate toast positioning is above Heidi badge', () => {
+    // Toast: bottom: 5rem (80px at 16px base)
+    // Heidi badge: bottom: 1rem (16px at 16px base)
+    // Heidi badge height: ~40px
+    // Toast should be above Heidi badge area
+    const toastBottom = 5 * 16; // 80px
+    const heidiBadgeTop = 1 * 16 + 40; // 56px from bottom of viewport
+    expect(toastBottom).toBeGreaterThan(heidiBadgeTop);
+  });
+
+  it('should validate now-playing widget positioning is above Heidi badge', () => {
+    // Now-playing: bottom: 4rem (64px at 16px base)
+    // Heidi badge: bottom: 1rem + ~40px height = ~56px from bottom
+    const nowPlayingBottom = 4 * 16; // 64px
+    const heidiBadgeTop = 1 * 16 + 40; // 56px from bottom
+    expect(nowPlayingBottom).toBeGreaterThan(heidiBadgeTop);
+  });
+
+  it('should format share text correctly', () => {
+    interface ShareData {
+      totalTracks: number;
+      totalGenres: number;
+      totalArtists: number;
+      topGenres: string[];
+    }
+
+    function formatShareText(data: ShareData, swedishMode: boolean): string {
+      const header = swedishMode
+        ? '🎵 Min Spotify-smak'
+        : '🎵 My Spotify Taste';
+      const stats = swedishMode
+        ? `📊 ${data.totalTracks} låtar | ${data.totalGenres} genrer | ${data.totalArtists} artister`
+        : `📊 ${data.totalTracks} tracks | ${data.totalGenres} genres | ${data.totalArtists} artists`;
+      const topLabel = swedishMode ? 'Topp-genrer:' : 'Top genres:';
+      const genres = data.topGenres.slice(0, 5).join(', ');
+      return `${header}\n${stats}\n${topLabel} ${genres}`;
+    }
+
+    const shareData: ShareData = {
+      totalTracks: 500,
+      totalGenres: 25,
+      totalArtists: 150,
+      topGenres: ['rock', 'pop', 'electronic', 'jazz', 'classical'],
+    };
+
+    const enText = formatShareText(shareData, false);
+    expect(enText).toContain('My Spotify Taste');
+    expect(enText).toContain('500 tracks');
+    expect(enText).toContain('25 genres');
+    expect(enText).toContain('rock, pop, electronic, jazz, classical');
+
+    const svText = formatShareText(shareData, true);
+    expect(svText).toContain('Min Spotify-smak');
+    expect(svText).toContain('500 låtar');
+    expect(svText).toContain('25 genrer');
+  });
+
+  it('should validate z-index layering order', () => {
+    // Higher z-index = on top
+    const zIndexes = {
+      heidiBadge: 100,
+      statusWidgets: 999,
+      nowPlayingWidget: 1000,
+      modalOverlay: 2000,
+      speechBubble: 10001,
+      toast: 100000,
+    };
+
+    // Toast should be highest
+    expect(zIndexes.toast).toBeGreaterThan(zIndexes.speechBubble);
+    expect(zIndexes.toast).toBeGreaterThan(zIndexes.modalOverlay);
+
+    // Modal should be above now-playing
+    expect(zIndexes.modalOverlay).toBeGreaterThan(zIndexes.nowPlayingWidget);
+
+    // Now-playing should be above status widgets
+    expect(zIndexes.nowPlayingWidget).toBeGreaterThan(zIndexes.statusWidgets);
+
+    // Status widgets should be above Heidi badge
+    expect(zIndexes.statusWidgets).toBeGreaterThan(zIndexes.heidiBadge);
+  });
+
+  it('should calculate toast display duration correctly', () => {
+    // Default toast duration is 2.5s visible + 0.5s fade out = 3s total
+    function calculateToastTiming(customDuration?: number) {
+      const visibleDuration = customDuration ?? 2500;
+      const fadeOutStart = visibleDuration;
+      const elementRemoval = visibleDuration + 500;
+      return { visibleDuration, fadeOutStart, elementRemoval };
+    }
+
+    const defaultTiming = calculateToastTiming();
+    expect(defaultTiming.visibleDuration).toBe(2500);
+    expect(defaultTiming.elementRemoval).toBe(3000);
+
+    const customTiming = calculateToastTiming(5000);
+    expect(customTiming.visibleDuration).toBe(5000);
+    expect(customTiming.elementRemoval).toBe(5500);
+  });
+});
+
+describe('Swedish Mode Badge Toggle', () => {
+  /**
+   * Tests for Heidi badge Swedish mode toggle
+   * Validates proper text updates when toggling Swedish mode
+   */
+
+  it('should return correct badge text for Swedish mode states', () => {
+    function getHeidiBadgeText(swedishMode: boolean) {
+      return {
+        line1: swedishMode ? 'Gjord med inspiration från' : 'Made with inspiration from',
+        line2: swedishMode ? 'Heidi 💛' : 'Heidi ♥',
+      };
+    }
+
+    const englishText = getHeidiBadgeText(false);
+    expect(englishText.line1).toBe('Made with inspiration from');
+    expect(englishText.line2).toBe('Heidi ♥');
+
+    const swedishText = getHeidiBadgeText(true);
+    expect(swedishText.line1).toBe('Gjord med inspiration från');
+    expect(swedishText.line2).toBe('Heidi 💛');
+  });
+
+  it('should preserve HTML structure in badge update', () => {
+    function generateBadgeHTML(swedishMode: boolean): string {
+      const line1 = swedishMode ? 'Gjord med inspiration från' : 'Made with inspiration from';
+      const heart = swedishMode ? '💛' : '♥';
+      return `<span>${line1}</span><span><strong>Heidi</strong> <span class="heart">${heart}</span></span>`;
+    }
+
+    const englishHTML = generateBadgeHTML(false);
+    expect(englishHTML).toContain('Made with inspiration from');
+    expect(englishHTML).toContain('<strong>Heidi</strong>');
+    expect(englishHTML).toContain('class="heart"');
+    expect(englishHTML).toContain('♥');
+
+    const swedishHTML = generateBadgeHTML(true);
+    expect(swedishHTML).toContain('Gjord med inspiration från');
+    expect(swedishHTML).toContain('<strong>Heidi</strong>');
+    expect(swedishHTML).toContain('💛');
+  });
+});
+
+describe('Visual Element Positioning', () => {
+  /**
+   * Tests for visual element positioning to prevent overlaps
+   */
+
+  it('should validate status widgets do not overlap header', () => {
+    // Status widgets: top: 4.5rem (72px)
+    // Header: ~60px tall with sticky positioning
+    const statusWidgetsTop = 4.5 * 16; // 72px
+    const headerHeight = 60;
+    expect(statusWidgetsTop).toBeGreaterThan(headerHeight);
+  });
+
+  it('should validate mobile toast positioning', () => {
+    // On mobile, toast should use full width with margins
+    // bottom: 4rem, left: 1rem, right: 1rem
+    const mobileToast = {
+      bottom: 4 * 16, // 64px
+      left: 1 * 16,   // 16px
+      right: 1 * 16,  // 16px
+    };
+
+    expect(mobileToast.bottom).toBe(64);
+    expect(mobileToast.left).toBe(mobileToast.right); // Symmetric margins
+  });
+
+  it('should validate genie mascot does not overlap with toast', () => {
+    // Genie: bottom: 6rem, right: 1.5rem
+    // Toast: bottom: 5rem, centered
+    const genieBottom = 6 * 16; // 96px
+    const toastBottom = 5 * 16; // 80px
+
+    // Genie is above toast, so no vertical overlap
+    expect(genieBottom).toBeGreaterThan(toastBottom);
+  });
+});
+

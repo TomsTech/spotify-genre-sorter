@@ -66,8 +66,9 @@ export class GenresPage {
     this.bulkCreateButton = page.locator('button:has-text("Create All"), button:has-text("Bulk Create")');
     this.selectedGenres = page.locator('label.genre-item input.genre-checkbox:checked');
 
-    // Feedback - notification element uses .notification.success class
-    this.successToast = page.locator('.notification.success, .toast-success, .success-message, [data-testid="success-toast"]');
+    // Feedback - notification element OR results div with success indicators
+    // The bulk creation flow shows success in #results div, not a notification toast
+    this.successToast = page.locator('.notification.success, .toast-success, .success-message, [data-testid="success-toast"], #results .result-success, #results:has(.result-success)');
     this.playlistLink = page.locator('a[href*="open.spotify.com/playlist"]');
 
     // Cache
@@ -188,9 +189,11 @@ export class GenresPage {
 
   /**
    * Wait for playlist creation success
+   * Looks for either notification toast OR results div with success indicators
    */
   async waitForPlaylistCreated(timeout = 30000): Promise<void> {
-    await this.successToast.waitFor({ state: 'visible', timeout });
+    // Use .first() since selector may match multiple elements (e.g., results div AND result links)
+    await this.successToast.first().waitFor({ state: 'visible', timeout });
   }
 
   /**
@@ -275,9 +278,10 @@ export class GenresPage {
   }
 
   /**
-   * Expect success toast
+   * Expect success toast or results div with success indicators
    */
   async expectSuccessMessage(): Promise<void> {
-    await expect(this.successToast).toBeVisible();
+    // Use .first() since selector may match multiple elements
+    await expect(this.successToast.first()).toBeVisible();
   }
 }
