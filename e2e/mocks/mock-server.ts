@@ -50,6 +50,7 @@ import {
   setExistingPlaylistNames,
   resetPlaylistState,
   getCreatedPlaylists,
+  isFailPlaylistCreation,
 } from './handlers/spotify-playlists';
 
 import {
@@ -427,6 +428,97 @@ const allHandlers = [
         cacheMisses: metrics.cacheMisses,
       },
     });
+  }),
+
+  // POST /api/playlist - Create a single playlist
+  http.post('*/api/playlist', async ({ request }) => {
+    // Check for session cookie
+    const cookie = request.headers.get('cookie') || '';
+    const hasSessionCookie = cookie.includes('session_id=');
+
+    if (!hasSessionCookie) {
+      return HttpResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const body = await request.json() as { genre: string; trackIds: string[]; force?: boolean };
+    const { genre, trackIds } = body;
+
+    // Simulate failure if configured via setFailPlaylistCreation(true)
+    if (isFailPlaylistCreation()) {
+      return HttpResponse.json({ error: 'Failed to create playlist' }, { status: 500 });
+    }
+
+    // Generate mock playlist response
+    const playlistId = `mock_playlist_${Date.now()}`;
+    const playlistName = `${genre} (from Likes)`;
+
+    // Track the creation
+    trackActivity('playlistCreated');
+    trackKVWrite();
+
+    return HttpResponse.json({
+      success: true,
+      playlist: {
+        id: playlistId,
+        url: `https://open.spotify.com/playlist/${playlistId}`,
+        name: playlistName,
+        trackCount: trackIds?.length || 0,
+      },
+    });
+  }),
+
+  // POST /api/playlists/bulk - Create multiple playlists at once
+  http.post('*/api/playlists/bulk', async ({ request }) => {
+    // Check for session cookie
+    const cookie = request.headers.get('cookie') || '';
+    const hasSessionCookie = cookie.includes('session_id=');
+
+    if (!hasSessionCookie) {
+      return HttpResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const body = await request.json() as { genres: Array<{ name: string; trackIds: string[] }>; skipDuplicates?: boolean };
+    const { genres, skipDuplicates } = body;
+
+    if (!Array.isArray(genres) || genres.length === 0) {
+      return HttpResponse.json({ error: 'Genres array required' }, { status: 400 });
+    }
+
+    const results: Array<{ genre: string; success: boolean; url?: string; error?: string; skipped?: boolean }> = [];
+
+    for (const { name, trackIds } of genres) {
+      const playlistId = `mock_playlist_${Date.now()}_${name.replace(/\s+/g, '_')}`;
+
+      results.push({
+        genre: name,
+        success: true,
+        url: `https://open.spotify.com/playlist/${playlistId}`,
+      });
+
+      trackActivity('playlistCreated');
+      trackKVWrite();
+    }
+
+    return HttpResponse.json({
+      total: genres.length,
+      successful: results.filter(r => r.success).length,
+      skipped: results.filter(r => r.skipped).length,
+      results,
+    });
+  }),
+
+  // GET /api/now-playing - Get current playback state
+  http.get('*/api/now-playing', ({ request }) => {
+    // Check for session cookie
+    const cookie = request.headers.get('cookie') || '';
+    const hasSessionCookie = cookie.includes('session_id=');
+
+    if (!hasSessionCookie) {
+      return HttpResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    // Return no track playing by default
+    return HttpResponse.json({ playing: false });
   }),
 
   // Health check endpoint for the mock server itself
