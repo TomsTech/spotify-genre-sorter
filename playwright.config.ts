@@ -1,8 +1,14 @@
 import { defineConfig, devices } from '@playwright/test';
 import path from 'path';
+import os from 'os';
 
 const IS_CI = !!process.env.CI;
 const USE_MOCKS = process.env.E2E_USE_MOCKS !== 'false';
+
+// Detect available CPUs and scale workers accordingly
+// Use fewer workers locally to avoid overwhelming the dev server
+const CPU_COUNT = os.cpus().length;
+const LOCAL_WORKERS = Math.max(2, Math.floor(CPU_COUNT / 2)); // Half of CPUs, min 2
 
 /**
  * Playwright E2E Test Configuration for Genre Genie
@@ -16,13 +22,16 @@ const USE_MOCKS = process.env.E2E_USE_MOCKS !== 'false';
  * Environment variables:
  *   E2E_BASE_URL       - Override base URL (default: http://localhost:8787)
  *   E2E_USE_MOCKS      - Set to 'false' to use real Spotify API
+ *   E2E_WORKERS        - Override worker count
  */
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: IS_CI,
-  retries: IS_CI ? 2 : 0,
-  workers: IS_CI ? 1 : undefined,
+  // Retry once locally for timeout/load issues, twice in CI
+  retries: IS_CI ? 2 : 1,
+  // Scale workers: 1 in CI, half of CPUs locally (configurable via env)
+  workers: process.env.E2E_WORKERS ? parseInt(process.env.E2E_WORKERS) : (IS_CI ? 1 : LOCAL_WORKERS),
 
   reporter: [
     ['html', { outputFolder: 'e2e-report', open: 'never' }],
