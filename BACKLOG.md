@@ -3101,35 +3101,206 @@ ACCEPTANCE CRITERIA:
 
 ---
 
-### 99. Security Hardening
-**Priority:** P1 | **Effort:** M | **Status:** ⏳ PENDING
+### 99. Security Hardening (Phase 1)
+**Priority:** P1 | **Effort:** M | **Status:** ✅ DONE (v3.4.1)
+
+```
+COMPLETED (2025-12-18):
+✅ Full OWASP Top 10 security audit performed
+✅ Security headers audit - comprehensive headers in place
+✅ Rate limiting active (30 req/min, memory-bounded)
+✅ Session token rotation - 7-day TTL with refresh
+✅ Input sanitisation - track IDs, playlist IDs, genre names validated
+✅ Dependency audit via Snyk CI integration
+✅ Hardcoded admin users → ADMIN_USERS env variable
+✅ GitHub allowlist default changed to DENY (was allow all)
+✅ Admin secret configured on Cloudflare Workers
+
+STILL SECURE:
+- Cookie flags: HttpOnly, Secure, SameSite=Lax ✅
+- Server-side token storage ✅
+- OAuth state parameter validation ✅
+- Comprehensive security headers (HSTS, X-Frame-Options, etc.) ✅
+```
+
+---
+
+### 99a. Security: Remove unsafe-inline from CSP
+**Priority:** P2 | **Effort:** L | **Status:** ⏳ PENDING
 
 ```
 PROBLEM STATEMENT:
-Need comprehensive security review and hardening.
+CSP has 'unsafe-inline' in script-src, which weakens XSS protection.
 
-USER STORY:
-As a user, I want my data secure so that I can trust the app with my
-Spotify credentials.
+RISK ASSESSMENT:
+- Severity: MEDIUM
+- Likelihood: LOW (escaping is done, but reduces defense-in-depth)
+- Exploitability: Only exploitable if XSS bypass found
 
-REQUIREMENTS:
-1. Security headers audit
-2. Rate limiting on all endpoints
-3. Session token rotation
-4. CSRF protection (if applicable)
-5. Input sanitisation audit
-6. Dependency audit (npm audit)
+ESTIMATED EFFORT: 4-6 hours
+- Generate nonces server-side for each request
+- Update all inline scripts to use nonce attribute
+- Update CSP header to use nonce instead of unsafe-inline
+- Test all pages for broken functionality
+
+RISKS:
+- Could break inline event handlers (onclick, etc.)
+- Requires changes to frontend HTML generation
+- CDN scripts (unpkg, jsdelivr) may need integrity hashes
 
 FILES TO MODIFY:
-- src/index.ts (security headers)
-- src/lib/session.ts (token rotation)
-- All route files (input validation)
+- src/index.ts (CSP header, nonce generation)
+- src/frontend/index.html (add nonce to script tags)
+- src/frontend/app.js (refactor inline handlers)
 
 ACCEPTANCE CRITERIA:
-- [ ] All security headers set
-- [ ] Rate limiting active
-- [ ] Tokens rotate correctly
-- [ ] No known vulnerabilities
+- [ ] No 'unsafe-inline' in script-src
+- [ ] Nonces generated per-request
+- [ ] All scripts still execute correctly
+- [ ] E2E tests pass
+```
+
+---
+
+### 99b. Security: Implement PKCE in OAuth Flow
+**Priority:** P1 | **Effort:** L | **Status:** ⏳ PENDING
+
+```
+PROBLEM STATEMENT:
+OAuth code exchanges lack PKCE (Proof Key for Code Exchange), making
+them vulnerable to authorization code interception attacks.
+
+RISK ASSESSMENT:
+- Severity: HIGH (RFC 7636 requirement for public clients)
+- Likelihood: LOW (requires MITM on callback)
+- Exploitability: Requires attacker to intercept auth code
+
+ESTIMATED EFFORT: 3-4 hours
+- Generate code_verifier (random 43-128 chars)
+- Create code_challenge (SHA256 hash, base64url encoded)
+- Store verifier in state/session
+- Include code_challenge in auth request
+- Include code_verifier in token exchange
+
+RISKS:
+- Breaking change if Spotify/GitHub don't support PKCE (they do)
+- State management complexity increases
+- Could break existing OAuth sessions during rollout
+
+FILES TO MODIFY:
+- src/routes/auth.ts (auth URL construction, token exchange)
+- src/lib/spotify.ts (add PKCE params)
+- src/lib/github.ts (add PKCE params)
+
+ACCEPTANCE CRITERIA:
+- [ ] code_challenge sent in auth request
+- [ ] code_verifier sent in token exchange
+- [ ] OAuth flow still works end-to-end
+- [ ] E2E auth tests pass
+```
+
+---
+
+### 99c. Security: Add CSRF Tokens to API Endpoints
+**Priority:** P2 | **Effort:** M | **Status:** ⏳ PENDING
+
+```
+PROBLEM STATEMENT:
+POST/DELETE API endpoints lack CSRF token validation. While SameSite=Lax
+cookies provide partial protection, explicit tokens are stronger.
+
+RISK ASSESSMENT:
+- Severity: MEDIUM
+- Likelihood: LOW (SameSite=Lax blocks most CSRF)
+- Exploitability: Requires specific cross-site attack patterns
+
+ESTIMATED EFFORT: 2-3 hours
+- Generate CSRF token on session creation
+- Include token in HTML (meta tag or JS variable)
+- Validate X-CSRF-Token header on mutating requests
+- Add middleware to verify token
+
+RISKS:
+- Breaking existing API consumers (none currently)
+- Token leakage if exposed incorrectly
+- Complexity in frontend for including header
+
+FILES TO MODIFY:
+- src/lib/session.ts (token generation)
+- src/routes/api.ts (middleware validation)
+- src/frontend/app.js (include header in fetch)
+
+ACCEPTANCE CRITERIA:
+- [ ] CSRF token generated per session
+- [ ] POST/DELETE require valid token
+- [ ] Token validated server-side
+- [ ] Frontend includes token automatically
+```
+
+---
+
+### 99d. Security: Set Explicit CORS Policy
+**Priority:** P2 | **Effort:** S | **Status:** ⏳ PENDING
+
+```
+PROBLEM STATEMENT:
+No explicit CORS headers configured. Relying on framework defaults.
+
+RISK ASSESSMENT:
+- Severity: MEDIUM
+- Likelihood: LOW (API is cookie-authenticated)
+- Exploitability: Could allow cross-origin API access
+
+ESTIMATED EFFORT: 30 minutes - 1 hour
+- Add CORS middleware to Hono app
+- Set Access-Control-Allow-Origin to specific domain
+- Configure allowed methods and headers
+- Handle preflight requests
+
+RISKS:
+- Could break legitimate cross-origin uses (none expected)
+- May need multiple origins if subdomain used
+
+FILES TO MODIFY:
+- src/index.ts (CORS middleware)
+
+ACCEPTANCE CRITERIA:
+- [ ] Access-Control-Allow-Origin set to production domain
+- [ ] Preflight requests handled correctly
+- [ ] Cross-origin requests from other domains blocked
+```
+
+---
+
+### 99e. Security: Whitelist-based Genre Sanitization
+**Priority:** P3 | **Effort:** S | **Status:** ⏳ PENDING
+
+```
+PROBLEM STATEMENT:
+Genre name sanitization uses blacklist approach (removing <>"'&).
+Whitelist approach is more secure against Unicode bypasses.
+
+RISK ASSESSMENT:
+- Severity: LOW
+- Likelihood: VERY LOW (escaping still happens)
+- Exploitability: Would require Unicode/encoding bypass
+
+ESTIMATED EFFORT: 1 hour
+- Define allowed character set (alphanumeric, spaces, hyphens)
+- Replace blacklist regex with whitelist regex
+- Test with various genre names (including international)
+
+RISKS:
+- Could reject legitimate genre names with special chars
+- Some Spotify genres may have unusual characters
+
+FILES TO MODIFY:
+- src/routes/api.ts (sanitiseGenreName function)
+
+ACCEPTANCE CRITERIA:
+- [ ] Only whitelisted characters allowed
+- [ ] Common genre names still work
+- [ ] Dangerous characters rejected
 ```
 
 ---
