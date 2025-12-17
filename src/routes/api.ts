@@ -1917,17 +1917,27 @@ api.get('/kv-metrics', (c) => {
 
 // ================== Admin Debug Panel ==================
 
-const ADMIN_USERS = ['tomspseudonym', 'tomstech'];
+/**
+ * Get admin users from environment variable (security: no hardcoded admins)
+ * Format: comma-separated usernames, e.g., "user1,user2,user3"
+ */
+function getAdminUsers(env: Env): string[] {
+  const adminList = env.ADMIN_USERS || '';
+  if (!adminList.trim()) return [];
+  return adminList.split(',').map(u => u.trim().toLowerCase()).filter(Boolean);
+}
 
 async function isAdmin(c: { env: Env }, session: { githubUser?: string; spotifyUserId?: string } | null): Promise<boolean> {
   if (!session) return false;
-  if (session.githubUser && ADMIN_USERS.includes(session.githubUser.toLowerCase())) return true;
+  const adminUsers = getAdminUsers(c.env);
+  if (adminUsers.length === 0) return false; // No admins configured = no admin access
+  if (session.githubUser && adminUsers.includes(session.githubUser.toLowerCase())) return true;
   if (session.spotifyUserId) {
     try {
       const stats = await c.env.SESSIONS.get(`user_stats:${session.spotifyUserId}`);
       if (stats) {
         const parsed = JSON.parse(stats) as { spotifyName?: string };
-        if (parsed.spotifyName && ADMIN_USERS.includes(parsed.spotifyName.toLowerCase())) return true;
+        if (parsed.spotifyName && adminUsers.includes(parsed.spotifyName.toLowerCase())) return true;
       }
     } catch { /* ignore */ }
   }
