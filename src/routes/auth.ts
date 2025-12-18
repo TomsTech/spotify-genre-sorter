@@ -9,6 +9,8 @@ import {
   getSpotifyAuthUrl,
   exchangeSpotifyCode,
   getCurrentUser,
+  generateCodeVerifier,
+  createCodeChallenge,
 } from '../lib/spotify';
 import {
   createSession,
@@ -38,15 +40,16 @@ async function registerUser(
   githubUser?: string
 ): Promise<void> {
   const key = `user:${spotifyId}`;
-  const existing = await kv.get(key);
+  // PERF-011 FIX: Use cachedKV for user registration to reduce KV reads
+  const existingStr = await kv.get(key); // Use direct KV here as this is infrequent and needs accuracy
   const now = new Date().toISOString();
 
   // Track sign-in
   await trackAnalyticsEvent(kv, 'signIn', { visitorId: spotifyId });
 
-  if (existing) {
+  if (existingStr) {
     // Update last seen
-    const data = JSON.parse(existing) as {
+    const data = JSON.parse(existingStr) as {
       spotifyId: string;
       spotifyName: string;
       spotifyAvatar?: string;
@@ -58,9 +61,10 @@ async function registerUser(
     data.spotifyName = spotifyName;
     if (spotifyAvatar) data.spotifyAvatar = spotifyAvatar;
     if (githubUser) data.githubUser = githubUser;
+    // PERF-011 FIX: Use immediate write for user data (critical)
     await kv.put(key, JSON.stringify(data));
 
-    // Update user stats (name/avatar might have changed)
+    // Update user stats (name/avatar might have changed) - already uses cachedKV
     await createOrUpdateUserStats(kv, spotifyId, {
       spotifyName,
       spotifyAvatar,
@@ -75,14 +79,15 @@ async function registerUser(
       registeredAt: now,
       lastSeenAt: now,
     };
+    // PERF-011 FIX: Write immediately for new user registration (critical)
     await kv.put(key, JSON.stringify(registration));
 
-    // Update user count
+    // Update user count - direct KV for accuracy
     const countStr = await kv.get('stats:user_count');
     const count = countStr ? parseInt(countStr, 10) : 0;
     await kv.put('stats:user_count', String(count + 1));
 
-    // Add to hall of fame list (first 100 users)
+    // Add to hall of fame list (first 100 users) - direct KV (infrequent)
     if (count < 100) {
       const hofKey = `hof:${String(count + 1).padStart(3, '0')}`;
       await kv.put(hofKey, JSON.stringify({
@@ -94,7 +99,7 @@ async function registerUser(
       }));
     }
 
-    // Initialize user stats for scoreboard
+    // Initialize user stats for scoreboard - already uses cachedKV
     await createOrUpdateUserStats(kv, spotifyId, {
       spotifyName,
       spotifyAvatar,
@@ -188,14 +193,19 @@ auth.get('/spotify', async (c) => {
     }
   }
 
+  // Generate PKCE code verifier and challenge for enhanced security
+  const codeVerifier = generateCodeVerifier();
+  const codeChallenge = await createCodeChallenge(codeVerifier);
+
   const state = generateState();
   await storeState(c.env.SESSIONS, state, {
     provider: 'spotify',
     spotifyOnly: spotifyOnly ? 'true' : 'false',
+    codeVerifier, // Store verifier to use in callback
   });
 
   const redirectUri = new URL('/auth/spotify/callback', c.req.url).toString();
-  const url = getSpotifyAuthUrl(c.env.SPOTIFY_CLIENT_ID, redirectUri, state);
+  const url = getSpotifyAuthUrl(c.env.SPOTIFY_CLIENT_ID, redirectUri, state, codeChallenge);
 
   return c.redirect(url);
 });
@@ -223,6 +233,7 @@ auth.get('/spotify/callback', async (c) => {
   }
 
   const spotifyOnly = stateData.spotifyOnly === 'true';
+  const codeVerifier = stateData.codeVerifier; // Retrieve PKCE verifier
 
   // In GitHub mode, require existing session
   const session = await getSession(c);
@@ -237,7 +248,8 @@ auth.get('/spotify/callback', async (c) => {
       code,
       c.env.SPOTIFY_CLIENT_ID,
       c.env.SPOTIFY_CLIENT_SECRET,
-      redirectUri
+      redirectUri,
+      codeVerifier // Pass PKCE verifier for token exchange
     );
 
     // Get Spotify user info

@@ -2,7 +2,99 @@
     const headerActions = document.getElementById('header-actions');
 
     let genreData = null;
-    
+
+    // === Global Error Boundary ===
+    const errorHistory = [];
+    const MAX_ERROR_HISTORY = 10;
+
+    function showErrorModal(error, context = 'Unknown') {
+      // Track error for debugging
+      const errorInfo = {
+        message: error?.message || String(error),
+        stack: error?.stack || '',
+        context,
+        timestamp: new Date().toISOString(),
+        url: window.location.href
+      };
+      errorHistory.push(errorInfo);
+      if (errorHistory.length > MAX_ERROR_HISTORY) errorHistory.shift();
+
+      // Don't show multiple error modals
+      if (document.querySelector('.error-boundary-overlay')) return;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'error-boundary-overlay';
+
+      const friendlyMessages = {
+        'Failed to fetch': swedishMode ? 'Kunde inte ansluta till servern' : 'Could not connect to the server',
+        'NetworkError': swedishMode ? 'Nätverksfel - kontrollera din anslutning' : 'Network error - check your connection',
+        'TypeError': swedishMode ? 'Ett oväntat fel inträffade' : 'An unexpected error occurred',
+        'default': swedishMode ? 'Något gick fel' : 'Something went wrong'
+      };
+
+      const friendlyMessage = Object.entries(friendlyMessages).find(([key]) =>
+        errorInfo.message.includes(key)
+      )?.[1] || friendlyMessages.default;
+
+      const issueBody = encodeURIComponent(
+        \`## Error Report\\n\\n**Context:** \${context}\\n**Error:** \${errorInfo.message}\\n**URL:** \${errorInfo.url}\\n**Time:** \${errorInfo.timestamp}\\n\\n### Stack Trace\\n\\\`\\\`\\\`\\n\${errorInfo.stack}\\n\\\`\\\`\\\`\`
+      );
+      const issueUrl = \`https://github.com/thomashoustontech/spotify-genre-sorter/issues/new?title=Error: \${encodeURIComponent(errorInfo.message.slice(0, 50))}&body=\${issueBody}\`;
+
+      overlay.innerHTML = \`
+        <div class="error-boundary-modal" role="alertdialog" aria-labelledby="error-title" aria-describedby="error-desc">
+          <div class="error-boundary-icon">\${swedishMode ? '😔' : '😵'}</div>
+          <h2 id="error-title">\${swedishMode ? 'Oj då!' : 'Oops!'}</h2>
+          <p id="error-desc" class="error-boundary-message">\${friendlyMessage}</p>
+          <div class="error-boundary-actions">
+            <button class="btn btn-primary error-retry-btn" onclick="window.location.reload()">
+              \${swedishMode ? '🔄 Försök igen' : '🔄 Try Again'}
+            </button>
+            <a href="\${issueUrl}" target="_blank" rel="noopener" class="btn btn-ghost error-report-btn">
+              \${swedishMode ? '🐛 Rapportera problem' : '🐛 Report Issue'}
+            </a>
+          </div>
+          <details class="error-boundary-details">
+            <summary>\${swedishMode ? 'Tekniska detaljer' : 'Technical details'}</summary>
+            <pre class="error-boundary-stack">\${escapeForHtml(errorInfo.message)}\\n\\n\${escapeForHtml(errorInfo.stack || 'No stack trace')}</pre>
+          </details>
+          <button class="btn btn-ghost error-dismiss-btn" onclick="this.closest('.error-boundary-overlay').remove()">
+            \${swedishMode ? 'Avfärda' : 'Dismiss'}
+          </button>
+        </div>
+      \`;
+
+      document.body.appendChild(overlay);
+
+      // Focus the retry button for accessibility
+      overlay.querySelector('.error-retry-btn')?.focus();
+    }
+
+    // Register global error handlers
+    window.addEventListener('error', (event) => {
+      console.error('Global error:', event.error);
+      showErrorModal(event.error, 'Global error handler');
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+      console.error('Unhandled promise rejection:', event.reason);
+      showErrorModal(event.reason, 'Unhandled promise rejection');
+    });
+
+    // Helper to wrap async operations with error boundary
+    function withErrorBoundary(fn, context) {
+      return async (...args) => {
+        try {
+          return await fn(...args);
+        } catch (error) {
+          showErrorModal(error, context);
+          throw error; // Re-throw for local handling if needed
+        }
+      };
+    }
+
+    window.showErrorModal = showErrorModal; // Expose for manual triggering
+
     // Custom prompt modal to replace native prompt()
     function showPromptModal(message, defaultValue = '') {
       return new Promise((resolve) => {
@@ -357,6 +449,7 @@
     let spotifyOnlyMode = false;
     let statsData = null;
     let playlistTemplate = localStorage.getItem('playlistTemplate') || '{genre} (from Likes)';
+    let playlistDescTemplate = localStorage.getItem('playlistDescTemplate') || '{genre} tracks from your liked songs ♫ • {count} tracks • Created {date}';
 
     // Hidden genres (stored in localStorage)
     let hiddenGenres = new Set(JSON.parse(localStorage.getItem('hiddenGenres') || '[]'));
@@ -868,6 +961,77 @@
       });
     }
 
+    // ✨ SECRET: Anniversary celebration for Heidi (#102)
+    // Special dates that deserve celebration
+    const ANNIVERSARY_DATES = [
+      { month: 12, day: 25, message: 'God Jul, min kärlek! 🎄❤️' },
+      { month: 2, day: 14, message: 'Happy Valentine\'s Day, mitt hjärta! 💝' },
+      { month: 1, day: 1, message: 'Gott Nytt År, min drottning! 🎆💙' },
+      // Add more special dates as needed
+    ];
+
+    function checkAnniversary() {
+      const now = new Date();
+      const month = now.getMonth() + 1; // JS months are 0-indexed
+      const day = now.getDate();
+      return ANNIVERSARY_DATES.find(d => d.month === month && d.day === day);
+    }
+
+    function showAnniversaryCelebration(anniversary) {
+      // Create heart rain container
+      const heartRain = document.createElement('div');
+      heartRain.className = 'heart-rain-container';
+      heartRain.id = 'heart-rain';
+
+      // Create many falling hearts
+      const hearts = ['💙', '💛', '❤️', '💕', '💗', '💖'];
+      for (let i = 0; i < 50; i++) {
+        const heart = document.createElement('span');
+        heart.className = 'falling-heart';
+        heart.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+        heart.style.left = Math.random() * 100 + 'vw';
+        heart.style.animationDuration = (2 + Math.random() * 3) + 's';
+        heart.style.animationDelay = (Math.random() * 2) + 's';
+        heart.style.fontSize = (1 + Math.random() * 1.5) + 'rem';
+        heartRain.appendChild(heart);
+      }
+      document.body.appendChild(heartRain);
+
+      // Create celebration overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'anniversary-overlay';
+      overlay.innerHTML = \`
+        <div class="anniversary-content">
+          <div class="anniversary-hearts">💙💛💙💛💙</div>
+          <h2 class="anniversary-title">✨ Special Day ✨</h2>
+          <p class="anniversary-message">\${anniversary.message}</p>
+          <p class="anniversary-signature">– Tom 💙</p>
+          <div class="anniversary-hearts">💛💙💛💙💛</div>
+        </div>
+      \`;
+
+      document.body.appendChild(overlay);
+
+      // Auto-dismiss after 6 seconds
+      setTimeout(() => {
+        overlay.classList.add('fade-out');
+        heartRain.classList.add('fade-out');
+        setTimeout(() => {
+          overlay.remove();
+          heartRain.remove();
+        }, 500);
+      }, 6000);
+
+      overlay.addEventListener('click', () => {
+        overlay.classList.add('fade-out');
+        heartRain.classList.add('fade-out');
+        setTimeout(() => {
+          overlay.remove();
+          heartRain.remove();
+        }, 500);
+      });
+    }
+
     // Update Heidi badge tooltip with random fact
     function updateHeidiBadgeFact() {
       const badge = document.querySelector('.heidi-badge');
@@ -1118,6 +1282,122 @@
     // Make changelog functions globally accessible
     window.showDeployDetails = showDeployDetails;
     window.closeChangelog = closeChangelog;
+
+    // =====================================
+    // What's New Modal (#104)
+    // =====================================
+    const LAST_SEEN_VERSION_KEY = 'geniegenie_lastSeenVersion';
+    const WHATS_NEW_DISMISSED_KEY = 'geniegenie_whatsNewDismissed';
+
+    async function checkWhatsNew() {
+      // Don't show if user permanently dismissed
+      if (localStorage.getItem(WHATS_NEW_DISMISSED_KEY) === 'true') return;
+
+      // Fetch changelog if not cached
+      if (!changelogCache) {
+        try {
+          const res = await fetch('/api/changelog');
+          changelogCache = await res.json();
+        } catch {
+          return; // Silently fail - not critical
+        }
+      }
+
+      const currentVersion = changelogCache?.changelog?.[0]?.version;
+      if (!currentVersion) return;
+
+      const lastSeenVersion = localStorage.getItem(LAST_SEEN_VERSION_KEY);
+
+      // Show modal if new version or first visit
+      if (!lastSeenVersion || lastSeenVersion !== currentVersion) {
+        showWhatsNewModal(currentVersion);
+      }
+    }
+
+    function showWhatsNewModal(version) {
+      // Don't show multiple modals
+      if (document.querySelector('.whats-new-overlay')) return;
+
+      const latestRelease = changelogCache?.changelog?.[0];
+      if (!latestRelease) return;
+
+      // Parse changes and add icons
+      const parseChange = (change) => {
+        const lower = change.toLowerCase();
+        if (lower.includes('fix') || lower.includes('bug')) return { icon: '🐛', type: 'fix' };
+        if (lower.includes('add') || lower.includes('new')) return { icon: '✨', type: 'new' };
+        if (lower.includes('improve') || lower.includes('enhance') || lower.includes('update')) return { icon: '💫', type: 'improve' };
+        if (lower.includes('remove') || lower.includes('deprecat')) return { icon: '🗑️', type: 'remove' };
+        if (lower.includes('security')) return { icon: '🔒', type: 'security' };
+        if (lower.includes('performance') || lower.includes('faster') || lower.includes('speed')) return { icon: '⚡', type: 'perf' };
+        return { icon: '📝', type: 'other' };
+      };
+
+      const changesHtml = latestRelease.changes.map(change => {
+        const { icon } = parseChange(change);
+        return \`<li><span class="change-icon">\${icon}</span> \${change}</li>\`;
+      }).join('');
+
+      const overlay = document.createElement('div');
+      overlay.className = 'whats-new-overlay';
+      overlay.onclick = (e) => {
+        if (e.target === overlay) dismissWhatsNew(version, false);
+      };
+
+      overlay.innerHTML = \`
+        <div class="whats-new-panel">
+          <div class="whats-new-header">
+            <div class="whats-new-badge">✨ \${swedishMode ? 'Nytt' : 'New'}</div>
+            <h3>\${swedishMode ? 'Vad är nytt i' : "What's New in"} v\${version}</h3>
+            <button class="whats-new-close" onclick="dismissWhatsNew('\${version}', false)" aria-label="Close">&times;</button>
+          </div>
+          <div class="whats-new-date">\${latestRelease.date}</div>
+          <ul class="whats-new-changes">
+            \${changesHtml}
+          </ul>
+          <div class="whats-new-footer">
+            <label class="whats-new-dismiss-forever">
+              <input type="checkbox" id="whats-new-dismiss-checkbox">
+              <span>\${swedishMode ? 'Visa inte igen' : "Don't show again"}</span>
+            </label>
+            <div class="whats-new-actions">
+              <a href="\${changelogCache?.repoUrl || 'https://github.com/TomsTech/spotify-genre-sorter'}/releases" target="_blank" class="btn btn-ghost">
+                \${swedishMode ? 'Alla utgåvor' : 'All releases'}
+              </a>
+              <button class="btn btn-primary" onclick="dismissWhatsNew('\${version}', document.getElementById('whats-new-dismiss-checkbox')?.checked)">
+                \${swedishMode ? 'Förstått!' : 'Got it!'}
+              </button>
+            </div>
+          </div>
+        </div>
+      \`;
+
+      document.body.appendChild(overlay);
+
+      // Animate in
+      requestAnimationFrame(() => {
+        overlay.classList.add('visible');
+      });
+    }
+
+    function dismissWhatsNew(version, dismissForever = false) {
+      // Save current version as seen
+      localStorage.setItem(LAST_SEEN_VERSION_KEY, version);
+
+      // If user checked "don't show again", save that preference
+      if (dismissForever) {
+        localStorage.setItem(WHATS_NEW_DISMISSED_KEY, 'true');
+      }
+
+      const overlay = document.querySelector('.whats-new-overlay');
+      if (overlay) {
+        overlay.classList.remove('visible');
+        setTimeout(() => overlay.remove(), 300);
+      }
+    }
+
+    // Make globally accessible
+    window.dismissWhatsNew = dismissWhatsNew;
 
     // =====================================
     // KV Status Monitoring
@@ -1839,10 +2119,18 @@
           localStorage.setItem('swedishMode', 'true');
           document.body.classList.add('swedish-mode');
         }
-        // Show special greeting (once per day)
-        const lastHeidiGreeting = localStorage.getItem('heidiGreetingDate');
+        // Check for anniversary celebration (#102)
+        const anniversary = checkAnniversary();
+        const lastAnniversary = localStorage.getItem('heidiAnniversaryDate');
         const today = new Date().toDateString();
-        if (lastHeidiGreeting !== today) {
+
+        if (anniversary && lastAnniversary !== today) {
+          // Anniversary takes priority - show celebration with heart rain
+          localStorage.setItem('heidiAnniversaryDate', today);
+          localStorage.setItem('heidiGreetingDate', today); // Skip regular greeting
+          showAnniversaryCelebration(anniversary);
+        } else if (localStorage.getItem('heidiGreetingDate') !== today) {
+          // Regular daily greeting
           localStorage.setItem('heidiGreetingDate', today);
           showHeidiGreeting();
         }
@@ -1973,7 +2261,7 @@
           \${privacyExplainer}
           \${loginButton}
           <div class="footer-badges">
-            <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank">
+            <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank" class="github-star-badge" title="\${swedishMode ? 'Gillar du det? Stjärnmärk oss! ⭐' : 'Love this? Star us! ⭐'}">
               <img src="https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=for-the-badge&logo=github&logoColor=white&label=Star&color=1DB954&labelColor=191414" alt="Star on GitHub" loading="lazy" onerror="this.style.display='none'">
             </a>
             <a href="https://status.houstons.tech" target="_blank">
@@ -2486,12 +2774,52 @@
 
     async function loadGenres() {
       try {
+        // First, fetch library size to show user what to expect (#75)
         renderLoading(
-          swedishMode ? 'Hämtar dina låtar...' : 'Fetching your liked songs...',
-          swedishMode ? 'Detta kan ta en stund för stora bibliotek' : 'This may take a moment for large libraries'
+          swedishMode ? 'Kontrollerar biblioteksstorlek...' : 'Checking library size...',
+          ''
         );
 
-        // First, try the standard endpoint (fast for small libraries)
+        let libraryInfo = null;
+        try {
+          const sizeRes = await fetch('/api/library-size');
+          if (sizeRes.ok) {
+            libraryInfo = await sizeRes.json();
+          }
+        } catch (e) {
+          console.log('Could not fetch library size:', e);
+        }
+
+        // Show library size with scan estimate
+        if (libraryInfo) {
+          const trackCount = libraryInfo.total.toLocaleString();
+          const estimate = libraryInfo.estimatedScanTime;
+
+          // Warning for large libraries
+          if (libraryInfo.isLarge) {
+            showNotification(
+              swedishMode
+                ? `⚠️ Stort bibliotek (${trackCount} låtar) - skanningen kan ta ${estimate}`
+                : `⚠️ Large library (${trackCount} tracks) - scan may take ${estimate}`,
+              'info',
+              8000
+            );
+          }
+
+          renderLoading(
+            swedishMode ? 'Hämtar dina låtar...' : 'Fetching your liked songs...',
+            swedishMode
+              ? `📚 ${trackCount} låtar • Beräknad tid: ${estimate}`
+              : `📚 ${trackCount} tracks • Estimated time: ${estimate}`
+          );
+        } else {
+          renderLoading(
+            swedishMode ? 'Hämtar dina låtar...' : 'Fetching your liked songs...',
+            swedishMode ? 'Detta kan ta en stund för stora bibliotek' : 'This may take a moment for large libraries'
+          );
+        }
+
+        // Now fetch the genres
         const response = await fetch('/api/genres');
         const data = await response.json();
 
@@ -3074,6 +3402,25 @@
             <div class="template-preview">
               \${swedishMode ? 'Förhandsvisning:' : 'Preview:'} <span id="template-preview">\${getTemplatePreview()}</span>
             </div>
+
+            <label style="margin-top: 1rem;">\${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}</label>
+            <div class="template-input-row">
+              <input
+                type="text"
+                class="search-input"
+                id="desc-template-input"
+                value="\${playlistDescTemplate.replace(/"/g, '&quot;')}"
+                oninput="updateDescTemplate(this.value)"
+                placeholder="{genre} tracks • {count} songs"
+              >
+              <button onclick="resetDescTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ beskrivningsmall' : 'Reset description template'}">↺</button>
+            </div>
+            <div class="template-preview">
+              \${swedishMode ? 'Förhandsvisning:' : 'Preview:'} <span id="desc-template-preview">\${getDescTemplatePreview()}</span>
+            </div>
+            <div class="template-hint" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+              \${swedishMode ? 'Platshållare: {genre}, {count}, {date}, {username}' : 'Placeholders: {genre}, {count}, {date}, {username}'}
+            </div>
           </div>
 
           <input
@@ -3270,6 +3617,45 @@
       if (preview) preview.textContent = getTemplatePreview();
     }
 
+    // Description template functions (#91)
+    function applyDescTemplate(genreName, trackCount) {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString(swedishMode ? 'sv-SE' : 'en-AU', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+      const username = userData?.display_name || 'User';
+
+      return playlistDescTemplate
+        .replace(/{genre}/g, genreName)
+        .replace(/{count}/g, trackCount?.toString() || '0')
+        .replace(/{date}/g, dateStr)
+        .replace(/{username}/g, username);
+    }
+
+    function updateDescTemplate(value) {
+      playlistDescTemplate = value || '{genre} tracks from your liked songs ♫ • {count} tracks • Created {date}';
+      localStorage.setItem('playlistDescTemplate', playlistDescTemplate);
+      const preview = document.getElementById('desc-template-preview');
+      if (preview) {
+        preview.textContent = getDescTemplatePreview();
+      }
+    }
+
+    function resetDescTemplate() {
+      playlistDescTemplate = '{genre} tracks from your liked songs ♫ • {count} tracks • Created {date}';
+      localStorage.setItem('playlistDescTemplate', playlistDescTemplate);
+      const input = document.getElementById('desc-template-input');
+      const preview = document.getElementById('desc-template-preview');
+      if (input) input.value = playlistDescTemplate;
+      if (preview) preview.textContent = getDescTemplatePreview();
+    }
+
+    function getDescTemplatePreview() {
+      return applyDescTemplate('Rock', 42);
+    }
+
     function selectAll() {
       const checkboxes = document.querySelectorAll('.genre-checkbox');
       checkboxes.forEach(cb => {
@@ -3406,7 +3792,7 @@
 
     function showPlaylistCustomizeModal(genre) {
       const defaultName = playlistTemplate.replace('{genre}', genre.name);
-      const defaultDescription = \`\${genre.name} tracks from your liked songs ♫\`;
+      const defaultDescription = applyDescTemplate(genre.name, genre.count);
 
       const modal = document.createElement('div');
       modal.className = 'modal-overlay';
@@ -3878,11 +4264,58 @@
           createSelectedPlaylists();
         }
       }},
+      'c': { desc: 'Create playlists', action: () => {
+        if (selectedGenres.size > 0 && !document.getElementById('create-btn')?.disabled) {
+          createSelectedPlaylists();
+        }
+      }},
       'r': { desc: 'Refresh data', ctrl: true, action: (e) => { e.preventDefault(); refreshGenres(); }},
       't': { desc: 'Toggle theme', action: toggleTheme },
       's': { desc: 'Toggle stats', action: toggleStatsDashboard },
       '?': { desc: 'Show keyboard shortcuts', action: showKeyboardHelp },
+      'j': { desc: 'Next genre', action: navigateGenreDown },
+      'k': { desc: 'Previous genre', action: navigateGenreUp },
     };
+
+    // Vim-style two-key sequences (g+h for home, g+s for scoreboard)
+    let pendingKey = null;
+    let pendingKeyTimeout = null;
+    const TWO_KEY_SHORTCUTS = {
+      'g': {
+        'h': { desc: 'Go home', action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+        's': { desc: 'Go scoreboard', action: showScoreboard },
+        'g': { desc: 'Go to top', action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+      }
+    };
+
+    // Track currently focused genre card index
+    let focusedGenreIndex = -1;
+
+    function navigateGenreDown() {
+      const items = document.querySelectorAll('.genre-item:not(.hidden)');
+      if (items.length === 0) return;
+      focusedGenreIndex = Math.min(focusedGenreIndex + 1, items.length - 1);
+      focusGenreItem(items[focusedGenreIndex]);
+    }
+
+    function navigateGenreUp() {
+      const items = document.querySelectorAll('.genre-item:not(.hidden)');
+      if (items.length === 0) return;
+      focusedGenreIndex = Math.max(focusedGenreIndex - 1, 0);
+      focusGenreItem(items[focusedGenreIndex]);
+    }
+
+    function focusGenreItem(item) {
+      if (!item) return;
+      // Remove focus from previous
+      document.querySelectorAll('.genre-item.keyboard-focused').forEach(i => i.classList.remove('keyboard-focused'));
+      // Add focus to current
+      item.classList.add('keyboard-focused');
+      item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Focus the checkbox inside for keyboard interaction
+      const checkbox = item.querySelector('.genre-checkbox');
+      if (checkbox) checkbox.focus();
+    }
 
     function handleEscape() {
       // Close any modal first
@@ -3920,6 +4353,10 @@
       const shortcuts = [
         { key: '/', desc: swedishMode ? 'Sök genrer' : 'Search genres' },
         { key: 'Esc', desc: swedishMode ? 'Stäng/Rensa' : 'Close/Clear' },
+        { key: 'j / k', desc: swedishMode ? 'Nästa/Föregående genre' : 'Next/Previous genre' },
+        { key: 'g h', desc: swedishMode ? 'Gå till toppen' : 'Go home (top)' },
+        { key: 'g s', desc: swedishMode ? 'Visa resultattavla' : 'Go to scoreboard' },
+        { key: 'c', desc: swedishMode ? 'Skapa spellistor' : 'Create playlists' },
         { key: 'Ctrl+A', desc: swedishMode ? 'Välj alla' : 'Select all' },
         { key: 'Ctrl+Shift+A', desc: swedishMode ? 'Avmarkera alla' : 'Select none' },
         { key: 'Enter', desc: swedishMode ? 'Skapa spellistor' : 'Create playlists' },
@@ -3958,14 +4395,36 @@
       // Don't trigger shortcuts when typing in inputs
       const isInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
 
-      // Escape always works
+      // Escape always works (also clears pending key)
       if (e.key === 'Escape') {
+        pendingKey = null;
+        clearTimeout(pendingKeyTimeout);
         handleEscape();
         return;
       }
 
       // Skip other shortcuts if in input (except Ctrl combos)
       if (isInput && !e.ctrlKey && !e.metaKey) return;
+
+      // Handle two-key sequences (vim-style g+h, g+s, etc.)
+      if (pendingKey && TWO_KEY_SHORTCUTS[pendingKey]) {
+        const secondAction = TWO_KEY_SHORTCUTS[pendingKey][e.key];
+        pendingKey = null;
+        clearTimeout(pendingKeyTimeout);
+        if (secondAction) {
+          e.preventDefault();
+          secondAction.action();
+          return;
+        }
+      }
+
+      // Check if this key starts a two-key sequence
+      if (TWO_KEY_SHORTCUTS[e.key] && !e.ctrlKey && !e.metaKey) {
+        pendingKey = e.key;
+        clearTimeout(pendingKeyTimeout);
+        pendingKeyTimeout = setTimeout(() => { pendingKey = null; }, 1000);
+        return;
+      }
 
       // Forward slash focuses search (unless already typing)
       if (e.key === '/' && !isInput) {
@@ -4465,6 +4924,9 @@
 
     // Initialize sidebar
     initSidebar();
+
+    // Check for What's New modal (after short delay to not block initial load)
+    setTimeout(checkWhatsNew, 2000);
 
     // =========================================
     // EASTER EGG: Konami Code - Jeff Goldblum

@@ -38,10 +38,13 @@ function escapeCss(str) {
 // Escape specific sequences so they survive template literal embedding
 // In template literals, backslash sequences get interpreted (backslash consumed)
 // We need to preserve \', \n, \r, \t in the output
-// But we don't escape \` or \$ as those are for template literal control
-// Use negative lookbehind to NOT escape sequences already escaped (e.g., \\n in /\\r?\\n/g)
+// The source file (app.js) already has escaped backticks (\`) and template expressions (\${)
+// from the previous extraction, so we only escape unescaped ones
+// Use negative lookbehind to NOT escape sequences already escaped
 function escapeJs(str) {
   return str
+    .replace(/(?<!\\)`/g, "\\`")      // ` -> \` (only unescaped backticks)
+    .replace(/(?<!\\)\$\{/g, "\\${")  // ${ -> \${ (only unescaped template expressions)
     .replace(/(?<!\\)\\'/g, "\\\\'")  // \' -> \\' (but not \\')
     .replace(/(?<!\\)\\n/g, "\\\\n")  // \n -> \\n (but not \\n)
     .replace(/(?<!\\)\\r/g, "\\\\r")  // \r -> \\r (but not \\r)
@@ -62,7 +65,7 @@ const tsContent = `/**
  * Then run: npm run build:frontend
  */
 
-export function getHtml(): string {
+export function getHtml(nonce: string): string {
   return \`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -72,13 +75,13 @@ export function getHtml(): string {
   <meta name="description" content="Automatically sort your Spotify liked songs into genre-based playlists with one click. Free, open source, and privacy-focused.">
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <style>
+  <style nonce="\${nonce}">
 ${escapeCss(css)}
   </style>
 </head>
 <body>
 ${bodyHtml}
-  <script>
+  <script nonce="\${nonce}">
 ${escapeJs(js)}
   </script>
 </body>

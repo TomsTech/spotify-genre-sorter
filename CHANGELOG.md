@@ -5,6 +5,25 @@ All notable changes to Genre Genie (Spotify Genre Sorter) will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2025-12-18
+
+### Added
+- **Library Size Display** - shows library stats before scanning (#75)
+  - Displays track count and estimated scan time
+  - Warning notification for large libraries (>5000 tracks)
+  - Swedish translations included
+- **Anniversary Mode** - special celebration for Heidi on special dates (#102)
+  - Heart rain animation effect
+  - Personal messages from Tom
+  - Auto-enables Swedish mode
+  - Respects prefers-reduced-motion
+
+### Security
+- **Whitelist Genre Sanitization** - improved input validation (#99e)
+  - Changed from blacklist to whitelist approach
+  - Unicode-aware regex using `\p{L}\p{N}` patterns
+  - Allows letters, numbers, spaces, and common punctuation
+
 ## [3.3.0] - 2025-12-08
 
 ### Added
