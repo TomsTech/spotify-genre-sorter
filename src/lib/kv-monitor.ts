@@ -81,12 +81,14 @@ export const KV_PREFIXES = [
 /**
  * Get comprehensive KV monitoring data
  */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 export async function getKVMonitorData(kv: KVNamespace): Promise<KVMonitorResponse> {
   const metrics = getKVMetrics();
 
   // Collect detailed stats for each prefix
   const namespaceData = await Promise.all(
-    KV_PREFIXES.map(async ({ name, prefix, description }) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    KV_PREFIXES.map(async ({ name, prefix, description }): Promise<KVNamespaceData> => {
       try {
         const list = await kv.list({ prefix, limit: 1000 });
         const keyCount = list.keys.length;
@@ -100,6 +102,7 @@ export async function getKVMonitorData(kv: KVNamespace): Promise<KVMonitorRespon
           metadata: key.metadata,
         }));
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return {
           name,
           prefix,
@@ -110,9 +113,9 @@ export async function getKVMonitorData(kv: KVNamespace): Promise<KVMonitorRespon
           truncated,
           sampleKeys,
         };
-      } catch (err) {
+      } catch (err: unknown) {
         console.error(`Error listing prefix ${prefix}:`, err);
-        return {
+        const errorResult: KVNamespaceData = {
           name,
           prefix,
           description,
@@ -123,6 +126,8 @@ export async function getKVMonitorData(kv: KVNamespace): Promise<KVMonitorRespon
           sampleKeys: [],
           error: 'Failed to list keys',
         };
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return errorResult;
       }
     })
   );
@@ -161,3 +166,4 @@ export async function getKVMonitorData(kv: KVNamespace): Promise<KVMonitorRespon
     namespaces: namespaceData,
   };
 }
+/* eslint-enable @typescript-eslint/no-unsafe-return */

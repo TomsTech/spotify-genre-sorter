@@ -9,7 +9,7 @@
  * - Error logging and telemetry
  */
 
-import { createLogger, type LogLevel } from './logger';
+import { createLogger } from './logger';
 
 // ==================== Error Types ====================
 
@@ -73,9 +73,10 @@ export class AppError extends Error {
     this.context = config.context;
 
     // Maintain proper stack trace
-    if (config.originalError instanceof Error) {
+    if (config.originalError instanceof Error && config.originalError.stack) {
       this.stack = config.originalError.stack;
-    } else if (Error.captureStackTrace) {
+    } else if (typeof Error.captureStackTrace === 'function') {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       Error.captureStackTrace(this, AppError);
     }
   }
@@ -250,7 +251,7 @@ export async function withRetry<T>(
     }
   }
 
-  throw lastError;
+  throw lastError || new Error('Retry exhausted');
 }
 
 // ==================== Error Recovery ====================
@@ -400,7 +401,7 @@ export interface ErrorLogEntry {
  * Log error for debugging and monitoring
  */
 export function logError(
-  error: ErrorContext | Error | unknown,
+  error: ErrorContext | Error,
   ctx?: {
     executionContext?: ExecutionContext;
     betterStackToken?: string;
@@ -413,12 +414,14 @@ export function logError(
 ): ErrorLogEntry {
   const classified = error instanceof AppError ? error : classifyError(error);
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const originalError: Error | undefined = classified.originalError instanceof Error ? classified.originalError : undefined;
   const logEntry: ErrorLogEntry = {
     timestamp: new Date().toISOString(),
     code: classified.code,
     message: classified.message,
     statusCode: classified.statusCode || 500,
-    stack: classified.originalError?.stack,
+    stack: originalError instanceof Error ? originalError.stack : undefined,
     context: classified.context,
     path: ctx?.requestContext?.path,
     userId: ctx?.requestContext?.userId,
@@ -461,7 +464,7 @@ export function logError(
  * Create error response with proper status code and user-friendly message
  */
 export function createErrorResponse(
-  error: ErrorContext | Error | unknown,
+  error: ErrorContext | Error,
   options: {
     swedish?: boolean;
     includeStack?: boolean;
@@ -478,8 +481,10 @@ export function createErrorResponse(
   };
 
   // Include stack trace in development
-  if (options.includeStack && classified.originalError?.stack) {
-    body.stack = classified.originalError.stack;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const origErr: Error | undefined = classified.originalError instanceof Error ? classified.originalError : undefined;
+  if (options.includeStack && origErr instanceof Error && origErr.stack) {
+    body.stack = origErr.stack;
   }
 
   // Include recovery suggestions
