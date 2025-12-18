@@ -6739,7 +6739,8 @@ export function getHtml(nonce: string): string {
     }
 
     .genie-mascot.will-smith-mode + .genie-speech-bubble,
-    .will-smith-mode ~ .genie-speech-bubble {
+    .will-smith-mode ~ .genie-speech-bubble,
+    .genie-speech-bubble.will-smith-bubble {
       background: linear-gradient(135deg, #8B4513 0%, #654321 100%);
       border-color: #FFD700;
       font-weight: bold;
@@ -8013,6 +8014,33 @@ export function getHtml(nonce: string): string {
       }
     }
 
+    /* KV Monitor Dashboard Styles */
+    .status-healthy {
+      color: #4ade80 !important;
+    }
+
+    .status-warning {
+      color: #fbbf24 !important;
+    }
+
+    .status-critical {
+      color: #ff4444 !important;
+    }
+
+    .kv-namespace-table table {
+      font-size: 0.9rem;
+    }
+
+    .kv-namespace-table th {
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--surface-2);
+    }
+
+    .kv-namespace-table tbody tr:hover {
+      background: var(--surface-2);
+    }
+
   </style>
 </head>
 <body>
@@ -8837,6 +8865,7 @@ export function getHtml(nonce: string): string {
           </div>
           <div class="admin-tabs">
             <button class="admin-tab active" data-tab="stats">📊 Stats</button>
+            <button class="admin-tab" data-tab="kv">🗄️ KV Monitor</button>
             <button class="admin-tab" data-tab="cache">💾 Cache</button>
             <button class="admin-tab" data-tab="health">🏥 Health</button>
             <button class="admin-tab" data-tab="errors">🐛 Errors</button>
@@ -8913,6 +8942,8 @@ export function getHtml(nonce: string): string {
 
           if (tabName === 'users') {
             await loadAdminUsersTab(modal);
+          } else if (tabName === 'kv') {
+            await loadAdminKVMonitorTab(modal);
           } else if (tabName === 'cache') {
             await loadAdminCacheTab(modal);
           } else if (tabName === 'health') {
@@ -9058,6 +9089,319 @@ export function getHtml(nonce: string): string {
     }
 
     window.confirmDeleteUser = confirmDeleteUser;
+
+    // Admin KV Monitor Tab - comprehensive KV namespace monitoring
+    async function loadAdminKVMonitorTab(modal) {
+      const content = modal.querySelector('#admin-tab-content');
+      content.innerHTML = '<div class="admin-loading">Loading KV monitoring data...</div>';
+
+      try {
+        const response = await fetch('/api/admin/kv-monitor');
+        if (!response.ok) throw new Error('Failed to load KV monitor data');
+        const data = await response.json();
+
+        const { summary, limits, usage, realTimeMetrics, namespaces } = data;
+
+        // Calculate health status
+        const getHealthStatus = (percent) => {
+          if (percent > 80) return { icon: '🔴', text: 'Critical', class: 'status-critical' };
+          if (percent > 50) return { icon: '🟡', text: 'Warning', class: 'status-warning' };
+          return { icon: '🟢', text: 'Healthy', class: 'status-healthy' };
+        };
+
+        const readPercent = (realTimeMetrics.reads / limits.dailyReads) * 100;
+        const writePercent = (realTimeMetrics.writes / limits.dailyWrites) * 100;
+        const readHealth = getHealthStatus(readPercent);
+        const writeHealth = getHealthStatus(writePercent);
+
+        content.innerHTML = \`
+          <div class="admin-grid">
+            <div class="admin-card">
+              <h3>📊 KV Summary</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">Total Keys:</span>
+                  <span class="value">\${summary.totalKeys.toLocaleString()}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Total Size:</span>
+                  <span class="value">\${(summary.totalSize / 1024).toFixed(2)} KB</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Avg Key Size:</span>
+                  <span class="value">\${summary.avgKeySize} bytes</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Namespaces:</span>
+                  <span class="value">\${summary.namespaceCount}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <h3>⚡ Real-Time Operations</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">KV Reads:</span>
+                  <span class="value \${readHealth.class}">\${realTimeMetrics.reads} / \${limits.dailyReads.toLocaleString()}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">KV Writes:</span>
+                  <span class="value \${writeHealth.class}">\${realTimeMetrics.writes} / \${limits.dailyWrites.toLocaleString()}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">KV Deletes:</span>
+                  <span class="value">\${realTimeMetrics.deletes}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Status:</span>
+                  <span class="value">\${readHealth.icon} \${readHealth.text}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <h3>💾 Cache Performance</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">Cache Hits:</span>
+                  <span class="value">\${realTimeMetrics.cacheHits.toLocaleString()}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Cache Misses:</span>
+                  <span class="value">\${realTimeMetrics.cacheMisses.toLocaleString()}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Hit Rate:</span>
+                  <span class="value">\${realTimeMetrics.cacheHitRate}%</span>
+                </div>
+                <div class="stat">
+                  <span class="label">KV Reads Saved:</span>
+                  <span class="value">\${realTimeMetrics.cacheHits.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <h3>📈 Usage & Limits</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">Daily Read Limit:</span>
+                  <span class="value">\${limits.dailyReads.toLocaleString()}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Daily Write Limit:</span>
+                  <span class="value">\${limits.dailyWrites.toLocaleString()}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Max Value Size:</span>
+                  <span class="value">\${(limits.maxValueSize / 1024 / 1024).toFixed(0)} MB</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Last Reset:</span>
+                  <span class="value">\${new Date(realTimeMetrics.lastReset).toLocaleTimeString()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-card" style="margin-top: 1rem;">
+            <h3>🗄️ Namespace Breakdown</h3>
+            <div class="kv-namespace-table">
+              <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                  <tr style="border-bottom: 2px solid var(--border); text-align: left;">
+                    <th style="padding: 0.75rem;">Namespace</th>
+                    <th style="padding: 0.75rem;">Keys</th>
+                    <th style="padding: 0.75rem;">Total Size</th>
+                    <th style="padding: 0.75rem;">Avg Size</th>
+                    <th style="padding: 0.75rem;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  \${namespaces.map(ns => \`
+                    <tr style="border-bottom: 1px solid var(--border);">
+                      <td style="padding: 0.75rem;">
+                        <strong>\${ns.name}</strong>
+                        <br>
+                        <small style="color: var(--text-muted);">\${ns.description}</small>
+                        \${ns.truncated ? '<br><small style="color: orange;">⚠️ Truncated (1000+ keys)</small>' : ''}
+                      </td>
+                      <td style="padding: 0.75rem;">\${ns.keyCount.toLocaleString()}</td>
+                      <td style="padding: 0.75rem;">\${(ns.totalSize / 1024).toFixed(2)} KB</td>
+                      <td style="padding: 0.75rem;">\${ns.avgSize} bytes</td>
+                      <td style="padding: 0.75rem;">
+                        <button class="btn btn-ghost btn-sm" onclick="browseKVKeys('\${ns.prefix}', '\${ns.name}')">
+                          🔍 Browse
+                        </button>
+                      </td>
+                    </tr>
+                  \`).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          \${readPercent > 80 || writePercent > 80 ? \`
+            <div class="admin-card" style="margin-top: 1rem; border-color: #ff4444; background: rgba(255, 68, 68, 0.1);">
+              <h3>⚠️ Quota Warning</h3>
+              <p style="margin: 0; color: var(--text);">
+                You are approaching your daily KV quota limits. Consider:
+              </p>
+              <ul style="margin: 0.5rem 0 0 1.5rem; color: var(--text);">
+                <li>Increasing cache TTLs to reduce reads</li>
+                <li>Batching write operations</li>
+                <li>Clearing unnecessary cached data</li>
+                <li>Upgrading to a paid Workers plan for higher limits</li>
+              </ul>
+            </div>
+          \` : ''}
+        \`;
+      } catch (err) {
+        console.error('Failed to load KV monitor:', err);
+        content.innerHTML = \`<div class="admin-error">Failed to load KV monitoring data: \${err.message}</div>\`;
+      }
+    }
+
+    // Browse KV keys in a specific namespace
+    async function browseKVKeys(prefix, namespaceName) {
+      const modal = document.querySelector('.admin-modal');
+      const content = modal.querySelector('#admin-tab-content');
+
+      content.innerHTML = '<div class="admin-loading">Loading keys...</div>';
+
+      try {
+        const response = await fetch(\`/api/admin/kv-keys?prefix=\${encodeURIComponent(prefix)}&limit=50\`);
+        if (!response.ok) throw new Error('Failed to load keys');
+        const data = await response.json();
+
+        content.innerHTML = \`
+          <div class="admin-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <h3>🗄️ Keys in "\${namespaceName}"</h3>
+              <button class="btn btn-ghost btn-sm" onclick="document.querySelector('[data-tab=kv]').click()">
+                ← Back to KV Monitor
+              </button>
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+              <strong>Prefix:</strong> <code style="background: var(--surface-2); padding: 0.25rem 0.5rem; border-radius: 4px;">\${prefix}</code>
+              <br>
+              <strong>Keys Found:</strong> \${data.total} \${data.list_complete ? '' : '(showing first 50)'}
+            </div>
+
+            \${data.keys.length === 0 ? '<p>No keys found in this namespace.</p>' : \`
+              <div style="max-height: 500px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <thead style="position: sticky; top: 0; background: var(--card-bg); border-bottom: 2px solid var(--border);">
+                    <tr style="text-align: left;">
+                      <th style="padding: 0.75rem;">Key Name</th>
+                      <th style="padding: 0.75rem;">Expiration</th>
+                      <th style="padding: 0.75rem;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    \${data.keys.map(key => \`
+                      <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 0.75rem;">
+                          <code style="font-size: 0.85rem; word-break: break-all;">\${escapeHtml(key.name)}</code>
+                        </td>
+                        <td style="padding: 0.75rem; white-space: nowrap;">
+                          \${key.expiresAt ? new Date(key.expiresAt).toLocaleString() : 'Never'}
+                        </td>
+                        <td style="padding: 0.75rem; white-space: nowrap;">
+                          <button class="btn btn-ghost btn-sm" onclick="viewKVKey('\${escapeHtml(key.name).replace(/'/g, "\\\\'")}')">
+                            👁️ View
+                          </button>
+                          <button class="btn btn-ghost btn-sm" style="color: #ff4444;" onclick="deleteKVKey('\${escapeHtml(key.name).replace(/'/g, "\\\\'")}', '\${prefix}', '\${namespaceName}')">
+                            🗑️ Delete
+                          </button>
+                        </td>
+                      </tr>
+                    \`).join('')}
+                  </tbody>
+                </table>
+              </div>
+            \`}
+          </div>
+        \`;
+      } catch (err) {
+        console.error('Failed to browse keys:', err);
+        content.innerHTML = \`<div class="admin-error">Failed to load keys: \${err.message}</div>\`;
+      }
+    }
+
+    // View details of a specific KV key
+    async function viewKVKey(keyName) {
+      try {
+        const response = await fetch(\`/api/admin/kv-key/\${encodeURIComponent(keyName)}\`);
+        if (!response.ok) throw new Error('Failed to load key');
+        const data = await response.json();
+
+        const valueDisplay = data.valueType === 'json'
+          ? \`<pre style="background: var(--surface-2); padding: 1rem; border-radius: 6px; overflow-x: auto; max-height: 400px;">\${JSON.stringify(data.value, null, 2)}</pre>\`
+          : \`<pre style="background: var(--surface-2); padding: 1rem; border-radius: 6px; overflow-x: auto; max-height: 400px;">\${escapeHtml(data.rawValue)}</pre>\`;
+
+        const infoModal = document.createElement('div');
+        infoModal.className = 'modal-overlay';
+        infoModal.innerHTML = \`
+          <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+              <h2>🔍 Key Details</h2>
+              <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+            </div>
+            <div style="padding: 1.5rem;">
+              <div style="margin-bottom: 1rem;">
+                <strong>Key:</strong><br>
+                <code style="background: var(--surface-2); padding: 0.5rem; border-radius: 4px; display: block; margin-top: 0.25rem; word-break: break-all;">\${escapeHtml(data.key)}</code>
+              </div>
+              <div style="margin-bottom: 1rem;">
+                <strong>Size:</strong> \${data.size.toLocaleString()} bytes (\${(data.size / 1024).toFixed(2)} KB)
+              </div>
+              <div style="margin-bottom: 1rem;">
+                <strong>Type:</strong> \${data.valueType}
+              </div>
+              \${data.expiresAt ? \`
+                <div style="margin-bottom: 1rem;">
+                  <strong>Expires At:</strong> \${new Date(data.expiresAt).toLocaleString()}
+                </div>
+              \` : ''}
+              <div>
+                <strong>Value:</strong>
+                \${valueDisplay}
+              </div>
+            </div>
+          </div>
+        \`;
+        document.body.appendChild(infoModal);
+      } catch (err) {
+        showNotification(\`Failed to load key: \${err.message}\`, 'error');
+      }
+    }
+
+    // Delete a specific KV key
+    async function deleteKVKey(keyName, prefix, namespaceName) {
+      if (!confirm(\`Are you sure you want to delete this key?\\n\\n\${keyName}\`)) return;
+
+      try {
+        const response = await fetch(\`/api/admin/kv-key/\${encodeURIComponent(keyName)}\`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error('Failed to delete key');
+
+        showNotification('Key deleted successfully', 'success');
+
+        // Reload the key browser
+        await browseKVKeys(prefix, namespaceName);
+      } catch (err) {
+        showNotification(\`Failed to delete key: \${err.message}\`, 'error');
+      }
+    }
+
+    window.browseKVKeys = browseKVKeys;
+    window.viewKVKey = viewKVKey;
+    window.deleteKVKey = deleteKVKey;
 
     // Admin Cache Tab - cache management controls
     async function loadAdminCacheTab(modal) {
@@ -10580,7 +10924,7 @@ export function getHtml(nonce: string): string {
         const phraseSv = "HÅLL MIN FRUS NAMN UTANFÖR DIN J*VLA MUN!";
 
         const bubble = document.createElement('div');
-        bubble.className = 'genie-speech-bubble';
+        bubble.className = 'genie-speech-bubble will-smith-bubble';
         bubble.textContent = swedishMode ? phraseSv : phrase;
 
         const rect = genie.getBoundingClientRect();
