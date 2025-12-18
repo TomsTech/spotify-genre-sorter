@@ -747,7 +747,6 @@ api.get('/genres/chunk', async (c) => {
       // Stop if we've reached the end of the library
       if (allChunkTracks.length >= response.total - offset) break;
     }
-    const currentOffset = offset + allChunkTracks.length;
 
     if (allChunkTracks.length === 0) {
       // No more tracks at this offset
