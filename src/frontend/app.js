@@ -2739,7 +2739,7 @@
         const phraseSv = "HÅLL MIN FRUS NAMN UTANFÖR DIN J*VLA MUN!";
 
         const bubble = document.createElement('div');
-        bubble.className = 'genie-speech-bubble';
+        bubble.className = 'genie-speech-bubble will-smith-bubble';
         bubble.textContent = swedishMode ? phraseSv : phrase;
 
         const rect = genie.getBoundingClientRect();
@@ -4477,7 +4477,7 @@
         month: 'short',
         day: 'numeric'
       });
-      const username = userData?.display_name || 'User';
+      const username = window.currentUser?.display_name || 'User';
 
       return playlistDescTemplate
         .replace(/{genre}/g, genreName)

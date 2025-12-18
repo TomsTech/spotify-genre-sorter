@@ -6716,7 +6716,8 @@
     }
 
     .genie-mascot.will-smith-mode + .genie-speech-bubble,
-    .will-smith-mode ~ .genie-speech-bubble {
+    .will-smith-mode ~ .genie-speech-bubble,
+    .genie-speech-bubble.will-smith-bubble {
       background: linear-gradient(135deg, #8B4513 0%, #654321 100%);
       border-color: #FFD700;
       font-weight: bold;
