@@ -2495,7 +2495,7 @@ api.get('/admin/kv-keys', async (c) => {
 
     return c.json({
       keys,
-      cursor: result.cursor,
+      cursor: result.list_complete ? null : (result as { cursor: string }).cursor,
       list_complete: result.list_complete,
       total: keys.length,
     });
