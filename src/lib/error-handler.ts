@@ -11,6 +11,14 @@
 
 import { createLogger } from './logger';
 
+// V8 Error.captureStackTrace type declaration
+declare global {
+  interface ErrorConstructor {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+    captureStackTrace?(targetObject: object, constructorOpt?: Function): void;
+  }
+}
+
 // ==================== Error Types ====================
 
 export enum ErrorCode {
@@ -60,6 +68,7 @@ export class AppError extends Error {
   public readonly retryable: boolean;
   public readonly statusCode: number;
   public readonly context?: Record<string, unknown>;
+  public readonly originalError?: Error;
 
   constructor(config: ErrorContext) {
     super(config.message);
@@ -71,12 +80,12 @@ export class AppError extends Error {
     this.retryable = config.retryable;
     this.statusCode = config.statusCode || 500;
     this.context = config.context;
+    this.originalError = config.originalError;
 
     // Maintain proper stack trace
     if (config.originalError instanceof Error && config.originalError.stack) {
       this.stack = config.originalError.stack;
     } else if (typeof Error.captureStackTrace === 'function') {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       Error.captureStackTrace(this, AppError);
     }
   }
@@ -319,9 +328,9 @@ export function determineRecoveryStrategy(error: ErrorContext): RecoveryStrategy
 
 // ==================== Partial Failure Handling ====================
 
-export interface BatchResult<T> {
+export interface BatchResult<T, TInput = T> {
   successful: T[];
-  failed: Array<{ item: T; error: ErrorContext }>;
+  failed: Array<{ item: TInput; error: ErrorContext }>;
   totalCount: number;
   successCount: number;
   failureCount: number;
@@ -338,7 +347,7 @@ export async function processBatch<T, R>(
     continueOnError?: boolean;
     maxConcurrent?: number;
   } = {}
-): Promise<BatchResult<{ item: T; result: R }>> {
+): Promise<BatchResult<{ item: T; result: R }, T>> {
   const { continueOnError = true, maxConcurrent = 5 } = options;
   const successful: Array<{ item: T; result: R }> = [];
   const failed: Array<{ item: T; error: ErrorContext }> = [];
@@ -414,8 +423,7 @@ export function logError(
 ): ErrorLogEntry {
   const classified = error instanceof AppError ? error : classifyError(error);
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const originalError: Error | undefined = classified.originalError instanceof Error ? classified.originalError : undefined;
+  const originalError: Error | undefined = classified.originalError;
   const logEntry: ErrorLogEntry = {
     timestamp: new Date().toISOString(),
     code: classified.code,
@@ -443,7 +451,7 @@ export function logError(
         ctx.betterStackToken,
         ctx.requestContext
       );
-      logger.logError(classified.message, classified.originalError || new Error(classified.message), {
+      logger.logError(classified.message, originalError || new Error(classified.message), {
         errorCode: classified.code,
         statusCode: classified.statusCode,
         recoverable: classified.recoverable,
@@ -481,10 +489,8 @@ export function createErrorResponse(
   };
 
   // Include stack trace in development
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const origErr: Error | undefined = classified.originalError instanceof Error ? classified.originalError : undefined;
-  if (options.includeStack && origErr instanceof Error && origErr.stack) {
-    body.stack = origErr.stack;
+  if (options.includeStack && classified.originalError?.stack) {
+    body.stack = classified.originalError.stack;
   }
 
   // Include recovery suggestions

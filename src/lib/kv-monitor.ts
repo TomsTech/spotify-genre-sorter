@@ -92,7 +92,10 @@ export async function getKVMonitorData(kv: KVNamespace): Promise<KVMonitorRespon
       try {
         const list = await kv.list({ prefix, limit: 1000 });
         const keyCount = list.keys.length;
-        const totalSize = list.keys.reduce((sum, key) => sum + (key.metadata?.size || 0), 0);
+        const totalSize = list.keys.reduce((sum, key) => {
+          const metadata = key.metadata as { size?: number } | undefined;
+          return sum + (metadata?.size || 0);
+        }, 0);
         const truncated = list.list_complete === false;
 
         // Get sample keys for preview (first 5)
