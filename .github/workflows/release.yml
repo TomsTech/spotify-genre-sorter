@@ -47,19 +47,33 @@ jobs:
         id: changelog
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          # Try to extract section for this version from CHANGELOG.md
+          VERSION_NUM="${VERSION#v}"  # Strip leading 'v' -> "3.4.0"
+
+          echo "Looking for version: $VERSION_NUM in CHANGELOG.md"
+
           if [ -f CHANGELOG.md ]; then
-            # Extract content between this version header and the next version header
-            CONTENT=$(awk "/^## \[${VERSION#v}\]|^## ${VERSION}/,/^## \[|^## v/" CHANGELOG.md | head -n -1 | tail -n +2)
+            # Extract from "## [X.Y.Z]" until the next "## [" line
+            # Using sed for more reliable multiline extraction
+            CONTENT=$(sed -n "/^## \[$VERSION_NUM\]/,/^## \[/p" CHANGELOG.md | sed '$d')
+
             if [ -z "$CONTENT" ]; then
-              CONTENT="Release $VERSION"
+              echo "No changelog entry found, using commit messages"
+              # Fall back to generating from recent commits
+              CONTENT="## $VERSION
+
+### Changes
+$(git log --oneline $(git describe --tags --abbrev=0 HEAD^)..HEAD 2>/dev/null | sed 's/^[a-f0-9]* /- /' || echo "- Release $VERSION")"
             fi
           else
-            CONTENT="Release $VERSION"
+            CONTENT="## $VERSION
+
+Release $VERSION - see commit history for changes."
           fi
+
           # Write to file for multiline support
           echo "$CONTENT" > release_notes.md
-          echo "Generated release notes for $VERSION"
+          echo "Generated release notes:"
+          cat release_notes.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
