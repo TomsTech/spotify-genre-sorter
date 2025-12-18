@@ -25,6 +25,34 @@ export interface LikedTrack {
 const SPOTIFY_API = 'https://api.spotify.com/v1';
 const SPOTIFY_AUTH = 'https://accounts.spotify.com';
 
+// PKCE (Proof Key for Code Exchange) helpers for enhanced OAuth security
+// Generates a cryptographically random code verifier
+export function generateCodeVerifier(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return base64UrlEncode(array);
+}
+
+// Creates SHA256 hash of verifier for code_challenge
+export async function createCodeChallenge(verifier: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return base64UrlEncode(new Uint8Array(digest));
+}
+
+// Base64 URL encoding (no padding, URL-safe characters)
+function base64UrlEncode(buffer: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < buffer.length; i++) {
+    binary += String.fromCharCode(buffer[i]);
+  }
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
 // High availability: retry with exponential backoff
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
@@ -74,7 +102,8 @@ async function fetchWithRetry(
 export function getSpotifyAuthUrl(
   clientId: string,
   redirectUri: string,
-  state: string
+  state: string,
+  codeChallenge?: string
 ): string {
   const scopes = [
     'user-library-read',
@@ -93,6 +122,12 @@ export function getSpotifyAuthUrl(
     state,
   });
 
+  // Add PKCE parameters if code_challenge provided
+  if (codeChallenge) {
+    params.set('code_challenge_method', 'S256');
+    params.set('code_challenge', codeChallenge);
+  }
+
   return `${SPOTIFY_AUTH}/authorize?${params.toString()}`;
 }
 
@@ -100,19 +135,27 @@ export async function exchangeSpotifyCode(
   code: string,
   clientId: string,
   clientSecret: string,
-  redirectUri: string
+  redirectUri: string,
+  codeVerifier?: string
 ): Promise<SpotifyTokens> {
+  const body = new URLSearchParams({
+    grant_type: 'authorization_code',
+    code,
+    redirect_uri: redirectUri,
+  });
+
+  // Add PKCE code_verifier if provided
+  if (codeVerifier) {
+    body.set('code_verifier', codeVerifier);
+  }
+
   const response = await fetchWithRetry(`${SPOTIFY_AUTH}/api/token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
     },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: redirectUri,
-    }),
+    body,
   });
 
   if (!response.ok) {
@@ -258,12 +301,19 @@ export async function getArtists(
     chunks.push(idsToFetch.slice(i, i + 50));
   }
 
-  const results: SpotifyArtist[] = [];
-  for (const chunk of chunks) {
-    const response = await spotifyFetch<{ artists: (SpotifyArtist | null)[] }>(
+  // OPTIMIZATION: Parallelize artist fetching to reduce total request time
+  // Each request is independent, so we can fetch all chunks concurrently
+  const chunkPromises = chunks.map(chunk =>
+    spotifyFetch<{ artists: (SpotifyArtist | null)[] }>(
       `/artists?ids=${chunk.join(',')}`,
       accessToken
-    );
+    )
+  );
+
+  const responses = await Promise.all(chunkPromises);
+
+  const results: SpotifyArtist[] = [];
+  for (const response of responses) {
     // Filter out null entries (some artists may not have data)
     const validArtists = response.artists.filter((a): a is SpotifyArtist => a !== null);
     results.push(...validArtists);
@@ -333,6 +383,8 @@ export async function addTracksToPlaylist(
   trackUris: string[]
 ): Promise<void> {
   // Spotify allows max 100 tracks per request
+  // OPTIMIZATION: Parallelize playlist additions for faster bulk operations
+  // Note: Keeping sequential for safety - Spotify recommends not parallelizing writes to same playlist
   for (let i = 0; i < trackUris.length; i += 100) {
     const chunk = trackUris.slice(i, i + 100);
     await spotifyFetch(`/playlists/${playlistId}/tracks`, accessToken, {

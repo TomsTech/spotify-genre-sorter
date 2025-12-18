@@ -10,7 +10,7 @@
  * Then run: npm run build:frontend
  */
 
-export function getHtml(): string {
+export function getHtml(nonce: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,17 +20,21 @@ export function getHtml(): string {
   <meta name="description" content="Automatically sort your Spotify liked songs into genre-based playlists with one click. Free, open source, and privacy-focused.">
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <style>
+  <style nonce="${nonce}">
     :root {
       --bg: #0a0a0a;
       --surface: #141414;
       --surface-2: #1e1e1e;
+      --card-bg: #181818;
       --border: #2a2a2a;
+      --border-hover: #3a3a3a;
       --text: #fafafa;
-      --text-muted: #888;
+      --text-muted: #9a9a9a; /* Improved contrast: 5.9:1 on #141414 */
       --accent: #1DB954;
       --accent-hover: #1ed760;
+      --primary-rgb: 29, 185, 84;
       --danger: #e74c3c;
+      --danger-rgb: 231, 76, 60;
       --swedish-blue: #006AA7;
       --swedish-yellow: #FECC00;
     }
@@ -40,7 +44,9 @@ export function getHtml(): string {
       --bg: #f5f5f5;
       --surface: #ffffff;
       --surface-2: #e9ecef;
+      --card-bg: #ffffff;
       --border: #ced4da;
+      --border-hover: #adb5bd;
       --text: #1a1a1a;
       --text-muted: #495057;
     }
@@ -1216,18 +1222,26 @@ export function getHtml(): string {
       color: #fff;
     }
 
+    /* Status Widgets Container (below header, right side) */
+    .status-widgets {
+      position: fixed;
+      top: 4.5rem; /* Below the sticky header */
+      right: 1rem;
+      display: flex;
+      flex-direction: row;
+      gap: 0.5rem;
+      z-index: 999; /* Below header z-index */
+      align-items: center;
+    }
+
     /* Deployment Monitor Widget */
     .deploy-widget {
-      position: fixed;
-      top: 1rem;
-      right: 1rem;
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 0.5rem 0.75rem;
       font-size: 0.7rem;
       color: var(--text-muted);
-      z-index: 1000;
       display: flex;
       align-items: center;
       gap: 0.5rem;
@@ -1317,16 +1331,12 @@ export function getHtml(): string {
 
     /* KV Status Indicator */
     .kv-status-indicator {
-      position: fixed;
-      top: 1rem;
-      right: 160px;
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 0.5rem 0.75rem;
       font-size: 0.7rem;
       color: var(--text-muted);
-      z-index: 1000;
       display: flex;
       align-items: center;
       gap: 0.35rem;
@@ -1361,7 +1371,7 @@ export function getHtml(): string {
     /* === Now Playing Widget === */
     .now-playing-widget {
       position: fixed;
-      bottom: 1.5rem;
+      bottom: 4rem;
       left: 50%;
       transform: translateX(-50%);
       background: linear-gradient(135deg, rgba(30, 30, 30, 0.95), rgba(18, 18, 18, 0.98));
@@ -1498,7 +1508,7 @@ export function getHtml(): string {
 
     @media (max-width: 600px) {
       .now-playing-widget {
-        bottom: 1rem;
+        bottom: 4rem;
         left: 1rem;
         right: 1rem;
         transform: none;
@@ -1520,11 +1530,17 @@ export function getHtml(): string {
 
     /* KV Status Modal Content */
     .kv-status-panel {
-      max-width: 500px;
+      max-width: 550px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
     }
 
     .kv-status-content {
       padding: 1rem;
+      overflow-y: auto;
+      flex: 1;
+      min-height: 0;
     }
 
     .kv-status-summary {
@@ -1979,6 +1995,37 @@ export function getHtml(): string {
 
     .footer-badges a:hover {
       opacity: 1;
+    }
+
+    /* GitHub Star Badge - prominent with hover animation */
+    .github-star-badge {
+      position: relative;
+      display: inline-block;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .github-star-badge img {
+      transform: scale(1.05);
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+
+    .github-star-badge:hover {
+      opacity: 1 !important;
+      transform: scale(1.1);
+    }
+
+    .github-star-badge:hover img {
+      filter: drop-shadow(0 0 8px rgba(29, 185, 84, 0.6));
+      animation: starPulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes starPulse {
+      0%, 100% {
+        filter: drop-shadow(0 0 8px rgba(29, 185, 84, 0.6));
+      }
+      50% {
+        filter: drop-shadow(0 0 16px rgba(29, 185, 84, 0.9));
+      }
     }
 
     /* Stats Dashboard */
@@ -3549,6 +3596,133 @@ export function getHtml(): string {
       font-size: 0.85rem;
     }
 
+    /* Now Playing indicator and tooltip */
+    .user-list-item.is-listening {
+      position: relative;
+    }
+
+    .user-list-item.is-listening::before {
+      content: '';
+      position: absolute;
+      left: -4px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: listeningPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes listeningPulse {
+      0%, 100% { opacity: 1; transform: translateY(-50%) scale(1); }
+      50% { opacity: 0.5; transform: translateY(-50%) scale(0.8); }
+    }
+
+    .now-playing-tooltip {
+      position: absolute;
+      left: calc(100% + 12px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-width: 220px;
+      max-width: 280px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s, visibility 0.2s;
+      pointer-events: none;
+    }
+
+    .user-list-item.is-listening:hover .now-playing-tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .now-playing-tooltip::before {
+      content: '';
+      position: absolute;
+      left: -6px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: 6px solid transparent;
+      border-right-color: var(--border);
+    }
+
+    .now-playing-tooltip::after {
+      content: '';
+      position: absolute;
+      left: -5px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: 5px solid transparent;
+      border-right-color: var(--surface);
+    }
+
+    .now-playing-album-art {
+      width: 48px;
+      height: 48px;
+      border-radius: 4px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: var(--surface-2);
+    }
+
+    .now-playing-info {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .now-playing-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--accent);
+      margin-bottom: 0.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .now-playing-track {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .now-playing-artists {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Light mode tooltip adjustments */
+    body.light-mode .now-playing-tooltip {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Swedish mode - use Swedish colors */
+    body.swedish-mode .user-list-item.is-listening::before {
+      background: var(--swedish-yellow);
+    }
+
+    body.swedish-mode .now-playing-label {
+      color: var(--swedish-blue);
+    }
+
     /* Pioneer regalia badges */
     .pioneer-badge {
       display: inline-flex;
@@ -4758,12 +4932,115 @@ export function getHtml(): string {
       }
     }
 
+    /* Anniversary celebration (#102) */
+    .heart-rain-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9998;
+      overflow: hidden;
+    }
+
+    .heart-rain-container.fade-out {
+      animation: fadeOut 0.5s ease forwards;
+    }
+
+    .falling-heart {
+      position: absolute;
+      top: -50px;
+      animation: heartFall linear infinite;
+      opacity: 0.9;
+      filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.5));
+    }
+
+    @keyframes heartFall {
+      0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(360deg);
+        opacity: 0.3;
+      }
+    }
+
+    .anniversary-overlay {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg,
+        rgba(0, 106, 167, 0.95) 0%,
+        rgba(254, 204, 0, 0.85) 50%,
+        rgba(0, 106, 167, 0.95) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      animation: fadeIn 0.5s ease;
+      cursor: pointer;
+    }
+
+    .anniversary-overlay.fade-out {
+      animation: fadeOut 0.5s ease forwards;
+    }
+
+    .anniversary-content {
+      text-align: center;
+      padding: 3rem;
+      animation: anniversaryPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes anniversaryPop {
+      0% {
+        opacity: 0;
+        transform: scale(0.5) rotate(-10deg);
+      }
+      50% {
+        transform: scale(1.1) rotate(5deg);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) rotate(0);
+      }
+    }
+
+    .anniversary-hearts {
+      font-size: 2rem;
+      margin: 1rem 0;
+      animation: heartsFloat 2s ease-in-out infinite;
+    }
+
+    .anniversary-title {
+      color: white;
+      font-size: 2.5rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      margin: 0.5rem 0;
+    }
+
+    .anniversary-message {
+      color: white;
+      font-size: 1.8rem;
+      font-style: italic;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+      margin: 1rem 0;
+    }
+
+    .anniversary-signature {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 1.2rem;
+      margin-top: 1.5rem;
+    }
+
     /* Reduced motion */
     @media (prefers-reduced-motion: reduce) {
       .heidi-greeting-overlay,
       .heidi-greeting-content,
       .heidi-crown,
-      .heidi-hearts {
+      .heidi-hearts,
+      .anniversary-overlay,
+      .anniversary-content,
+      .anniversary-hearts,
+      .falling-heart,
+      .heart-rain-container {
         animation: none;
       }
       body.heidi-mode header h1::after {
@@ -5377,6 +5654,17 @@ export function getHtml(): string {
       justify-content: center;
       font-size: 0.8rem;
       font-weight: bold;
+    }
+
+    /* Keyboard navigation focus */
+    .genre-item.keyboard-focused {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.2);
+    }
+
+    .genre-item.keyboard-focused:not(:has(input:checked)) {
+      background: rgba(var(--primary-rgb), 0.05);
     }
 
     /* Merge modal */
@@ -6311,10 +6599,10 @@ export function getHtml(): string {
       letter-spacing: 0.5px;
     }
 
-    /* Health Status Indicator - positioned below deploy widget */
+    /* Health Status Indicator - positioned below status widgets */
     .health-indicator {
       position: fixed;
-      top: 3rem;
+      top: 6.5rem;
       right: 1rem;
       display: flex;
       align-items: center;
@@ -6326,7 +6614,7 @@ export function getHtml(): string {
       font-size: 0.75rem;
       color: var(--text-muted);
       cursor: pointer;
-      z-index: 1000;
+      z-index: 998;
       transition: all 0.2s ease;
       backdrop-filter: blur(10px);
       opacity: 0.7;
@@ -6398,8 +6686,10 @@ export function getHtml(): string {
       background: var(--surface);
       border-radius: 1rem;
       padding: 2rem;
-      max-width: 400px;
+      max-width: 450px;
       width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
       text-align: center;
       position: relative;
       animation: shareModalIn 0.3s ease;
@@ -6960,7 +7250,7 @@ export function getHtml(): string {
     /* Toast notification */
     .toast-notification {
       position: fixed;
-      bottom: 2rem;
+      bottom: 5rem;
       left: 50%;
       transform: translateX(-50%) translateY(100px);
       background: var(--surface-2);
@@ -6973,11 +7263,15 @@ export function getHtml(): string {
       z-index: 100000;
       opacity: 0;
       transition: all 0.3s ease;
+      pointer-events: none;
+      max-width: 90vw;
+      text-align: center;
     }
 
     .toast-notification.toast-visible {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
     }
 
     /* Mobile adjustments for wrapped card */
@@ -7250,22 +7544,346 @@ export function getHtml(): string {
       }
     }
 
+    /* Mobile toast notification */
+    @media (max-width: 480px) {
+      .toast-notification {
+        bottom: 4rem;
+        left: 1rem;
+        right: 1rem;
+        transform: translateX(0) translateY(100px);
+        max-width: none;
+      }
+
+      .toast-notification.toast-visible {
+        transform: translateX(0) translateY(0);
+      }
+    }
+
+    /* === Error Boundary Modal === */
+    .error-boundary-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      padding: 1rem;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .error-boundary-modal {
+      background: var(--card-bg);
+      border-radius: 1rem;
+      padding: 2rem;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .error-boundary-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+
+    .error-boundary-modal h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1.5rem;
+      color: var(--text);
+    }
+
+    .error-boundary-message {
+      color: var(--text-muted);
+      margin: 0 0 1.5rem;
+      font-size: 1rem;
+    }
+
+    .error-boundary-actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .error-retry-btn {
+      min-width: 140px;
+    }
+
+    .error-report-btn {
+      text-decoration: none;
+    }
+
+    .error-boundary-details {
+      text-align: left;
+      margin: 1rem 0;
+      background: var(--bg);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+    }
+
+    .error-boundary-details summary {
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      user-select: none;
+    }
+
+    .error-boundary-details summary:hover {
+      color: var(--text);
+    }
+
+    .error-boundary-stack {
+      margin: 0.75rem 0 0;
+      padding: 0.75rem;
+      background: var(--card-bg);
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 200px;
+      overflow-y: auto;
+      color: var(--danger);
+    }
+
+    .error-dismiss-btn {
+      margin-top: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    @media (max-width: 480px) {
+      .error-boundary-modal {
+        padding: 1.5rem;
+      }
+
+      .error-boundary-icon {
+        font-size: 3rem;
+      }
+
+      .error-boundary-actions {
+        flex-direction: column;
+      }
+
+      .error-retry-btn,
+      .error-report-btn {
+        width: 100%;
+      }
+    }
+
+    /* =========================================
+       What's New Modal (#104)
+       ========================================= */
+    .whats-new-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      padding: 1rem;
+    }
+
+    .whats-new-overlay.visible {
+      opacity: 1;
+    }
+
+    .whats-new-panel {
+      background: var(--surface);
+      border-radius: 1rem;
+      max-width: 480px;
+      width: 100%;
+      max-height: 80vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border);
+      transform: translateY(20px) scale(0.95);
+      transition: transform 0.3s ease;
+    }
+
+    .whats-new-overlay.visible .whats-new-panel {
+      transform: translateY(0) scale(1);
+    }
+
+    .whats-new-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .whats-new-badge {
+      background: linear-gradient(135deg, var(--accent), #17a347);
+      color: #000;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .whats-new-header h3 {
+      flex: 1;
+      margin: 0;
+      font-size: 1.125rem;
+      color: var(--text);
+    }
+
+    .whats-new-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+
+    .whats-new-close:hover {
+      color: var(--text);
+    }
+
+    .whats-new-date {
+      padding: 0.75rem 1.5rem 0;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .whats-new-changes {
+      list-style: none;
+      padding: 1rem 1.5rem;
+      margin: 0;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .whats-new-changes li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.625rem 0;
+      color: var(--text);
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .whats-new-changes li:last-child {
+      border-bottom: none;
+    }
+
+    .whats-new-changes .change-icon {
+      flex-shrink: 0;
+      font-size: 1rem;
+    }
+
+    .whats-new-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .whats-new-dismiss-forever {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .whats-new-dismiss-forever input[type="checkbox"] {
+      accent-color: var(--accent);
+      width: 1rem;
+      height: 1rem;
+    }
+
+    .whats-new-dismiss-forever:hover span {
+      color: var(--text);
+    }
+
+    .whats-new-actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+    }
+
+    .whats-new-actions .btn {
+      padding: 0.625rem 1rem;
+    }
+
+    /* Swedish mode styling */
+    body.swedish-mode .whats-new-badge {
+      background: linear-gradient(135deg, var(--swedish-blue), var(--swedish-yellow));
+    }
+
+    @media (max-width: 480px) {
+      .whats-new-panel {
+        max-height: 90vh;
+        border-radius: 0.75rem;
+      }
+
+      .whats-new-header {
+        padding: 1rem;
+      }
+
+      .whats-new-changes {
+        padding: 0.75rem 1rem;
+      }
+
+      .whats-new-footer {
+        padding: 0.75rem 1rem;
+      }
+
+      .whats-new-actions {
+        flex-direction: column;
+      }
+
+      .whats-new-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
   </style>
 </head>
 <body>
   <!-- Skip to main content link for keyboard users -->
   <a href="#app" class="skip-to-content">Skip to main content</a>
 
-  <!-- Deployment Monitor Widget -->
-  <div class="deploy-widget" id="deploy-widget" style="display: none;" onclick="showDeployDetails()">
-    <span class="status-icon"></span>
-    <span class="deploy-text">Checking...</span>
-  </div>
+  <!-- Status Widgets Container (top-right corner) -->
+  <div class="status-widgets" id="status-widgets">
+    <!-- Deployment Monitor Widget -->
+    <div class="deploy-widget" id="deploy-widget" style="display: none;" onclick="showDeployDetails()">
+      <span class="status-icon"></span>
+      <span class="deploy-text">Checking...</span>
+    </div>
 
-  <!-- KV Status Indicator -->
-  <div class="kv-status-indicator" id="kv-status-indicator" onclick="showKVStatusModal()">
-    <span class="kv-icon">📊</span>
-    <span class="kv-text">KV: ...</span>
+    <!-- KV Status Indicator (hidden by default, shown for owner) -->
+    <div class="kv-status-indicator" id="kv-status-indicator" style="display: none;" onclick="showKVStatusModal()">
+      <span class="kv-icon">📊</span>
+      <span class="kv-text">KV: ...</span>
+    </div>
   </div>
 
   <!-- Now Playing Widget -->
@@ -7344,7 +7962,7 @@ export function getHtml(): string {
           </div>
         </div>
 
-        <button class="btn btn-secondary sidebar-scoreboard-btn" onclick="showScoreboard()" title="Rankings update every hour">
+        <button class="btn btn-secondary sidebar-scoreboard-btn" data-testid="scoreboard-btn" onclick="showScoreboard()" title="Rankings update every hour">
           📊 <span data-i18n="viewScoreboard">View Scoreboard</span>
         </button>
 
@@ -7388,12 +8006,104 @@ export function getHtml(): string {
     </span>
   </div>
 
-  <script>
+  <script nonce="${nonce}">
     const app = document.getElementById('app');
     const headerActions = document.getElementById('header-actions');
 
     let genreData = null;
-    
+
+    // === Global Error Boundary ===
+    const errorHistory = [];
+    const MAX_ERROR_HISTORY = 10;
+
+    function showErrorModal(error, context = 'Unknown') {
+      // Track error for debugging
+      const errorInfo = {
+        message: error?.message || String(error),
+        stack: error?.stack || '',
+        context,
+        timestamp: new Date().toISOString(),
+        url: window.location.href
+      };
+      errorHistory.push(errorInfo);
+      if (errorHistory.length > MAX_ERROR_HISTORY) errorHistory.shift();
+
+      // Don't show multiple error modals
+      if (document.querySelector('.error-boundary-overlay')) return;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'error-boundary-overlay';
+
+      const friendlyMessages = {
+        'Failed to fetch': swedishMode ? 'Kunde inte ansluta till servern' : 'Could not connect to the server',
+        'NetworkError': swedishMode ? 'Nätverksfel - kontrollera din anslutning' : 'Network error - check your connection',
+        'TypeError': swedishMode ? 'Ett oväntat fel inträffade' : 'An unexpected error occurred',
+        'default': swedishMode ? 'Något gick fel' : 'Something went wrong'
+      };
+
+      const friendlyMessage = Object.entries(friendlyMessages).find(([key]) =>
+        errorInfo.message.includes(key)
+      )?.[1] || friendlyMessages.default;
+
+      const issueBody = encodeURIComponent(
+        \`## Error Report\\n\\n**Context:** \${context}\\n**Error:** \${errorInfo.message}\\n**URL:** \${errorInfo.url}\\n**Time:** \${errorInfo.timestamp}\\n\\n### Stack Trace\\n\\\`\\\`\\\`\\n\${errorInfo.stack}\\n\\\`\\\`\\\`\`
+      );
+      const issueUrl = \`https://github.com/thomashoustontech/spotify-genre-sorter/issues/new?title=Error: \${encodeURIComponent(errorInfo.message.slice(0, 50))}&body=\${issueBody}\`;
+
+      overlay.innerHTML = \`
+        <div class="error-boundary-modal" role="alertdialog" aria-labelledby="error-title" aria-describedby="error-desc">
+          <div class="error-boundary-icon">\${swedishMode ? '😔' : '😵'}</div>
+          <h2 id="error-title">\${swedishMode ? 'Oj då!' : 'Oops!'}</h2>
+          <p id="error-desc" class="error-boundary-message">\${friendlyMessage}</p>
+          <div class="error-boundary-actions">
+            <button class="btn btn-primary error-retry-btn" onclick="window.location.reload()">
+              \${swedishMode ? '🔄 Försök igen' : '🔄 Try Again'}
+            </button>
+            <a href="\${issueUrl}" target="_blank" rel="noopener" class="btn btn-ghost error-report-btn">
+              \${swedishMode ? '🐛 Rapportera problem' : '🐛 Report Issue'}
+            </a>
+          </div>
+          <details class="error-boundary-details">
+            <summary>\${swedishMode ? 'Tekniska detaljer' : 'Technical details'}</summary>
+            <pre class="error-boundary-stack">\${escapeForHtml(errorInfo.message)}\\n\\n\${escapeForHtml(errorInfo.stack || 'No stack trace')}</pre>
+          </details>
+          <button class="btn btn-ghost error-dismiss-btn" onclick="this.closest('.error-boundary-overlay').remove()">
+            \${swedishMode ? 'Avfärda' : 'Dismiss'}
+          </button>
+        </div>
+      \`;
+
+      document.body.appendChild(overlay);
+
+      // Focus the retry button for accessibility
+      overlay.querySelector('.error-retry-btn')?.focus();
+    }
+
+    // Register global error handlers
+    window.addEventListener('error', (event) => {
+      console.error('Global error:', event.error);
+      showErrorModal(event.error, 'Global error handler');
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+      console.error('Unhandled promise rejection:', event.reason);
+      showErrorModal(event.reason, 'Unhandled promise rejection');
+    });
+
+    // Helper to wrap async operations with error boundary
+    function withErrorBoundary(fn, context) {
+      return async (...args) => {
+        try {
+          return await fn(...args);
+        } catch (error) {
+          showErrorModal(error, context);
+          throw error; // Re-throw for local handling if needed
+        }
+      };
+    }
+
+    window.showErrorModal = showErrorModal; // Expose for manual triggering
+
     // Custom prompt modal to replace native prompt()
     function showPromptModal(message, defaultValue = '') {
       return new Promise((resolve) => {
@@ -7748,6 +8458,7 @@ export function getHtml(): string {
     let spotifyOnlyMode = false;
     let statsData = null;
     let playlistTemplate = localStorage.getItem('playlistTemplate') || '{genre} (from Likes)';
+    let playlistDescTemplate = localStorage.getItem('playlistDescTemplate') || '{genre} tracks from your liked songs ♫ • {count} tracks • Created {date}';
 
     // Hidden genres (stored in localStorage)
     let hiddenGenres = new Set(JSON.parse(localStorage.getItem('hiddenGenres') || '[]'));
@@ -7892,6 +8603,8 @@ export function getHtml(): string {
 
     // Admin panel state - reuses existing caches to minimize API calls
     let isAdminUser = false;
+    let isOwnerUser = false; // Set to true if logged in as owner (shows KV stats)
+    const OWNER_USERNAMES = ['tomstech', 'tom_houston', 'tom houston']; // Owner's Spotify display names (case-insensitive)
     let analyticsCache = null;
     let analyticsLastFetch = 0;
     const ANALYTICS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -7908,6 +8621,24 @@ export function getHtml(): string {
         adminBtn.title = 'Debug panel - reuses cached data';
         headerActions.insertBefore(adminBtn, headerActions.firstChild);
         isAdminUser = true;
+      }
+    }
+
+    // Show KV status indicator only for the owner
+    function showKVStatusIndicator() {
+      if (!isOwnerUser) return;
+      const kvIndicator = document.getElementById('kv-status-indicator');
+      if (kvIndicator) {
+        kvIndicator.style.display = 'flex';
+      }
+    }
+
+    // Check if current user is the owner (matches OWNER_USERNAMES)
+    function checkOwnerStatus(session) {
+      const userName = (session.user || session.spotifyUser || '').toLowerCase().trim();
+      isOwnerUser = OWNER_USERNAMES.some(name => userName.includes(name.toLowerCase()));
+      if (isOwnerUser) {
+        showKVStatusIndicator();
       }
     }
 
@@ -7942,9 +8673,11 @@ export function getHtml(): string {
       modal.className = 'modal-overlay admin-modal';
       modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 
-      // Calculate KV usage percentages
-      const readPct = kvUsage.readUsagePercent || 0;
-      const writePct = kvUsage.writeUsagePercent || 0;
+      // Calculate KV usage percentages - use correct API response structure
+      const readPct = kvUsage.usage?.readsPercent || 0;
+      const writePct = kvUsage.usage?.writesPercent || 0;
+      const estimatedReads = kvUsage.estimated?.reads || 0;
+      const estimatedWrites = kvUsage.estimated?.writes || 0;
       const readStatus = readPct > 80 ? 'critical' : readPct > 50 ? 'warning' : 'ok';
       const writeStatus = writePct > 80 ? 'critical' : writePct > 50 ? 'warning' : 'ok';
 
@@ -7965,11 +8698,11 @@ export function getHtml(): string {
                 <div class="admin-stats">
                   <div class="stat">
                     <span class="label">Reads:</span>
-                    <span class="value kv-\${readStatus}">\${kvUsage.estimatedReads || 0} / 100k (\${readPct}%)</span>
+                    <span class="value kv-\${readStatus}">\${estimatedReads} / 100k (\${readPct}%)</span>
                   </div>
                   <div class="stat">
                     <span class="label">Writes:</span>
-                    <span class="value kv-\${writeStatus}">\${kvUsage.estimatedWrites || 0} / 1k (\${writePct}%)</span>
+                    <span class="value kv-\${writeStatus}">\${estimatedWrites} / 1k (\${writePct}%)</span>
                   </div>
                   <div class="stat">
                     <span class="label">Cache Hits:</span>
@@ -8038,11 +8771,11 @@ export function getHtml(): string {
                   <div class="admin-stats">
                     <div class="stat">
                       <span class="label">Reads:</span>
-                      <span class="value kv-\${readStatus}">\${kvUsage.estimatedReads || 0} / 100k (\${readPct}%)</span>
+                      <span class="value kv-\${readStatus}">\${estimatedReads} / 100k (\${readPct}%)</span>
                     </div>
                     <div class="stat">
                       <span class="label">Writes:</span>
-                      <span class="value kv-\${writeStatus}">\${kvUsage.estimatedWrites || 0} / 1k (\${writePct}%)</span>
+                      <span class="value kv-\${writeStatus}">\${estimatedWrites} / 1k (\${writePct}%)</span>
                     </div>
                     <div class="stat">
                       <span class="label">Cache Hits:</span>
@@ -8237,6 +8970,77 @@ export function getHtml(): string {
       });
     }
 
+    // ✨ SECRET: Anniversary celebration for Heidi (#102)
+    // Special dates that deserve celebration
+    const ANNIVERSARY_DATES = [
+      { month: 12, day: 25, message: 'God Jul, min kärlek! 🎄❤️' },
+      { month: 2, day: 14, message: 'Happy Valentine\\'s Day, mitt hjärta! 💝' },
+      { month: 1, day: 1, message: 'Gott Nytt År, min drottning! 🎆💙' },
+      // Add more special dates as needed
+    ];
+
+    function checkAnniversary() {
+      const now = new Date();
+      const month = now.getMonth() + 1; // JS months are 0-indexed
+      const day = now.getDate();
+      return ANNIVERSARY_DATES.find(d => d.month === month && d.day === day);
+    }
+
+    function showAnniversaryCelebration(anniversary) {
+      // Create heart rain container
+      const heartRain = document.createElement('div');
+      heartRain.className = 'heart-rain-container';
+      heartRain.id = 'heart-rain';
+
+      // Create many falling hearts
+      const hearts = ['💙', '💛', '❤️', '💕', '💗', '💖'];
+      for (let i = 0; i < 50; i++) {
+        const heart = document.createElement('span');
+        heart.className = 'falling-heart';
+        heart.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+        heart.style.left = Math.random() * 100 + 'vw';
+        heart.style.animationDuration = (2 + Math.random() * 3) + 's';
+        heart.style.animationDelay = (Math.random() * 2) + 's';
+        heart.style.fontSize = (1 + Math.random() * 1.5) + 'rem';
+        heartRain.appendChild(heart);
+      }
+      document.body.appendChild(heartRain);
+
+      // Create celebration overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'anniversary-overlay';
+      overlay.innerHTML = \`
+        <div class="anniversary-content">
+          <div class="anniversary-hearts">💙💛💙💛💙</div>
+          <h2 class="anniversary-title">✨ Special Day ✨</h2>
+          <p class="anniversary-message">\${anniversary.message}</p>
+          <p class="anniversary-signature">– Tom 💙</p>
+          <div class="anniversary-hearts">💛💙💛💙💛</div>
+        </div>
+      \`;
+
+      document.body.appendChild(overlay);
+
+      // Auto-dismiss after 6 seconds
+      setTimeout(() => {
+        overlay.classList.add('fade-out');
+        heartRain.classList.add('fade-out');
+        setTimeout(() => {
+          overlay.remove();
+          heartRain.remove();
+        }, 500);
+      }, 6000);
+
+      overlay.addEventListener('click', () => {
+        overlay.classList.add('fade-out');
+        heartRain.classList.add('fade-out');
+        setTimeout(() => {
+          overlay.remove();
+          heartRain.remove();
+        }, 500);
+      });
+    }
+
     // Update Heidi badge tooltip with random fact
     function updateHeidiBadgeFact() {
       const badge = document.querySelector('.heidi-badge');
@@ -8348,12 +9152,19 @@ export function getHtml(): string {
     }
 
     function formatTimeAgo(date) {
+      // Handle invalid dates (NaN, Invalid Date, "Unknown" strings)
+      if (!date || isNaN(date.getTime())) return 'Unknown';
+
       const now = new Date();
       const diff = Math.floor((now - date) / 1000);
+
+      // Handle future dates or very old dates
+      if (diff < 0) return 'just now';
       if (diff < 60) return 'just now';
       if (diff < 3600) return \`\${Math.floor(diff / 60)}m ago\`;
       if (diff < 86400) return \`\${Math.floor(diff / 3600)}h ago\`;
-      return \`\${Math.floor(diff / 86400)}d ago\`;
+      if (diff < 2592000) return \`\${Math.floor(diff / 86400)}d ago\`; // Less than 30 days
+      return \`\${Math.floor(diff / 2592000)}mo ago\`; // Months
     }
 
     // Update all relative timestamps periodically
@@ -8482,6 +9293,122 @@ export function getHtml(): string {
     window.closeChangelog = closeChangelog;
 
     // =====================================
+    // What's New Modal (#104)
+    // =====================================
+    const LAST_SEEN_VERSION_KEY = 'geniegenie_lastSeenVersion';
+    const WHATS_NEW_DISMISSED_KEY = 'geniegenie_whatsNewDismissed';
+
+    async function checkWhatsNew() {
+      // Don't show if user permanently dismissed
+      if (localStorage.getItem(WHATS_NEW_DISMISSED_KEY) === 'true') return;
+
+      // Fetch changelog if not cached
+      if (!changelogCache) {
+        try {
+          const res = await fetch('/api/changelog');
+          changelogCache = await res.json();
+        } catch {
+          return; // Silently fail - not critical
+        }
+      }
+
+      const currentVersion = changelogCache?.changelog?.[0]?.version;
+      if (!currentVersion) return;
+
+      const lastSeenVersion = localStorage.getItem(LAST_SEEN_VERSION_KEY);
+
+      // Show modal if new version or first visit
+      if (!lastSeenVersion || lastSeenVersion !== currentVersion) {
+        showWhatsNewModal(currentVersion);
+      }
+    }
+
+    function showWhatsNewModal(version) {
+      // Don't show multiple modals
+      if (document.querySelector('.whats-new-overlay')) return;
+
+      const latestRelease = changelogCache?.changelog?.[0];
+      if (!latestRelease) return;
+
+      // Parse changes and add icons
+      const parseChange = (change) => {
+        const lower = change.toLowerCase();
+        if (lower.includes('fix') || lower.includes('bug')) return { icon: '🐛', type: 'fix' };
+        if (lower.includes('add') || lower.includes('new')) return { icon: '✨', type: 'new' };
+        if (lower.includes('improve') || lower.includes('enhance') || lower.includes('update')) return { icon: '💫', type: 'improve' };
+        if (lower.includes('remove') || lower.includes('deprecat')) return { icon: '🗑️', type: 'remove' };
+        if (lower.includes('security')) return { icon: '🔒', type: 'security' };
+        if (lower.includes('performance') || lower.includes('faster') || lower.includes('speed')) return { icon: '⚡', type: 'perf' };
+        return { icon: '📝', type: 'other' };
+      };
+
+      const changesHtml = latestRelease.changes.map(change => {
+        const { icon } = parseChange(change);
+        return \`<li><span class="change-icon">\${icon}</span> \${change}</li>\`;
+      }).join('');
+
+      const overlay = document.createElement('div');
+      overlay.className = 'whats-new-overlay';
+      overlay.onclick = (e) => {
+        if (e.target === overlay) dismissWhatsNew(version, false);
+      };
+
+      overlay.innerHTML = \`
+        <div class="whats-new-panel">
+          <div class="whats-new-header">
+            <div class="whats-new-badge">✨ \${swedishMode ? 'Nytt' : 'New'}</div>
+            <h3>\${swedishMode ? 'Vad är nytt i' : "What's New in"} v\${version}</h3>
+            <button class="whats-new-close" onclick="dismissWhatsNew('\${version}', false)" aria-label="Close">&times;</button>
+          </div>
+          <div class="whats-new-date">\${latestRelease.date}</div>
+          <ul class="whats-new-changes">
+            \${changesHtml}
+          </ul>
+          <div class="whats-new-footer">
+            <label class="whats-new-dismiss-forever">
+              <input type="checkbox" id="whats-new-dismiss-checkbox">
+              <span>\${swedishMode ? 'Visa inte igen' : "Don't show again"}</span>
+            </label>
+            <div class="whats-new-actions">
+              <a href="\${changelogCache?.repoUrl || 'https://github.com/TomsTech/spotify-genre-sorter'}/releases" target="_blank" class="btn btn-ghost">
+                \${swedishMode ? 'Alla utgåvor' : 'All releases'}
+              </a>
+              <button class="btn btn-primary" onclick="dismissWhatsNew('\${version}', document.getElementById('whats-new-dismiss-checkbox')?.checked)">
+                \${swedishMode ? 'Förstått!' : 'Got it!'}
+              </button>
+            </div>
+          </div>
+        </div>
+      \`;
+
+      document.body.appendChild(overlay);
+
+      // Animate in
+      requestAnimationFrame(() => {
+        overlay.classList.add('visible');
+      });
+    }
+
+    function dismissWhatsNew(version, dismissForever = false) {
+      // Save current version as seen
+      localStorage.setItem(LAST_SEEN_VERSION_KEY, version);
+
+      // If user checked "don't show again", save that preference
+      if (dismissForever) {
+        localStorage.setItem(WHATS_NEW_DISMISSED_KEY, 'true');
+      }
+
+      const overlay = document.querySelector('.whats-new-overlay');
+      if (overlay) {
+        overlay.classList.remove('visible');
+        setTimeout(() => overlay.remove(), 300);
+      }
+    }
+
+    // Make globally accessible
+    window.dismissWhatsNew = dismissWhatsNew;
+
+    // =====================================
     // KV Status Monitoring
     // =====================================
     let kvUsageCache = null;
@@ -8489,15 +9416,29 @@ export function getHtml(): string {
     const KV_POLL_INTERVAL = 300000; // Poll every 5 minutes (was 1 min)
 
     async function checkKVUsage() {
+      // Fetch KV usage for all users (needed for rate limit banner)
+      // But only update KV status indicator for owner
       try {
         const response = await fetch('/api/kv-usage');
         const data = await response.json();
         kvUsageCache = data;
-        updateKVStatusIndicator(data);
+        kvUsageData = data; // Also update kvUsageData for banner/reporting
+
+        // Update KV status indicator (owner only)
+        if (isOwnerUser) {
+          updateKVStatusIndicator(data);
+        }
+
+        // Show rate limit banner for all users when critical/warning
+        if (data.status === 'critical' || data.status === 'warning') {
+          showRateLimitBanner(data);
+        }
       } catch (err) {
         console.warn('Failed to fetch KV usage:', err);
-        // Update indicator to show unknown state
-        updateKVStatusIndicator(null);
+        // Update indicator to show unknown state (owner only)
+        if (isOwnerUser) {
+          updateKVStatusIndicator(null);
+        }
       }
     }
 
@@ -8988,12 +9929,17 @@ export function getHtml(): string {
       // Update donation button for Swedish mode (pick new random option)
       initDonationButton();
 
-      // Update Heidi badge
+      // Update Heidi badge - preserve the two-span structure
       const heidiBadge = document.querySelector('.heidi-badge');
       if (heidiBadge) {
-        const heidiText = heidiBadge.querySelector('.heidi-text span');
-        if (heidiText) {
-          heidiText.textContent = enabled ? 'För Heidi' : 'For Heidi';
+        const heidiTextSpans = heidiBadge.querySelectorAll('.heidi-text > span');
+        if (heidiTextSpans.length >= 2) {
+          // First span: "Made with inspiration from" / "Gjord med inspiration från"
+          heidiTextSpans[0].textContent = enabled ? 'Gjord med inspiration från' : 'Made with inspiration from';
+          // Second span keeps the name and heart structure
+          heidiTextSpans[1].innerHTML = enabled
+            ? '<strong>Heidi</strong> <span class="heart">💛</span>'
+            : '<strong>Heidi</strong> <span class="heart">♥</span>';
         }
       }
 
@@ -9182,10 +10128,18 @@ export function getHtml(): string {
           localStorage.setItem('swedishMode', 'true');
           document.body.classList.add('swedish-mode');
         }
-        // Show special greeting (once per day)
-        const lastHeidiGreeting = localStorage.getItem('heidiGreetingDate');
+        // Check for anniversary celebration (#102)
+        const anniversary = checkAnniversary();
+        const lastAnniversary = localStorage.getItem('heidiAnniversaryDate');
         const today = new Date().toDateString();
-        if (lastHeidiGreeting !== today) {
+
+        if (anniversary && lastAnniversary !== today) {
+          // Anniversary takes priority - show celebration with heart rain
+          localStorage.setItem('heidiAnniversaryDate', today);
+          localStorage.setItem('heidiGreetingDate', today); // Skip regular greeting
+          showAnniversaryCelebration(anniversary);
+        } else if (localStorage.getItem('heidiGreetingDate') !== today) {
+          // Regular daily greeting
           localStorage.setItem('heidiGreetingDate', today);
           showHeidiGreeting();
         }
@@ -9193,6 +10147,7 @@ export function getHtml(): string {
 
       renderHeaderUser(session);
       showAdminButton(); // Show debug panel button (no API call needed)
+      checkOwnerStatus(session); // Check if owner to show KV status
 
       // Start Now Playing monitor for authenticated users
       startNowPlayingMonitor();
@@ -9315,7 +10270,7 @@ export function getHtml(): string {
           \${privacyExplainer}
           \${loginButton}
           <div class="footer-badges">
-            <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank">
+            <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank" class="github-star-badge" title="\${swedishMode ? 'Gillar du det? Stjärnmärk oss! ⭐' : 'Love this? Star us! ⭐'}">
               <img src="https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=for-the-badge&logo=github&logoColor=white&label=Star&color=1DB954&labelColor=191414" alt="Star on GitHub" loading="lazy" onerror="this.style.display='none'">
             </a>
             <a href="https://status.houstons.tech" target="_blank">
@@ -9828,12 +10783,52 @@ export function getHtml(): string {
 
     async function loadGenres() {
       try {
+        // First, fetch library size to show user what to expect (#75)
         renderLoading(
-          swedishMode ? 'Hämtar dina låtar...' : 'Fetching your liked songs...',
-          swedishMode ? 'Detta kan ta en stund för stora bibliotek' : 'This may take a moment for large libraries'
+          swedishMode ? 'Kontrollerar biblioteksstorlek...' : 'Checking library size...',
+          ''
         );
 
-        // First, try the standard endpoint (fast for small libraries)
+        let libraryInfo = null;
+        try {
+          const sizeRes = await fetch('/api/library-size');
+          if (sizeRes.ok) {
+            libraryInfo = await sizeRes.json();
+          }
+        } catch (e) {
+          console.log('Could not fetch library size:', e);
+        }
+
+        // Show library size with scan estimate
+        if (libraryInfo) {
+          const trackCount = libraryInfo.total.toLocaleString();
+          const estimate = libraryInfo.estimatedScanTime;
+
+          // Warning for large libraries
+          if (libraryInfo.isLarge) {
+            showNotification(
+              swedishMode
+                ? \`⚠️ Stort bibliotek (\${trackCount} låtar) - skanningen kan ta \${estimate}\`
+                : \`⚠️ Large library (\${trackCount} tracks) - scan may take \${estimate}\`,
+              'info',
+              8000
+            );
+          }
+
+          renderLoading(
+            swedishMode ? 'Hämtar dina låtar...' : 'Fetching your liked songs...',
+            swedishMode
+              ? \`📚 \${trackCount} låtar • Beräknad tid: \${estimate}\`
+              : \`📚 \${trackCount} tracks • Estimated time: \${estimate}\`
+          );
+        } else {
+          renderLoading(
+            swedishMode ? 'Hämtar dina låtar...' : 'Fetching your liked songs...',
+            swedishMode ? 'Detta kan ta en stund för stora bibliotek' : 'This may take a moment for large libraries'
+          );
+        }
+
+        // Now fetch the genres
         const response = await fetch('/api/genres');
         const data = await response.json();
 
@@ -10416,6 +11411,25 @@ export function getHtml(): string {
             <div class="template-preview">
               \${swedishMode ? 'Förhandsvisning:' : 'Preview:'} <span id="template-preview">\${getTemplatePreview()}</span>
             </div>
+
+            <label style="margin-top: 1rem;">\${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}</label>
+            <div class="template-input-row">
+              <input
+                type="text"
+                class="search-input"
+                id="desc-template-input"
+                value="\${playlistDescTemplate.replace(/"/g, '&quot;')}"
+                oninput="updateDescTemplate(this.value)"
+                placeholder="{genre} tracks • {count} songs"
+              >
+              <button onclick="resetDescTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ beskrivningsmall' : 'Reset description template'}">↺</button>
+            </div>
+            <div class="template-preview">
+              \${swedishMode ? 'Förhandsvisning:' : 'Preview:'} <span id="desc-template-preview">\${getDescTemplatePreview()}</span>
+            </div>
+            <div class="template-hint" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+              \${swedishMode ? 'Platshållare: {genre}, {count}, {date}, {username}' : 'Placeholders: {genre}, {count}, {date}, {username}'}
+            </div>
           </div>
 
           <input
@@ -10612,6 +11626,45 @@ export function getHtml(): string {
       if (preview) preview.textContent = getTemplatePreview();
     }
 
+    // Description template functions (#91)
+    function applyDescTemplate(genreName, trackCount) {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString(swedishMode ? 'sv-SE' : 'en-AU', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+      const username = userData?.display_name || 'User';
+
+      return playlistDescTemplate
+        .replace(/{genre}/g, genreName)
+        .replace(/{count}/g, trackCount?.toString() || '0')
+        .replace(/{date}/g, dateStr)
+        .replace(/{username}/g, username);
+    }
+
+    function updateDescTemplate(value) {
+      playlistDescTemplate = value || '{genre} tracks from your liked songs ♫ • {count} tracks • Created {date}';
+      localStorage.setItem('playlistDescTemplate', playlistDescTemplate);
+      const preview = document.getElementById('desc-template-preview');
+      if (preview) {
+        preview.textContent = getDescTemplatePreview();
+      }
+    }
+
+    function resetDescTemplate() {
+      playlistDescTemplate = '{genre} tracks from your liked songs ♫ • {count} tracks • Created {date}';
+      localStorage.setItem('playlistDescTemplate', playlistDescTemplate);
+      const input = document.getElementById('desc-template-input');
+      const preview = document.getElementById('desc-template-preview');
+      if (input) input.value = playlistDescTemplate;
+      if (preview) preview.textContent = getDescTemplatePreview();
+    }
+
+    function getDescTemplatePreview() {
+      return applyDescTemplate('Rock', 42);
+    }
+
     function selectAll() {
       const checkboxes = document.querySelectorAll('.genre-checkbox');
       checkboxes.forEach(cb => {
@@ -10748,7 +11801,7 @@ export function getHtml(): string {
 
     function showPlaylistCustomizeModal(genre) {
       const defaultName = playlistTemplate.replace('{genre}', genre.name);
-      const defaultDescription = \`\${genre.name} tracks from your liked songs ♫\`;
+      const defaultDescription = applyDescTemplate(genre.name, genre.count);
 
       const modal = document.createElement('div');
       modal.className = 'modal-overlay';
@@ -11220,11 +12273,58 @@ export function getHtml(): string {
           createSelectedPlaylists();
         }
       }},
+      'c': { desc: 'Create playlists', action: () => {
+        if (selectedGenres.size > 0 && !document.getElementById('create-btn')?.disabled) {
+          createSelectedPlaylists();
+        }
+      }},
       'r': { desc: 'Refresh data', ctrl: true, action: (e) => { e.preventDefault(); refreshGenres(); }},
       't': { desc: 'Toggle theme', action: toggleTheme },
       's': { desc: 'Toggle stats', action: toggleStatsDashboard },
       '?': { desc: 'Show keyboard shortcuts', action: showKeyboardHelp },
+      'j': { desc: 'Next genre', action: navigateGenreDown },
+      'k': { desc: 'Previous genre', action: navigateGenreUp },
     };
+
+    // Vim-style two-key sequences (g+h for home, g+s for scoreboard)
+    let pendingKey = null;
+    let pendingKeyTimeout = null;
+    const TWO_KEY_SHORTCUTS = {
+      'g': {
+        'h': { desc: 'Go home', action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+        's': { desc: 'Go scoreboard', action: showScoreboard },
+        'g': { desc: 'Go to top', action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+      }
+    };
+
+    // Track currently focused genre card index
+    let focusedGenreIndex = -1;
+
+    function navigateGenreDown() {
+      const items = document.querySelectorAll('.genre-item:not(.hidden)');
+      if (items.length === 0) return;
+      focusedGenreIndex = Math.min(focusedGenreIndex + 1, items.length - 1);
+      focusGenreItem(items[focusedGenreIndex]);
+    }
+
+    function navigateGenreUp() {
+      const items = document.querySelectorAll('.genre-item:not(.hidden)');
+      if (items.length === 0) return;
+      focusedGenreIndex = Math.max(focusedGenreIndex - 1, 0);
+      focusGenreItem(items[focusedGenreIndex]);
+    }
+
+    function focusGenreItem(item) {
+      if (!item) return;
+      // Remove focus from previous
+      document.querySelectorAll('.genre-item.keyboard-focused').forEach(i => i.classList.remove('keyboard-focused'));
+      // Add focus to current
+      item.classList.add('keyboard-focused');
+      item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Focus the checkbox inside for keyboard interaction
+      const checkbox = item.querySelector('.genre-checkbox');
+      if (checkbox) checkbox.focus();
+    }
 
     function handleEscape() {
       // Close any modal first
@@ -11262,6 +12362,10 @@ export function getHtml(): string {
       const shortcuts = [
         { key: '/', desc: swedishMode ? 'Sök genrer' : 'Search genres' },
         { key: 'Esc', desc: swedishMode ? 'Stäng/Rensa' : 'Close/Clear' },
+        { key: 'j / k', desc: swedishMode ? 'Nästa/Föregående genre' : 'Next/Previous genre' },
+        { key: 'g h', desc: swedishMode ? 'Gå till toppen' : 'Go home (top)' },
+        { key: 'g s', desc: swedishMode ? 'Visa resultattavla' : 'Go to scoreboard' },
+        { key: 'c', desc: swedishMode ? 'Skapa spellistor' : 'Create playlists' },
         { key: 'Ctrl+A', desc: swedishMode ? 'Välj alla' : 'Select all' },
         { key: 'Ctrl+Shift+A', desc: swedishMode ? 'Avmarkera alla' : 'Select none' },
         { key: 'Enter', desc: swedishMode ? 'Skapa spellistor' : 'Create playlists' },
@@ -11300,14 +12404,36 @@ export function getHtml(): string {
       // Don't trigger shortcuts when typing in inputs
       const isInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
 
-      // Escape always works
+      // Escape always works (also clears pending key)
       if (e.key === 'Escape') {
+        pendingKey = null;
+        clearTimeout(pendingKeyTimeout);
         handleEscape();
         return;
       }
 
       // Skip other shortcuts if in input (except Ctrl combos)
       if (isInput && !e.ctrlKey && !e.metaKey) return;
+
+      // Handle two-key sequences (vim-style g+h, g+s, etc.)
+      if (pendingKey && TWO_KEY_SHORTCUTS[pendingKey]) {
+        const secondAction = TWO_KEY_SHORTCUTS[pendingKey][e.key];
+        pendingKey = null;
+        clearTimeout(pendingKeyTimeout);
+        if (secondAction) {
+          e.preventDefault();
+          secondAction.action();
+          return;
+        }
+      }
+
+      // Check if this key starts a two-key sequence
+      if (TWO_KEY_SHORTCUTS[e.key] && !e.ctrlKey && !e.metaKey) {
+        pendingKey = e.key;
+        clearTimeout(pendingKeyTimeout);
+        pendingKeyTimeout = setTimeout(() => { pendingKey = null; }, 1000);
+        return;
+      }
 
       // Forward slash focuses search (unless already typing)
       if (e.key === '/' && !isInput) {
@@ -11376,10 +12502,101 @@ export function getHtml(): string {
     let sidebarData = {
       pioneers: [],
       newUsers: [],
-      recentPlaylists: []
+      recentPlaylists: [],
+      listening: [] // Users currently listening to music
     };
     let scoreboardData = null;
     let sidebarPollInterval = null;
+    let nowPlayingPollInterval = null;
+
+    // Load listening data (users currently playing music)
+    async function loadListeningData() {
+      try {
+        const response = await fetch('/api/listening');
+        if (!response.ok) return;
+        const data = await response.json();
+        sidebarData.listening = data.listeners || [];
+        updateListeningIndicators();
+      } catch (err) {
+        // Silent fail - listening is optional
+      }
+    }
+
+    // Update user list items to show listening indicators
+    function updateListeningIndicators() {
+      // Create a map of spotifyId -> listening data for fast lookup
+      const listeningMap = new Map();
+      for (const listener of sidebarData.listening) {
+        listeningMap.set(listener.spotifyId, listener);
+      }
+
+      // Update all user list items
+      document.querySelectorAll('.user-list-item[data-spotify-id]').forEach(item => {
+        const spotifyId = item.getAttribute('data-spotify-id');
+        const existingTooltip = item.querySelector('.now-playing-tooltip');
+
+        if (listeningMap.has(spotifyId)) {
+          const data = listeningMap.get(spotifyId);
+          item.classList.add('is-listening');
+
+          // Create or update tooltip
+          if (existingTooltip) {
+            existingTooltip.querySelector('.now-playing-track').textContent = data.track.name;
+            existingTooltip.querySelector('.now-playing-artists').textContent = data.track.artists;
+            const img = existingTooltip.querySelector('.now-playing-album-art');
+            if (data.track.albumArt) {
+              img.src = data.track.albumArt;
+              img.style.display = '';
+            } else {
+              img.style.display = 'none';
+            }
+          } else {
+            // Create tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'now-playing-tooltip';
+            tooltip.innerHTML = \`
+              <img class="now-playing-album-art" src="\${data.track.albumArt || ''}" alt="" \${data.track.albumArt ? '' : 'style="display:none"'}>
+              <div class="now-playing-info">
+                <div class="now-playing-label">\${swedishMode ? 'Spelar nu' : 'Now Playing'}</div>
+                <div class="now-playing-track">\${escapeHtml(data.track.name)}</div>
+                <div class="now-playing-artists">\${escapeHtml(data.track.artists)}</div>
+              </div>
+            \`;
+            item.appendChild(tooltip);
+          }
+        } else {
+          item.classList.remove('is-listening');
+          if (existingTooltip) {
+            existingTooltip.remove();
+          }
+        }
+      });
+    }
+
+    // Poll the current user's now playing status (to broadcast to others)
+    async function pollNowPlaying() {
+      try {
+        await fetch('/api/now-playing');
+        // Response doesn't matter - the endpoint updates KV as a side effect
+      } catch {
+        // Silent fail
+      }
+    }
+
+    // Start polling now playing status for authenticated users
+    function startNowPlayingPoll() {
+      if (nowPlayingPollInterval) return;
+      // Poll every 30 seconds to keep listening status fresh
+      pollNowPlaying(); // Initial poll
+      nowPlayingPollInterval = setInterval(pollNowPlaying, 30000);
+    }
+
+    function stopNowPlayingPoll() {
+      if (nowPlayingPollInterval) {
+        clearInterval(nowPlayingPollInterval);
+        nowPlayingPollInterval = null;
+      }
+    }
 
     // Load leaderboard data (pioneers + new users)
     async function loadLeaderboard() {
@@ -11436,7 +12653,7 @@ export function getHtml(): string {
           const specialClass = getSpecialUserClass(user.spotifyName);
           const specialTag = getSpecialUserTag(user.spotifyName);
           return \`
-            <div class="user-list-item animate-in owner-item \${specialClass}" style="animation-delay: \${delay}ms" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
+            <div class="user-list-item animate-in owner-item \${specialClass}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
               \${user.spotifyAvatar
                 ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
                 : '<div class="user-avatar-placeholder">👤</div>'}
@@ -11461,7 +12678,7 @@ export function getHtml(): string {
           const specialClass = getSpecialUserClass(user.spotifyName);
           const specialTag = getSpecialUserTag(user.spotifyName);
           return \`
-            <div class="user-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
+            <div class="user-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
               <span class="position \${posClass}">#\${i + 1}</span>
               \${user.spotifyAvatar
                 ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
@@ -11576,6 +12793,9 @@ export function getHtml(): string {
       const modal = document.createElement('div');
       modal.className = 'scoreboard-modal active';
       modal.id = 'scoreboard-modal';
+      modal.setAttribute('data-testid', 'scoreboard-modal');
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-modal', 'true');
       modal.onclick = (e) => {
         if (e.target === modal) closeScoreboard();
       };
@@ -11713,6 +12933,9 @@ export function getHtml(): string {
 
     // Initialize sidebar
     initSidebar();
+
+    // Check for What's New modal (after short delay to not block initial load)
+    setTimeout(checkWhatsNew, 2000);
 
     // =========================================
     // EASTER EGG: Konami Code - Jeff Goldblum
@@ -12233,19 +13456,8 @@ export function getHtml(): string {
 
     let kvUsageData = null;
 
-    async function checkKVUsage() {
-      try {
-        const response = await fetch('/api/kv-usage');
-        if (response.ok) {
-          kvUsageData = await response.json();
-          if (kvUsageData.status === 'critical' || kvUsageData.status === 'warning') {
-            showRateLimitBanner(kvUsageData);
-          }
-        }
-      } catch (err) {
-        console.log('Could not check KV usage');
-      }
-    }
+    // NOTE: checkKVUsage() is defined earlier in this file (line ~1120)
+    // It handles both KV status indicator (owner only) and rate limit banner (all users)
 
     function showRateLimitBanner(data) {
       // Don't show if already dismissed recently

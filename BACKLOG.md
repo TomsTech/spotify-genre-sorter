@@ -134,7 +134,7 @@ VALIDATION:
 ---
 
 #### 29. Theme Toggle Position Consistency
-**Priority:** P1 | **Effort:** XS | **Status:** ⏳ PENDING
+**Priority:** P1 | **Effort:** XS | **Status:** ✅ DONE (v3.4.0) - Already implemented, toggle stays in headerActions
 
 ```
 PROBLEM:
@@ -166,7 +166,7 @@ VALIDATION:
 ---
 
 #### 30. Swedish Mode State Management Fix
-**Priority:** P2 | **Effort:** M | **Status:** ⏳ PENDING
+**Priority:** P2 | **Effort:** M | **Status:** ✅ DONE (v3.3.0) - applySwedishMode() centralises all state changes
 
 ```
 PROBLEM:
@@ -215,7 +215,7 @@ VALIDATION:
 ---
 
 #### 31. Version Widget Reliability
-**Priority:** P2 | **Effort:** S | **Status:** ⏳ PENDING
+**Priority:** P2 | **Effort:** S | **Status:** ✅ DONE (v3.4.0) - Always visible, cached, shows release name + hover
 
 ```
 PROBLEM:
@@ -251,7 +251,7 @@ VALIDATION:
 ### 🏆 Leaderboard & Scoreboard System
 
 #### 32. Expanded User Statistics Schema
-**Priority:** P1 | **Effort:** M | **Status:** ⏳ PENDING
+**Priority:** P1 | **Effort:** M | **Status:** ✅ DONE (v2.0.0) - Full user stats tracked in KV
 
 ```
 PROBLEM:
@@ -297,7 +297,7 @@ VALIDATION:
 ---
 
 #### 33. Scoreboard API Endpoint
-**Priority:** P1 | **Effort:** M | **Status:** ⏳ PENDING
+**Priority:** P1 | **Effort:** M | **Status:** ✅ DONE (v2.0.0) - /api/scoreboard endpoint
 
 ```
 IMPLEMENTATION:
@@ -341,7 +341,7 @@ VALIDATION:
 ---
 
 #### 34. Leaderboard API Endpoint
-**Priority:** P1 | **Effort:** S | **Status:** ⏳ PENDING
+**Priority:** P1 | **Effort:** S | **Status:** ✅ DONE (v3.4.0) - Already implemented at /api/leaderboard
 
 ```
 IMPLEMENTATION:
@@ -373,7 +373,7 @@ VALIDATION:
 ---
 
 #### 35. Left Sidebar UI Component
-**Priority:** P1 | **Effort:** L | **Status:** ⏳ PENDING
+**Priority:** P1 | **Effort:** L | **Status:** ✅ DONE (v2.0.0) - Sidebar with pioneers, new users, recent playlists
 
 ```
 IMPLEMENTATION:
@@ -422,7 +422,7 @@ VALIDATION:
 ---
 
 #### 36. Scoreboard Modal/Page
-**Priority:** P2 | **Effort:** M | **Status:** ⏳ PENDING
+**Priority:** P2 | **Effort:** M | **Status:** ✅ DONE (v2.0.0) - Modal with tabs for playlists/genres/artists/tracks
 
 ```
 IMPLEMENTATION:
@@ -465,7 +465,7 @@ VALIDATION:
 ### 🎵 Recent Playlists Feed
 
 #### 37. Recent Playlists KV Storage
-**Priority:** P2 | **Effort:** S | **Status:** ⏳ PENDING
+**Priority:** P2 | **Effort:** S | **Status:** ✅ DONE (v3.4.0) - addRecentPlaylist called after playlist creation
 
 ```
 IMPLEMENTATION:
@@ -502,7 +502,7 @@ VALIDATION:
 ---
 
 #### 38. Recent Playlists API Endpoint
-**Priority:** P2 | **Effort:** XS | **Status:** ⏳ PENDING
+**Priority:** P2 | **Effort:** XS | **Status:** ✅ DONE (already implemented)
 
 ```
 ENDPOINT: GET /api/recent-playlists
@@ -534,7 +534,7 @@ VALIDATION:
 ---
 
 #### 39. Recent Playlists UI Component
-**Priority:** P2 | **Effort:** M | **Status:** ⏳ PENDING
+**Priority:** P2 | **Effort:** M | **Status:** ✅ DONE (v2.0.0) - Sidebar section with clickable playlist links
 
 ```
 IMPLEMENTATION:
@@ -871,7 +871,7 @@ VALIDATION:
 ---
 
 #### 47. Uptime Badge Integration
-**Priority:** P2 | **Effort:** XS | **Status:** ⏳ PENDING
+**Priority:** P2 | **Effort:** XS | **Status:** ✅ DONE (v3.4.0) - BetterStack badge links to status.houstons.tech
 
 ```
 IMPLEMENTATION:
@@ -901,7 +901,7 @@ VALIDATION:
 ---
 
 #### 48. Star Badge Prominence
-**Priority:** P3 | **Effort:** XS | **Status:** ⏳ PENDING
+**Priority:** P3 | **Effort:** XS | **Status:** ✅ DONE (v3.4.0) - Enhanced styling with tooltip
 
 ```
 IMPLEMENTATION:
@@ -1055,7 +1055,7 @@ IMPLEMENTATION:
 ---
 
 #### 52. Favicon Update
-**Priority:** P4 | **Effort:** S | **Status:** ⏳ PENDING
+**Priority:** P4 | **Effort:** S | **Status:** ✅ DONE (already implemented)
 
 ```
 CURRENT:
@@ -1151,7 +1151,7 @@ VALIDATION:
 ## Phase 1: KV Optimisation & Critical Fixes
 
 ### 53. KV Quota Exhaustion Fix
-**Priority:** P0 | **Effort:** L | **Status:** ⏳ PENDING
+**Priority:** P0 | **Effort:** L | **Status:** ✅ DONE (v3.0.0) - Progressive loading stays under subrequest limits
 
 ```
 PROBLEM STATEMENT:
@@ -1218,7 +1218,7 @@ flowchart TD
 ---
 
 ### 54. 1000 Track Limit Bug Fix
-**Priority:** P0 | **Effort:** M | **Status:** ⏳ PENDING
+**Priority:** P0 | **Effort:** M | **Status:** ✅ DONE (v3.0.0) - Progressive scanning handles large libraries
 
 ```
 PROBLEM STATEMENT:
@@ -1382,7 +1382,7 @@ flowchart LR
 ## Phase 2: Admin Panel & Documentation Infrastructure
 
 ### 57. Admin Debug Panel for tomspseudonym
-**Priority:** P1 | **Effort:** XL | **Status:** ⏳ PENDING
+**Priority:** P1 | **Effort:** XL | **Status:** ✅ DONE (v3.1.0) - Admin panel UI with KV metrics, user stats
 
 ```
 PROBLEM STATEMENT:
@@ -1455,7 +1455,7 @@ flowchart TD
 ---
 
 ### 58. KV Monitoring Dashboard
-**Priority:** P1 | **Effort:** L | **Status:** ⏳ PENDING
+**Priority:** P1 | **Effort:** L | **Status:** ✅ DONE (v3.1.0) - KV status indicator with usage breakdown
 
 ```
 PROBLEM STATEMENT:
@@ -2038,7 +2038,7 @@ sequenceDiagram
 ---
 
 ### 69. Multi-Genre Playlist Merge
-**Priority:** P3 | **Effort:** M | **Status:** ⏳ PENDING
+**Priority:** P3 | **Effort:** M | **Status:** ✅ DONE (v3.2.0) - Select 2+ genres and merge into single playlist
 
 ```
 PROBLEM STATEMENT:
@@ -2274,7 +2274,7 @@ gantt
 ## Additional Tasks (Continued)
 
 ### 73. Scan Playlists Feature
-**Priority:** P2 | **Effort:** L | **Status:** ⏳ PENDING
+**Priority:** P2 | **Effort:** L | **Status:** ✅ DONE (v3.3.0) - Browse playlists and see genre breakdown
 
 ```
 PROBLEM STATEMENT:
@@ -2306,7 +2306,7 @@ ACCEPTANCE CRITERIA:
 ---
 
 ### 74. Persistent Genre Cache
-**Priority:** P1 | **Effort:** M | **Status:** ⏳ PENDING
+**Priority:** P1 | **Effort:** M | **Status:** ✅ DONE (v3.0.0) - KV caching with progress persistence
 
 ```
 PROBLEM STATEMENT:
@@ -2337,7 +2337,7 @@ ACCEPTANCE CRITERIA:
 ---
 
 ### 75. Library Size Display
-**Priority:** P2 | **Effort:** S | **Status:** ⏳ PENDING
+**Priority:** P2 | **Effort:** S | **Status:** ✅ DONE (v3.4.0)
 
 ```
 PROBLEM STATEMENT:
@@ -2365,7 +2365,7 @@ ACCEPTANCE CRITERIA:
 ---
 
 ### 76. Progressive Scan with Resume
-**Priority:** P1 | **Effort:** L | **Status:** ⏳ PENDING
+**Priority:** P1 | **Effort:** L | **Status:** ✅ DONE (v3.0.0) - /api/genres/progressive endpoint with KV resume
 
 ```
 PROBLEM STATEMENT:
@@ -2596,7 +2596,7 @@ ACCEPTANCE CRITERIA:
 ---
 
 ### 83. Keyboard Shortcuts Enhancement
-**Priority:** P2 | **Effort:** S | **Status:** ⏳ PENDING
+**Priority:** P2 | **Effort:** S | **Status:** ✅ DONE (v3.4.0) - All shortcuts implemented (/, g+h, g+s, c, ?, j/k)
 
 ```
 PROBLEM STATEMENT:
@@ -2630,7 +2630,7 @@ ACCEPTANCE CRITERIA:
 ---
 
 ### 84. Accessibility Audit & Fixes
-**Priority:** P1 | **Effort:** L | **Status:** ⏳ PENDING
+**Priority:** P1 | **Effort:** L | **Status:** ✅ DONE (v2.0.0) - WCAG AA contrast, keyboard nav, skip links
 
 ```
 PROBLEM STATEMENT:
@@ -2697,7 +2697,7 @@ ACCEPTANCE CRITERIA:
 ---
 
 ### 86. Dark Mode Improvements
-**Priority:** P2 | **Effort:** S | **Status:** ⏳ PENDING
+**Priority:** P2 | **Effort:** S | **Status:** ✅ DONE (v3.4.0) - Styling improvements applied
 
 ```
 PROBLEM STATEMENT:
@@ -2727,7 +2727,7 @@ ACCEPTANCE CRITERIA:
 ---
 
 ### 87. Error Boundary & Recovery
-**Priority:** P1 | **Effort:** M | **Status:** ⏳ PENDING
+**Priority:** P1 | **Effort:** M | **Status:** ✅ DONE (v3.4.0) - Error handling with Try Again buttons
 
 ```
 PROBLEM STATEMENT:
@@ -2853,7 +2853,7 @@ ACCEPTANCE CRITERIA:
 ---
 
 ### 91. Playlist Description Templates
-**Priority:** P2 | **Effort:** S | **Status:** ⏳ PENDING
+**Priority:** P2 | **Effort:** S | **Status:** ✅ DONE (v3.4.0)
 
 ```
 PROBLEM STATEMENT:
@@ -2913,7 +2913,7 @@ ACCEPTANCE CRITERIA:
 ---
 
 ### 93. User Preferences Sync
-**Priority:** P3 | **Effort:** M | **Status:** ⏳ PENDING
+**Priority:** P3 | **Effort:** M | **Status:** ✅ DONE (v3.3.0) - Theme, hidden genres, templates saved to cloud
 
 ```
 PROBLEM STATEMENT:
@@ -3240,7 +3240,7 @@ ACCEPTANCE CRITERIA:
 ---
 
 ### 99d. Security: Set Explicit CORS Policy
-**Priority:** P2 | **Effort:** S | **Status:** ⏳ PENDING
+**Priority:** P2 | **Effort:** S | **Status:** ✅ DONE (v3.4.0)
 
 ```
 PROBLEM STATEMENT:
@@ -3273,7 +3273,7 @@ ACCEPTANCE CRITERIA:
 ---
 
 ### 99e. Security: Whitelist-based Genre Sanitization
-**Priority:** P3 | **Effort:** S | **Status:** ⏳ PENDING
+**Priority:** P3 | **Effort:** S | **Status:** ✅ DONE (v3.4.0)
 
 ```
 PROBLEM STATEMENT:
@@ -3368,7 +3368,7 @@ ACCEPTANCE CRITERIA:
 ---
 
 ### 102. Heidi Anniversary Mode
-**Priority:** P1 | **Effort:** S | **Status:** ⏳ PENDING
+**Priority:** P1 | **Effort:** S | **Status:** ✅ DONE (v3.4.0)
 
 ```
 PROBLEM STATEMENT:
@@ -3435,7 +3435,7 @@ ACCEPTANCE CRITERIA:
 ---
 
 ### 104. Changelog Modal
-**Priority:** P2 | **Effort:** S | **Status:** ⏳ PENDING
+**Priority:** P2 | **Effort:** S | **Status:** ✅ DONE (v3.4.0)
 
 ```
 PROBLEM STATEMENT:
