@@ -283,12 +283,15 @@ export interface ArtistsResult {
   artists: SpotifyArtist[];
   totalArtists: number;
   truncated: boolean;
+  cacheHits?: number;
+  cacheMisses?: number;
 }
 
 export async function getArtists(
   accessToken: string,
   artistIds: string[],
-  maxRequests = MAX_ARTIST_REQUESTS
+  maxRequests = MAX_ARTIST_REQUESTS,
+  kv?: KVNamespace
 ): Promise<ArtistsResult> {
   // Spotify API allows max 50 artists per request
   // We also limit total requests to stay within subrequest budget
@@ -296,33 +299,107 @@ export async function getArtists(
   const truncated = artistIds.length > maxArtists;
   const idsToFetch = truncated ? artistIds.slice(0, maxArtists) : artistIds;
 
-  const chunks: string[][] = [];
-  for (let i = 0; i < idsToFetch.length; i += 50) {
-    chunks.push(idsToFetch.slice(i, i + 50));
-  }
-
-  // OPTIMIZATION: Parallelize artist fetching to reduce total request time
-  // Each request is independent, so we can fetch all chunks concurrently
-  const chunkPromises = chunks.map(chunk =>
-    spotifyFetch<{ artists: (SpotifyArtist | null)[] }>(
-      `/artists?ids=${chunk.join(',')}`,
-      accessToken
-    )
-  );
-
-  const responses = await Promise.all(chunkPromises);
-
+  let cacheHits = 0;
+  let cacheMisses = 0;
   const results: SpotifyArtist[] = [];
-  for (const response of responses) {
-    // Filter out null entries (some artists may not have data)
-    const validArtists = response.artists.filter((a): a is SpotifyArtist => a !== null);
-    results.push(...validArtists);
+
+  // If KV is provided, try to use cache (#74 - Persistent Genre Cache)
+  if (kv) {
+    const {
+      getCachedArtistGenresBatch,
+      cacheArtistGenresBatch,
+      updateArtistGenreCacheStats,
+    } = await import('./artist-genre-cache');
+
+    // Check cache for all artists
+    const cachedGenres = await getCachedArtistGenresBatch(kv, idsToFetch);
+    cacheHits = cachedGenres.size;
+    cacheMisses = idsToFetch.length - cacheHits;
+
+    // Build results from cache
+    for (const [artistId, genres] of cachedGenres.entries()) {
+      results.push({
+        id: artistId,
+        name: '', // Name not cached (not needed for genre sorting)
+        genres,
+      });
+    }
+
+    // Determine which artists need to be fetched from Spotify
+    const uncachedIds = idsToFetch.filter((id) => !cachedGenres.has(id));
+
+    if (uncachedIds.length > 0) {
+      // Fetch uncached artists from Spotify API
+      const chunks: string[][] = [];
+      for (let i = 0; i < uncachedIds.length; i += 50) {
+        chunks.push(uncachedIds.slice(i, i + 50));
+      }
+
+      // OPTIMIZATION: Parallelize artist fetching to reduce total request time
+      const chunkPromises = chunks.map((chunk) =>
+        spotifyFetch<{ artists: (SpotifyArtist | null)[] }>(
+          `/artists?ids=${chunk.join(',')}`,
+          accessToken
+        )
+      );
+
+      const responses = await Promise.all(chunkPromises);
+
+      // Build map of newly fetched artist genres for caching
+      const newArtistGenres = new Map<string, string[]>();
+
+      for (const response of responses) {
+        // Filter out null entries (some artists may not have data)
+        const validArtists = response.artists.filter((a): a is SpotifyArtist => a !== null);
+        results.push(...validArtists);
+
+        // Store for caching
+        for (const artist of validArtists) {
+          newArtistGenres.set(artist.id, artist.genres);
+        }
+      }
+
+      // Cache newly fetched artist genres (fire and forget)
+      cacheArtistGenresBatch(kv, newArtistGenres).catch((err) =>
+        console.error('Failed to cache artist genres:', err)
+      );
+    }
+
+    // Update cache statistics (fire and forget)
+    updateArtistGenreCacheStats(kv, { cacheHits, cacheMisses }).catch((err) =>
+      console.error('Failed to update cache stats:', err)
+    );
+  } else {
+    // No KV provided, fetch all from Spotify (original behavior)
+    const chunks: string[][] = [];
+    for (let i = 0; i < idsToFetch.length; i += 50) {
+      chunks.push(idsToFetch.slice(i, i + 50));
+    }
+
+    // OPTIMIZATION: Parallelize artist fetching to reduce total request time
+    // Each request is independent, so we can fetch all chunks concurrently
+    const chunkPromises = chunks.map((chunk) =>
+      spotifyFetch<{ artists: (SpotifyArtist | null)[] }>(
+        `/artists?ids=${chunk.join(',')}`,
+        accessToken
+      )
+    );
+
+    const responses = await Promise.all(chunkPromises);
+
+    for (const response of responses) {
+      // Filter out null entries (some artists may not have data)
+      const validArtists = response.artists.filter((a): a is SpotifyArtist => a !== null);
+      results.push(...validArtists);
+    }
   }
 
   return {
     artists: results,
     totalArtists: artistIds.length,
     truncated,
+    cacheHits: kv ? cacheHits : undefined,
+    cacheMisses: kv ? cacheMisses : undefined,
   };
 }
 

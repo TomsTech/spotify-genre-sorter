@@ -177,6 +177,28 @@ export function getHtml(nonce: string): string {
       outline-offset: 2px;
     }
 
+    /* Clickable widget buttons - need button styling reset */
+    .deploy-widget,
+    .kv-status-indicator,
+    .heidi-badge {
+      border: none;
+      background: transparent;
+      font: inherit;
+      cursor: pointer;
+      text-align: left;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .deploy-widget:focus-visible,
+    .kv-status-indicator:focus-visible,
+    .heidi-badge:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
     body.swedish-mode {
       --accent: #006AA7;
       --accent-hover: #0077b6;
@@ -5446,6 +5468,132 @@ export function getHtml(nonce: string): string {
       color: var(--danger);
     }
 
+    /* Admin Error Logs Styles */
+    .admin-errors-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .admin-error-entry {
+      background: var(--card-bg);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      transition: border-color 0.2s;
+    }
+
+    .admin-error-entry:hover {
+      border-color: var(--danger);
+    }
+
+    .admin-error-header {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .admin-error-num {
+      font-weight: 600;
+      color: var(--danger);
+    }
+
+    .admin-error-time {
+      flex: 1;
+    }
+
+    .admin-error-ip {
+      font-family: monospace;
+      background: var(--surface);
+      padding: 0.125rem 0.375rem;
+      border-radius: 0.25rem;
+    }
+
+    .admin-error-message {
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+      word-break: break-word;
+    }
+
+    .admin-error-details {
+      margin-top: 0.5rem;
+    }
+
+    .admin-error-details summary {
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      user-select: none;
+    }
+
+    .admin-error-details summary:hover {
+      color: var(--text);
+    }
+
+    .admin-error-stack {
+      margin: 0.5rem 0 0 0;
+      padding: 0.75rem;
+      background: var(--surface);
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      overflow-x: auto;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .admin-error-context {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-top: 0.5rem;
+    }
+
+    /* Admin Performance Samples Styles */
+    .admin-perf-samples {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .admin-perf-sample {
+      background: var(--surface);
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.375rem;
+      border: 1px solid var(--border);
+    }
+
+    .admin-perf-sample-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      margin-bottom: 0.375rem;
+    }
+
+    .admin-perf-sample-load {
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .admin-perf-sample-bar {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .admin-perf-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--success), var(--accent));
+      transition: width 0.3s ease;
+    }
+
 
     /* Genie Click Animation */
     .genie-mascot.talking {
@@ -7874,31 +8022,31 @@ export function getHtml(nonce: string): string {
   <!-- Status Widgets Container (top-right corner) -->
   <div class="status-widgets" id="status-widgets">
     <!-- Deployment Monitor Widget -->
-    <div class="deploy-widget" id="deploy-widget" style="display: none;" onclick="showDeployDetails()">
-      <span class="status-icon"></span>
+    <button class="deploy-widget" id="deploy-widget" style="display: none;" onclick="showDeployDetails()" aria-label="View deployment status">
+      <span class="status-icon" aria-hidden="true"></span>
       <span class="deploy-text">Checking...</span>
-    </div>
+    </button>
 
     <!-- KV Status Indicator (hidden by default, shown for owner) -->
-    <div class="kv-status-indicator" id="kv-status-indicator" style="display: none;" onclick="showKVStatusModal()">
-      <span class="kv-icon">📊</span>
+    <button class="kv-status-indicator" id="kv-status-indicator" style="display: none;" onclick="showKVStatusModal()" aria-label="View KV storage status">
+      <span class="kv-icon" aria-hidden="true">📊</span>
       <span class="kv-text">KV: ...</span>
-    </div>
+    </button>
   </div>
 
   <!-- Now Playing Widget -->
-  <div class="now-playing-widget" id="now-playing-widget" style="display: none;">
+  <div class="now-playing-widget" id="now-playing-widget" style="display: none;" role="region" aria-label="Now playing">
     <div class="now-playing-art">
-      <img id="now-playing-art" src="" alt="Album art">
-      <div class="now-playing-equalizer">
+      <img id="now-playing-art" src="" alt="">
+      <div class="now-playing-equalizer" aria-hidden="true">
         <span></span><span></span><span></span>
       </div>
     </div>
     <div class="now-playing-info">
-      <div class="now-playing-track" id="now-playing-track">Not playing</div>
-      <div class="now-playing-artist" id="now-playing-artist"></div>
+      <div class="now-playing-track" id="now-playing-track" aria-live="polite">Not playing</div>
+      <div class="now-playing-artist" id="now-playing-artist" aria-live="polite"></div>
       <div class="now-playing-progress">
-        <div class="now-playing-progress-bar">
+        <div class="now-playing-progress-bar" role="progressbar" aria-label="Playback progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
           <div class="now-playing-progress-fill" id="now-playing-progress"></div>
         </div>
       </div>
@@ -7923,13 +8071,13 @@ export function getHtml(nonce: string): string {
     <header class="app-header">
       <div class="header-content">
         <h1>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" role="img" aria-label="Spotify logo">
             <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 01-.277-1.215c3.809-.87 7.076-.496 9.712 1.115.293.18.386.563.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.972c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.071zm.105-2.835c-3.223-1.914-8.54-2.09-11.618-1.156a.935.935 0 11-.543-1.79c3.533-1.072 9.404-.865 13.115 1.338a.935.935 0 11-.954 1.608z"/>
           </svg>
           <span data-i18n="title">Genre Genie</span>
-          <span class="genie-sparkle">✨</span>
+          <span class="genie-sparkle" aria-hidden="true">✨</span>
         </h1>
-        <span class="swedish-crowns" title="Tre Kronor - Three Crowns of Sweden">
+        <span class="swedish-crowns" aria-label="Tre Kronor - Three Crowns of Sweden" aria-hidden="true">
           <span class="crown">👑</span>
           <span class="crown">👑</span>
           <span class="crown">👑</span>
@@ -7940,35 +8088,35 @@ export function getHtml(nonce: string): string {
 
     <div class="content-wrapper">
       <!-- Left Sidebar -->
-      <aside class="sidebar" id="sidebar" data-testid="sidebar">
+      <aside class="sidebar" id="sidebar" data-testid="sidebar" aria-label="Community statistics and playlists">
         <div class="sidebar-section">
-          <h3 class="sidebar-title" title="Updates every 15 minutes to save API calls">🏆 <span data-i18n="pioneers">Pioneers</span></h3>
-          <div class="pioneers-list" id="pioneers-list">
-            <div class="sidebar-loading">Loading...</div>
+          <h2 class="sidebar-title" title="Updates every 15 minutes to save API calls"><span aria-hidden="true">🏆</span> <span data-i18n="pioneers">Pioneers</span></h2>
+          <div class="pioneers-list" id="pioneers-list" role="list" aria-label="Pioneer users">
+            <div class="sidebar-loading" role="status" aria-live="polite">Loading...</div>
           </div>
         </div>
 
         <div class="sidebar-section">
-          <h3 class="sidebar-title" title="Updates every 15 minutes to save API calls">👋 <span data-i18n="newUsers">New Users</span></h3>
-          <div class="new-users-list" id="new-users-list">
-            <div class="sidebar-loading">Loading...</div>
+          <h2 class="sidebar-title" title="Updates every 15 minutes to save API calls"><span aria-hidden="true">👋</span> <span data-i18n="newUsers">New Users</span></h2>
+          <div class="new-users-list" id="new-users-list" role="list" aria-label="New users">
+            <div class="sidebar-loading" role="status" aria-live="polite">Loading...</div>
           </div>
         </div>
 
         <div class="sidebar-section">
-          <h3 class="sidebar-title" title="Refreshes every 3 minutes">🎵 <span data-i18n="recentPlaylists">Recent Playlists</span></h3>
-          <div class="recent-playlists-list" id="recent-playlists-list">
-            <div class="sidebar-loading">Loading...</div>
+          <h2 class="sidebar-title" title="Refreshes every 3 minutes"><span aria-hidden="true">🎵</span> <span data-i18n="recentPlaylists">Recent Playlists</span></h2>
+          <div class="recent-playlists-list" id="recent-playlists-list" role="list" aria-label="Recently created playlists">
+            <div class="sidebar-loading" role="status" aria-live="polite">Loading...</div>
           </div>
         </div>
 
-        <button class="btn btn-secondary sidebar-scoreboard-btn" data-testid="scoreboard-btn" onclick="showScoreboard()" title="Rankings update every hour">
-          📊 <span data-i18n="viewScoreboard">View Scoreboard</span>
+        <button class="btn btn-secondary sidebar-scoreboard-btn" data-testid="scoreboard-btn" onclick="showScoreboard()" aria-label="View Scoreboard - Rankings update every hour">
+          <span aria-hidden="true">📊</span> <span data-i18n="viewScoreboard">View Scoreboard</span>
         </button>
 
         <!-- Donation button moved to sidebar -->
-        <a href="https://buymeacoffee.com/tomstech" target="_blank" class="sidebar-donate-btn" id="donation-btn" title="Chuck us a dart, legend">
-          <span class="icon">🚬</span>
+        <a href="https://buymeacoffee.com/tomstech" target="_blank" rel="noopener noreferrer" class="sidebar-donate-btn" id="donation-btn" aria-label="Support the project - Buy me a coffee">
+          <span class="icon" aria-hidden="true">🚬</span>
           <span class="text">Shout me a durry <sup class="bryan-text">do it for bryan</sup></span>
         </a>
       </aside>
@@ -7979,9 +8127,9 @@ export function getHtml(nonce: string): string {
       </button>
 
       <!-- Main Content -->
-      <main id="app" class="main-content">
-        <div class="loading">
-          <div class="spinner"></div>
+      <main id="app" class="main-content" role="main" aria-label="Genre playlists">
+        <div class="loading" role="status" aria-live="polite" aria-label="Loading application">
+          <div class="spinner" aria-hidden="true"></div>
           <span data-i18n="loading">Loading...</span>
         </div>
       </main>
@@ -7989,22 +8137,22 @@ export function getHtml(nonce: string): string {
   </div>
 
   <!-- Floating Genie Mascot -->
-  <div class="genie-mascot" id="genie-mascot" title="Genre Genie at your service!">
+  <div class="genie-mascot" id="genie-mascot" aria-label="Genre Genie mascot" role="img" aria-hidden="true">
     🧞
   </div>
 
   <!-- Heidi Easter Egg Badge -->
-  <div class="heidi-badge" data-testid="heidi-badge" onclick="toggleSwedishMode()" title="Click for a Swedish surprise!">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+  <button class="heidi-badge" data-testid="heidi-badge" onclick="toggleSwedishMode()" aria-label="Toggle Swedish mode - Made with inspiration from Heidi">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
       <circle cx="12" cy="8" r="4"/>
       <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
       <path d="M9 4c1-2 5-2 6 0" stroke="#FECC00"/>
     </svg>
-    <span class="heidi-text">
+    <span class="heidi-text" aria-hidden="true">
       <span>Made with inspiration from</span>
       <span><strong>Heidi</strong> <span class="heart">♥</span></span>
     </span>
-  </div>
+  </button>
 
   <script nonce="${nonce}">
     const app = document.getElementById('app');
@@ -8689,6 +8837,10 @@ export function getHtml(nonce: string): string {
           </div>
           <div class="admin-tabs">
             <button class="admin-tab active" data-tab="stats">📊 Stats</button>
+            <button class="admin-tab" data-tab="cache">💾 Cache</button>
+            <button class="admin-tab" data-tab="health">🏥 Health</button>
+            <button class="admin-tab" data-tab="errors">🐛 Errors</button>
+            <button class="admin-tab" data-tab="perf">⚡ Performance</button>
             <button class="admin-tab" data-tab="users">👥 Users</button>
           </div>
           <div class="admin-tab-content" id="admin-tab-content">
@@ -8761,6 +8913,14 @@ export function getHtml(nonce: string): string {
 
           if (tabName === 'users') {
             await loadAdminUsersTab(modal);
+          } else if (tabName === 'cache') {
+            await loadAdminCacheTab(modal);
+          } else if (tabName === 'health') {
+            await loadAdminHealthTab(modal);
+          } else if (tabName === 'errors') {
+            await loadAdminErrorsTab(modal);
+          } else if (tabName === 'perf') {
+            await loadAdminPerfTab(modal);
           } else {
             // Reload stats tab content
             const content = modal.querySelector('#admin-tab-content');
@@ -8899,6 +9059,355 @@ export function getHtml(nonce: string): string {
 
     window.confirmDeleteUser = confirmDeleteUser;
 
+    // Admin Cache Tab - cache management controls
+    async function loadAdminCacheTab(modal) {
+      const content = modal.querySelector('#admin-tab-content');
+      content.innerHTML = \`
+        <div class="admin-grid">
+          <div class="admin-card">
+            <h3>💾 Cache Controls</h3>
+            <div class="admin-actions">
+              <button class="btn btn-primary btn-sm" onclick="adminClearCache('leaderboard')">
+                🏆 Clear Leaderboard Cache
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="adminClearCache('scoreboard')">
+                📊 Clear Scoreboard Cache
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="adminClearCache('all_genre_caches')">
+                🎵 Clear All Genre Caches
+              </button>
+              <button class="btn btn-warning btn-sm" onclick="adminRebuildCaches()">
+                🔄 Rebuild All Caches
+              </button>
+            </div>
+          </div>
+          <div class="admin-card">
+            <h3>📦 Cache Status</h3>
+            <div class="admin-stats">
+              <div class="stat">
+                <span class="label">Leaderboard Cache:</span>
+                <span class="value" id="cache-status-leaderboard">Checking...</span>
+              </div>
+              <div class="stat">
+                <span class="label">Scoreboard Cache:</span>
+                <span class="value" id="cache-status-scoreboard">Checking...</span>
+              </div>
+              <div class="stat">
+                <span class="label">Analytics Cache:</span>
+                <span class="value">\${analyticsCache ? 'Active' : 'Empty'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      \`;
+
+      // Check cache status by making lightweight API calls
+      try {
+        const leaderboardRes = await fetch('/api/leaderboard');
+        const leaderboardData = await leaderboardRes.json();
+        document.getElementById('cache-status-leaderboard').textContent =
+          leaderboardData._cache?.fromCache ? '✅ Cached' : '⚠️ Fresh Build';
+
+        const scoreboardRes = await fetch('/api/scoreboard');
+        const scoreboardData = await scoreboardRes.json();
+        document.getElementById('cache-status-scoreboard').textContent =
+          scoreboardData._cache?.fromCache ? '✅ Cached' : '⚠️ Fresh Build';
+      } catch (err) {
+        console.error('Failed to check cache status:', err);
+      }
+    }
+
+    async function adminClearCache(cacheType) {
+      const cacheNames = {
+        'leaderboard': 'Leaderboard',
+        'scoreboard': 'Scoreboard',
+        'all_genre_caches': 'All Genre Caches'
+      };
+
+      showNotification(\`Clearing \${cacheNames[cacheType]}...\`, 'info');
+
+      try {
+        const response = await fetch('/api/admin/clear-cache', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cache: cacheType })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showNotification(\`✅ Cleared \${result.keysCleared} cache entries\`, 'success');
+          // Reload the cache tab to show updated status
+          const modal = document.querySelector('.admin-modal');
+          if (modal) await loadAdminCacheTab(modal);
+        } else {
+          throw new Error(result.error || 'Failed to clear cache');
+        }
+      } catch (err) {
+        showNotification(\`❌ Failed to clear cache: \${err.message}\`, 'error');
+      }
+    }
+
+    async function adminRebuildCaches() {
+      showNotification('🔄 Rebuilding all caches...', 'info');
+
+      try {
+        const response = await fetch('/api/admin/rebuild-caches', {
+          method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showNotification('✅ All caches rebuilt successfully', 'success');
+          // Reload the cache tab
+          const modal = document.querySelector('.admin-modal');
+          if (modal) await loadAdminCacheTab(modal);
+        } else {
+          throw new Error(result.error || 'Failed to rebuild caches');
+        }
+      } catch (err) {
+        showNotification(\`❌ Failed to rebuild caches: \${err.message}\`, 'error');
+      }
+    }
+
+    // Admin Health Tab - system health monitoring
+    async function loadAdminHealthTab(modal) {
+      const content = modal.querySelector('#admin-tab-content');
+      content.innerHTML = '<div class="admin-loading">Loading health metrics...</div>';
+
+      try {
+        const [kvUsageRes, analyticsRes] = await Promise.all([
+          fetch('/api/kv-usage'),
+          fetch('/api/analytics')
+        ]);
+
+        const kvUsage = await kvUsageRes.json();
+        const analytics = await analyticsRes.json();
+
+        const readPct = kvUsage.usage?.readsPercent || 0;
+        const writePct = kvUsage.usage?.writesPercent || 0;
+        const readStatus = readPct > 80 ? '🔴 Critical' : readPct > 50 ? '🟡 Warning' : '🟢 Healthy';
+        const writeStatus = writePct > 80 ? '🔴 Critical' : writePct > 50 ? '🟡 Warning' : '🟢 Healthy';
+
+        content.innerHTML = \`
+          <div class="admin-grid">
+            <div class="admin-card">
+              <h3>🏥 System Health</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">KV Reads Health:</span>
+                  <span class="value">\${readStatus}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">KV Writes Health:</span>
+                  <span class="value">\${writeStatus}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Trend:</span>
+                  <span class="value">\${kvUsage.trend?.direction || 'stable'}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Cache Hit Rate:</span>
+                  <span class="value">\${kvUsage.realtime?.cacheHitRate || 0}%</span>
+                </div>
+              </div>
+            </div>
+            <div class="admin-card">
+              <h3>📊 Daily Limits</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">Reads Remaining:</span>
+                  <span class="value">\${kvUsage.usage?.readsRemaining?.toLocaleString() || 'N/A'}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Writes Remaining:</span>
+                  <span class="value">\${kvUsage.usage?.writesRemaining?.toLocaleString() || 'N/A'}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Status:</span>
+                  <span class="value">\${kvUsage.status || 'ok'}</span>
+                </div>
+              </div>
+            </div>
+            <div class="admin-card">
+              <h3>⚡ Activity (Today)</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">Sign-ins:</span>
+                  <span class="value">\${kvUsage.activity?.signIns || 0}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Library Scans:</span>
+                  <span class="value">\${kvUsage.activity?.libraryScans || 0}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Playlists Created:</span>
+                  <span class="value">\${kvUsage.activity?.playlistsCreated || 0}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Auth Failures:</span>
+                  <span class="value">\${kvUsage.activity?.authFailures || 0}</span>
+                </div>
+              </div>
+            </div>
+            <div class="admin-card">
+              <h3>💡 Optimizations</h3>
+              <div class="admin-stats" style="font-size: 0.85rem;">
+                <div class="stat">
+                  <span class="label">Leaderboard Cache:</span>
+                  <span class="value">15 min</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Scoreboard Cache:</span>
+                  <span class="value">1 hour</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Analytics Sampling:</span>
+                  <span class="value">10%</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Polling Interval:</span>
+                  <span class="value">3 min</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          \${kvUsage.recommendations && kvUsage.recommendations.length > 0 ? \`
+            <div class="admin-card" style="margin-top: 1rem; grid-column: 1 / -1;">
+              <h3>💡 Recommendations</h3>
+              <ul style="margin: 0; padding-left: 1.5rem;">
+                \${kvUsage.recommendations.map(rec => \`<li style="margin: 0.5rem 0;">\${rec}</li>\`).join('')}
+              </ul>
+            </div>
+          \` : ''}
+        \`;
+      } catch (err) {
+        content.innerHTML = \`<div class="admin-error">Failed to load health metrics: \${err.message}</div>\`;
+      }
+    }
+
+    // Admin Errors Tab - view client-side error logs
+    async function loadAdminErrorsTab(modal) {
+      const content = modal.querySelector('#admin-tab-content');
+      content.innerHTML = '<div class="admin-loading">Loading error logs...</div>';
+
+      try {
+        const response = await fetch('/api/admin/errors');
+        const data = await response.json();
+
+        if (!data.errors || data.errors.length === 0) {
+          content.innerHTML = '<div class="admin-empty">🎉 No errors logged!</div>';
+          return;
+        }
+
+        content.innerHTML = \`
+          <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <span><strong>\${data.count}</strong> errors logged (last 100)</span>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('admin-tab-content').scrollTop = 0">↑ Top</button>
+          </div>
+          <div class="admin-errors-list">
+            \${data.errors.slice(0, 50).map((error, idx) => \`
+              <div class="admin-error-entry">
+                <div class="admin-error-header">
+                  <span class="admin-error-num">#\${idx + 1}</span>
+                  <span class="admin-error-time">\${new Date(error.serverTime || error.timestamp).toLocaleString()}</span>
+                  <span class="admin-error-ip">\${error.ip || 'unknown'}</span>
+                </div>
+                <div class="admin-error-message">\${escapeHtml(error.message || error.raw || 'Unknown error')}</div>
+                \${error.stack ? \`
+                  <details class="admin-error-details">
+                    <summary>Stack trace</summary>
+                    <pre class="admin-error-stack">\${escapeHtml(error.stack)}</pre>
+                  </details>
+                \` : ''}
+                \${error.context ? \`<div class="admin-error-context">Context: \${escapeHtml(error.context)}</div>\` : ''}
+              </div>
+            \`).join('')}
+          </div>
+        \`;
+      } catch (err) {
+        content.innerHTML = \`<div class="admin-error">Failed to load errors: \${err.message}</div>\`;
+      }
+    }
+
+    // Admin Performance Tab - view performance metrics
+    async function loadAdminPerfTab(modal) {
+      const content = modal.querySelector('#admin-tab-content');
+      content.innerHTML = '<div class="admin-loading">Loading performance metrics...</div>';
+
+      try {
+        const response = await fetch('/api/admin/perf');
+        const data = await response.json();
+
+        if (!data.samples || data.samples.length === 0) {
+          content.innerHTML = '<div class="admin-empty">No performance data collected yet</div>';
+          return;
+        }
+
+        const avg = data.averages || {};
+
+        content.innerHTML = \`
+          <div class="admin-grid">
+            <div class="admin-card">
+              <h3>⚡ Average Metrics</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">Page Load Time:</span>
+                  <span class="value">\${avg.pageLoadTime || 0}ms</span>
+                </div>
+                <div class="stat">
+                  <span class="label">DOM Content Loaded:</span>
+                  <span class="value">\${avg.domContentLoaded || 0}ms</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Time to First Byte:</span>
+                  <span class="value">\${avg.timeToFirstByte || 0}ms</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Server Response:</span>
+                  <span class="value">\${avg.serverResponse || 0}ms</span>
+                </div>
+              </div>
+            </div>
+            <div class="admin-card">
+              <h3>📊 Sample Data</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">Total Samples:</span>
+                  <span class="value">\${data.totalSamples || 0}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Showing:</span>
+                  <span class="value">Last \${data.samples.length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="admin-card" style="margin-top: 1rem;">
+            <h3>📈 Recent Samples</h3>
+            <div class="admin-perf-samples">
+              \${data.samples.map((sample, idx) => \`
+                <div class="admin-perf-sample">
+                  <div class="admin-perf-sample-header">
+                    <span>\${new Date(sample.timestamp).toLocaleTimeString()}</span>
+                    <span class="admin-perf-sample-load">\${sample.pageLoadTime}ms</span>
+                  </div>
+                  <div class="admin-perf-sample-bar">
+                    <div class="admin-perf-bar-fill" style="width: \${Math.min(100, (sample.pageLoadTime / 5000) * 100)}%"></div>
+                  </div>
+                </div>
+              \`).join('')}
+            </div>
+          </div>
+        \`;
+      } catch (err) {
+        content.innerHTML = \`<div class="admin-error">Failed to load performance data: \${err.message}</div>\`;
+      }
+    }
+
+    window.adminClearCache = adminClearCache;
+    window.adminRebuildCaches = adminRebuildCaches;
     window.showAdminPanel = showAdminPanel;
 
 
@@ -10610,6 +11119,18 @@ export function getHtml(nonce: string): string {
               </div>
             </div>
 
+            <div class="progress-controls">
+              <button class="btn btn-secondary" id="pause-scan-btn" onclick="pauseProgressiveScan()" title="\${swedishMode ? 'Pausa skanningen' : 'Pause scan'}">
+                ⏸️ \${swedishMode ? 'Pausa' : 'Pause'}
+              </button>
+              <button class="btn btn-primary" id="resume-scan-btn" onclick="resumeProgressiveScan()" style="display: none;" title="\${swedishMode ? 'Återuppta skanningen' : 'Resume scan'}">
+                ▶️ \${swedishMode ? 'Återuppta' : 'Resume'}
+              </button>
+              <button class="btn btn-ghost" onclick="stopProgressiveScan()" title="\${swedishMode ? 'Stoppa skanningen' : 'Stop scan'}">
+                ⏹️ \${swedishMode ? 'Stoppa' : 'Stop'}
+              </button>
+            </div>
+
             <div class="live-genres-section">
               <h3>\${swedishMode ? '🎸 Genrer hittade hittills' : '🎸 Genres found so far'}</h3>
               <div class="live-genres-grid" id="live-genres-grid"></div><div class="live-bar-chart" id="live-bar-chart"><h4>\${swedishMode ? "📊 Topp genrer" : "📊 Top Genres"}</h4><div id="bar-chart-items"></div></div></div></div>
@@ -10709,17 +11230,139 @@ export function getHtml(nonce: string): string {
       };
     }
 
-    // Progressive loading for large libraries
+    // Progressive scan state management
+    let progressiveScanState = {
+      isPaused: false,
+      shouldStop: false,
+      currentOffset: 0,
+      accumulated: null,
+      totalInLibrary: 0
+    };
+
+    // Save scan progress to localStorage for resume capability
+    function saveScanState() {
+      try {
+        localStorage.setItem('genreScanState', JSON.stringify({
+          offset: progressiveScanState.currentOffset,
+          accumulated: progressiveScanState.accumulated,
+          totalInLibrary: progressiveScanState.totalInLibrary,
+          timestamp: Date.now()
+        }));
+      } catch (e) {
+        console.warn('Could not save scan state:', e);
+      }
+    }
+
+    // Load scan progress from localStorage
+    function loadScanState() {
+      try {
+        const saved = localStorage.getItem('genreScanState');
+        if (!saved) return null;
+
+        const state = JSON.parse(saved);
+        // Only resume if saved within last hour
+        if (Date.now() - state.timestamp < 3600000) {
+          return state;
+        }
+        // Clear old state
+        localStorage.removeItem('genreScanState');
+      } catch (e) {
+        console.warn('Could not load scan state:', e);
+      }
+      return null;
+    }
+
+    // Clear saved scan state
+    function clearScanState() {
+      try {
+        localStorage.removeItem('genreScanState');
+      } catch (e) {
+        console.warn('Could not clear scan state:', e);
+      }
+    }
+
+    // Pause the progressive scan
+    window.pauseProgressiveScan = function() {
+      progressiveScanState.isPaused = true;
+      saveScanState();
+      const pauseBtn = document.getElementById('pause-scan-btn');
+      const resumeBtn = document.getElementById('resume-scan-btn');
+      if (pauseBtn) pauseBtn.style.display = 'none';
+      if (resumeBtn) resumeBtn.style.display = 'inline-flex';
+      showNotification(
+        swedishMode ? '⏸️ Skanning pausad' : '⏸️ Scan paused',
+        'info'
+      );
+    };
+
+    // Resume the progressive scan
+    window.resumeProgressiveScan = function() {
+      progressiveScanState.isPaused = false;
+      const pauseBtn = document.getElementById('pause-scan-btn');
+      const resumeBtn = document.getElementById('resume-scan-btn');
+      if (pauseBtn) pauseBtn.style.display = 'inline-flex';
+      if (resumeBtn) resumeBtn.style.display = 'none';
+      showNotification(
+        swedishMode ? '▶️ Skanning återupptas' : '▶️ Scan resuming',
+        'info'
+      );
+      // Trigger continuation
+      loadFullLibrary();
+    };
+
+    // Stop the progressive scan
+    window.stopProgressiveScan = function() {
+      progressiveScanState.shouldStop = true;
+      progressiveScanState.isPaused = false;
+      clearScanState();
+      showNotification(
+        swedishMode ? '⏹️ Skanning stoppad' : '⏹️ Scan stopped',
+        'info'
+      );
+    };
+
+    // Progressive loading for large libraries with pause/resume
     async function loadGenresProgressively() {
-      let offset = 0;
-      let accumulated = null;
-      let totalInLibrary = 0;
+      // Check for saved state (resume capability)
+      const savedState = loadScanState();
+      let offset = savedState?.offset || 0;
+      let accumulated = savedState?.accumulated || null;
+      let totalInLibrary = savedState?.totalInLibrary || 0;
+
+      // Update state
+      progressiveScanState.currentOffset = offset;
+      progressiveScanState.accumulated = accumulated;
+      progressiveScanState.totalInLibrary = totalInLibrary;
+      progressiveScanState.shouldStop = false;
+      progressiveScanState.isPaused = false;
+
+      if (savedState && offset > 0) {
+        showNotification(
+          swedishMode ? \`📚 Återupptar skanning från \${offset.toLocaleString()} låtar\` : \`📚 Resuming scan from \${offset.toLocaleString()} tracks\`,
+          'info',
+          4000
+        );
+      }
 
       while (true) {
+        // Check if paused
+        if (progressiveScanState.isPaused) {
+          saveScanState();
+          return accumulated; // Return partial data
+        }
+
+        // Check if stopped
+        if (progressiveScanState.shouldStop) {
+          clearScanState();
+          throw new Error('Scan stopped by user');
+        }
+
         const response = await fetch(\`/api/genres/chunk?offset=\${offset}&limit=500\`);
         const data = await response.json();
 
         if (!response.ok) {
+          // Save state before throwing error
+          saveScanState();
           throw new Error(data.details || data.error || 'Failed to load chunk');
         }
 
@@ -10727,6 +11370,16 @@ export function getHtml(nonce: string): string {
 
         // Merge this chunk first so we can show preview
         accumulated = mergeGenreChunks(accumulated, data.chunk);
+
+        // Update state
+        progressiveScanState.currentOffset = offset;
+        progressiveScanState.accumulated = accumulated;
+        progressiveScanState.totalInLibrary = totalInLibrary;
+
+        // Save progress periodically
+        if (offset % 2000 === 0) {
+          saveScanState();
+        }
 
         // Update progress UI with accumulated genres preview
         const loadedTracks = offset + data.chunk.trackCount;
@@ -10746,6 +11399,9 @@ export function getHtml(nonce: string): string {
 
         offset = data.pagination.nextOffset;
       }
+
+      // Clear saved state on completion
+      clearScanState();
 
       // Remove truncated flag since we loaded everything
       accumulated.truncated = false;
@@ -10783,6 +11439,34 @@ export function getHtml(nonce: string): string {
 
     async function loadGenres() {
       try {
+        // Check for interrupted scan to resume (#76)
+        try {
+          const statusRes = await fetch('/api/genres/scan-status');
+          if (statusRes.ok) {
+            const scanStatus = await statusRes.json();
+            if (scanStatus.hasProgress && scanStatus.canResume) {
+              const timeSince = Math.round((Date.now() - new Date(scanStatus.lastUpdatedAt).getTime()) / 60000);
+              const message = swedishMode
+                ? \`📚 Hittade ofullständig skanning (\${scanStatus.progress}% klar, \${timeSince} minuter sedan). Vill du återuppta?\`
+                : \`📚 Found interrupted scan (\${scanStatus.progress}% complete, \${timeSince} minutes ago). Resume?\`;
+
+              if (confirm(message)) {
+                showNotification(
+                  swedishMode ? '▶️ Återupptar skanning...' : '▶️ Resuming scan...',
+                  'info'
+                );
+                await loadFullLibrary();
+                return;
+              } else {
+                // Clear the saved state if user doesn't want to resume
+                clearScanState();
+              }
+            }
+          }
+        } catch (e) {
+          console.log('Could not check scan status:', e);
+        }
+
         // First, fetch library size to show user what to expect (#75)
         renderLoading(
           swedishMode ? 'Kontrollerar biblioteksstorlek...' : 'Checking library size...',
@@ -12243,6 +12927,9 @@ export function getHtml(nonce: string): string {
 
       const div = document.createElement('div');
       div.className = \`notification \${type}\`;
+      div.setAttribute('role', 'status');
+      div.setAttribute('aria-live', 'polite');
+      div.setAttribute('aria-atomic', 'true');
       div.style.cssText = \`
         position: fixed;
         bottom: 4rem;

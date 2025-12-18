@@ -4,31 +4,31 @@
   <!-- Status Widgets Container (top-right corner) -->
   <div class="status-widgets" id="status-widgets">
     <!-- Deployment Monitor Widget -->
-    <div class="deploy-widget" id="deploy-widget" style="display: none;" onclick="showDeployDetails()">
-      <span class="status-icon"></span>
+    <button class="deploy-widget" id="deploy-widget" style="display: none;" onclick="showDeployDetails()" aria-label="View deployment status">
+      <span class="status-icon" aria-hidden="true"></span>
       <span class="deploy-text">Checking...</span>
-    </div>
+    </button>
 
     <!-- KV Status Indicator (hidden by default, shown for owner) -->
-    <div class="kv-status-indicator" id="kv-status-indicator" style="display: none;" onclick="showKVStatusModal()">
-      <span class="kv-icon">📊</span>
+    <button class="kv-status-indicator" id="kv-status-indicator" style="display: none;" onclick="showKVStatusModal()" aria-label="View KV storage status">
+      <span class="kv-icon" aria-hidden="true">📊</span>
       <span class="kv-text">KV: ...</span>
-    </div>
+    </button>
   </div>
 
   <!-- Now Playing Widget -->
-  <div class="now-playing-widget" id="now-playing-widget" style="display: none;">
+  <div class="now-playing-widget" id="now-playing-widget" style="display: none;" role="region" aria-label="Now playing">
     <div class="now-playing-art">
-      <img id="now-playing-art" src="" alt="Album art">
-      <div class="now-playing-equalizer">
+      <img id="now-playing-art" src="" alt="">
+      <div class="now-playing-equalizer" aria-hidden="true">
         <span></span><span></span><span></span>
       </div>
     </div>
     <div class="now-playing-info">
-      <div class="now-playing-track" id="now-playing-track">Not playing</div>
-      <div class="now-playing-artist" id="now-playing-artist"></div>
+      <div class="now-playing-track" id="now-playing-track" aria-live="polite">Not playing</div>
+      <div class="now-playing-artist" id="now-playing-artist" aria-live="polite"></div>
       <div class="now-playing-progress">
-        <div class="now-playing-progress-bar">
+        <div class="now-playing-progress-bar" role="progressbar" aria-label="Playback progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
           <div class="now-playing-progress-fill" id="now-playing-progress"></div>
         </div>
       </div>
@@ -53,13 +53,13 @@
     <header class="app-header">
       <div class="header-content">
         <h1>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" role="img" aria-label="Spotify logo">
             <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 01-.277-1.215c3.809-.87 7.076-.496 9.712 1.115.293.18.386.563.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.972c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.071zm.105-2.835c-3.223-1.914-8.54-2.09-11.618-1.156a.935.935 0 11-.543-1.79c3.533-1.072 9.404-.865 13.115 1.338a.935.935 0 11-.954 1.608z"/>
           </svg>
           <span data-i18n="title">Genre Genie</span>
-          <span class="genie-sparkle">✨</span>
+          <span class="genie-sparkle" aria-hidden="true">✨</span>
         </h1>
-        <span class="swedish-crowns" title="Tre Kronor - Three Crowns of Sweden">
+        <span class="swedish-crowns" aria-label="Tre Kronor - Three Crowns of Sweden" aria-hidden="true">
           <span class="crown">👑</span>
           <span class="crown">👑</span>
           <span class="crown">👑</span>
@@ -70,35 +70,35 @@
 
     <div class="content-wrapper">
       <!-- Left Sidebar -->
-      <aside class="sidebar" id="sidebar" data-testid="sidebar">
+      <aside class="sidebar" id="sidebar" data-testid="sidebar" aria-label="Community statistics and playlists">
         <div class="sidebar-section">
-          <h3 class="sidebar-title" title="Updates every 15 minutes to save API calls">🏆 <span data-i18n="pioneers">Pioneers</span></h3>
-          <div class="pioneers-list" id="pioneers-list">
-            <div class="sidebar-loading">Loading...</div>
+          <h2 class="sidebar-title" title="Updates every 15 minutes to save API calls"><span aria-hidden="true">🏆</span> <span data-i18n="pioneers">Pioneers</span></h2>
+          <div class="pioneers-list" id="pioneers-list" role="list" aria-label="Pioneer users">
+            <div class="sidebar-loading" role="status" aria-live="polite">Loading...</div>
           </div>
         </div>
 
         <div class="sidebar-section">
-          <h3 class="sidebar-title" title="Updates every 15 minutes to save API calls">👋 <span data-i18n="newUsers">New Users</span></h3>
-          <div class="new-users-list" id="new-users-list">
-            <div class="sidebar-loading">Loading...</div>
+          <h2 class="sidebar-title" title="Updates every 15 minutes to save API calls"><span aria-hidden="true">👋</span> <span data-i18n="newUsers">New Users</span></h2>
+          <div class="new-users-list" id="new-users-list" role="list" aria-label="New users">
+            <div class="sidebar-loading" role="status" aria-live="polite">Loading...</div>
           </div>
         </div>
 
         <div class="sidebar-section">
-          <h3 class="sidebar-title" title="Refreshes every 3 minutes">🎵 <span data-i18n="recentPlaylists">Recent Playlists</span></h3>
-          <div class="recent-playlists-list" id="recent-playlists-list">
-            <div class="sidebar-loading">Loading...</div>
+          <h2 class="sidebar-title" title="Refreshes every 3 minutes"><span aria-hidden="true">🎵</span> <span data-i18n="recentPlaylists">Recent Playlists</span></h2>
+          <div class="recent-playlists-list" id="recent-playlists-list" role="list" aria-label="Recently created playlists">
+            <div class="sidebar-loading" role="status" aria-live="polite">Loading...</div>
           </div>
         </div>
 
-        <button class="btn btn-secondary sidebar-scoreboard-btn" data-testid="scoreboard-btn" onclick="showScoreboard()" title="Rankings update every hour">
-          📊 <span data-i18n="viewScoreboard">View Scoreboard</span>
+        <button class="btn btn-secondary sidebar-scoreboard-btn" data-testid="scoreboard-btn" onclick="showScoreboard()" aria-label="View Scoreboard - Rankings update every hour">
+          <span aria-hidden="true">📊</span> <span data-i18n="viewScoreboard">View Scoreboard</span>
         </button>
 
         <!-- Donation button moved to sidebar -->
-        <a href="https://buymeacoffee.com/tomstech" target="_blank" class="sidebar-donate-btn" id="donation-btn" title="Chuck us a dart, legend">
-          <span class="icon">🚬</span>
+        <a href="https://buymeacoffee.com/tomstech" target="_blank" rel="noopener noreferrer" class="sidebar-donate-btn" id="donation-btn" aria-label="Support the project - Buy me a coffee">
+          <span class="icon" aria-hidden="true">🚬</span>
           <span class="text">Shout me a durry <sup class="bryan-text">do it for bryan</sup></span>
         </a>
       </aside>
@@ -109,9 +109,9 @@
       </button>
 
       <!-- Main Content -->
-      <main id="app" class="main-content">
-        <div class="loading">
-          <div class="spinner"></div>
+      <main id="app" class="main-content" role="main" aria-label="Genre playlists">
+        <div class="loading" role="status" aria-live="polite" aria-label="Loading application">
+          <div class="spinner" aria-hidden="true"></div>
           <span data-i18n="loading">Loading...</span>
         </div>
       </main>
@@ -119,20 +119,20 @@
   </div>
 
   <!-- Floating Genie Mascot -->
-  <div class="genie-mascot" id="genie-mascot" title="Genre Genie at your service!">
+  <div class="genie-mascot" id="genie-mascot" aria-label="Genre Genie mascot" role="img" aria-hidden="true">
     🧞
   </div>
 
   <!-- Heidi Easter Egg Badge -->
-  <div class="heidi-badge" data-testid="heidi-badge" onclick="toggleSwedishMode()" title="Click for a Swedish surprise!">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+  <button class="heidi-badge" data-testid="heidi-badge" onclick="toggleSwedishMode()" aria-label="Toggle Swedish mode - Made with inspiration from Heidi">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
       <circle cx="12" cy="8" r="4"/>
       <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
       <path d="M9 4c1-2 5-2 6 0" stroke="#FECC00"/>
     </svg>
-    <span class="heidi-text">
+    <span class="heidi-text" aria-hidden="true">
       <span>Made with inspiration from</span>
       <span><strong>Heidi</strong> <span class="heart">♥</span></span>
     </span>
-  </div>
+  </button>
 

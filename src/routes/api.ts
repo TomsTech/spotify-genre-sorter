@@ -32,6 +32,7 @@ import {
   getCurrentPlayback,
   getPlaylistTracks,
 } from '../lib/spotify';
+import { getKVMonitorData } from '../lib/kv-monitor';
 
 const api = new Hono<{ Bindings: Env }>();
 
@@ -268,12 +269,14 @@ api.get('/now-playing', async (c) => {
         },
         updatedAt: new Date().toISOString(),
       };
-      await kv.put(`listening:${session.spotifyUserId}`, JSON.stringify(listeningData), {
+      // CRITICAL FIX: Use cachedKV for listening status writes
+      await cachedKV.put(kv, `listening:${session.spotifyUserId}`, JSON.stringify(listeningData), {
         expirationTtl: 90, // 90 seconds - auto-expires if user stops polling
+        immediate: false // Can be batched - not critical if delayed by a few seconds
       });
     } else if (session.spotifyUserId) {
       // User not playing - delete their listening entry
-      await kv.delete(`listening:${session.spotifyUserId}`);
+      await cachedKV.delete(kv, `listening:${session.spotifyUserId}`);
     }
 
     if (!playback || !playback.item) {
@@ -378,9 +381,10 @@ api.get('/genres', async (c) => {
     }
 
     // Step 3: Fetch all artists to get genres (limited to prevent subrequest overflow)
+    // Pass KV namespace to enable persistent caching (#74)
     let artists;
     try {
-      const artistResult = await getArtists(session.spotifyAccessToken, [...artistIds]);
+      const artistResult = await getArtists(session.spotifyAccessToken, [...artistIds], undefined, c.env.SESSIONS);
       artists = artistResult.artists;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -447,8 +451,10 @@ api.get('/genres', async (c) => {
     };
 
     // Store in cache
-    await c.env.SESSIONS.put(cacheKey, JSON.stringify(responseData), {
+    // CRITICAL FIX: Use cachedKV for genre cache writes to leverage batching
+    await cachedKV.put(c.env.SESSIONS, cacheKey, JSON.stringify(responseData), {
       expirationTtl: cacheTtl,
+      immediate: true // Genre cache is important - write immediately
     });
 
     // Update user stats with analysis results
@@ -488,6 +494,40 @@ interface ChunkCacheData {
   artistCount: number;
   cachedAt: number;
 }
+
+// Get scan progress status (check if there's an interrupted scan to resume)
+api.get('/genres/scan-status', async (c) => {
+  const session = await getSession(c);
+  if (!session?.spotifyAccessToken) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+
+  try {
+    const user = await getCurrentUser(session.spotifyAccessToken);
+    const progress = await getScanProgress(c.env.SESSIONS, user.id);
+
+    if (!progress) {
+      return c.json({ hasProgress: false });
+    }
+
+    const progressPercent = Math.min(100, Math.round((progress.offset / progress.totalInLibrary) * 100));
+
+    return c.json({
+      hasProgress: true,
+      status: progress.status,
+      progress: progressPercent,
+      scannedTracks: progress.partialTrackCount,
+      totalInLibrary: progress.totalInLibrary,
+      genresFound: progress.partialGenres.length,
+      startedAt: progress.startedAt,
+      lastUpdatedAt: progress.lastUpdatedAt,
+      canResume: progress.status === 'in_progress' && progress.offset > 0 && progress.offset < progress.totalInLibrary,
+    });
+  } catch (err) {
+    console.error('Error checking scan status:', err);
+    return c.json({ hasProgress: false });
+  }
+});
 
 // Progressive scan with resume capability
 // This endpoint handles large libraries by scanning in chunks and storing progress
@@ -582,8 +622,10 @@ api.get('/genres/progressive', async (c) => {
       };
 
       const cacheKey = `${GENRE_CACHE_PREFIX}${user.id}`;
-      await c.env.SESSIONS.put(cacheKey, JSON.stringify(finalData), {
+      // CRITICAL FIX: Use cachedKV for progressive scan final cache
+      await cachedKV.put(c.env.SESSIONS, cacheKey, JSON.stringify(finalData), {
         expirationTtl: GENRE_CACHE_TTL_LARGE,
+        immediate: true
       });
 
       // Update user stats
@@ -609,7 +651,7 @@ api.get('/genres/progressive', async (c) => {
       }
     }
 
-    const { artists } = await getArtists(session.spotifyAccessToken, [...artistIds].slice(0, 500));
+    const { artists } = await getArtists(session.spotifyAccessToken, [...artistIds].slice(0, 500), undefined, c.env.SESSIONS);
     const artistGenreMap = new Map<string, string[]>();
     for (const artist of artists) {
       artistGenreMap.set(artist.id, artist.genres);
@@ -778,8 +820,9 @@ api.get('/genres/chunk', async (c) => {
     }
 
     // Fetch artists (stay under subrequest limit)
+    // Pass KV namespace to enable persistent caching (#74)
     const artistIdArray = [...artistIds].slice(0, MAX_ARTIST_REQUESTS_PER_CHUNK * 50);
-    const { artists } = await getArtists(session.spotifyAccessToken, artistIdArray);
+    const { artists } = await getArtists(session.spotifyAccessToken, artistIdArray, undefined, c.env.SESSIONS);
 
     const artistGenreMap = new Map<string, string[]>();
     for (const artist of artists) {
@@ -824,8 +867,10 @@ api.get('/genres/chunk', async (c) => {
     };
 
     // Cache this chunk
-    await c.env.SESSIONS.put(chunkCacheKey, JSON.stringify(chunkData), {
+    // CRITICAL FIX: Use cachedKV for chunk cache writes
+    await cachedKV.put(c.env.SESSIONS, chunkCacheKey, JSON.stringify(chunkData), {
       expirationTtl: GENRE_CACHE_TTL,
+      immediate: false // Can be batched - chunks are accessed sequentially
     });
 
     const hasMore = offset + allChunkTracks.length < totalInLibrary;
@@ -1493,9 +1538,10 @@ api.get('/scan-playlist/:playlistId', async (c) => {
     const artistGenres = new Map<string, string[]>();
 
     // Fetch artists in batches of 50 (limited to stay under subrequest limit)
+    // Pass KV namespace to enable persistent caching (#74)
     for (let i = 0; i < artistIdList.length && i < 500; i += 50) {
       const batch = artistIdList.slice(i, i + 50);
-      const { artists } = await getArtists(accessToken, batch);
+      const { artists } = await getArtists(accessToken, batch, undefined, c.env.SESSIONS);
       for (const artist of artists) {
         artistGenres.set(artist.id, artist.genres);
       }
@@ -1679,9 +1725,8 @@ api.post('/log-error', async (c) => {
     }
 
     // Get existing errors (last 100)
-    const existingRaw = await c.env.SESSIONS.get(ERROR_LOG_KEY);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const existing: unknown[] = existingRaw ? JSON.parse(existingRaw) as unknown[] : [];
+    // CRITICAL FIX: Use cachedKV for error log reads
+    const existing = await cachedKV.get<unknown[]>(c.env.SESSIONS, ERROR_LOG_KEY) || [];
 
     // Add new errors with server timestamp
     const newErrors = errors.slice(0, 10).map((e: unknown) => ({
@@ -1693,8 +1738,10 @@ api.post('/log-error', async (c) => {
     // Keep last 100 errors
     const combined = [...newErrors, ...existing].slice(0, 100);
 
-    await c.env.SESSIONS.put(ERROR_LOG_KEY, JSON.stringify(combined), {
-      expirationTtl: 86400 * 7 // 7 days
+    // CRITICAL FIX: Use cachedKV with batching for error logs (non-critical, can be delayed)
+    await cachedKV.put(c.env.SESSIONS, ERROR_LOG_KEY, JSON.stringify(combined), {
+      expirationTtl: 86400 * 7, // 7 days
+      immediate: false // Batch error logs to reduce KV writes
     });
 
     // Log to console for immediate visibility
@@ -1719,9 +1766,8 @@ api.post('/log-perf', async (c) => {
     }
 
     // Get existing perf data (last 1000 samples)
-    const existingRaw = await c.env.SESSIONS.get(PERF_LOG_KEY);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const existing: unknown[] = existingRaw ? JSON.parse(existingRaw) as unknown[] : [];
+    // CRITICAL FIX: Use cachedKV for perf log reads
+    const existing = await cachedKV.get<unknown[]>(c.env.SESSIONS, PERF_LOG_KEY) || [];
 
     // Add new sample
     const sample = {
@@ -1735,8 +1781,10 @@ api.post('/log-perf', async (c) => {
 
     const combined = [sample, ...existing].slice(0, 1000);
 
-    await c.env.SESSIONS.put(PERF_LOG_KEY, JSON.stringify(combined), {
-      expirationTtl: 86400 * 30 // 30 days
+    // CRITICAL FIX: Use cachedKV with batching for perf logs (non-critical, can be delayed)
+    await cachedKV.put(c.env.SESSIONS, PERF_LOG_KEY, JSON.stringify(combined), {
+      expirationTtl: 86400 * 30, // 30 days
+      immediate: false // Batch perf logs to reduce KV writes
     });
 
     return c.json({ ok: true });
@@ -2188,6 +2236,114 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   });
 });
 
+// ================== Artist Genre Cache Statistics ==================
+
+// Get artist genre cache statistics (#74 - Persistent Genre Cache)
+api.get('/cache/artist-genres/stats', async (c) => {
+  try {
+    const { getArtistGenreCacheStats } = await import('../lib/artist-genre-cache');
+    const stats = await getArtistGenreCacheStats(c.env.SESSIONS);
+
+    // Calculate cache efficiency metrics
+    const totalRequests = stats.cacheHits + stats.cacheMisses;
+    const hitRate = totalRequests > 0 ? (stats.cacheHits / totalRequests) * 100 : 0;
+
+    return c.json({
+      stats: {
+        totalCachedArtists: stats.totalCached,
+        cacheHits: stats.cacheHits,
+        cacheMisses: stats.cacheMisses,
+        apiCallsSaved: stats.apiCallsSaved,
+        hitRate: `${hitRate.toFixed(1)}%`,
+        lastUpdated: stats.lastUpdated,
+      },
+      performance: {
+        estimatedApiCallReduction: stats.apiCallsSaved,
+        estimatedTimeSaved: `~${Math.round(stats.apiCallsSaved * 0.5)}s`, // Rough estimate
+      },
+      cacheConfig: {
+        ttl: '30 days',
+        prefix: 'artist_genre:',
+        strategy: 'Persistent KV storage with 5-minute in-memory cache',
+      },
+    });
+  } catch (err) {
+    console.error('Error fetching cache stats:', err);
+    return c.json({ error: 'Failed to fetch cache statistics' }, 500);
+  }
+});
+
+// Admin: Clear artist genre cache
+api.post('/admin/cache/artist-genres/clear', async (c) => {
+  const session = await getSession(c);
+  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+
+  try {
+    const { clearAllArtistGenreCache } = await import('../lib/artist-genre-cache');
+    const deletedCount = await clearAllArtistGenreCache(c.env.SESSIONS);
+
+    return c.json({
+      success: true,
+      deletedEntries: deletedCount,
+      message: `Cleared ${deletedCount} cached artist entries`,
+    });
+  } catch (err) {
+    console.error('Error clearing artist genre cache:', err);
+    return c.json({ error: 'Failed to clear cache' }, 500);
+  }
+});
+
+// Admin: Cleanup old artist genre cache entries
+api.post('/admin/cache/artist-genres/cleanup', async (c) => {
+  const session = await getSession(c);
+  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+
+  try {
+    const body = await c.req.json<{ maxAgeDays?: number }>();
+    const maxAgeDays = body.maxAgeDays || 60;
+
+    const { cleanupOldArtistGenreCache } = await import('../lib/artist-genre-cache');
+    const deletedCount = await cleanupOldArtistGenreCache(c.env.SESSIONS, maxAgeDays);
+
+    return c.json({
+      success: true,
+      deletedEntries: deletedCount,
+      maxAgeDays,
+      message: `Cleaned up ${deletedCount} cache entries older than ${maxAgeDays} days`,
+    });
+  } catch (err) {
+    console.error('Error cleaning up cache:', err);
+    return c.json({ error: 'Failed to cleanup cache' }, 500);
+  }
+});
+
+// Admin: Invalidate specific artists from cache
+api.post('/admin/cache/artist-genres/invalidate', async (c) => {
+  const session = await getSession(c);
+  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+
+  try {
+    const body = await c.req.json<{ artistIds: string[] }>();
+    const { artistIds } = body;
+
+    if (!Array.isArray(artistIds) || artistIds.length === 0) {
+      return c.json({ error: 'artistIds array required' }, 400);
+    }
+
+    const { invalidateArtistGenreCache } = await import('../lib/artist-genre-cache');
+    const deletedCount = await invalidateArtistGenreCache(c.env.SESSIONS, artistIds);
+
+    return c.json({
+      success: true,
+      deletedEntries: deletedCount,
+      message: `Invalidated ${deletedCount} artist cache entries`,
+    });
+  } catch (err) {
+    console.error('Error invalidating cache:', err);
+    return c.json({ error: 'Failed to invalidate cache' }, 500);
+  }
+});
+
 // Request Access - for non-whitelisted users to request an invite
 interface AccessRequestBody {
   email?: string;
@@ -2290,6 +2446,133 @@ api.get('/admin/access-requests', async (c) => {
   requests.sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime());
 
   return c.json({ requests, total: requests.length });
+});
+
+// ================== KV Monitoring Dashboard ==================
+
+/**
+ * GET /admin/kv-monitor
+ * Comprehensive KV namespace monitoring - key counts, sizes, and metadata
+ */
+api.get('/admin/kv-monitor', async (c) => {
+  const session = await getSession(c);
+  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+
+  try {
+    const data = await getKVMonitorData(c.env.SESSIONS);
+    return c.json(data);
+  } catch (err) {
+    console.error('Error getting KV monitor data:', err);
+    return c.json({ error: 'Failed to fetch KV monitoring data' }, 500);
+  }
+});
+
+/**
+ * GET /admin/kv-keys
+ * Browse keys in a specific namespace with pagination
+ */
+api.get('/admin/kv-keys', async (c) => {
+  const session = await getSession(c);
+  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+
+  const prefix = c.req.query('prefix') || '';
+  const limit = Math.min(parseInt(c.req.query('limit') || '50'), 100);
+  const cursor = c.req.query('cursor') || undefined;
+
+  const kv = c.env.SESSIONS;
+
+  try {
+    const result = await kv.list({ prefix, limit, cursor });
+
+    // Enrich keys with metadata
+    const keys = result.keys.map(key => ({
+      name: key.name,
+      expiration: key.expiration,
+      metadata: key.metadata,
+      expiresAt: key.expiration ? new Date(key.expiration * 1000).toISOString() : null,
+    }));
+
+    return c.json({
+      keys,
+      cursor: result.cursor,
+      list_complete: result.list_complete,
+      total: keys.length,
+    });
+  } catch (err) {
+    console.error('Error listing keys:', err);
+    return c.json({ error: 'Failed to list keys' }, 500);
+  }
+});
+
+/**
+ * GET /admin/kv-key/:key
+ * Get details of a specific key including value (admin only)
+ */
+api.get('/admin/kv-key/:key', async (c) => {
+  const session = await getSession(c);
+  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+
+  const keyName = c.req.param('key');
+  if (!keyName) return c.json({ error: 'Key name required' }, 400);
+
+  const kv = c.env.SESSIONS;
+
+  try {
+    const value = await kv.get(keyName);
+    if (value === null) {
+      return c.json({ error: 'Key not found' }, 404);
+    }
+
+    // Try to parse as JSON for better display
+    let parsedValue: unknown = value;
+    let valueType = 'string';
+    try {
+      parsedValue = JSON.parse(value);
+      valueType = 'json';
+    } catch {
+      // Keep as string
+    }
+
+    // Get metadata via list
+    const list = await kv.list({ prefix: keyName, limit: 1 });
+    const keyMeta = list.keys.find(k => k.name === keyName);
+
+    return c.json({
+      key: keyName,
+      value: parsedValue,
+      valueType,
+      rawValue: value,
+      size: value.length,
+      metadata: keyMeta?.metadata,
+      expiration: keyMeta?.expiration,
+      expiresAt: keyMeta?.expiration ? new Date(keyMeta.expiration * 1000).toISOString() : null,
+    });
+  } catch (err) {
+    console.error('Error getting key:', err);
+    return c.json({ error: 'Failed to get key value' }, 500);
+  }
+});
+
+/**
+ * DELETE /admin/kv-key/:key
+ * Delete a specific key (admin only)
+ */
+api.delete('/admin/kv-key/:key', async (c) => {
+  const session = await getSession(c);
+  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+
+  const keyName = c.req.param('key');
+  if (!keyName) return c.json({ error: 'Key name required' }, 400);
+
+  const kv = c.env.SESSIONS;
+
+  try {
+    await kv.delete(keyName);
+    return c.json({ success: true, key: keyName, deletedAt: new Date().toISOString() });
+  } catch (err) {
+    console.error('Error deleting key:', err);
+    return c.json({ error: 'Failed to delete key' }, 500);
+  }
 });
 
 export default api;

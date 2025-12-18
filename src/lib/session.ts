@@ -75,10 +75,13 @@ export async function createSession(
   const csrfToken = generateCsrfToken();
   const sessionWithCsrf = { ...session, csrfToken };
 
-  await c.env.SESSIONS.put(
+  // CRITICAL FIX: Use cachedKV with immediate write for session creation
+  // This ensures session is immediately persisted and cached in memory
+  await cachedKV.put(
+    c.env.SESSIONS,
     `session:${sessionId}`,
     JSON.stringify(sessionWithCsrf),
-    { expirationTtl: SESSION_TTL }
+    { expirationTtl: SESSION_TTL, immediate: true }
   );
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -101,11 +104,9 @@ export async function getSession(
   const sessionId = getCookie(c, SESSION_COOKIE);
   if (!sessionId) return null;
 
-  const data = await c.env.SESSIONS.get(`session:${sessionId}`);
-  if (!data) return null;
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const session: Session = JSON.parse(data);
+  // CRITICAL FIX: Use cachedKV to reduce KV reads (sessions are read on every authenticated request)
+  // Memory cache TTL: 1 minute (CACHE_TTL.SESSION)
+  const session = await cachedKV.get<Session>(c.env.SESSIONS, `session:${sessionId}`, { cacheTtlMs: CACHE_TTL.SESSION });
   return session;
 }
 
@@ -118,18 +119,19 @@ export async function updateSession(
   const sessionId = getCookie(c, SESSION_COOKIE);
   if (!sessionId) return;
 
-  // PERF-008 FIX: Read directly from KV instead of calling getSession() wrapper
-  // This avoids the double read that was happening before
-  const data = await c.env.SESSIONS.get(`session:${sessionId}`);
-  if (!data) return;
+  // CRITICAL FIX: Use cachedKV for both read and write to reduce KV operations
+  // This eliminates duplicate reads and leverages memory cache
+  const existing = await cachedKV.get<Session>(c.env.SESSIONS, `session:${sessionId}`, { cacheTtlMs: CACHE_TTL.SESSION });
+  if (!existing) return;
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const existing: Session = JSON.parse(data);
   const updated = { ...existing, ...updates };
-  await c.env.SESSIONS.put(
+
+  // Write immediately for sessions (critical data that needs to persist across requests)
+  await cachedKV.put(
+    c.env.SESSIONS,
     `session:${sessionId}`,
     JSON.stringify(updated),
-    { expirationTtl: SESSION_TTL }
+    { expirationTtl: SESSION_TTL, immediate: true }
   );
 }
 
@@ -569,7 +571,9 @@ async function getDailyAnalytics(kv: KVNamespace): Promise<AnalyticsData> {
 
 async function saveDailyAnalytics(kv: KVNamespace, data: AnalyticsData): Promise<void> {
   const key = `${ANALYTICS_KEY}:${data.date}`;
-  await kv.put(key, JSON.stringify(data), { expirationTtl: ANALYTICS_TTL });
+  // CRITICAL FIX: Use cachedKV for analytics writes (non-critical data, can be batched)
+  // This significantly reduces KV write operations
+  await cachedKV.put(kv, key, JSON.stringify(data), { expirationTtl: ANALYTICS_TTL });
 }
 
 // Analytics sampling rate - only persist 1 in N events to reduce KV writes
