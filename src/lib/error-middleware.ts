@@ -7,7 +7,6 @@
 import { Context, Next } from 'hono';
 import {
   AppError,
-  classifyError,
   createErrorResponse,
   logError,
   ErrorCode,
@@ -31,13 +30,15 @@ export async function errorHandler(c: Context, next: Next): Promise<Response | v
     const duration = Date.now() - startTime;
 
     // Log the error
-    const logEntry = logError(error, {
+    const env = c.env as { BETTERSTACK_TOKEN?: string; ENVIRONMENT?: string } | undefined;
+    const session = c.get('session' as never) as { spotifyUserId?: string } | undefined;
+    const logEntry = logError(error instanceof Error ? error : new Error(String(error)), {
       executionContext: c.executionCtx,
-      betterStackToken: c.env?.BETTERSTACK_TOKEN,
+      betterStackToken: env?.BETTERSTACK_TOKEN,
       requestContext: {
         path: new URL(c.req.url).pathname,
         method: c.req.method,
-        userId: c.get('session' as never)?.spotifyUserId,
+        userId: session?.spotifyUserId,
       },
     });
 
@@ -50,9 +51,9 @@ export async function errorHandler(c: Context, next: Next): Promise<Response | v
     const swedish = c.req.header('Accept-Language')?.includes('sv') || false;
 
     // Create error response
-    const errorResponse = createErrorResponse(error, {
+    const errorResponse = createErrorResponse(error instanceof Error ? error : new Error(String(error)), {
       swedish,
-      includeStack: c.env?.ENVIRONMENT === 'development',
+      includeStack: env?.ENVIRONMENT === 'development',
     });
 
     // Clone response to add headers
