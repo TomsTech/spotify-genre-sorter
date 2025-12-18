@@ -38,20 +38,16 @@ app.onError(async (err, c) => {
   return c.json({ error: err.message || 'Internal error' }, 500);
 });
 
-// CSP Nonce generation middleware
+// Security headers middleware with CSP nonce - fixes Google Safe Browsing warnings
+// Store nonce in a WeakMap keyed by request to avoid Hono Variables typing issues
+const requestNonces = new WeakMap<Request, string>();
+
 app.use('*', async (c, next) => {
   // Generate a unique nonce for this request
   const nonce = generateNonce();
-  c.set('cspNonce', nonce);
-  await next();
-});
+  requestNonces.set(c.req.raw, nonce);
 
-// Security headers middleware - fixes Google Safe Browsing warnings
-app.use('*', async (c, next) => {
   await next();
-
-  // Get the nonce for this request
-  const nonce = c.get('cspNonce') as string;
 
   c.header('Content-Security-Policy', [
     "default-src 'self'",
@@ -528,7 +524,7 @@ app.get('/favicon.ico', (c) => {
 // Main UI
 app.get('/', (c) => {
   // Removed KV pageView tracking - use Cloudflare Analytics instead
-  const nonce = c.get('cspNonce') as string;
+  const nonce = requestNonces.get(c.req.raw) || generateNonce();
   return c.html(getHtml(nonce));
 });
 
