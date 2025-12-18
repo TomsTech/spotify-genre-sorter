@@ -6,6 +6,7 @@ import api from './routes/api';
 import { getSession, trackAnalyticsEvent, getAnalytics, getKVMetrics } from './lib/session';
 import { getHtml } from './generated/frontend';
 import { createLogger, generateRequestId } from './lib/logger';
+import { generateNonce } from './lib/csp-nonce';
 
 // App version - increment on each deployment
 const APP_VERSION = '3.4.0'; // Share modal, genre families, artist deep dive, completion messages
@@ -37,13 +38,25 @@ app.onError(async (err, c) => {
   return c.json({ error: err.message || 'Internal error' }, 500);
 });
 
+// CSP Nonce generation middleware
+app.use('*', async (c, next) => {
+  // Generate a unique nonce for this request
+  const nonce = generateNonce();
+  c.set('cspNonce', nonce);
+  await next();
+});
+
 // Security headers middleware - fixes Google Safe Browsing warnings
 app.use('*', async (c, next) => {
   await next();
+
+  // Get the nonce for this request
+  const nonce = c.get('cspNonce') as string;
+
   c.header('Content-Security-Policy', [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
-    "style-src 'self' 'unsafe-inline'",
+    `script-src 'self' 'nonce-${nonce}' https://static.cloudflareinsights.com`,
+    `style-src 'self' 'nonce-${nonce}'`,
     "img-src 'self' data: https://flagcdn.com https://i.scdn.co https://avatars.githubusercontent.com https://img.shields.io https://uptime.betterstack.com",
     "connect-src 'self' https://api.spotify.com https://ko-fi.com https://cloudflareinsights.com",
     "frame-ancestors 'none'",
@@ -239,19 +252,36 @@ app.get('/kv-health', async (c) => {
 // Middleware (after health check so it doesn't block health)
 app.use('*', logger());
 
-// CORS - restrict to same-origin only (no cross-origin API access)
-// This prevents malicious sites from making requests on behalf of users
+// CORS - explicit policy (#99d Security hardening)
+// Restricts API access to same-origin and trusted domains only
 app.use('/api/*', cors({
   origin: (origin, c) => {
-    // Allow same-origin requests (origin will be null for same-origin)
-    // or match the request host
+    // Allow same-origin requests (origin will be null)
+    if (!origin) return '*';
+
+    // Trusted production domains
+    const trustedDomains = [
+      'spotify-genre-sorter.houstons-tech.workers.dev',
+      'spotify.houstons.tech',
+      'genre-genie.tomstech.io',
+    ];
+
+    // Check if origin matches trusted domain or request host
     const host = c.req.header('host');
-    if (!origin || origin.includes(host || '')) {
-      return origin || '*';
+    const originHost = new URL(origin).host;
+
+    if (trustedDomains.includes(originHost) || originHost === host) {
+      return origin;
     }
-    return null; // Reject cross-origin
+
+    // Reject cross-origin from untrusted domains
+    return null;
   },
   credentials: true,
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+  exposeHeaders: ['Content-Length', 'X-Request-Id'],
+  maxAge: 600, // Cache preflight for 10 minutes
 }));
 
 // Mount routes
@@ -319,6 +349,8 @@ app.get('/session', async (c) => {
       githubAvatar: session.githubAvatar,
       spotifyUser: session.spotifyUser,
       spotifyConnected: !!session.spotifyAccessToken,
+      // CSRF token for state-changing requests
+      csrfToken: session.csrfToken,
     });
   } catch {
     return c.json({ authenticated: false, spotifyOnly, error: 'Session error' });
@@ -496,7 +528,8 @@ app.get('/favicon.ico', (c) => {
 // Main UI
 app.get('/', (c) => {
   // Removed KV pageView tracking - use Cloudflare Analytics instead
-  return c.html(getHtml());
+  const nonce = c.get('cspNonce') as string;
+  return c.html(getHtml(nonce));
 });
 
 

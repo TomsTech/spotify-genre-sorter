@@ -204,6 +204,44 @@ api.get('/me', async (c) => {
   }
 });
 
+// Get library size (#75 - display library stats before scan)
+api.get('/library-size', async (c) => {
+  const session = await getSession(c);
+  if (!session?.spotifyAccessToken) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+
+  try {
+    // Minimal API call - just get total count
+    const sizeCheck = await getLikedTracks(session.spotifyAccessToken, 1, 0);
+    const total = sizeCheck.total;
+
+    // Estimate scan time based on library size
+    // ~500 tracks per chunk, ~5-8 seconds per chunk
+    const chunks = Math.ceil(total / 500);
+    const estimatedSeconds = chunks * 6; // ~6 seconds avg per chunk
+
+    let estimatedTime: string;
+    if (estimatedSeconds < 60) {
+      estimatedTime = `~${estimatedSeconds} seconds`;
+    } else {
+      const minutes = Math.ceil(estimatedSeconds / 60);
+      estimatedTime = `~${minutes} minute${minutes > 1 ? 's' : ''}`;
+    }
+
+    return c.json({
+      total,
+      isLarge: total > 5000,
+      isVeryLarge: total > 10000,
+      estimatedScanTime: estimatedTime,
+      requiresProgressiveLoad: total > PROGRESSIVE_LOAD_THRESHOLD,
+    });
+  } catch (err) {
+    console.error('Error fetching library size:', err);
+    return c.json({ error: 'Failed to fetch library size' }, 500);
+  }
+});
+
 // Get current playback state (Now Playing)
 // Also stores listening status in KV for public "who's listening" feature
 api.get('/now-playing', async (c) => {
@@ -502,19 +540,28 @@ api.get('/genres/progressive', async (c) => {
       progress.offset = 0;
     }
 
-    // Fetch next chunk of tracks (stay under subrequest limit)
+    // OPTIMIZATION: Fetch next chunk of tracks in parallel
     const CHUNK_SIZE_PROGRESSIVE = 500;
     const allChunkTracks = [];
+    const maxPages = Math.min(10, Math.ceil(CHUNK_SIZE_PROGRESSIVE / 50));
+
+    // Build array of parallel fetch operations
+    const fetchPromises = [];
+    for (let i = 0; i < maxPages; i++) {
+      const pageOffset = progress.offset + (i * 50);
+      const pageLimit = Math.min(50, progress.offset + CHUNK_SIZE_PROGRESSIVE - pageOffset);
+      if (pageLimit > 0) {
+        fetchPromises.push(getLikedTracks(session.spotifyAccessToken, pageLimit, pageOffset));
+      }
+    }
+
+    // Fetch all pages concurrently
+    const responses = await Promise.all(fetchPromises);
     let currentOffset = progress.offset;
-    let requestCount = 0;
 
-    while (currentOffset < progress.offset + CHUNK_SIZE_PROGRESSIVE && requestCount < 10) {
-      const pageLimit = Math.min(50, progress.offset + CHUNK_SIZE_PROGRESSIVE - currentOffset);
-      const response = await getLikedTracks(session.spotifyAccessToken, pageLimit, currentOffset);
+    for (const response of responses) {
       allChunkTracks.push(...response.items);
-      currentOffset += pageLimit;
-      requestCount++;
-
+      currentOffset += response.items.length;
       if (currentOffset >= response.total) break;
     }
 
@@ -675,23 +722,32 @@ api.get('/genres/chunk', async (c) => {
       });
     }
 
-    // Fetch tracks for this chunk
+    // OPTIMIZATION: Fetch tracks in parallel for faster chunk loading
+    // Calculate how many pages we need
     const allChunkTracks = [];
-    let currentOffset = offset;
     let totalInLibrary = 0;
-    let requestCount = 0;
+    const pagesToFetch = Math.min(MAX_TRACK_REQUESTS_PER_CHUNK, Math.ceil(limit / 50));
 
-    while (currentOffset < offset + limit && requestCount < MAX_TRACK_REQUESTS_PER_CHUNK) {
-      const pageLimit = Math.min(50, offset + limit - currentOffset);
-      const response = await getLikedTracks(session.spotifyAccessToken, pageLimit, currentOffset);
+    // Build array of offsets to fetch in parallel
+    const fetchPromises = [];
+    for (let i = 0; i < pagesToFetch; i++) {
+      const pageOffset = offset + (i * 50);
+      const pageLimit = Math.min(50, offset + limit - pageOffset);
+      if (pageLimit > 0) {
+        fetchPromises.push(getLikedTracks(session.spotifyAccessToken, pageLimit, pageOffset));
+      }
+    }
+
+    // Fetch all pages in parallel
+    const responses = await Promise.all(fetchPromises);
+
+    for (const response of responses) {
       allChunkTracks.push(...response.items);
       totalInLibrary = response.total;
-      currentOffset += pageLimit;
-      requestCount++;
-
       // Stop if we've reached the end of the library
-      if (currentOffset >= response.total) break;
+      if (allChunkTracks.length >= response.total - offset) break;
     }
+    const currentOffset = offset + allChunkTracks.length;
 
     if (allChunkTracks.length === 0) {
       // No more tracks at this offset
@@ -825,7 +881,10 @@ function validateTrackIds(trackIds: unknown): ValidationResult<string[]> {
   return { valid: true, value: validIds };
 }
 
-// Helper to sanitise genre name
+// Helper to sanitise genre name (#99e - whitelist approach)
+// Whitelist: letters (including unicode), numbers, spaces, hyphens, ampersands, apostrophes, parentheses, dots, commas
+const GENRE_WHITELIST_REGEX = /^[\p{L}\p{N}\s\-&'().,:!?/+]+$/u;
+
 function sanitiseGenreName(genre: unknown): ValidationResult<string> {
   if (typeof genre !== 'string') {
     return { valid: false, error: 'Genre must be a string' };
@@ -837,9 +896,16 @@ function sanitiseGenreName(genre: unknown): ValidationResult<string> {
   if (trimmed.length > MAX_GENRE_NAME_LENGTH) {
     return { valid: false, error: `Genre name exceeds ${MAX_GENRE_NAME_LENGTH} characters` };
   }
-  // Remove any potentially dangerous characters (keep alphanumeric, spaces, hyphens, common chars)
-  const sanitised = trimmed.replace(/[<>"'&]/g, '');
-  return { valid: true, value: sanitised };
+  // Whitelist validation - only allow safe characters
+  if (!GENRE_WHITELIST_REGEX.test(trimmed)) {
+    // Strip non-whitelisted characters instead of rejecting
+    const sanitised = trimmed.replace(/[^\p{L}\p{N}\s\-&'().,:!?/+]/gu, '');
+    if (sanitised.length === 0) {
+      return { valid: false, error: 'Genre name contains only invalid characters' };
+    }
+    return { valid: true, value: sanitised };
+  }
+  return { valid: true, value: trimmed };
 }
 
 // Create a playlist for a specific genre
@@ -1299,15 +1365,18 @@ api.get('/listening', async (c) => {
       updatedAt: string;
     }
 
+    // PERF-013 FIX: Use Promise.all for parallel reads instead of sequential loop
+    const dataPromises = list.keys.map(key => kv.get(key.name));
+    const dataResults = await Promise.all(dataPromises);
+
     const listeners: ListeningEntry[] = [];
-    for (const key of list.keys) {
-      try {
-        const data = await kv.get(key.name);
-        if (data) {
+    for (const data of dataResults) {
+      if (data) {
+        try {
           const entry = JSON.parse(data) as ListeningEntry;
           listeners.push(entry);
-        }
-      } catch { /* skip malformed entries */ }
+        } catch { /* skip malformed entries */ }
+      }
     }
 
     return c.json({
@@ -2015,10 +2084,13 @@ api.get('/admin/users', async (c) => {
     lastActive: string | null;
   }> = [];
 
-  for (const key of userStatsList.keys) {
-    try {
-      const statsJson = await kv.get(key.name);
-      if (statsJson) {
+  // PERF-014 FIX: Use Promise.all for parallel reads instead of sequential loop
+  const dataPromises = userStatsList.keys.map(key => kv.get(key.name));
+  const dataResults = await Promise.all(dataPromises);
+
+  for (const statsJson of dataResults) {
+    if (statsJson) {
+      try {
         const stats = JSON.parse(statsJson) as {
           spotifyId: string;
           spotifyName: string;
@@ -2035,8 +2107,8 @@ api.get('/admin/users', async (c) => {
           registeredAt: stats.firstSeen || 'Unknown',
           lastActive: stats.lastActive || null,
         });
-      }
-    } catch { /* skip malformed entries */ }
+      } catch { /* skip malformed entries */ }
+    }
   }
 
   // Sort by registration date (newest first)
@@ -2061,39 +2133,21 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   const kv = c.env.SESSIONS;
   const deleted: string[] = [];
 
-  // Delete user_stats - use cachedKV for proper cache invalidation
-  const userStatsKey = `user_stats:${spotifyId}`;
-  if (await kv.get(userStatsKey)) {
-    await cachedKV.delete(kv, userStatsKey);
-    deleted.push(userStatsKey);
-  }
+  // PERF-012 FIX: Delete without checking existence first (KV delete is idempotent)
+  // This reduces 5 KV reads to 0, saving ~5 operations per user delete
+  const keysToDelete = [
+    `user_stats:${spotifyId}`,
+    `user:${spotifyId}`,
+    `hof:${spotifyId}`,
+    `genre_cache_${spotifyId}`,
+    `scan_progress:${spotifyId}`,
+    `user_prefs:${spotifyId}` // Also delete preferences
+  ];
 
-  // Delete user lookup
-  const userKey = `user:${spotifyId}`;
-  if (await kv.get(userKey)) {
-    await cachedKV.delete(kv, userKey);
-    deleted.push(userKey);
-  }
-
-  // Delete Hall of Fame entry
-  const hofKey = `hof:${spotifyId}`;
-  if (await kv.get(hofKey)) {
-    await cachedKV.delete(kv, hofKey);
-    deleted.push(hofKey);
-  }
-
-  // Delete genre cache for this user
-  const genreCacheKey = `genre_cache_${spotifyId}`;
-  if (await kv.get(genreCacheKey)) {
-    await cachedKV.delete(kv, genreCacheKey);
-    deleted.push(genreCacheKey);
-  }
-
-  // Delete scan progress if exists
-  const scanProgressKey = `scan_progress:${spotifyId}`;
-  if (await kv.get(scanProgressKey)) {
-    await cachedKV.delete(kv, scanProgressKey);
-    deleted.push(scanProgressKey);
+  // Delete all keys without checking existence (delete is idempotent)
+  for (const key of keysToDelete) {
+    await cachedKV.delete(kv, key);
+    deleted.push(key);
   }
 
   // Find and delete any active sessions for this user
@@ -2112,7 +2166,7 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   }
 
   // Decrement user count if we deleted a user_stats entry
-  if (deleted.includes(userStatsKey)) {
+  if (deleted.includes(`user_stats:${spotifyId}`)) {
     try {
       const countStr = await kv.get('stats:user_count');
       const count = countStr ? parseInt(countStr, 10) : 0;
@@ -2219,12 +2273,17 @@ api.get('/admin/access-requests', async (c) => {
   const existingList = await kv.get(listKey);
   const emails: string[] = existingList ? JSON.parse(existingList) as string[] : [];
 
+  // PERF-015 FIX: Use Promise.all for parallel reads instead of sequential loop
+  const requestKeys = emails.map(email => `access_request_${email}`);
+  const dataPromises = requestKeys.map(key => kv.get(key));
+  const dataResults = await Promise.all(dataPromises);
+
   const requests: AccessRequest[] = [];
-  for (const email of emails) {
-    const requestKey = `access_request_${email}`;
-    const data = await kv.get(requestKey);
+  for (const data of dataResults) {
     if (data) {
-      requests.push(JSON.parse(data) as AccessRequest);
+      try {
+        requests.push(JSON.parse(data) as AccessRequest);
+      } catch { /* skip malformed entries */ }
     }
   }
 

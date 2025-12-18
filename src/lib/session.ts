@@ -1,6 +1,7 @@
 import { Context } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { cachedKV, CACHE_TTL } from './kv-cache';
+import { generateCsrfToken } from './csrf';
 
 // Re-export metrics and cachedKV for API access
 export { getKVMetrics, cachedKV } from './kv-cache';
@@ -57,6 +58,7 @@ export interface Session {
   spotifyAccessToken?: string;
   spotifyRefreshToken?: string;
   spotifyExpiresAt?: number;
+  csrfToken?: string;
 }
 
 const SESSION_COOKIE = 'session_id';
@@ -68,9 +70,14 @@ export async function createSession(
   session: Session
 ): Promise<string> {
   const sessionId = crypto.randomUUID();
+
+  // Generate CSRF token for the session
+  const csrfToken = generateCsrfToken();
+  const sessionWithCsrf = { ...session, csrfToken };
+
   await c.env.SESSIONS.put(
     `session:${sessionId}`,
-    JSON.stringify(session),
+    JSON.stringify(sessionWithCsrf),
     { expirationTtl: SESSION_TTL }
   );
 
@@ -148,16 +155,18 @@ export async function storeState(
   state: string,
   data: Record<string, string>
 ): Promise<void> {
-  await kv.put(`state:${state}`, JSON.stringify(data), { expirationTtl: 600 });
+  // PERF-010 FIX: OAuth state is short-lived and critical - write immediately
+  await cachedKV.put(kv, `state:${state}`, JSON.stringify(data), { expirationTtl: 600, immediate: true });
 }
 
 export async function verifyState(
   kv: KVNamespace,
   state: string
 ): Promise<Record<string, string> | null> {
-  const data = await kv.get(`state:${state}`);
+  // PERF-010 FIX: Use cachedKV for state reads (no caching - single use tokens)
+  const data = await cachedKV.getString(kv, `state:${state}`);
   if (!data) return null;
-  await kv.delete(`state:${state}`);
+  await cachedKV.delete(kv, `state:${state}`);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const parsed: Record<string, string> = JSON.parse(data);
   return parsed;
@@ -724,7 +733,8 @@ export async function getUserPreferences(
   kv: KVNamespace,
   spotifyId: string
 ): Promise<UserPreferences> {
-  const prefs = await kv.get<UserPreferences>(`user_prefs:${spotifyId}`, { type: 'json' });
+  // PERF-009 FIX: Use cachedKV instead of direct KV access for preferences
+  const prefs = await cachedKV.get<UserPreferences>(kv, `user_prefs:${spotifyId}`, { cacheTtlMs: 300000 }); // 5 min cache
   return prefs || { ...DEFAULT_PREFERENCES };
 }
 
@@ -735,6 +745,7 @@ export async function updateUserPreferences(
 ): Promise<UserPreferences> {
   const existing = await getUserPreferences(kv, spotifyId);
   const updated = { ...existing, ...updates };
-  await kv.put(`user_prefs:${spotifyId}`, JSON.stringify(updated));
+  // PERF-009 FIX: Use cachedKV with immediate write for preferences
+  await cachedKV.put(kv, `user_prefs:${spotifyId}`, JSON.stringify(updated), { immediate: true });
   return updated;
 }
