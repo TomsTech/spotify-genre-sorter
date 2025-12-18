@@ -50,9 +50,9 @@ export async function validateCsrfToken(
   // Try body/form field if header not present
   if (!requestToken) {
     try {
-      const body = await c.req.json().catch(() => null);
-      if (body && typeof body === 'object' && CSRF_FORM_FIELD in body) {
-        requestToken = body[CSRF_FORM_FIELD] as string;
+      const body: unknown = await c.req.json().catch(() => null);
+      if (body && typeof body === 'object' && body !== null && CSRF_FORM_FIELD in (body as Record<string, unknown>)) {
+        requestToken = (body as Record<string, unknown>)[CSRF_FORM_FIELD] as string;
       }
     } catch {
       // If JSON parsing fails, token is not in body
