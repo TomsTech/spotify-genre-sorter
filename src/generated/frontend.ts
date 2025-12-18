@@ -12318,7 +12318,7 @@ export function getHtml(nonce: string): string {
         month: 'short',
         day: 'numeric'
       });
-      const username = userData?.display_name || 'User';
+      const username = window.currentUser?.display_name || 'User';
 
       return playlistDescTemplate
         .replace(/{genre}/g, genreName)
