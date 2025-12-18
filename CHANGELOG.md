@@ -17,12 +17,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Personal messages from Tom
   - Auto-enables Swedish mode
   - Respects prefers-reduced-motion
+- **Genre Wrapped** - shareable Spotify Wrapped-style cards
+  - Astrology-style personality readings
+  - Native Web Share API integration
+- **Genre Families** - artist deep dive with genre relationships
+- **Share Modal** - completion messages with sharing options
+- **Health Monitoring** - health indicator, error logging, performance metrics
+- **Request Access** - invite system with rate limit banner
 
 ### Security
-- **Whitelist Genre Sanitization** - improved input validation (#99e)
-  - Changed from blacklist to whitelist approach
-  - Unicode-aware regex using `\p{L}\p{N}` patterns
-  - Allows letters, numbers, spaces, and common punctuation
+- **PKCE OAuth Flow** (#99b) - Secure OAuth with code_challenge/verifier
+- **CSP Nonces** (#99a) - Replaced unsafe-inline with per-request nonces
+- **CSRF Protection** (#99c) - Synchronizer token pattern for state-changing requests
+- **CORS Policy** (#99d) - Explicit trusted domains with preflight caching
+- **Whitelist Genre Sanitization** (#99e) - Unicode-aware input validation
+
+### Performance
+- **KV Read/Write Optimisation** (PERF-009 to PERF-015)
+  - Memory cache layer for hot data
+  - Write batching for analytics
+  - Parallel read operations
+  - Analytics sampling (10%)
+- **Worker Transaction Efficiency** - Parallel API calls, reduced latency
+
+### Fixed
+- **Large Library Bug** (#54) - Properly budget subrequests for tracks + artists
+- **KV Stats Sync** - Status widgets layout improvements
+- **Template Literal Build** - Fixed JS escape sequences
+
+### Changed
+- **Admin User Management** - KV health monitoring with drill-down modal
+- **E2E Testing Infrastructure** - Playwright tests with 30/30 passing
 
 ## [3.3.0] - 2025-12-08
 
