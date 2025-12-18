@@ -3,7 +3,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import auth from './routes/auth';
 import api from './routes/api';
-import { getSession, trackAnalyticsEvent, getAnalytics, getKVMetrics } from './lib/session';
+import { getSession, trackAnalyticsEvent, getAnalytics, getKVMetrics, cachedKV } from './lib/session';
 import { getHtml } from './generated/frontend';
 import { createLogger, generateRequestId } from './lib/logger';
 import { generateNonce } from './lib/csp-nonce';
@@ -66,6 +66,19 @@ app.use('*', async (c, next) => {
 });
 
 // BetterStack request logging middleware (logs errors and slow requests)
+// CRITICAL FIX: Flush KV write queue at end of each request
+// This ensures batched writes are persisted even if worker terminates
+app.use('*', async (c, next) => {
+  await next();
+
+  // Flush any pending KV writes from the batch queue
+  try {
+    await cachedKV.flush(c.env.SESSIONS);
+  } catch (err) {
+    console.error('Failed to flush KV write queue:', err);
+  }
+});
+
 app.use('*', async (c, next) => {
   const start = Date.now();
   const requestId = generateRequestId();

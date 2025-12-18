@@ -680,6 +680,11 @@
           </div>
           <div class="admin-tabs">
             <button class="admin-tab active" data-tab="stats">📊 Stats</button>
+            <button class="admin-tab" data-tab="kv">🗄️ KV Monitor</button>
+            <button class="admin-tab" data-tab="cache">💾 Cache</button>
+            <button class="admin-tab" data-tab="health">🏥 Health</button>
+            <button class="admin-tab" data-tab="errors">🐛 Errors</button>
+            <button class="admin-tab" data-tab="perf">⚡ Performance</button>
             <button class="admin-tab" data-tab="users">👥 Users</button>
           </div>
           <div class="admin-tab-content" id="admin-tab-content">
@@ -752,6 +757,16 @@
 
           if (tabName === 'users') {
             await loadAdminUsersTab(modal);
+          } else if (tabName === 'kv') {
+            await loadAdminKVMonitorTab(modal);
+          } else if (tabName === 'cache') {
+            await loadAdminCacheTab(modal);
+          } else if (tabName === 'health') {
+            await loadAdminHealthTab(modal);
+          } else if (tabName === 'errors') {
+            await loadAdminErrorsTab(modal);
+          } else if (tabName === 'perf') {
+            await loadAdminPerfTab(modal);
           } else {
             // Reload stats tab content
             const content = modal.querySelector('#admin-tab-content');
@@ -890,6 +905,668 @@
 
     window.confirmDeleteUser = confirmDeleteUser;
 
+    // Admin KV Monitor Tab - comprehensive KV namespace monitoring
+    async function loadAdminKVMonitorTab(modal) {
+      const content = modal.querySelector('#admin-tab-content');
+      content.innerHTML = '<div class="admin-loading">Loading KV monitoring data...</div>';
+
+      try {
+        const response = await fetch('/api/admin/kv-monitor');
+        if (!response.ok) throw new Error('Failed to load KV monitor data');
+        const data = await response.json();
+
+        const { summary, limits, usage, realTimeMetrics, namespaces } = data;
+
+        // Calculate health status
+        const getHealthStatus = (percent) => {
+          if (percent > 80) return { icon: '🔴', text: 'Critical', class: 'status-critical' };
+          if (percent > 50) return { icon: '🟡', text: 'Warning', class: 'status-warning' };
+          return { icon: '🟢', text: 'Healthy', class: 'status-healthy' };
+        };
+
+        const readPercent = (realTimeMetrics.reads / limits.dailyReads) * 100;
+        const writePercent = (realTimeMetrics.writes / limits.dailyWrites) * 100;
+        const readHealth = getHealthStatus(readPercent);
+        const writeHealth = getHealthStatus(writePercent);
+
+        content.innerHTML = \`
+          <div class="admin-grid">
+            <div class="admin-card">
+              <h3>📊 KV Summary</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">Total Keys:</span>
+                  <span class="value">\${summary.totalKeys.toLocaleString()}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Total Size:</span>
+                  <span class="value">\${(summary.totalSize / 1024).toFixed(2)} KB</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Avg Key Size:</span>
+                  <span class="value">\${summary.avgKeySize} bytes</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Namespaces:</span>
+                  <span class="value">\${summary.namespaceCount}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <h3>⚡ Real-Time Operations</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">KV Reads:</span>
+                  <span class="value \${readHealth.class}">\${realTimeMetrics.reads} / \${limits.dailyReads.toLocaleString()}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">KV Writes:</span>
+                  <span class="value \${writeHealth.class}">\${realTimeMetrics.writes} / \${limits.dailyWrites.toLocaleString()}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">KV Deletes:</span>
+                  <span class="value">\${realTimeMetrics.deletes}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Status:</span>
+                  <span class="value">\${readHealth.icon} \${readHealth.text}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <h3>💾 Cache Performance</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">Cache Hits:</span>
+                  <span class="value">\${realTimeMetrics.cacheHits.toLocaleString()}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Cache Misses:</span>
+                  <span class="value">\${realTimeMetrics.cacheMisses.toLocaleString()}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Hit Rate:</span>
+                  <span class="value">\${realTimeMetrics.cacheHitRate}%</span>
+                </div>
+                <div class="stat">
+                  <span class="label">KV Reads Saved:</span>
+                  <span class="value">\${realTimeMetrics.cacheHits.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <h3>📈 Usage & Limits</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">Daily Read Limit:</span>
+                  <span class="value">\${limits.dailyReads.toLocaleString()}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Daily Write Limit:</span>
+                  <span class="value">\${limits.dailyWrites.toLocaleString()}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Max Value Size:</span>
+                  <span class="value">\${(limits.maxValueSize / 1024 / 1024).toFixed(0)} MB</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Last Reset:</span>
+                  <span class="value">\${new Date(realTimeMetrics.lastReset).toLocaleTimeString()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-card" style="margin-top: 1rem;">
+            <h3>🗄️ Namespace Breakdown</h3>
+            <div class="kv-namespace-table">
+              <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                  <tr style="border-bottom: 2px solid var(--border); text-align: left;">
+                    <th style="padding: 0.75rem;">Namespace</th>
+                    <th style="padding: 0.75rem;">Keys</th>
+                    <th style="padding: 0.75rem;">Total Size</th>
+                    <th style="padding: 0.75rem;">Avg Size</th>
+                    <th style="padding: 0.75rem;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  \${namespaces.map(ns => \`
+                    <tr style="border-bottom: 1px solid var(--border);">
+                      <td style="padding: 0.75rem;">
+                        <strong>\${ns.name}</strong>
+                        <br>
+                        <small style="color: var(--text-muted);">\${ns.description}</small>
+                        \${ns.truncated ? '<br><small style="color: orange;">⚠️ Truncated (1000+ keys)</small>' : ''}
+                      </td>
+                      <td style="padding: 0.75rem;">\${ns.keyCount.toLocaleString()}</td>
+                      <td style="padding: 0.75rem;">\${(ns.totalSize / 1024).toFixed(2)} KB</td>
+                      <td style="padding: 0.75rem;">\${ns.avgSize} bytes</td>
+                      <td style="padding: 0.75rem;">
+                        <button class="btn btn-ghost btn-sm" onclick="browseKVKeys('\${ns.prefix}', '\${ns.name}')">
+                          🔍 Browse
+                        </button>
+                      </td>
+                    </tr>
+                  \`).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          \${readPercent > 80 || writePercent > 80 ? \`
+            <div class="admin-card" style="margin-top: 1rem; border-color: #ff4444; background: rgba(255, 68, 68, 0.1);">
+              <h3>⚠️ Quota Warning</h3>
+              <p style="margin: 0; color: var(--text);">
+                You are approaching your daily KV quota limits. Consider:
+              </p>
+              <ul style="margin: 0.5rem 0 0 1.5rem; color: var(--text);">
+                <li>Increasing cache TTLs to reduce reads</li>
+                <li>Batching write operations</li>
+                <li>Clearing unnecessary cached data</li>
+                <li>Upgrading to a paid Workers plan for higher limits</li>
+              </ul>
+            </div>
+          \` : ''}
+        \`;
+      } catch (err) {
+        console.error('Failed to load KV monitor:', err);
+        content.innerHTML = \`<div class="admin-error">Failed to load KV monitoring data: \${err.message}</div>\`;
+      }
+    }
+
+    // Browse KV keys in a specific namespace
+    async function browseKVKeys(prefix, namespaceName) {
+      const modal = document.querySelector('.admin-modal');
+      const content = modal.querySelector('#admin-tab-content');
+
+      content.innerHTML = '<div class="admin-loading">Loading keys...</div>';
+
+      try {
+        const response = await fetch(\`/api/admin/kv-keys?prefix=\${encodeURIComponent(prefix)}&limit=50\`);
+        if (!response.ok) throw new Error('Failed to load keys');
+        const data = await response.json();
+
+        content.innerHTML = \`
+          <div class="admin-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <h3>🗄️ Keys in "\${namespaceName}"</h3>
+              <button class="btn btn-ghost btn-sm" onclick="document.querySelector('[data-tab=kv]').click()">
+                ← Back to KV Monitor
+              </button>
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+              <strong>Prefix:</strong> <code style="background: var(--surface-2); padding: 0.25rem 0.5rem; border-radius: 4px;">\${prefix}</code>
+              <br>
+              <strong>Keys Found:</strong> \${data.total} \${data.list_complete ? '' : '(showing first 50)'}
+            </div>
+
+            \${data.keys.length === 0 ? '<p>No keys found in this namespace.</p>' : \`
+              <div style="max-height: 500px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <thead style="position: sticky; top: 0; background: var(--card-bg); border-bottom: 2px solid var(--border);">
+                    <tr style="text-align: left;">
+                      <th style="padding: 0.75rem;">Key Name</th>
+                      <th style="padding: 0.75rem;">Expiration</th>
+                      <th style="padding: 0.75rem;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    \${data.keys.map(key => \`
+                      <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 0.75rem;">
+                          <code style="font-size: 0.85rem; word-break: break-all;">\${escapeHtml(key.name)}</code>
+                        </td>
+                        <td style="padding: 0.75rem; white-space: nowrap;">
+                          \${key.expiresAt ? new Date(key.expiresAt).toLocaleString() : 'Never'}
+                        </td>
+                        <td style="padding: 0.75rem; white-space: nowrap;">
+                          <button class="btn btn-ghost btn-sm" onclick="viewKVKey('\${escapeHtml(key.name).replace(/'/g, "\\\\'")}')">
+                            👁️ View
+                          </button>
+                          <button class="btn btn-ghost btn-sm" style="color: #ff4444;" onclick="deleteKVKey('\${escapeHtml(key.name).replace(/'/g, "\\\\'")}', '\${prefix}', '\${namespaceName}')">
+                            🗑️ Delete
+                          </button>
+                        </td>
+                      </tr>
+                    \`).join('')}
+                  </tbody>
+                </table>
+              </div>
+            \`}
+          </div>
+        \`;
+      } catch (err) {
+        console.error('Failed to browse keys:', err);
+        content.innerHTML = \`<div class="admin-error">Failed to load keys: \${err.message}</div>\`;
+      }
+    }
+
+    // View details of a specific KV key
+    async function viewKVKey(keyName) {
+      try {
+        const response = await fetch(\`/api/admin/kv-key/\${encodeURIComponent(keyName)}\`);
+        if (!response.ok) throw new Error('Failed to load key');
+        const data = await response.json();
+
+        const valueDisplay = data.valueType === 'json'
+          ? \`<pre style="background: var(--surface-2); padding: 1rem; border-radius: 6px; overflow-x: auto; max-height: 400px;">\${JSON.stringify(data.value, null, 2)}</pre>\`
+          : \`<pre style="background: var(--surface-2); padding: 1rem; border-radius: 6px; overflow-x: auto; max-height: 400px;">\${escapeHtml(data.rawValue)}</pre>\`;
+
+        const infoModal = document.createElement('div');
+        infoModal.className = 'modal-overlay';
+        infoModal.innerHTML = \`
+          <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+              <h2>🔍 Key Details</h2>
+              <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+            </div>
+            <div style="padding: 1.5rem;">
+              <div style="margin-bottom: 1rem;">
+                <strong>Key:</strong><br>
+                <code style="background: var(--surface-2); padding: 0.5rem; border-radius: 4px; display: block; margin-top: 0.25rem; word-break: break-all;">\${escapeHtml(data.key)}</code>
+              </div>
+              <div style="margin-bottom: 1rem;">
+                <strong>Size:</strong> \${data.size.toLocaleString()} bytes (\${(data.size / 1024).toFixed(2)} KB)
+              </div>
+              <div style="margin-bottom: 1rem;">
+                <strong>Type:</strong> \${data.valueType}
+              </div>
+              \${data.expiresAt ? \`
+                <div style="margin-bottom: 1rem;">
+                  <strong>Expires At:</strong> \${new Date(data.expiresAt).toLocaleString()}
+                </div>
+              \` : ''}
+              <div>
+                <strong>Value:</strong>
+                \${valueDisplay}
+              </div>
+            </div>
+          </div>
+        \`;
+        document.body.appendChild(infoModal);
+      } catch (err) {
+        showNotification(\`Failed to load key: \${err.message}\`, 'error');
+      }
+    }
+
+    // Delete a specific KV key
+    async function deleteKVKey(keyName, prefix, namespaceName) {
+      if (!confirm(\`Are you sure you want to delete this key?\\n\\n\${keyName}\`)) return;
+
+      try {
+        const response = await fetch(\`/api/admin/kv-key/\${encodeURIComponent(keyName)}\`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error('Failed to delete key');
+
+        showNotification('Key deleted successfully', 'success');
+
+        // Reload the key browser
+        await browseKVKeys(prefix, namespaceName);
+      } catch (err) {
+        showNotification(\`Failed to delete key: \${err.message}\`, 'error');
+      }
+    }
+
+    window.browseKVKeys = browseKVKeys;
+    window.viewKVKey = viewKVKey;
+    window.deleteKVKey = deleteKVKey;
+
+    // Admin Cache Tab - cache management controls
+    async function loadAdminCacheTab(modal) {
+      const content = modal.querySelector('#admin-tab-content');
+      content.innerHTML = `
+        <div class="admin-grid">
+          <div class="admin-card">
+            <h3>💾 Cache Controls</h3>
+            <div class="admin-actions">
+              <button class="btn btn-primary btn-sm" onclick="adminClearCache('leaderboard')">
+                🏆 Clear Leaderboard Cache
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="adminClearCache('scoreboard')">
+                📊 Clear Scoreboard Cache
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="adminClearCache('all_genre_caches')">
+                🎵 Clear All Genre Caches
+              </button>
+              <button class="btn btn-warning btn-sm" onclick="adminRebuildCaches()">
+                🔄 Rebuild All Caches
+              </button>
+            </div>
+          </div>
+          <div class="admin-card">
+            <h3>📦 Cache Status</h3>
+            <div class="admin-stats">
+              <div class="stat">
+                <span class="label">Leaderboard Cache:</span>
+                <span class="value" id="cache-status-leaderboard">Checking...</span>
+              </div>
+              <div class="stat">
+                <span class="label">Scoreboard Cache:</span>
+                <span class="value" id="cache-status-scoreboard">Checking...</span>
+              </div>
+              <div class="stat">
+                <span class="label">Analytics Cache:</span>
+                <span class="value">${analyticsCache ? 'Active' : 'Empty'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Check cache status by making lightweight API calls
+      try {
+        const leaderboardRes = await fetch('/api/leaderboard');
+        const leaderboardData = await leaderboardRes.json();
+        document.getElementById('cache-status-leaderboard').textContent =
+          leaderboardData._cache?.fromCache ? '✅ Cached' : '⚠️ Fresh Build';
+
+        const scoreboardRes = await fetch('/api/scoreboard');
+        const scoreboardData = await scoreboardRes.json();
+        document.getElementById('cache-status-scoreboard').textContent =
+          scoreboardData._cache?.fromCache ? '✅ Cached' : '⚠️ Fresh Build';
+      } catch (err) {
+        console.error('Failed to check cache status:', err);
+      }
+    }
+
+    async function adminClearCache(cacheType) {
+      const cacheNames = {
+        'leaderboard': 'Leaderboard',
+        'scoreboard': 'Scoreboard',
+        'all_genre_caches': 'All Genre Caches'
+      };
+
+      showNotification(`Clearing ${cacheNames[cacheType]}...`, 'info');
+
+      try {
+        const response = await fetch('/api/admin/clear-cache', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cache: cacheType })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showNotification(`✅ Cleared ${result.keysCleared} cache entries`, 'success');
+          // Reload the cache tab to show updated status
+          const modal = document.querySelector('.admin-modal');
+          if (modal) await loadAdminCacheTab(modal);
+        } else {
+          throw new Error(result.error || 'Failed to clear cache');
+        }
+      } catch (err) {
+        showNotification(`❌ Failed to clear cache: ${err.message}`, 'error');
+      }
+    }
+
+    async function adminRebuildCaches() {
+      showNotification('🔄 Rebuilding all caches...', 'info');
+
+      try {
+        const response = await fetch('/api/admin/rebuild-caches', {
+          method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showNotification('✅ All caches rebuilt successfully', 'success');
+          // Reload the cache tab
+          const modal = document.querySelector('.admin-modal');
+          if (modal) await loadAdminCacheTab(modal);
+        } else {
+          throw new Error(result.error || 'Failed to rebuild caches');
+        }
+      } catch (err) {
+        showNotification(`❌ Failed to rebuild caches: ${err.message}`, 'error');
+      }
+    }
+
+    // Admin Health Tab - system health monitoring
+    async function loadAdminHealthTab(modal) {
+      const content = modal.querySelector('#admin-tab-content');
+      content.innerHTML = '<div class="admin-loading">Loading health metrics...</div>';
+
+      try {
+        const [kvUsageRes, analyticsRes] = await Promise.all([
+          fetch('/api/kv-usage'),
+          fetch('/api/analytics')
+        ]);
+
+        const kvUsage = await kvUsageRes.json();
+        const analytics = await analyticsRes.json();
+
+        const readPct = kvUsage.usage?.readsPercent || 0;
+        const writePct = kvUsage.usage?.writesPercent || 0;
+        const readStatus = readPct > 80 ? '🔴 Critical' : readPct > 50 ? '🟡 Warning' : '🟢 Healthy';
+        const writeStatus = writePct > 80 ? '🔴 Critical' : writePct > 50 ? '🟡 Warning' : '🟢 Healthy';
+
+        content.innerHTML = `
+          <div class="admin-grid">
+            <div class="admin-card">
+              <h3>🏥 System Health</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">KV Reads Health:</span>
+                  <span class="value">${readStatus}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">KV Writes Health:</span>
+                  <span class="value">${writeStatus}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Trend:</span>
+                  <span class="value">${kvUsage.trend?.direction || 'stable'}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Cache Hit Rate:</span>
+                  <span class="value">${kvUsage.realtime?.cacheHitRate || 0}%</span>
+                </div>
+              </div>
+            </div>
+            <div class="admin-card">
+              <h3>📊 Daily Limits</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">Reads Remaining:</span>
+                  <span class="value">${kvUsage.usage?.readsRemaining?.toLocaleString() || 'N/A'}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Writes Remaining:</span>
+                  <span class="value">${kvUsage.usage?.writesRemaining?.toLocaleString() || 'N/A'}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Status:</span>
+                  <span class="value">${kvUsage.status || 'ok'}</span>
+                </div>
+              </div>
+            </div>
+            <div class="admin-card">
+              <h3>⚡ Activity (Today)</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">Sign-ins:</span>
+                  <span class="value">${kvUsage.activity?.signIns || 0}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Library Scans:</span>
+                  <span class="value">${kvUsage.activity?.libraryScans || 0}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Playlists Created:</span>
+                  <span class="value">${kvUsage.activity?.playlistsCreated || 0}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Auth Failures:</span>
+                  <span class="value">${kvUsage.activity?.authFailures || 0}</span>
+                </div>
+              </div>
+            </div>
+            <div class="admin-card">
+              <h3>💡 Optimizations</h3>
+              <div class="admin-stats" style="font-size: 0.85rem;">
+                <div class="stat">
+                  <span class="label">Leaderboard Cache:</span>
+                  <span class="value">15 min</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Scoreboard Cache:</span>
+                  <span class="value">1 hour</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Analytics Sampling:</span>
+                  <span class="value">10%</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Polling Interval:</span>
+                  <span class="value">3 min</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          ${kvUsage.recommendations && kvUsage.recommendations.length > 0 ? `
+            <div class="admin-card" style="margin-top: 1rem; grid-column: 1 / -1;">
+              <h3>💡 Recommendations</h3>
+              <ul style="margin: 0; padding-left: 1.5rem;">
+                ${kvUsage.recommendations.map(rec => `<li style="margin: 0.5rem 0;">${rec}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+        `;
+      } catch (err) {
+        content.innerHTML = `<div class="admin-error">Failed to load health metrics: ${err.message}</div>`;
+      }
+    }
+
+    // Admin Errors Tab - view client-side error logs
+    async function loadAdminErrorsTab(modal) {
+      const content = modal.querySelector('#admin-tab-content');
+      content.innerHTML = '<div class="admin-loading">Loading error logs...</div>';
+
+      try {
+        const response = await fetch('/api/admin/errors');
+        const data = await response.json();
+
+        if (!data.errors || data.errors.length === 0) {
+          content.innerHTML = '<div class="admin-empty">🎉 No errors logged!</div>';
+          return;
+        }
+
+        content.innerHTML = `
+          <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <span><strong>${data.count}</strong> errors logged (last 100)</span>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('admin-tab-content').scrollTop = 0">↑ Top</button>
+          </div>
+          <div class="admin-errors-list">
+            ${data.errors.slice(0, 50).map((error, idx) => `
+              <div class="admin-error-entry">
+                <div class="admin-error-header">
+                  <span class="admin-error-num">#${idx + 1}</span>
+                  <span class="admin-error-time">${new Date(error.serverTime || error.timestamp).toLocaleString()}</span>
+                  <span class="admin-error-ip">${error.ip || 'unknown'}</span>
+                </div>
+                <div class="admin-error-message">${escapeHtml(error.message || error.raw || 'Unknown error')}</div>
+                ${error.stack ? `
+                  <details class="admin-error-details">
+                    <summary>Stack trace</summary>
+                    <pre class="admin-error-stack">${escapeHtml(error.stack)}</pre>
+                  </details>
+                ` : ''}
+                ${error.context ? `<div class="admin-error-context">Context: ${escapeHtml(error.context)}</div>` : ''}
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } catch (err) {
+        content.innerHTML = `<div class="admin-error">Failed to load errors: ${err.message}</div>`;
+      }
+    }
+
+    // Admin Performance Tab - view performance metrics
+    async function loadAdminPerfTab(modal) {
+      const content = modal.querySelector('#admin-tab-content');
+      content.innerHTML = '<div class="admin-loading">Loading performance metrics...</div>';
+
+      try {
+        const response = await fetch('/api/admin/perf');
+        const data = await response.json();
+
+        if (!data.samples || data.samples.length === 0) {
+          content.innerHTML = '<div class="admin-empty">No performance data collected yet</div>';
+          return;
+        }
+
+        const avg = data.averages || {};
+
+        content.innerHTML = `
+          <div class="admin-grid">
+            <div class="admin-card">
+              <h3>⚡ Average Metrics</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">Page Load Time:</span>
+                  <span class="value">${avg.pageLoadTime || 0}ms</span>
+                </div>
+                <div class="stat">
+                  <span class="label">DOM Content Loaded:</span>
+                  <span class="value">${avg.domContentLoaded || 0}ms</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Time to First Byte:</span>
+                  <span class="value">${avg.timeToFirstByte || 0}ms</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Server Response:</span>
+                  <span class="value">${avg.serverResponse || 0}ms</span>
+                </div>
+              </div>
+            </div>
+            <div class="admin-card">
+              <h3>📊 Sample Data</h3>
+              <div class="admin-stats">
+                <div class="stat">
+                  <span class="label">Total Samples:</span>
+                  <span class="value">${data.totalSamples || 0}</span>
+                </div>
+                <div class="stat">
+                  <span class="label">Showing:</span>
+                  <span class="value">Last ${data.samples.length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="admin-card" style="margin-top: 1rem;">
+            <h3>📈 Recent Samples</h3>
+            <div class="admin-perf-samples">
+              ${data.samples.map((sample, idx) => `
+                <div class="admin-perf-sample">
+                  <div class="admin-perf-sample-header">
+                    <span>${new Date(sample.timestamp).toLocaleTimeString()}</span>
+                    <span class="admin-perf-sample-load">${sample.pageLoadTime}ms</span>
+                  </div>
+                  <div class="admin-perf-sample-bar">
+                    <div class="admin-perf-bar-fill" style="width: ${Math.min(100, (sample.pageLoadTime / 5000) * 100)}%"></div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        content.innerHTML = `<div class="admin-error">Failed to load performance data: ${err.message}</div>`;
+      }
+    }
+
+    window.adminClearCache = adminClearCache;
+    window.adminRebuildCaches = adminRebuildCaches;
     window.showAdminPanel = showAdminPanel;
 
 
@@ -2601,6 +3278,18 @@
               </div>
             </div>
 
+            <div class="progress-controls">
+              <button class="btn btn-secondary" id="pause-scan-btn" onclick="pauseProgressiveScan()" title="\${swedishMode ? 'Pausa skanningen' : 'Pause scan'}">
+                ⏸️ \${swedishMode ? 'Pausa' : 'Pause'}
+              </button>
+              <button class="btn btn-primary" id="resume-scan-btn" onclick="resumeProgressiveScan()" style="display: none;" title="\${swedishMode ? 'Återuppta skanningen' : 'Resume scan'}">
+                ▶️ \${swedishMode ? 'Återuppta' : 'Resume'}
+              </button>
+              <button class="btn btn-ghost" onclick="stopProgressiveScan()" title="\${swedishMode ? 'Stoppa skanningen' : 'Stop scan'}">
+                ⏹️ \${swedishMode ? 'Stoppa' : 'Stop'}
+              </button>
+            </div>
+
             <div class="live-genres-section">
               <h3>\${swedishMode ? '🎸 Genrer hittade hittills' : '🎸 Genres found so far'}</h3>
               <div class="live-genres-grid" id="live-genres-grid"></div><div class="live-bar-chart" id="live-bar-chart"><h4>\${swedishMode ? "📊 Topp genrer" : "📊 Top Genres"}</h4><div id="bar-chart-items"></div></div></div></div>
@@ -2700,17 +3389,139 @@
       };
     }
 
-    // Progressive loading for large libraries
+    // Progressive scan state management
+    let progressiveScanState = {
+      isPaused: false,
+      shouldStop: false,
+      currentOffset: 0,
+      accumulated: null,
+      totalInLibrary: 0
+    };
+
+    // Save scan progress to localStorage for resume capability
+    function saveScanState() {
+      try {
+        localStorage.setItem('genreScanState', JSON.stringify({
+          offset: progressiveScanState.currentOffset,
+          accumulated: progressiveScanState.accumulated,
+          totalInLibrary: progressiveScanState.totalInLibrary,
+          timestamp: Date.now()
+        }));
+      } catch (e) {
+        console.warn('Could not save scan state:', e);
+      }
+    }
+
+    // Load scan progress from localStorage
+    function loadScanState() {
+      try {
+        const saved = localStorage.getItem('genreScanState');
+        if (!saved) return null;
+
+        const state = JSON.parse(saved);
+        // Only resume if saved within last hour
+        if (Date.now() - state.timestamp < 3600000) {
+          return state;
+        }
+        // Clear old state
+        localStorage.removeItem('genreScanState');
+      } catch (e) {
+        console.warn('Could not load scan state:', e);
+      }
+      return null;
+    }
+
+    // Clear saved scan state
+    function clearScanState() {
+      try {
+        localStorage.removeItem('genreScanState');
+      } catch (e) {
+        console.warn('Could not clear scan state:', e);
+      }
+    }
+
+    // Pause the progressive scan
+    window.pauseProgressiveScan = function() {
+      progressiveScanState.isPaused = true;
+      saveScanState();
+      const pauseBtn = document.getElementById('pause-scan-btn');
+      const resumeBtn = document.getElementById('resume-scan-btn');
+      if (pauseBtn) pauseBtn.style.display = 'none';
+      if (resumeBtn) resumeBtn.style.display = 'inline-flex';
+      showNotification(
+        swedishMode ? '⏸️ Skanning pausad' : '⏸️ Scan paused',
+        'info'
+      );
+    };
+
+    // Resume the progressive scan
+    window.resumeProgressiveScan = function() {
+      progressiveScanState.isPaused = false;
+      const pauseBtn = document.getElementById('pause-scan-btn');
+      const resumeBtn = document.getElementById('resume-scan-btn');
+      if (pauseBtn) pauseBtn.style.display = 'inline-flex';
+      if (resumeBtn) resumeBtn.style.display = 'none';
+      showNotification(
+        swedishMode ? '▶️ Skanning återupptas' : '▶️ Scan resuming',
+        'info'
+      );
+      // Trigger continuation
+      loadFullLibrary();
+    };
+
+    // Stop the progressive scan
+    window.stopProgressiveScan = function() {
+      progressiveScanState.shouldStop = true;
+      progressiveScanState.isPaused = false;
+      clearScanState();
+      showNotification(
+        swedishMode ? '⏹️ Skanning stoppad' : '⏹️ Scan stopped',
+        'info'
+      );
+    };
+
+    // Progressive loading for large libraries with pause/resume
     async function loadGenresProgressively() {
-      let offset = 0;
-      let accumulated = null;
-      let totalInLibrary = 0;
+      // Check for saved state (resume capability)
+      const savedState = loadScanState();
+      let offset = savedState?.offset || 0;
+      let accumulated = savedState?.accumulated || null;
+      let totalInLibrary = savedState?.totalInLibrary || 0;
+
+      // Update state
+      progressiveScanState.currentOffset = offset;
+      progressiveScanState.accumulated = accumulated;
+      progressiveScanState.totalInLibrary = totalInLibrary;
+      progressiveScanState.shouldStop = false;
+      progressiveScanState.isPaused = false;
+
+      if (savedState && offset > 0) {
+        showNotification(
+          swedishMode ? `📚 Återupptar skanning från ${offset.toLocaleString()} låtar` : `📚 Resuming scan from ${offset.toLocaleString()} tracks`,
+          'info',
+          4000
+        );
+      }
 
       while (true) {
+        // Check if paused
+        if (progressiveScanState.isPaused) {
+          saveScanState();
+          return accumulated; // Return partial data
+        }
+
+        // Check if stopped
+        if (progressiveScanState.shouldStop) {
+          clearScanState();
+          throw new Error('Scan stopped by user');
+        }
+
         const response = await fetch(\`/api/genres/chunk?offset=\${offset}&limit=500\`);
         const data = await response.json();
 
         if (!response.ok) {
+          // Save state before throwing error
+          saveScanState();
           throw new Error(data.details || data.error || 'Failed to load chunk');
         }
 
@@ -2718,6 +3529,16 @@
 
         // Merge this chunk first so we can show preview
         accumulated = mergeGenreChunks(accumulated, data.chunk);
+
+        // Update state
+        progressiveScanState.currentOffset = offset;
+        progressiveScanState.accumulated = accumulated;
+        progressiveScanState.totalInLibrary = totalInLibrary;
+
+        // Save progress periodically
+        if (offset % 2000 === 0) {
+          saveScanState();
+        }
 
         // Update progress UI with accumulated genres preview
         const loadedTracks = offset + data.chunk.trackCount;
@@ -2737,6 +3558,9 @@
 
         offset = data.pagination.nextOffset;
       }
+
+      // Clear saved state on completion
+      clearScanState();
 
       // Remove truncated flag since we loaded everything
       accumulated.truncated = false;
@@ -2774,6 +3598,34 @@
 
     async function loadGenres() {
       try {
+        // Check for interrupted scan to resume (#76)
+        try {
+          const statusRes = await fetch('/api/genres/scan-status');
+          if (statusRes.ok) {
+            const scanStatus = await statusRes.json();
+            if (scanStatus.hasProgress && scanStatus.canResume) {
+              const timeSince = Math.round((Date.now() - new Date(scanStatus.lastUpdatedAt).getTime()) / 60000);
+              const message = swedishMode
+                ? `📚 Hittade ofullständig skanning (${scanStatus.progress}% klar, ${timeSince} minuter sedan). Vill du återuppta?`
+                : `📚 Found interrupted scan (${scanStatus.progress}% complete, ${timeSince} minutes ago). Resume?`;
+
+              if (confirm(message)) {
+                showNotification(
+                  swedishMode ? '▶️ Återupptar skanning...' : '▶️ Resuming scan...',
+                  'info'
+                );
+                await loadFullLibrary();
+                return;
+              } else {
+                // Clear the saved state if user doesn't want to resume
+                clearScanState();
+              }
+            }
+          }
+        } catch (e) {
+          console.log('Could not check scan status:', e);
+        }
+
         // First, fetch library size to show user what to expect (#75)
         renderLoading(
           swedishMode ? 'Kontrollerar biblioteksstorlek...' : 'Checking library size...',
@@ -4234,6 +5086,9 @@
 
       const div = document.createElement('div');
       div.className = \`notification \${type}\`;
+      div.setAttribute('role', 'status');
+      div.setAttribute('aria-live', 'polite');
+      div.setAttribute('aria-atomic', 'true');
       div.style.cssText = \`
         position: fixed;
         bottom: 4rem;
