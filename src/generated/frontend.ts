@@ -7901,13 +7901,22 @@ export function getHtml(nonce: string): string {
       color: var(--text-muted);
       font-size: 1.5rem;
       cursor: pointer;
-      padding: 0;
+      padding: 0.5rem;
+      margin: -0.5rem;
       line-height: 1;
       transition: color 0.2s;
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
     }
 
     .whats-new-close:hover {
       color: var(--text);
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
     }
 
     .whats-new-date {
@@ -7978,7 +7987,9 @@ export function getHtml(nonce: string): string {
     }
 
     .whats-new-actions .btn {
-      padding: 0.625rem 1rem;
+      padding: 0.75rem 1.25rem;
+      min-height: 44px;
+      touch-action: manipulation;
     }
 
     /* Swedish mode styling */
@@ -10211,7 +10222,7 @@ export function getHtml(nonce: string): string {
           <div class="whats-new-header">
             <div class="whats-new-badge">✨ \${swedishMode ? 'Nytt' : 'New'}</div>
             <h3>\${swedishMode ? 'Vad är nytt i' : "What's New in"} v\${version}</h3>
-            <button class="whats-new-close" onclick="dismissWhatsNew('\${version}', false)" aria-label="Close">&times;</button>
+            <button class="whats-new-close" aria-label="Close">&times;</button>
           </div>
           <div class="whats-new-date">\${latestRelease.date}</div>
           <ul class="whats-new-changes">
@@ -10226,7 +10237,7 @@ export function getHtml(nonce: string): string {
               <a href="\${changelogCache?.repoUrl || 'https://github.com/TomsTech/spotify-genre-sorter'}/releases" target="_blank" class="btn btn-ghost">
                 \${swedishMode ? 'Alla utgåvor' : 'All releases'}
               </a>
-              <button class="btn btn-primary" onclick="dismissWhatsNew('\${version}', document.getElementById('whats-new-dismiss-checkbox')?.checked)">
+              <button class="btn btn-primary whats-new-gotit">
                 \${swedishMode ? 'Förstått!' : 'Got it!'}
               </button>
             </div>
@@ -10235,6 +10246,15 @@ export function getHtml(nonce: string): string {
       \`;
 
       document.body.appendChild(overlay);
+
+      // Attach event listeners (CSP blocks inline onclick handlers)
+      overlay.querySelector('.whats-new-close').addEventListener('click', () => {
+        dismissWhatsNew(version, false);
+      });
+      overlay.querySelector('.whats-new-gotit').addEventListener('click', () => {
+        const dismissForever = document.getElementById('whats-new-dismiss-checkbox')?.checked;
+        dismissWhatsNew(version, dismissForever);
+      });
 
       // Animate in
       requestAnimationFrame(() => {
