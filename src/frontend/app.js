@@ -2026,7 +2026,7 @@
           <div class="whats-new-header">
             <div class="whats-new-badge">✨ \${swedishMode ? 'Nytt' : 'New'}</div>
             <h3>\${swedishMode ? 'Vad är nytt i' : "What's New in"} v\${version}</h3>
-            <button class="whats-new-close" onclick="dismissWhatsNew('\${version}', false)" aria-label="Close">&times;</button>
+            <button class="whats-new-close" aria-label="Close">&times;</button>
           </div>
           <div class="whats-new-date">\${latestRelease.date}</div>
           <ul class="whats-new-changes">
@@ -2041,7 +2041,7 @@
               <a href="\${changelogCache?.repoUrl || 'https://github.com/TomsTech/spotify-genre-sorter'}/releases" target="_blank" class="btn btn-ghost">
                 \${swedishMode ? 'Alla utgåvor' : 'All releases'}
               </a>
-              <button class="btn btn-primary" onclick="dismissWhatsNew('\${version}', document.getElementById('whats-new-dismiss-checkbox')?.checked)">
+              <button class="btn btn-primary whats-new-gotit">
                 \${swedishMode ? 'Förstått!' : 'Got it!'}
               </button>
             </div>
@@ -2050,6 +2050,15 @@
       \`;
 
       document.body.appendChild(overlay);
+
+      // Attach event listeners (CSP blocks inline onclick handlers)
+      overlay.querySelector('.whats-new-close').addEventListener('click', () => {
+        dismissWhatsNew(version, false);
+      });
+      overlay.querySelector('.whats-new-gotit').addEventListener('click', () => {
+        const dismissForever = document.getElementById('whats-new-dismiss-checkbox')?.checked;
+        dismissWhatsNew(version, dismissForever);
+      });
 
       // Animate in
       requestAnimationFrame(() => {
