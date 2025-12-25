@@ -5,6 +5,24 @@ All notable changes to Genre Genie (Spotify Genre Sorter) will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.0] - 2025-12-25
+
+### Fixed
+- **What's New Modal** - Replaced inline `onclick` handlers with `addEventListener` for CSP compliance
+- **Genre Display** - Resolved `userData is not defined` error breaking genre rendering
+- **Genie Easter Egg** - Will Smith speech bubble styling improvements
+- **TypeScript Errors** - Resolved deployment-blocking type errors
+- **ESLint Errors** - Fixed error handling and KV monitor linting issues
+- **CSP Nonce Storage** - TypeScript type fixes for nonce management
+
+### Security
+- **BetterStack CSP** - Added uptime.betterstack.com to img-src directive
+- **Security Documentation** - Added comprehensive security docs and bundle size monitoring
+
+### Changed
+- **Changelog Extraction** - Improved changelog extraction for What's New modal
+- **High-Priority Backlog** - Implemented items #53, #57, #58, #74, #76, #84, #87
+
 ## [3.4.0] - 2025-12-18
 
 ### Added

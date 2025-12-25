@@ -2950,8 +2950,8 @@
             <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank" class="github-star-badge" title="\${swedishMode ? 'Gillar du det? Stjärnmärk oss! ⭐' : 'Love this? Star us! ⭐'}">
               <img src="https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=for-the-badge&logo=github&logoColor=white&label=Star&color=1DB954&labelColor=191414" alt="Star on GitHub" loading="lazy" onerror="this.style.display='none'">
             </a>
-            <a href="https://status.houstons.tech" target="_blank">
-              <img src="https://uptime.betterstack.com/status-badges/v3/monitor/3843047.svg" alt="Uptime" loading="lazy" onerror="this.style.display='none'">
+            <a href="https://status.houstons.tech" target="_blank" id="uptime-badge-link" style="display:none;">
+              <img src="https://uptime.betterstack.com/status-badges/v3/monitor/3843047.svg" alt="Uptime" loading="lazy" onload="this.parentElement.style.display='inline-flex'" onerror="this.parentElement.style.display='none'">
             </a>
           </div>
         </div>
