@@ -1377,7 +1377,8 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 0.75rem;
-      display: flex;
+      /* display is controlled by inline style and JavaScript */
+      /* When shown via JS (display: flex), use flexbox layout */
       align-items: center;
       gap: 0.75rem;
       z-index: 1000;
