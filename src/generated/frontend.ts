@@ -1392,6 +1392,7 @@ export function getHtml(nonce: string): string {
 
     /* === Now Playing Widget === */
     .now-playing-widget {
+      display: none; /* Hidden by default - JS sets display:flex when playing */
       position: fixed;
       bottom: 4rem;
       left: 50%;
@@ -1400,8 +1401,6 @@ export function getHtml(nonce: string): string {
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 0.75rem;
-      /* display is controlled by inline style and JavaScript */
-      /* When shown via JS (display: flex), use flexbox layout */
       align-items: center;
       gap: 0.75rem;
       z-index: 1000;
