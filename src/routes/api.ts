@@ -2129,7 +2129,12 @@ api.get('/admin/users', async (c) => {
     playlistCount: number;
     registeredAt: string;
     lastActive: string | null;
+    isPioneer?: boolean;
+    hofPosition?: number;
   }> = [];
+
+  // Track which Spotify IDs we've seen
+  const seenIds = new Set<string>();
 
   // PERF-014 FIX: Use Promise.all for parallel reads instead of sequential loop
   const dataPromises = userStatsList.keys.map(key => kv.get(key.name));
@@ -2146,6 +2151,7 @@ api.get('/admin/users', async (c) => {
           firstSeen?: string;
           lastActive?: string;
         };
+        seenIds.add(stats.spotifyId);
         users.push({
           spotifyId: stats.spotifyId,
           spotifyName: stats.spotifyName || 'Unknown',
@@ -2154,6 +2160,46 @@ api.get('/admin/users', async (c) => {
           registeredAt: stats.firstSeen || 'Unknown',
           lastActive: stats.lastActive || null,
         });
+      } catch { /* skip malformed entries */ }
+    }
+  }
+
+  // Also fetch HoF users (pioneers) who might not have user_stats entries
+  const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
+  const hofPromises = hofKeys.map(key => kv.get(key));
+  const hofResults = await Promise.all(hofPromises);
+
+  for (let i = 0; i < hofResults.length; i++) {
+    const hofJson = hofResults[i];
+    if (hofJson) {
+      try {
+        const hofUser = JSON.parse(hofJson) as {
+          spotifyId: string;
+          spotifyName: string;
+          spotifyAvatar?: string;
+          registeredAt?: string;
+        };
+        // Only add if not already in users list
+        if (!seenIds.has(hofUser.spotifyId)) {
+          seenIds.add(hofUser.spotifyId);
+          users.push({
+            spotifyId: hofUser.spotifyId,
+            spotifyName: hofUser.spotifyName || 'Unknown',
+            spotifyAvatar: hofUser.spotifyAvatar || null,
+            playlistCount: 0,
+            registeredAt: hofUser.registeredAt || 'Unknown',
+            lastActive: null,
+            isPioneer: true,
+            hofPosition: i + 1,
+          });
+        } else {
+          // Mark existing user as pioneer
+          const existingUser = users.find(u => u.spotifyId === hofUser.spotifyId);
+          if (existingUser) {
+            existingUser.isPioneer = true;
+            existingUser.hofPosition = i + 1;
+          }
+        }
       } catch { /* skip malformed entries */ }
     }
   }
@@ -2180,21 +2226,40 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   const kv = c.env.SESSIONS;
   const deleted: string[] = [];
 
-  // PERF-012 FIX: Delete without checking existence first (KV delete is idempotent)
-  // This reduces 5 KV reads to 0, saving ~5 operations per user delete
+  // Standard keys to delete (by Spotify ID)
   const keysToDelete = [
     `user_stats:${spotifyId}`,
     `user:${spotifyId}`,
-    `hof:${spotifyId}`,
     `genre_cache_${spotifyId}`,
     `scan_progress:${spotifyId}`,
-    `user_prefs:${spotifyId}` // Also delete preferences
+    `user_prefs:${spotifyId}`,
+    `listening:${spotifyId}` // Also delete listening status
   ];
 
-  // Delete all keys without checking existence (delete is idempotent)
+  // Delete all standard keys without checking existence (delete is idempotent)
   for (const key of keysToDelete) {
     await cachedKV.delete(kv, key);
     deleted.push(key);
+  }
+
+  // Find and delete HoF entry by scanning for matching spotifyId
+  // HoF keys are formatted as hof:001, hof:002, etc.
+  const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
+  const hofPromises = hofKeys.map(key => kv.get(key));
+  const hofResults = await Promise.all(hofPromises);
+
+  for (let i = 0; i < hofResults.length; i++) {
+    if (hofResults[i]) {
+      try {
+        const hofData = JSON.parse(hofResults[i] as string) as { spotifyId?: string };
+        if (hofData.spotifyId === spotifyId) {
+          const hofKey = `hof:${String(i + 1).padStart(3, '0')}`;
+          await cachedKV.delete(kv, hofKey);
+          deleted.push(hofKey);
+          break; // User can only be in HoF once
+        }
+      } catch { /* skip malformed entries */ }
+    }
   }
 
   // Find and delete any active sessions for this user

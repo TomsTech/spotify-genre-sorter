@@ -6,9 +6,9 @@ const IS_CI = !!process.env.CI;
 const USE_MOCKS = process.env.E2E_USE_MOCKS !== 'false';
 
 // Detect available CPUs and scale workers accordingly
-// Use fewer workers locally to avoid overwhelming the dev server
+// OPTIMIZED: Use more workers locally for faster test runs
 const CPU_COUNT = os.cpus().length;
-const LOCAL_WORKERS = Math.max(2, Math.floor(CPU_COUNT / 2)); // Half of CPUs, min 2
+const LOCAL_WORKERS = Math.max(4, Math.min(CPU_COUNT - 2, 8)); // 4-8 workers locally
 
 /**
  * Playwright E2E Test Configuration for Genre Genie
@@ -28,10 +28,10 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: IS_CI,
-  // Retry once locally for timeout/load issues, twice in CI
-  retries: IS_CI ? 2 : 1,
-  // Scale workers: 1 in CI, half of CPUs locally (configurable via env)
-  workers: process.env.E2E_WORKERS ? parseInt(process.env.E2E_WORKERS) : (IS_CI ? 1 : LOCAL_WORKERS),
+  // OPTIMIZED: No retries locally (faster feedback), 2 in CI for stability
+  retries: IS_CI ? 2 : 0,
+  // OPTIMIZED: More workers locally, 2 in CI to avoid resource contention
+  workers: process.env.E2E_WORKERS ? parseInt(process.env.E2E_WORKERS) : (IS_CI ? 2 : LOCAL_WORKERS),
 
   reporter: [
     ['html', { outputFolder: 'e2e-report', open: 'never' }],
@@ -57,8 +57,8 @@ export default defineConfig({
     navigationTimeout: 30000,
   },
 
-  // Test timeout
-  timeout: 60000,
+  // OPTIMIZED: Reduced timeout from 60s to 45s
+  timeout: 45000,
 
   // Expect timeout
   expect: {
@@ -66,25 +66,26 @@ export default defineConfig({
   },
 
   projects: [
-    // Main browser tests
+    // Main browser tests - always run
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
 
+    // OPTIMIZED: Mobile & Firefox only in CI for faster local runs
     // Mobile tests (for responsive UI testing)
-    {
+    ...(IS_CI ? [{
       name: 'mobile',
       use: { ...devices['iPhone 13'] },
       testMatch: /ui\/.*\.spec\.ts/,
-    },
+    }] : []),
 
-    // Firefox (optional, for cross-browser testing)
-    {
+    // Firefox (for cross-browser testing)
+    ...(IS_CI ? [{
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
       testIgnore: /progressive-scan\.spec\.ts/, // Skip slow tests
-    },
+    }] : []),
   ],
 
   // Start dev server before tests

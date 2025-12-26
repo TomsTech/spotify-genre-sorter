@@ -1986,10 +1986,11 @@ export function getHtml(nonce: string): string {
     }
 
     @keyframes genieWander {
+      /* Expanded 4x area for maximum genie freedom (Tom requested 2x more) */
       0%, 100% { right: 1.5rem; bottom: 6rem; }
-      25% { right: 3rem; bottom: 8rem; }
-      50% { right: 2rem; bottom: 5rem; }
-      75% { right: 4rem; bottom: 7rem; }
+      25% { right: 12rem; bottom: 20rem; }
+      50% { right: 4rem; bottom: 4rem; }
+      75% { right: 16rem; bottom: 16rem; }
     }
 
     body.swedish-mode .genie-mascot {
@@ -3845,6 +3846,148 @@ export function getHtml(nonce: string): string {
       width: 14px;
       height: 14px;
       border-radius: 50%;
+    }
+
+    /* === Now Listening Section === */
+    .now-listening-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .listening-list-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 0.5rem;
+      border-radius: 8px;
+      background: var(--surface-2);
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .listening-list-item:hover {
+      background: var(--surface-3, rgba(255,255,255,0.08));
+      transform: translateX(2px);
+    }
+
+    .listening-list-item .listening-user {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .listening-list-item .user-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .listening-list-item .user-avatar-placeholder {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+    }
+
+    .listening-list-item .user-name {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .listening-list-item .listening-track {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding-left: 0.25rem;
+    }
+
+    .listening-list-item .track-album-art {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .listening-list-item .track-album-placeholder {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+
+    .listening-list-item .track-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .listening-list-item .track-name {
+      font-size: 0.75rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--accent);
+    }
+
+    .listening-list-item .track-artists {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Mini equalizer animation */
+    .listening-list-item .listening-equalizer {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .listening-list-item .listening-equalizer span {
+      width: 3px;
+      background: var(--accent);
+      border-radius: 1px;
+      animation: eqBounce 0.8s ease-in-out infinite;
+    }
+
+    .listening-list-item .listening-equalizer span:nth-child(1) {
+      height: 8px;
+      animation-delay: 0s;
+    }
+
+    .listening-list-item .listening-equalizer span:nth-child(2) {
+      height: 12px;
+      animation-delay: 0.2s;
+    }
+
+    .listening-list-item .listening-equalizer span:nth-child(3) {
+      height: 6px;
+      animation-delay: 0.4s;
+    }
+
+    @keyframes eqBounce {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(0.4); }
+    }
+
+    .listening-list-item.animate-in {
+      animation: sidebarItemFadeIn 0.3s ease-out forwards;
+      opacity: 0;
     }
 
     /* === Sidebar Toggle (Mobile) === */
@@ -8143,6 +8286,13 @@ export function getHtml(nonce: string): string {
         </div>
 
         <div class="sidebar-section">
+          <h2 class="sidebar-title" title="Live listening activity"><span aria-hidden="true">🎧</span> <span data-i18n="nowListening">Now Listening</span></h2>
+          <div class="now-listening-list" id="now-listening-list" role="list" aria-label="Currently listening users">
+            <div class="sidebar-loading" role="status" aria-live="polite">Loading...</div>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
           <h2 class="sidebar-title" title="Refreshes every 3 minutes"><span aria-hidden="true">🎵</span> <span data-i18n="recentPlaylists">Recent Playlists</span></h2>
           <div class="recent-playlists-list" id="recent-playlists-list" role="list" aria-label="Recently created playlists">
             <div class="sidebar-loading" role="status" aria-live="polite">Loading...</div>
@@ -10686,6 +10836,7 @@ export function getHtml(nonce: string): string {
         signInSpotify: 'Sign in with Spotify',
         pioneers: 'Pioneers',
         newUsers: 'New Users',
+        nowListening: 'Now Listening',
         recentPlaylists: 'Recent Playlists',
         viewScoreboard: 'View Scoreboard',
         privacyTitle: 'What permissions does this need?',
@@ -10755,6 +10906,7 @@ export function getHtml(nonce: string): string {
         signInSpotify: 'Logga in med Spotify',
         pioneers: 'Pionjärer',
         newUsers: 'Nya Användare',
+        nowListening: 'Lyssnar Nu',
         recentPlaylists: 'Senaste Spellistor',
         viewScoreboard: 'Visa Resultattavla',
         privacyTitle: 'Vilka behörigheter behövs?',
@@ -10878,6 +11030,7 @@ export function getHtml(nonce: string): string {
       // Re-render sidebar content with updated language
       if (typeof renderPioneers === 'function') renderPioneers();
       if (typeof renderNewUsers === 'function') renderNewUsers();
+      if (typeof renderNowListening === 'function') renderNowListening();
       if (typeof renderRecentPlaylists === 'function') renderRecentPlaylists();
     }
 
@@ -10926,12 +11079,17 @@ export function getHtml(nonce: string): string {
       genie.dataset.clickInit = 'true';
 
       genie.addEventListener('click', () => {
-        // Play Will Smith sound
+        // Play Will Smith "Gettin' Jiggy Wit It" sound (GI Jane slap reference)
         try {
           const audio = new Audio(giJaneAudio);
           audio.volume = 0.6;
-          audio.play().catch(() => {});
-        } catch {}
+          // Attempt to play - user click provides interaction for autoplay policy
+          audio.play().catch(err => {
+            console.warn('[Genie] Audio play failed:', err.message);
+          });
+        } catch (err) {
+          console.warn('[Genie] Audio init failed:', err.message);
+        }
 
         // Turn brown (Will Smith mode) and animate
         genie.classList.add('talking', 'will-smith-mode');
@@ -13565,7 +13723,8 @@ export function getHtml(nonce: string): string {
         if (!response.ok) return;
         const data = await response.json();
         sidebarData.listening = data.listeners || [];
-        updateListeningIndicators();
+        renderNowListening(); // Render the Now Listening sidebar section
+        updateListeningIndicators(); // Also update indicators on user items
       } catch (err) {
         // Silent fail - listening is optional
       }
@@ -13802,6 +13961,45 @@ export function getHtml(nonce: string): string {
       }).join('');
     }
 
+    // Render now listening list in sidebar - shows who's currently playing music
+    function renderNowListening() {
+      const container = document.getElementById('now-listening-list');
+      if (!container) return;
+
+      if (!sidebarData.listening || sidebarData.listening.length === 0) {
+        container.innerHTML = '<div class="sidebar-loading">' + (swedishMode ? 'Ingen lyssnar just nu' : 'No one listening right now') + '</div>';
+        return;
+      }
+
+      container.innerHTML = sidebarData.listening.slice(0, 10).map((listener, i) => {
+        const delay = i * 50; // Stagger animation
+        const specialClass = getSpecialUserClass(listener.spotifyName);
+        const track = listener.track || {};
+        return \`
+          <div class="listening-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms" title="\${escapeHtml(track.name || '')} by \${escapeHtml(track.artists || '')}">
+            <div class="listening-user">
+              \${listener.spotifyAvatar
+                ? \`<img class="user-avatar" src="\${listener.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+                : '<div class="user-avatar-placeholder">👤</div>'}
+              <span class="user-name">\${escapeHtml(listener.spotifyName)}</span>
+            </div>
+            <div class="listening-track">
+              \${track.albumArt
+                ? \`<img class="track-album-art" src="\${track.albumArt}" alt="">\`
+                : '<div class="track-album-placeholder">🎵</div>'}
+              <div class="track-info">
+                <div class="track-name">\${escapeHtml(track.name || 'Unknown Track')}</div>
+                <div class="track-artists">\${escapeHtml(track.artists || 'Unknown Artist')}</div>
+              </div>
+              <div class="listening-equalizer" aria-hidden="true">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+          </div>
+        \`;
+      }).join('');
+    }
+
     // Escape HTML for safe display
     function escapeHtml(text) {
       const div = document.createElement('div');
@@ -13938,10 +14136,13 @@ export function getHtml(nonce: string): string {
     window.closeScoreboard = closeScoreboard;
 
     // Initialize sidebar
+    let listeningPollInterval = null;
+
     function initSidebar() {
       // Load initial data
       loadLeaderboard();
       loadRecentPlaylists();
+      loadListeningData(); // Load who's currently listening
 
       // Poll for recent playlists every 3 minutes (was 30s - reduced to save KV usage)
       function startPolling() {
@@ -13949,6 +14150,12 @@ export function getHtml(nonce: string): string {
         sidebarPollInterval = setInterval(() => {
           loadRecentPlaylists();
         }, 180000); // 3 minutes
+
+        // Poll for listening data every 30 seconds (more real-time)
+        if (listeningPollInterval) clearInterval(listeningPollInterval);
+        listeningPollInterval = setInterval(() => {
+          loadListeningData();
+        }, 30000); // 30 seconds
       }
 
       startPolling();
@@ -13960,9 +14167,14 @@ export function getHtml(nonce: string): string {
             clearInterval(sidebarPollInterval);
             sidebarPollInterval = null;
           }
+          if (listeningPollInterval) {
+            clearInterval(listeningPollInterval);
+            listeningPollInterval = null;
+          }
         } else {
           // Tab became visible - refresh immediately then resume polling
           loadRecentPlaylists();
+          loadListeningData();
           startPolling();
         }
       });

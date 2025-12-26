@@ -54,6 +54,7 @@ app.use('*', async (c, next) => {
     `script-src 'self' 'nonce-${nonce}' https://static.cloudflareinsights.com`,
     `style-src 'self' 'nonce-${nonce}'`,
     "img-src 'self' data: https://flagcdn.com https://i.scdn.co https://avatars.githubusercontent.com https://img.shields.io https://uptime.betterstack.com",
+    "media-src 'self' data:", // Allow base64 audio for easter eggs (Genie Will Smith sound)
     "connect-src 'self' https://api.spotify.com https://ko-fi.com https://cloudflareinsights.com",
     "frame-ancestors 'none'",
   ].join('; '));
