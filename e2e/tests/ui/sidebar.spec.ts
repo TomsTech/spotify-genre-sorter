@@ -309,18 +309,29 @@ test.describe('Donation Button', () => {
   test('donation button shows smoke animation on hover', async ({ page }) => {
     const homePage = new HomePage(page);
     await homePage.goto();
+    await page.waitForLoadState('networkidle');
 
     const donationBtn = page.locator('#donation-btn, .sidebar-donate-btn');
 
-    if (await donationBtn.isVisible()) {
+    if (await donationBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      // Get initial state
+      const initialClasses = await donationBtn.getAttribute('class') || '';
+
       // Hover over button
       await donationBtn.hover();
 
-      // Check for smoke animation class or element
-      await page.waitForTimeout(500);
+      // Wait for any CSS transitions/animations to start
+      await page.waitForTimeout(300);
 
-      // Animation might be CSS-based
-      expect(true).toBe(true);
+      // Verify button is still functional after hover (smoke animation is CSS-only, so verify button exists and is interactive)
+      const isStillVisible = await donationBtn.isVisible();
+      const hasHref = await donationBtn.getAttribute('href');
+
+      expect(isStillVisible).toBe(true);
+      expect(hasHref).toContain('buymeacoffee');
+    } else {
+      // Skip test if button not visible (test passes by default)
+      test.skip();
     }
   });
 });
