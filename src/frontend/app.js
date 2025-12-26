@@ -2137,12 +2137,12 @@
       const writePercent = data.usage?.writesPercent || 0;
       const readPercent = data.usage?.readsPercent || 0;
 
-      // Show the more critical percentage
+      // Show the more critical percentage with clear "Daily" label
       const displayPercent = Math.max(writePercent, readPercent);
-      const displayType = writePercent >= readPercent ? 'W' : 'R';
+      const displayType = writePercent >= readPercent ? 'writes' : 'reads';
 
-      indicator.innerHTML = \`<span class="kv-icon">\${statusEmoji}</span><span class="kv-text">KV: \${displayPercent}% \${displayType}</span>\`;
-      indicator.title = \`KV Usage: \${readPercent}% reads, \${writePercent}% writes (click for details)\`;
+      indicator.innerHTML = \`<span class="kv-icon">\${statusEmoji}</span><span class="kv-text">Daily: \${displayPercent}%</span>\`;
+      indicator.title = \`KV Free Tier Usage Today: \${readPercent}% reads, \${writePercent}% writes (click for details)\`;
     }
 
     async function showKVStatusModal() {
@@ -2490,6 +2490,7 @@
         signInSpotify: 'Sign in with Spotify',
         pioneers: 'Pioneers',
         newUsers: 'New Users',
+        nowListening: 'Now Listening',
         recentPlaylists: 'Recent Playlists',
         viewScoreboard: 'View Scoreboard',
         privacyTitle: 'What permissions does this need?',
@@ -2559,6 +2560,7 @@
         signInSpotify: 'Logga in med Spotify',
         pioneers: 'Pionjärer',
         newUsers: 'Nya Användare',
+        nowListening: 'Lyssnar Nu',
         recentPlaylists: 'Senaste Spellistor',
         viewScoreboard: 'Visa Resultattavla',
         privacyTitle: 'Vilka behörigheter behövs?',
@@ -2682,6 +2684,7 @@
       // Re-render sidebar content with updated language
       if (typeof renderPioneers === 'function') renderPioneers();
       if (typeof renderNewUsers === 'function') renderNewUsers();
+      if (typeof renderNowListening === 'function') renderNowListening();
       if (typeof renderRecentPlaylists === 'function') renderRecentPlaylists();
     }
 
@@ -2730,12 +2733,17 @@
       genie.dataset.clickInit = 'true';
 
       genie.addEventListener('click', () => {
-        // Play Will Smith sound
+        // Play Will Smith "Gettin' Jiggy Wit It" sound (GI Jane slap reference)
         try {
           const audio = new Audio(giJaneAudio);
           audio.volume = 0.6;
-          audio.play().catch(() => {});
-        } catch {}
+          // Attempt to play - user click provides interaction for autoplay policy
+          audio.play().catch(err => {
+            console.warn('[Genie] Audio play failed:', err.message);
+          });
+        } catch (err) {
+          console.warn('[Genie] Audio init failed:', err.message);
+        }
 
         // Turn brown (Will Smith mode) and animate
         genie.classList.add('talking', 'will-smith-mode');
@@ -2950,7 +2958,9 @@
             <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank" class="github-star-badge" title="\${swedishMode ? 'Gillar du det? Stjärnmärk oss! ⭐' : 'Love this? Star us! ⭐'}">
               <img src="https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=for-the-badge&logo=github&logoColor=white&label=Star&color=1DB954&labelColor=191414" alt="Star on GitHub" loading="lazy" onerror="this.style.display='none'">
             </a>
-            <!-- Uptime badge removed - monitor ID 3843047 returns 404, no valid BetterStack monitor configured -->
+            <a href="https://spotify.houstons.tech" target="_blank" class="uptime-badge" title="\${swedishMode ? 'Tjänststatus' : 'Service Status'}">
+              <img src="https://img.shields.io/website?url=https%3A%2F%2Fspotify.houstons.tech&style=for-the-badge&logo=spotify&logoColor=white&label=Status&up_color=1DB954&down_color=e74c3c&labelColor=191414" alt="Service Status" loading="lazy" onerror="this.style.display='none'">
+            </a>
           </div>
         </div>
       \`;
@@ -5369,7 +5379,8 @@
         if (!response.ok) return;
         const data = await response.json();
         sidebarData.listening = data.listeners || [];
-        updateListeningIndicators();
+        renderNowListening(); // Render the Now Listening sidebar section
+        updateListeningIndicators(); // Also update indicators on user items
       } catch (err) {
         // Silent fail - listening is optional
       }
@@ -5606,6 +5617,45 @@
       }).join('');
     }
 
+    // Render now listening list in sidebar - shows who's currently playing music
+    function renderNowListening() {
+      const container = document.getElementById('now-listening-list');
+      if (!container) return;
+
+      if (!sidebarData.listening || sidebarData.listening.length === 0) {
+        container.innerHTML = '<div class="sidebar-loading">' + (swedishMode ? 'Ingen lyssnar just nu' : 'No one listening right now') + '</div>';
+        return;
+      }
+
+      container.innerHTML = sidebarData.listening.slice(0, 10).map((listener, i) => {
+        const delay = i * 50; // Stagger animation
+        const specialClass = getSpecialUserClass(listener.spotifyName);
+        const track = listener.track || {};
+        return `
+          <div class="listening-list-item animate-in ${specialClass}" style="animation-delay: ${delay}ms" title="${escapeHtml(track.name || '')} by ${escapeHtml(track.artists || '')}">
+            <div class="listening-user">
+              ${listener.spotifyAvatar
+                ? `<img class="user-avatar" src="${listener.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">`
+                : '<div class="user-avatar-placeholder">👤</div>'}
+              <span class="user-name">${escapeHtml(listener.spotifyName)}</span>
+            </div>
+            <div class="listening-track">
+              ${track.albumArt
+                ? `<img class="track-album-art" src="${track.albumArt}" alt="">`
+                : '<div class="track-album-placeholder">🎵</div>'}
+              <div class="track-info">
+                <div class="track-name">${escapeHtml(track.name || 'Unknown Track')}</div>
+                <div class="track-artists">${escapeHtml(track.artists || 'Unknown Artist')}</div>
+              </div>
+              <div class="listening-equalizer" aria-hidden="true">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
     // Escape HTML for safe display
     function escapeHtml(text) {
       const div = document.createElement('div');
@@ -5742,10 +5792,13 @@
     window.closeScoreboard = closeScoreboard;
 
     // Initialize sidebar
+    let listeningPollInterval = null;
+
     function initSidebar() {
       // Load initial data
       loadLeaderboard();
       loadRecentPlaylists();
+      loadListeningData(); // Load who's currently listening
 
       // Poll for recent playlists every 3 minutes (was 30s - reduced to save KV usage)
       function startPolling() {
@@ -5753,6 +5806,12 @@
         sidebarPollInterval = setInterval(() => {
           loadRecentPlaylists();
         }, 180000); // 3 minutes
+
+        // Poll for listening data every 30 seconds (more real-time)
+        if (listeningPollInterval) clearInterval(listeningPollInterval);
+        listeningPollInterval = setInterval(() => {
+          loadListeningData();
+        }, 30000); // 30 seconds
       }
 
       startPolling();
@@ -5764,9 +5823,14 @@
             clearInterval(sidebarPollInterval);
             sidebarPollInterval = null;
           }
+          if (listeningPollInterval) {
+            clearInterval(listeningPollInterval);
+            listeningPollInterval = null;
+          }
         } else {
           // Tab became visible - refresh immediately then resume polling
           loadRecentPlaylists();
+          loadListeningData();
           startPolling();
         }
       });
@@ -5780,6 +5844,89 @@
 
     // Initialize
     init();
+
+    // =========================================
+    // CSP FIX: Global Event Delegation
+    // Handles onclick attributes blocked by CSP
+    // =========================================
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('[onclick]');
+      if (!target) return;
+
+      const onclickAttr = target.getAttribute('onclick');
+      if (!onclickAttr) return;
+
+      // Prevent default for buttons/links
+      e.preventDefault();
+
+      // Parse and execute the onclick handler safely
+      // Extract function name and arguments
+      const match = onclickAttr.match(/^(\w+)\s*\(([^)]*)\)$/);
+      if (match) {
+        const fnName = match[1];
+        const argsStr = match[2];
+
+        // Get the function from window
+        const fn = window[fnName];
+        if (typeof fn === 'function') {
+          // Parse arguments (handle strings, booleans, numbers)
+          let args = [];
+          if (argsStr.trim()) {
+            try {
+              // Safe argument parsing
+              args = argsStr.split(',').map(arg => {
+                arg = arg.trim();
+                // Handle string literals
+                if ((arg.startsWith("'") && arg.endsWith("'")) ||
+                    (arg.startsWith('"') && arg.endsWith('"'))) {
+                  return arg.slice(1, -1);
+                }
+                // Handle booleans
+                if (arg === 'true') return true;
+                if (arg === 'false') return false;
+                // Handle numbers
+                if (!isNaN(arg) && arg !== '') return Number(arg);
+                return arg;
+              });
+            } catch { args = []; }
+          }
+          fn.apply(null, args);
+        }
+      } else {
+        // Handle simple expressions like: this.closest('.modal').remove()
+        // or: window.location.reload()
+        try {
+          // For simple window methods
+          if (onclickAttr.includes('window.location.reload')) {
+            window.location.reload();
+          } else if (onclickAttr.includes('location.reload')) {
+            location.reload(true);
+          } else if (onclickAttr.includes('location.href')) {
+            const hrefMatch = onclickAttr.match(/location\.href\s*=\s*['"]([^'"]+)['"]/);
+            if (hrefMatch) location.href = hrefMatch[1];
+          } else if (onclickAttr.includes('.closest(') && onclickAttr.includes('.remove()')) {
+            // Handle: this.closest('.selector').remove()
+            const selectorMatch = onclickAttr.match(/\.closest\s*\(\s*['"]([^'"]+)['"]\s*\)/);
+            if (selectorMatch) {
+              const closest = target.closest(selectorMatch[1]);
+              if (closest) closest.remove();
+            }
+          } else if (onclickAttr.includes('event.preventDefault()')) {
+            // Already prevented, now execute the rest
+            const fnMatch = onclickAttr.match(/;\s*(\w+)\s*\(([^)]*)\)/);
+            if (fnMatch) {
+              const fn = window[fnMatch[1]];
+              if (typeof fn === 'function') {
+                const arg = fnMatch[2].replace(/'/g, '').trim();
+                fn(arg);
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('[CSP Handler] Failed to execute:', onclickAttr, err);
+        }
+      }
+    });
 
     // Start deployment monitor
     startDeployMonitor();
