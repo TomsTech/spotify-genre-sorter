@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import {
   getGitHubAuthUrl,
   exchangeGitHubCode,
@@ -23,6 +24,29 @@ import {
   createOrUpdateUserStats,
   trackAnalyticsEvent,
 } from '../lib/session';
+
+// OAuth state cookie name (backup for KV eventual consistency)
+const OAUTH_STATE_COOKIE = 'oauth_state';
+
+// Helper to encode state data for cookie (base64url encoding)
+function encodeStateForCookie(state: string, data: Record<string, string>): string {
+  const payload = JSON.stringify({ state, data, ts: Date.now() });
+  // Use base64url encoding to avoid cookie special chars
+  return btoa(payload).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+// Helper to decode state data from cookie
+function decodeStateFromCookie(cookieValue: string): { state: string; data: Record<string, string>; ts: number } | null {
+  try {
+    // Restore base64 padding and decode
+    const base64 = cookieValue.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '==='.slice(0, (4 - base64.length % 4) % 4);
+    const decoded = atob(padded);
+    return JSON.parse(decoded) as { state: string; data: Record<string, string>; ts: number };
+  } catch {
+    return null;
+  }
+}
 
 const auth = new Hono<{ Bindings: Env }>();
 
@@ -114,7 +138,20 @@ auth.get('/github', async (c) => {
   }
 
   const state = generateState();
-  await storeState(c.env.SESSIONS, state, { provider: 'github' });
+  const stateData = { provider: 'github' };
+
+  // Store state in KV (primary)
+  await storeState(c.env.SESSIONS, state, stateData);
+
+  // Also store in cookie as backup for KV eventual consistency
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  setCookie(c, OAUTH_STATE_COOKIE, encodeStateForCookie(state, stateData), {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'Lax',
+    maxAge: 600,
+    path: '/',
+  });
 
   const redirectUri = new URL('/auth/github/callback', c.req.url).toString();
   const clientId = c.env.GITHUB_CLIENT_ID;
@@ -137,16 +174,39 @@ auth.get('/github/callback', async (c) => {
   const error = c.req.query('error');
 
   if (error) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    deleteCookie(c, OAUTH_STATE_COOKIE, { path: '/' });
     await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: 'GitHub OAuth denied' });
     return c.redirect('/?error=github_denied');
   }
 
   if (!code || !state) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    deleteCookie(c, OAUTH_STATE_COOKIE, { path: '/' });
     await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: 'Invalid OAuth request' });
     return c.redirect('/?error=invalid_request');
   }
 
-  const stateData = await verifyState(c.env.SESSIONS, state);
+  // Try KV first, then fall back to cookie for eventual consistency issues
+  let stateData = await verifyState(c.env.SESSIONS, state);
+
+  // If KV lookup failed, try the cookie backup
+  if (!stateData) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const cookieValue = getCookie(c, OAUTH_STATE_COOKIE);
+    if (cookieValue) {
+      const cookieData = decodeStateFromCookie(cookieValue);
+      if (cookieData && cookieData.state === state && Date.now() - cookieData.ts < 600000) {
+        stateData = cookieData.data;
+        console.log('OAuth state recovered from cookie (KV eventual consistency fallback)');
+      }
+    }
+  }
+
+  // Always clean up the cookie
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  deleteCookie(c, OAUTH_STATE_COOKIE, { path: '/' });
+
   if (!stateData || stateData.provider !== 'github') {
     await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: 'Invalid OAuth state' });
     return c.redirect('/?error=invalid_state');
@@ -198,10 +258,24 @@ auth.get('/spotify', async (c) => {
   const codeChallenge = await createCodeChallenge(codeVerifier);
 
   const state = generateState();
-  await storeState(c.env.SESSIONS, state, {
+  const stateData = {
     provider: 'spotify',
     spotifyOnly: spotifyOnly ? 'true' : 'false',
     codeVerifier, // Store verifier to use in callback
+  };
+
+  // Store state in KV (primary)
+  await storeState(c.env.SESSIONS, state, stateData);
+
+  // Also store in cookie as backup for KV eventual consistency across edge locations
+  // Cookie travels with the user's browser, ensuring state is always available
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  setCookie(c, OAUTH_STATE_COOKIE, encodeStateForCookie(state, stateData), {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'Lax',
+    maxAge: 600, // 10 minutes (same as KV TTL)
+    path: '/',
   });
 
   const redirectUri = new URL('/auth/spotify/callback', c.req.url).toString();
@@ -217,16 +291,40 @@ auth.get('/spotify/callback', async (c) => {
   const error = c.req.query('error');
 
   if (error) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    deleteCookie(c, OAUTH_STATE_COOKIE, { path: '/' });
     await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: 'Spotify OAuth denied' });
     return c.redirect('/?error=spotify_denied');
   }
 
   if (!code || !state) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    deleteCookie(c, OAUTH_STATE_COOKIE, { path: '/' });
     await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: 'Invalid Spotify OAuth request' });
     return c.redirect('/?error=invalid_request');
   }
 
-  const stateData = await verifyState(c.env.SESSIONS, state);
+  // Try KV first, then fall back to cookie for eventual consistency issues
+  let stateData = await verifyState(c.env.SESSIONS, state);
+
+  // If KV lookup failed, try the cookie backup
+  if (!stateData) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const cookieValue = getCookie(c, OAUTH_STATE_COOKIE);
+    if (cookieValue) {
+      const cookieData = decodeStateFromCookie(cookieValue);
+      // Verify the state matches and cookie isn't too old (10 min max)
+      if (cookieData && cookieData.state === state && Date.now() - cookieData.ts < 600000) {
+        stateData = cookieData.data;
+        console.log('OAuth state recovered from cookie (KV eventual consistency fallback)');
+      }
+    }
+  }
+
+  // Always clean up the cookie
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  deleteCookie(c, OAUTH_STATE_COOKIE, { path: '/' });
+
   if (!stateData || stateData.provider !== 'spotify') {
     await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: 'Invalid Spotify OAuth state' });
     return c.redirect('/?error=invalid_state');

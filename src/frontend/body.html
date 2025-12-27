@@ -3,14 +3,19 @@
 
   <!-- Status Widgets Container (top-right corner) -->
   <div class="status-widgets" id="status-widgets">
+    <!-- Uptime Status Badge (shields.io - always visible) -->
+    <a href="https://spotify.houstons.tech/health" target="_blank" class="uptime-status-badge" id="uptime-badge" title="Service Status" aria-label="View service status">
+      <img src="https://img.shields.io/website?url=https%3A%2F%2Fspotify.houstons.tech&style=flat-square&logo=spotify&logoColor=white&label=Status&up_color=1DB954&down_color=e74c3c&labelColor=191414" alt="Service Status" loading="lazy" onerror="this.parentElement.style.display='none'">
+    </a>
+
     <!-- Deployment Monitor Widget -->
-    <button class="deploy-widget" id="deploy-widget" style="display: none;" onclick="showDeployDetails()" aria-label="View deployment status">
+    <button class="deploy-widget" id="deploy-widget" style="display: none;" aria-label="View deployment status">
       <span class="status-icon" aria-hidden="true"></span>
       <span class="deploy-text">Checking...</span>
     </button>
 
     <!-- KV Status Indicator (hidden by default, shown for owner) -->
-    <button class="kv-status-indicator" id="kv-status-indicator" style="display: none;" onclick="showKVStatusModal()" aria-label="View KV storage status">
+    <button class="kv-status-indicator" id="kv-status-indicator" style="display: none;" aria-label="View KV storage status">
       <span class="kv-icon" aria-hidden="true">📊</span>
       <span class="kv-text">KV: ...</span>
     </button>
@@ -99,7 +104,7 @@
           </div>
         </div>
 
-        <button class="btn btn-secondary sidebar-scoreboard-btn" data-testid="scoreboard-btn" onclick="showScoreboard()" aria-label="View Scoreboard - Rankings update every hour">
+        <button class="btn btn-secondary sidebar-scoreboard-btn" id="scoreboard-btn" data-testid="scoreboard-btn" aria-label="View Scoreboard - Rankings update every hour">
           <span aria-hidden="true">📊</span> <span data-i18n="viewScoreboard">View Scoreboard</span>
         </button>
 
@@ -111,7 +116,7 @@
       </aside>
 
       <!-- Mobile sidebar toggle -->
-      <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+      <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">
         <span class="toggle-icon">◀</span>
       </button>
 
@@ -131,7 +136,7 @@
   </div>
 
   <!-- Heidi Easter Egg Badge -->
-  <button class="heidi-badge" data-testid="heidi-badge" onclick="toggleSwedishMode()" aria-label="Toggle Swedish mode - Made with inspiration from Heidi">
+  <button class="heidi-badge" id="heidi-badge" data-testid="heidi-badge" aria-label="Toggle Swedish mode - Made with inspiration from Heidi">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
       <circle cx="12" cy="8" r="4"/>
       <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
