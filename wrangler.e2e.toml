@@ -16,6 +16,8 @@ id = "e2e-local-sessions"
 [vars]
 # E2E test mode flag - enables mock endpoints and bypasses real OAuth
 E2E_TEST_MODE = "true"
+# Non-production environment allows E2E_TEST_MODE bypass
+ENVIRONMENT = "development"
 
 # Use Spotify-only auth (simpler flow for testing)
 SPOTIFY_ONLY_AUTH = "true"
