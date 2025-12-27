@@ -82,7 +82,8 @@ let rateLimitRequestCount = 0;
 // Rate limiting middleware
 api.use('/*', async (c, next) => {
   // Skip rate limiting in E2E test mode to allow parallel test execution
-  if (c.env.E2E_TEST_MODE === 'true') {
+  // SECURITY: Only allow bypass in non-production environments (ISSUE-001)
+  if (c.env.E2E_TEST_MODE === 'true' && c.env.ENVIRONMENT !== 'production') {
     return next();
   }
 

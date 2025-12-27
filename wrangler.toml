@@ -24,3 +24,4 @@ id = "d6874dfad2c344c9a9b8518601ae46ac"
 
 [vars]
 ALLOWED_GITHUB_USERS = ""
+ENVIRONMENT = "production"
