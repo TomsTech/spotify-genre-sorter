@@ -466,13 +466,19 @@
     }
     if (lightMode) document.body.classList.add('light-mode');
 
-    // Add theme toggle to header immediately (visible before login)
+    // Add theme toggle and Swedish toggle to header immediately (visible before login)
     if (headerActions) {
       headerActions.innerHTML = \`
-        <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}" aria-label="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
+        <button id="swedish-toggle" class="btn btn-ghost btn-sm swedish-toggle-btn" title="\${swedishMode ? 'Switch to English' : 'Switch to Swedish'}" aria-label="\${swedishMode ? 'Switch to English' : 'Switch to Swedish'}">
+          \${swedishMode ? '🇬🇧' : '🇸🇪'}
+        </button>
+        <button id="theme-toggle" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}" aria-label="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
           \${lightMode ? '🌙' : '☀️'}
         </button>
       \`;
+      // Attach event listeners (CSP blocks inline onclick)
+      document.getElementById('theme-toggle').addEventListener('click', () => toggleTheme());
+      document.getElementById('swedish-toggle').addEventListener('click', () => toggleSwedishMode());
     }
 
     // Stats dashboard state
@@ -1860,12 +1866,20 @@
       prompt.innerHTML = \`
         <h3>🚀 New Version Available!</h3>
         <p>Version \${newVersion} has been deployed. Refresh to get the latest features.</p>
-        <button onclick="location.reload(true)" class="btn btn-primary">Refresh Now</button>
-        <button onclick="dismissVersionPrompt()" class="btn btn-secondary" style="margin-left: 0.5rem;">Later</button>
+        <button class="btn btn-primary version-refresh-btn">Refresh Now</button>
+        <button class="btn btn-secondary version-later-btn" style="margin-left: 0.5rem;">Later</button>
       \`;
 
       document.body.appendChild(overlay);
       document.body.appendChild(prompt);
+
+      // Attach event listeners (CSP blocks inline onclick handlers)
+      prompt.querySelector('.version-refresh-btn').addEventListener('click', () => {
+        location.reload(true);
+      });
+      prompt.querySelector('.version-later-btn').addEventListener('click', () => {
+        dismissVersionPrompt();
+      });
     }
 
     function dismissVersionPrompt() {
@@ -1902,8 +1916,10 @@
       header.className = 'changelog-header';
       header.innerHTML = \`
         <h3>\${swedishMode ? 'Versionshistorik' : 'Version History'}</h3>
-        <button class="changelog-close" onclick="closeChangelog()" aria-label="Close changelog">&times;</button>
+        <button class="changelog-close" aria-label="Close changelog">&times;</button>
       \`;
+      // Attach event listener (CSP blocks inline onclick)
+      header.querySelector('.changelog-close').addEventListener('click', () => closeChangelog());
 
       const timeline = document.createElement('div');
       timeline.className = 'changelog-timeline';
@@ -2176,7 +2192,7 @@
       panel.innerHTML = \`
         <div class="changelog-header">
           <h3>\${swedishMode ? '📊 KV Lagring Status' : '📊 KV Storage Status'}</h3>
-          <button class="changelog-close" onclick="closeKVModal()" aria-label="Close KV status">&times;</button>
+          <button class="changelog-close kv-modal-close" aria-label="Close KV status">&times;</button>
         </div>
         <div class="kv-status-content">
           <div class="kv-status-summary">
@@ -2284,6 +2300,9 @@
 
       overlay.appendChild(panel);
       document.body.appendChild(overlay);
+
+      // Attach event listener for close button (CSP blocks inline onclick)
+      panel.querySelector('.kv-modal-close').addEventListener('click', () => closeKVModal());
 
       // Animate in
       requestAnimationFrame(() => {
@@ -2977,9 +2996,12 @@
         images: avatar ? [{ url: avatar }] : []
       };
 
-      // Keep theme toggle in header, add user info next to it
+      // Keep Swedish toggle, theme toggle and user info in header
       headerActions.innerHTML = \`
-        <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" data-testid="theme-toggle" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}" aria-label="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
+        <button id="swedish-toggle" class="btn btn-ghost btn-sm swedish-toggle-btn" title="\${swedishMode ? 'Switch to English' : 'Switch to Swedish'}" aria-label="\${swedishMode ? 'Switch to English' : 'Switch to Swedish'}">
+          \${swedishMode ? '🇬🇧' : '🇸🇪'}
+        </button>
+        <button id="theme-toggle" class="btn btn-ghost btn-sm theme-toggle-btn" data-testid="theme-toggle" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}" aria-label="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
           \${lightMode ? '🌙' : '☀️'}
         </button>
         <div class="user-info" data-testid="user-info">
@@ -2988,6 +3010,9 @@
           <a href="/auth/logout" class="btn btn-ghost" data-testid="logout-button" data-i18n="logout">\${t('logout')}</a>
         </div>
       \`;
+      // Attach event listeners (CSP blocks inline onclick)
+      document.getElementById('theme-toggle').addEventListener('click', () => toggleTheme());
+      document.getElementById('swedish-toggle').addEventListener('click', () => toggleSwedishMode());
     }
 
     function renderConnectSpotify() {
@@ -6928,6 +6953,42 @@
     }
 
     window.copyShareLink = copyShareLink;
+
+    // ====================================
+    // Static Element Event Listeners
+    // CSP blocks inline onclick handlers, so we attach listeners here
+    // ====================================
+    document.addEventListener('DOMContentLoaded', () => {
+      // Deploy widget - show deploy details modal
+      const deployWidget = document.getElementById('deploy-widget');
+      if (deployWidget) {
+        deployWidget.addEventListener('click', () => showDeployDetails());
+      }
+
+      // KV status indicator - show KV status modal
+      const kvIndicator = document.getElementById('kv-status-indicator');
+      if (kvIndicator) {
+        kvIndicator.addEventListener('click', () => showKVStatusModal());
+      }
+
+      // Scoreboard button
+      const scoreboardBtn = document.getElementById('scoreboard-btn');
+      if (scoreboardBtn) {
+        scoreboardBtn.addEventListener('click', () => showScoreboard());
+      }
+
+      // Sidebar toggle
+      const sidebarToggle = document.getElementById('sidebar-toggle');
+      if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => toggleSidebar());
+      }
+
+      // Heidi badge - toggle Swedish mode
+      const heidiBadge = document.getElementById('heidi-badge');
+      if (heidiBadge) {
+        heidiBadge.addEventListener('click', () => toggleSwedishMode());
+      }
+    });
 
     // ====================================
     // Genre Family Grouping (#79)
