@@ -9,7 +9,7 @@ import { createLogger, generateRequestId } from './lib/logger';
 import { generateNonce } from './lib/csp-nonce';
 
 // App version - increment on each deployment
-const APP_VERSION = '3.6.0'; // v3.6.0 - UI fixes, shields.io badge, genie audio improvements
+const APP_VERSION = '3.7.0'; // v3.7.0 - Production guard, enhanced monitoring & DR docs
 const GITHUB_REPO = 'TomsTech/spotify-genre-sorter';
 
 const app = new Hono<{ Bindings: Env }>();
