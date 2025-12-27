@@ -7,11 +7,24 @@
 ## Table of Contents
 
 1. [Data Inventory](#data-inventory)
+   - [Cloudflare KV Storage](#cloudflare-kv-storage)
+   - [Criticality Assessment](#criticality-assessment)
 2. [Backup Strategy](#backup-strategy)
+   - [Automated Backups](#automated-backups)
+   - [Off-Site Backup Consideration](#off-site-backup-consideration)
+   - [Manual Backups](#manual-backups)
 3. [Restore Procedures](#restore-procedures)
+   - [Full Restore](#full-restore)
+   - [Partial Restore](#partial-restore)
 4. [Recovery Objectives](#recovery-objectives)
+   - [Recovery Time Objective (RTO)](#recovery-time-objective-rto)
+   - [Recovery Point Objective (RPO)](#recovery-point-objective-rpo)
 5. [Testing & Validation](#testing--validation)
+   - [Quarterly DR Test Schedule](#quarterly-dr-test-schedule)
+   - [Test Scenarios](#test-scenarios)
+   - [DR Test Documentation](#dr-test-documentation)
 6. [Incident Response](#incident-response)
+7. [Architecture Diagrams](#data-architecture-diagram)
 
 ---
 
@@ -23,18 +36,38 @@ All application data is stored in a single Cloudflare KV namespace: **SESSIONS**
 
 | Data Type | Key Pattern | Criticality | Retention | Example |
 |-----------|-------------|-------------|-----------|---------|
-| User sessions | `session:{uuid}` | Medium | 7 days | Login tokens, OAuth state |
-| User registration | `user:{spotifyId}` | **High** | Permanent | User profile, registration date |
-| User statistics | `user_stats:{spotifyId}` | **High** | Permanent | Playlists created, genres discovered |
-| User count | `stats:user_count` | High | Permanent | Total registered users |
-| Hall of Fame | `hof:{position}` | High | Permanent | First 100 users (pioneers) |
-| Scoreboard cache | `scoreboard_cache` | Low | 5 min | Rankings (regenerable) |
-| Recent playlists | `recent_playlists` | Medium | Permanent | Social feed data |
-| Analytics (daily) | `analytics:daily:{date}` | Medium | 7 days | Usage metrics |
+| User sessions | `session:{uuid}` | Recoverable | 7 days | Login tokens, OAuth state |
+| User registration | `user:{spotifyId}` | **Critical** | Permanent | User profile, registration date |
+| User statistics | `user_stats:{spotifyId}` | **Critical** | Permanent | Playlists created, genres discovered |
+| User count | `stats:user_count` | Important | Permanent | Total registered users |
+| Hall of Fame | `hof:{position}` | **Critical** | Permanent | First 100 users (pioneers) |
+| Scoreboard cache | `scoreboard_cache` | Transient | 5 min | Rankings (regenerable) |
+| Recent playlists | `recent_playlists` | Important | Permanent | Social feed data |
+| Analytics (daily) | `analytics:daily:{date}` | Important | 7 days | Usage metrics |
+| Analytics events | `analytics:event:{type}` | Transient | 24 hours | Real-time event tracking |
+| Scan progress | `scan_progress:{userId}` | Transient | 1 hour | Library scan checkpoints |
 
 **Total Keys**: ~500-1000 (depending on user count)
 **Data Size**: ~1-5 MB
 **Critical Data**: User registrations, statistics, Hall of Fame
+
+### Criticality Assessment
+
+Data is classified into four tiers based on recovery priority and user impact:
+
+| Tier | Classification | Data Types | Recovery Priority |
+|------|---------------|------------|-------------------|
+| **1 - Critical** | Irreplaceable user data | User registrations, Hall of Fame, user statistics | Must restore immediately |
+| **2 - Important** | Valuable but reconstructable | User count, leaderboard, recent playlists, analytics | Restore within RTO |
+| **3 - Recoverable** | User can regenerate | Session data (users re-login) | Restore if convenient |
+| **4 - Transient** | Automatically regenerates | Scoreboard cache, scan progress, event logs | No restoration needed |
+
+**Impact Analysis:**
+
+- **Critical data loss**: Users lose registration status, pioneer badges, all-time statistics
+- **Important data loss**: Leaderboards reset, recent playlists feed empty (rebuilds over time)
+- **Recoverable data loss**: Users must re-authenticate (minor inconvenience)
+- **Transient data loss**: No user impact (auto-regenerates within minutes)
 
 ---
 
@@ -55,6 +88,35 @@ All application data is stored in a single Cloudflare KV namespace: **SESSIONS**
 **Storage Locations**:
 - **GitHub Repository** (`/backups/` directory) - Primary long-term storage
 - **GitHub Actions Artifacts** - 90-day retention for quick access
+
+### Off-Site Backup Consideration
+
+For enhanced disaster recovery, consider adding Cloudflare R2 as a secondary backup destination:
+
+**Proposed R2 Backup Architecture:**
+```
+Weekly Backup → GitHub (primary) + R2 (secondary)
+                ↓                    ↓
+          Git repository       Object storage
+          (version control)    (geographic redundancy)
+```
+
+**R2 Benefits:**
+- Geographic redundancy (independent of GitHub)
+- Larger storage capacity for historical backups
+- Native Cloudflare integration
+- Lower egress costs than S3
+
+**Implementation** (future enhancement):
+```bash
+# Add to backup.yml workflow
+- name: Upload to R2
+  run: |
+    npx wrangler r2 object put genre-genie-backups/kv-backup-$DATE.json \
+      --file=backups/kv-backup-$DATE.json
+```
+
+> **Current Status**: R2 backup not implemented. GitHub provides adequate redundancy for current scale.
 
 ### Manual Backups
 
@@ -195,6 +257,21 @@ npm run backup:kv
 
 ## Testing & Validation
 
+### Quarterly DR Test Schedule
+
+DR drills are scheduled for the first Sunday of each quarter:
+
+| Quarter | Test Date | Status | Next Test |
+|---------|-----------|--------|-----------|
+| Q1 2025 | 2025-01-05 | Pending | - |
+| Q2 2025 | 2025-04-06 | Pending | - |
+| Q3 2025 | 2025-07-06 | Pending | - |
+| Q4 2025 | 2025-10-05 | Pending | - |
+
+**Test Coordinator**: Repository owner
+**Test Duration**: ~1 hour
+**Notification**: Create GitHub issue 1 week before scheduled test
+
 ### Backup Verification
 
 **Frequency**: After every backup (automated in GitHub Actions)
@@ -246,6 +323,49 @@ npm run backup:kv
 - 100% of keys restored
 - No data corruption
 - Restore completes in < 10 minutes
+
+### Test Scenarios
+
+Each quarterly DR drill should include at least one of these scenarios:
+
+| Scenario | Description | Success Criteria |
+|----------|-------------|------------------|
+| **Full Restore** | Complete namespace restoration from backup | All keys restored, app functional |
+| **Partial Restore** | Restore specific user data | Target keys restored, no collateral changes |
+| **Point-in-Time** | Restore from older backup | Correct timestamp data restored |
+| **Cross-Account** | Restore to different CF account | Data accessible in new account |
+| **Backup Validation** | Verify backup integrity without restore | JSON valid, key count matches |
+
+### DR Test Documentation
+
+After each quarterly test, document results:
+
+```markdown
+## DR Test Results - YYYY-MM-DD
+
+**Scenario Tested**: [Full Restore / Partial / etc.]
+**Backup Used**: kv-backup-YYYY-MM-DD.json
+**Test Namespace**: SESSIONS_TEST
+
+### Results
+- [ ] Backup file accessible
+- [ ] JSON structure valid
+- [ ] Restore script executed successfully
+- [ ] All keys restored (X of Y)
+- [ ] Data integrity verified
+- [ ] RTO met (actual: X minutes)
+
+### Issues Found
+- None / List any issues
+
+### Action Items
+- None / List improvements needed
+
+**Tester**: [Name]
+**Next Test**: YYYY-MM-DD
+```
+
+Save test results in: `docs/dr-tests/YYYY-MM-DD-test-results.md`
 
 ---
 
@@ -470,9 +590,10 @@ Run this drill **quarterly** to ensure readiness:
 | Date | Version | Changes |
 |------|---------|---------|
 | 2025-12-05 | 1.0 | Initial backup & DR documentation |
+| 2025-12-27 | 1.1 | Added criticality assessment tiers, off-site backup considerations, quarterly DR test schedule, test scenarios and documentation template |
 
 ---
 
-*Last updated: 2025-12-05*
+*Last updated: 2025-12-27*
 *Owner: TomsTech*
 *Review frequency: Quarterly*
