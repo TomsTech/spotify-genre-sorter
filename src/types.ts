@@ -9,6 +9,7 @@ interface Env {
   SPOTIFY_ONLY_AUTH?: string; // "true" to skip GitHub auth
   BETTERSTACK_LOG_TOKEN?: string; // BetterStack Logs API token
   E2E_TEST_MODE?: string; // "true" to skip rate limiting in E2E tests
+  ENVIRONMENT?: string; // "production", "staging", or "development" - used for safety guards
   ADMIN_USERS?: string; // Comma-separated list of admin usernames (GitHub or Spotify)
 }
 
