@@ -875,33 +875,53 @@ export function getHtml(nonce: string): string {
       margin-right: auto;
     }
 
-    /* Privacy Explainer - Collapsible permissions info */
+    /* Privacy Explainer - Collapsible permissions dropdown */
     .privacy-explainer {
       text-align: left;
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      margin: 1.5rem 0;
+      border-radius: 12px;
+      margin: 1.5rem auto;
+      max-width: 400px;
       overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
 
     .privacy-explainer summary {
-      padding: 0.75rem 1rem;
+      padding: 0.875rem 1.25rem;
       cursor: pointer;
-      font-weight: 500;
+      font-weight: 600;
       color: var(--text-muted);
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 0.5rem;
-      transition: color 0.2s;
+      transition: color 0.2s, background 0.2s;
+      list-style: none; /* Remove default marker */
+      background: var(--surface-2);
+    }
+
+    /* Remove default marker for webkit/blink */
+    .privacy-explainer summary::-webkit-details-marker {
+      display: none;
+    }
+
+    /* Add dropdown arrow indicator */
+    .privacy-explainer summary::after {
+      content: '▼';
+      font-size: 0.6rem;
+      margin-left: 0.5rem;
+      transition: transform 0.2s;
+      color: var(--accent);
+    }
+
+    .privacy-explainer[open] summary::after {
+      transform: rotate(180deg);
     }
 
     .privacy-explainer summary:hover {
       color: var(--text);
-    }
-
-    .privacy-explainer summary::marker {
-      color: var(--accent);
+      background: var(--surface-2);
     }
 
     .privacy-explainer[open] summary {
@@ -1250,10 +1270,30 @@ export function getHtml(nonce: string): string {
       top: 4.5rem; /* Below the sticky header */
       right: 1rem;
       display: flex;
-      flex-direction: row;
-      gap: 0.5rem;
+      flex-direction: column; /* Stack vertically to avoid crowding */
+      gap: 0.75rem; /* Increased gap for better separation */
       z-index: 999; /* Below header z-index */
+      align-items: flex-end; /* Align to right edge */
+      max-width: 280px; /* Prevent overflow */
+    }
+
+    /* Uptime Status Badge */
+    .uptime-status-badge {
+      display: flex;
       align-items: center;
+      opacity: 0.9;
+      transition: opacity 0.2s, transform 0.2s;
+      border-radius: 4px;
+    }
+
+    .uptime-status-badge:hover {
+      opacity: 1;
+      transform: translateY(-2px);
+    }
+
+    .uptime-status-badge img {
+      height: 20px;
+      border-radius: 4px;
     }
 
     /* Deployment Monitor Widget */
@@ -1365,6 +1405,7 @@ export function getHtml(nonce: string): string {
       opacity: 0.8;
       transition: opacity 0.2s, transform 0.2s;
       cursor: pointer;
+      white-space: nowrap; /* Prevent text truncation */
     }
 
     .kv-status-indicator:hover {
@@ -2049,6 +2090,21 @@ export function getHtml(nonce: string): string {
       50% {
         filter: drop-shadow(0 0 16px rgba(29, 185, 84, 0.9));
       }
+    }
+
+    /* Uptime Badge */
+    .uptime-badge {
+      display: inline-block;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .uptime-badge img {
+      transition: transform 0.2s ease;
+    }
+
+    .uptime-badge:hover {
+      opacity: 1 !important;
+      transform: scale(1.05);
     }
 
     /* Stats Dashboard */
@@ -2984,7 +3040,8 @@ export function getHtml(nonce: string): string {
       gap: 1rem;
     }
 
-    .theme-toggle-btn {
+    .theme-toggle-btn,
+    .swedish-toggle-btn {
       font-size: 1.2rem;
       padding: 0.5rem;
       border-radius: 8px;
@@ -2992,7 +3049,8 @@ export function getHtml(nonce: string): string {
       flex-shrink: 0;
     }
 
-    .theme-toggle-btn:hover {
+    .theme-toggle-btn:hover,
+    .swedish-toggle-btn:hover {
       transform: scale(1.1);
       background: var(--border);
     }
@@ -8203,14 +8261,19 @@ export function getHtml(nonce: string): string {
 
   <!-- Status Widgets Container (top-right corner) -->
   <div class="status-widgets" id="status-widgets">
+    <!-- Uptime Status Badge (shields.io - always visible) -->
+    <a href="https://spotify.houstons.tech/health" target="_blank" class="uptime-status-badge" id="uptime-badge" title="Service Status" aria-label="View service status">
+      <img src="https://img.shields.io/website?url=https%3A%2F%2Fspotify.houstons.tech&style=flat-square&logo=spotify&logoColor=white&label=Status&up_color=1DB954&down_color=e74c3c&labelColor=191414" alt="Service Status" loading="lazy" onerror="this.parentElement.style.display='none'">
+    </a>
+
     <!-- Deployment Monitor Widget -->
-    <button class="deploy-widget" id="deploy-widget" style="display: none;" onclick="showDeployDetails()" aria-label="View deployment status">
+    <button class="deploy-widget" id="deploy-widget" style="display: none;" aria-label="View deployment status">
       <span class="status-icon" aria-hidden="true"></span>
       <span class="deploy-text">Checking...</span>
     </button>
 
     <!-- KV Status Indicator (hidden by default, shown for owner) -->
-    <button class="kv-status-indicator" id="kv-status-indicator" style="display: none;" onclick="showKVStatusModal()" aria-label="View KV storage status">
+    <button class="kv-status-indicator" id="kv-status-indicator" style="display: none;" aria-label="View KV storage status">
       <span class="kv-icon" aria-hidden="true">📊</span>
       <span class="kv-text">KV: ...</span>
     </button>
@@ -8299,7 +8362,7 @@ export function getHtml(nonce: string): string {
           </div>
         </div>
 
-        <button class="btn btn-secondary sidebar-scoreboard-btn" data-testid="scoreboard-btn" onclick="showScoreboard()" aria-label="View Scoreboard - Rankings update every hour">
+        <button class="btn btn-secondary sidebar-scoreboard-btn" id="scoreboard-btn" data-testid="scoreboard-btn" aria-label="View Scoreboard - Rankings update every hour">
           <span aria-hidden="true">📊</span> <span data-i18n="viewScoreboard">View Scoreboard</span>
         </button>
 
@@ -8311,7 +8374,7 @@ export function getHtml(nonce: string): string {
       </aside>
 
       <!-- Mobile sidebar toggle -->
-      <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+      <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">
         <span class="toggle-icon">◀</span>
       </button>
 
@@ -8331,7 +8394,7 @@ export function getHtml(nonce: string): string {
   </div>
 
   <!-- Heidi Easter Egg Badge -->
-  <button class="heidi-badge" data-testid="heidi-badge" onclick="toggleSwedishMode()" aria-label="Toggle Swedish mode - Made with inspiration from Heidi">
+  <button class="heidi-badge" id="heidi-badge" data-testid="heidi-badge" aria-label="Toggle Swedish mode - Made with inspiration from Heidi">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
       <circle cx="12" cy="8" r="4"/>
       <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
@@ -8812,13 +8875,19 @@ export function getHtml(nonce: string): string {
     }
     if (lightMode) document.body.classList.add('light-mode');
 
-    // Add theme toggle to header immediately (visible before login)
+    // Add theme toggle and Swedish toggle to header immediately (visible before login)
     if (headerActions) {
       headerActions.innerHTML = \`
-        <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}" aria-label="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
+        <button id="swedish-toggle" class="btn btn-ghost btn-sm swedish-toggle-btn" title="\${swedishMode ? 'Switch to English' : 'Switch to Swedish'}" aria-label="\${swedishMode ? 'Switch to English' : 'Switch to Swedish'}">
+          \${swedishMode ? '🇬🇧' : '🇸🇪'}
+        </button>
+        <button id="theme-toggle" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}" aria-label="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
           \${lightMode ? '🌙' : '☀️'}
         </button>
       \`;
+      // Attach event listeners (CSP blocks inline onclick)
+      document.getElementById('theme-toggle').addEventListener('click', () => toggleTheme());
+      document.getElementById('swedish-toggle').addEventListener('click', () => toggleSwedishMode());
     }
 
     // Stats dashboard state
@@ -10206,12 +10275,20 @@ export function getHtml(nonce: string): string {
       prompt.innerHTML = \`
         <h3>🚀 New Version Available!</h3>
         <p>Version \${newVersion} has been deployed. Refresh to get the latest features.</p>
-        <button onclick="location.reload(true)" class="btn btn-primary">Refresh Now</button>
-        <button onclick="dismissVersionPrompt()" class="btn btn-secondary" style="margin-left: 0.5rem;">Later</button>
+        <button class="btn btn-primary version-refresh-btn">Refresh Now</button>
+        <button class="btn btn-secondary version-later-btn" style="margin-left: 0.5rem;">Later</button>
       \`;
 
       document.body.appendChild(overlay);
       document.body.appendChild(prompt);
+
+      // Attach event listeners (CSP blocks inline onclick handlers)
+      prompt.querySelector('.version-refresh-btn').addEventListener('click', () => {
+        location.reload(true);
+      });
+      prompt.querySelector('.version-later-btn').addEventListener('click', () => {
+        dismissVersionPrompt();
+      });
     }
 
     function dismissVersionPrompt() {
@@ -10248,8 +10325,10 @@ export function getHtml(nonce: string): string {
       header.className = 'changelog-header';
       header.innerHTML = \`
         <h3>\${swedishMode ? 'Versionshistorik' : 'Version History'}</h3>
-        <button class="changelog-close" onclick="closeChangelog()" aria-label="Close changelog">&times;</button>
+        <button class="changelog-close" aria-label="Close changelog">&times;</button>
       \`;
+      // Attach event listener (CSP blocks inline onclick)
+      header.querySelector('.changelog-close').addEventListener('click', () => closeChangelog());
 
       const timeline = document.createElement('div');
       timeline.className = 'changelog-timeline';
@@ -10483,12 +10562,12 @@ export function getHtml(nonce: string): string {
       const writePercent = data.usage?.writesPercent || 0;
       const readPercent = data.usage?.readsPercent || 0;
 
-      // Show the more critical percentage
+      // Show the more critical percentage with clear "Daily" label
       const displayPercent = Math.max(writePercent, readPercent);
-      const displayType = writePercent >= readPercent ? 'W' : 'R';
+      const displayType = writePercent >= readPercent ? 'writes' : 'reads';
 
-      indicator.innerHTML = \`<span class="kv-icon">\${statusEmoji}</span><span class="kv-text">KV: \${displayPercent}% \${displayType}</span>\`;
-      indicator.title = \`KV Usage: \${readPercent}% reads, \${writePercent}% writes (click for details)\`;
+      indicator.innerHTML = \`<span class="kv-icon">\${statusEmoji}</span><span class="kv-text">Daily: \${displayPercent}%</span>\`;
+      indicator.title = \`KV Free Tier Usage Today: \${readPercent}% reads, \${writePercent}% writes (click for details)\`;
     }
 
     async function showKVStatusModal() {
@@ -10522,7 +10601,7 @@ export function getHtml(nonce: string): string {
       panel.innerHTML = \`
         <div class="changelog-header">
           <h3>\${swedishMode ? '📊 KV Lagring Status' : '📊 KV Storage Status'}</h3>
-          <button class="changelog-close" onclick="closeKVModal()" aria-label="Close KV status">&times;</button>
+          <button class="changelog-close kv-modal-close" aria-label="Close KV status">&times;</button>
         </div>
         <div class="kv-status-content">
           <div class="kv-status-summary">
@@ -10630,6 +10709,9 @@ export function getHtml(nonce: string): string {
 
       overlay.appendChild(panel);
       document.body.appendChild(overlay);
+
+      // Attach event listener for close button (CSP blocks inline onclick)
+      panel.querySelector('.kv-modal-close').addEventListener('click', () => closeKVModal());
 
       // Animate in
       requestAnimationFrame(() => {
@@ -11304,7 +11386,9 @@ export function getHtml(nonce: string): string {
             <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank" class="github-star-badge" title="\${swedishMode ? 'Gillar du det? Stjärnmärk oss! ⭐' : 'Love this? Star us! ⭐'}">
               <img src="https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=for-the-badge&logo=github&logoColor=white&label=Star&color=1DB954&labelColor=191414" alt="Star on GitHub" loading="lazy" onerror="this.style.display='none'">
             </a>
-            <!-- Uptime badge removed - monitor ID 3843047 returns 404, no valid BetterStack monitor configured -->
+            <a href="https://spotify.houstons.tech" target="_blank" class="uptime-badge" title="\${swedishMode ? 'Tjänststatus' : 'Service Status'}">
+              <img src="https://img.shields.io/website?url=https%3A%2F%2Fspotify.houstons.tech&style=for-the-badge&logo=spotify&logoColor=white&label=Status&up_color=1DB954&down_color=e74c3c&labelColor=191414" alt="Service Status" loading="lazy" onerror="this.style.display='none'">
+            </a>
           </div>
         </div>
       \`;
@@ -11321,9 +11405,12 @@ export function getHtml(nonce: string): string {
         images: avatar ? [{ url: avatar }] : []
       };
 
-      // Keep theme toggle in header, add user info next to it
+      // Keep Swedish toggle, theme toggle and user info in header
       headerActions.innerHTML = \`
-        <button id="theme-toggle" onclick="toggleTheme()" class="btn btn-ghost btn-sm theme-toggle-btn" data-testid="theme-toggle" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}" aria-label="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
+        <button id="swedish-toggle" class="btn btn-ghost btn-sm swedish-toggle-btn" title="\${swedishMode ? 'Switch to English' : 'Switch to Swedish'}" aria-label="\${swedishMode ? 'Switch to English' : 'Switch to Swedish'}">
+          \${swedishMode ? '🇬🇧' : '🇸🇪'}
+        </button>
+        <button id="theme-toggle" class="btn btn-ghost btn-sm theme-toggle-btn" data-testid="theme-toggle" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}" aria-label="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
           \${lightMode ? '🌙' : '☀️'}
         </button>
         <div class="user-info" data-testid="user-info">
@@ -11332,6 +11419,9 @@ export function getHtml(nonce: string): string {
           <a href="/auth/logout" class="btn btn-ghost" data-testid="logout-button" data-i18n="logout">\${t('logout')}</a>
         </div>
       \`;
+      // Attach event listeners (CSP blocks inline onclick)
+      document.getElementById('theme-toggle').addEventListener('click', () => toggleTheme());
+      document.getElementById('swedish-toggle').addEventListener('click', () => toggleSwedishMode());
     }
 
     function renderConnectSpotify() {
@@ -14189,6 +14279,89 @@ export function getHtml(nonce: string): string {
     // Initialize
     init();
 
+    // =========================================
+    // CSP FIX: Global Event Delegation
+    // Handles onclick attributes blocked by CSP
+    // =========================================
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('[onclick]');
+      if (!target) return;
+
+      const onclickAttr = target.getAttribute('onclick');
+      if (!onclickAttr) return;
+
+      // Prevent default for buttons/links
+      e.preventDefault();
+
+      // Parse and execute the onclick handler safely
+      // Extract function name and arguments
+      const match = onclickAttr.match(/^(\w+)\s*\(([^)]*)\)$/);
+      if (match) {
+        const fnName = match[1];
+        const argsStr = match[2];
+
+        // Get the function from window
+        const fn = window[fnName];
+        if (typeof fn === 'function') {
+          // Parse arguments (handle strings, booleans, numbers)
+          let args = [];
+          if (argsStr.trim()) {
+            try {
+              // Safe argument parsing
+              args = argsStr.split(',').map(arg => {
+                arg = arg.trim();
+                // Handle string literals
+                if ((arg.startsWith("'") && arg.endsWith("'")) ||
+                    (arg.startsWith('"') && arg.endsWith('"'))) {
+                  return arg.slice(1, -1);
+                }
+                // Handle booleans
+                if (arg === 'true') return true;
+                if (arg === 'false') return false;
+                // Handle numbers
+                if (!isNaN(arg) && arg !== '') return Number(arg);
+                return arg;
+              });
+            } catch { args = []; }
+          }
+          fn.apply(null, args);
+        }
+      } else {
+        // Handle simple expressions like: this.closest('.modal').remove()
+        // or: window.location.reload()
+        try {
+          // For simple window methods
+          if (onclickAttr.includes('window.location.reload')) {
+            window.location.reload();
+          } else if (onclickAttr.includes('location.reload')) {
+            location.reload(true);
+          } else if (onclickAttr.includes('location.href')) {
+            const hrefMatch = onclickAttr.match(/location\.href\s*=\s*['"]([^'"]+)['"]/);
+            if (hrefMatch) location.href = hrefMatch[1];
+          } else if (onclickAttr.includes('.closest(') && onclickAttr.includes('.remove()')) {
+            // Handle: this.closest('.selector').remove()
+            const selectorMatch = onclickAttr.match(/\.closest\s*\(\s*['"]([^'"]+)['"]\s*\)/);
+            if (selectorMatch) {
+              const closest = target.closest(selectorMatch[1]);
+              if (closest) closest.remove();
+            }
+          } else if (onclickAttr.includes('event.preventDefault()')) {
+            // Already prevented, now execute the rest
+            const fnMatch = onclickAttr.match(/;\s*(\w+)\s*\(([^)]*)\)/);
+            if (fnMatch) {
+              const fn = window[fnMatch[1]];
+              if (typeof fn === 'function') {
+                const arg = fnMatch[2].replace(/'/g, '').trim();
+                fn(arg);
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('[CSP Handler] Failed to execute:', onclickAttr, err);
+        }
+      }
+    });
+
     // Start deployment monitor
     startDeployMonitor();
 
@@ -15189,6 +15362,42 @@ export function getHtml(nonce: string): string {
     }
 
     window.copyShareLink = copyShareLink;
+
+    // ====================================
+    // Static Element Event Listeners
+    // CSP blocks inline onclick handlers, so we attach listeners here
+    // ====================================
+    document.addEventListener('DOMContentLoaded', () => {
+      // Deploy widget - show deploy details modal
+      const deployWidget = document.getElementById('deploy-widget');
+      if (deployWidget) {
+        deployWidget.addEventListener('click', () => showDeployDetails());
+      }
+
+      // KV status indicator - show KV status modal
+      const kvIndicator = document.getElementById('kv-status-indicator');
+      if (kvIndicator) {
+        kvIndicator.addEventListener('click', () => showKVStatusModal());
+      }
+
+      // Scoreboard button
+      const scoreboardBtn = document.getElementById('scoreboard-btn');
+      if (scoreboardBtn) {
+        scoreboardBtn.addEventListener('click', () => showScoreboard());
+      }
+
+      // Sidebar toggle
+      const sidebarToggle = document.getElementById('sidebar-toggle');
+      if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => toggleSidebar());
+      }
+
+      // Heidi badge - toggle Swedish mode
+      const heidiBadge = document.getElementById('heidi-badge');
+      if (heidiBadge) {
+        heidiBadge.addEventListener('click', () => toggleSwedishMode());
+      }
+    });
 
     // ====================================
     // Genre Family Grouping (#79)
