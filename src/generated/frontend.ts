@@ -10003,10 +10003,12 @@ export function getHtml(nonce: string): string {
           <span class="fika-emoji">☕🍪</span>
           <p>Dags för fika!</p>
           <p style="font-size: 0.9rem; opacity: 0.8;">Time for a coffee break!</p>
-          <button class="btn btn-ghost" onclick="this.closest('.fika-reminder').remove()">Tack!</button>
+          <button class="btn btn-ghost fika-dismiss-btn">Tack!</button>
         </div>
       \`;
       document.body.appendChild(reminder);
+      // CSP-compliant event listener instead of inline onclick
+      reminder.querySelector('.fika-dismiss-btn').addEventListener('click', () => reminder.remove());
     }
 
     function getRandomAbbaQuote() {
