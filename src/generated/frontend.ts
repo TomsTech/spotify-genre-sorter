@@ -1271,10 +1271,10 @@ export function getHtml(nonce: string): string {
       right: 1rem;
       display: flex;
       flex-direction: column; /* Stack vertically to avoid crowding */
-      gap: 0.75rem; /* Increased gap for better separation */
+      gap: 0.5rem; /* Good separation between widgets */
       z-index: 999; /* Below header z-index */
       align-items: flex-end; /* Align to right edge */
-      max-width: 280px; /* Prevent overflow */
+      max-width: 320px; /* Allow more space for text */
     }
 
     /* Uptime Status Badge */
@@ -1351,7 +1351,7 @@ export function getHtml(nonce: string): string {
     }
 
     .deploy-widget .step {
-      max-width: 120px;
+      max-width: 200px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
