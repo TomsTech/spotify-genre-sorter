@@ -3237,6 +3237,18 @@
       margin-top: 0.5rem;
     }
 
+    .progress-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+
+    .progress-controls .btn {
+      min-width: 100px;
+    }
+
     .live-genres-section {
       background: var(--surface);
       border: 1px solid var(--border);
