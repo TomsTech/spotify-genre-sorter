@@ -9365,10 +9365,17 @@ export function getHtml(nonce: string): string {
 
       try {
         const response = await fetch('/api/admin/kv-monitor');
-        if (!response.ok) throw new Error('Failed to load KV monitor data');
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(\`API error \${response.status}: \${errorText}\`);
+        }
         const data = await response.json();
 
-        const { summary, limits, usage, realTimeMetrics, namespaces } = data;
+        // Defensive defaults for missing data
+        const summary = data.summary || { totalKeys: 0, totalSize: 0, avgKeySize: 0, namespaceCount: 0 };
+        const limits = data.limits || { dailyReads: 100000, dailyWrites: 1000, maxValueSize: 25 * 1024 * 1024 };
+        const realTimeMetrics = data.realTimeMetrics || { reads: 0, writes: 0, deletes: 0, cacheHits: 0, cacheMisses: 0, cacheHitRate: 0, lastReset: new Date().toISOString() };
+        const namespaces = data.namespaces || [];
 
         // Calculate health status
         const getHealthStatus = (percent) => {
@@ -9377,8 +9384,8 @@ export function getHtml(nonce: string): string {
           return { icon: '🟢', text: 'Healthy', class: 'status-healthy' };
         };
 
-        const readPercent = (realTimeMetrics.reads / limits.dailyReads) * 100;
-        const writePercent = (realTimeMetrics.writes / limits.dailyWrites) * 100;
+        const readPercent = limits.dailyReads ? (realTimeMetrics.reads / limits.dailyReads) * 100 : 0;
+        const writePercent = limits.dailyWrites ? (realTimeMetrics.writes / limits.dailyWrites) * 100 : 0;
         const readHealth = getHealthStatus(readPercent);
         const writeHealth = getHealthStatus(writePercent);
 
