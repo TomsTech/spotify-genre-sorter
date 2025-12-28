@@ -304,6 +304,48 @@ api.get('/now-playing', async (c) => {
   }
 });
 
+// Get user's playlists for source selection
+api.get('/user-playlists', async (c) => {
+  const session = await getSession(c);
+  if (!session?.spotifyAccessToken) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+
+  try {
+    // Refresh token if needed
+    if (session.spotifyExpiresAt && Date.now() > session.spotifyExpiresAt - 60000) {
+      const newTokens = await refreshSpotifyToken(
+        session.spotifyRefreshToken!,
+        c.env.SPOTIFY_CLIENT_ID,
+        c.env.SPOTIFY_CLIENT_SECRET
+      );
+      await updateSession(c, {
+        spotifyAccessToken: newTokens.access_token,
+        spotifyExpiresAt: Date.now() + newTokens.expires_in * 1000,
+        ...(newTokens.refresh_token && { spotifyRefreshToken: newTokens.refresh_token }),
+      });
+      session.spotifyAccessToken = newTokens.access_token;
+    }
+
+    const playlists = await getUserPlaylists(session.spotifyAccessToken);
+
+    // Return simplified playlist info for UI
+    return c.json({
+      playlists: playlists.map(p => ({
+        id: p.id,
+        name: p.name,
+        trackCount: p.tracks.total,
+        image: p.images?.[0]?.url || null,
+        owner: p.owner.display_name,
+        isOwned: p.owner.id === session.spotifyUserId,
+      })),
+    });
+  } catch (err) {
+    console.error('Error fetching playlists:', err);
+    return c.json({ error: 'Failed to fetch playlists' }, 500);
+  }
+});
+
 // Threshold for switching to progressive loading (tracks)
 const PROGRESSIVE_LOAD_THRESHOLD = 500;
 
@@ -734,61 +776,111 @@ api.get('/genres/chunk', async (c) => {
   const limitStr = c.req.query('limit') || String(CHUNK_SIZE);
   const offset = parseInt(offsetStr, 10);
   const limit = Math.min(parseInt(limitStr, 10), CHUNK_SIZE);
+  const includeLikedSongs = c.req.query('includeLikedSongs') !== 'false';
+  const playlistsParam = c.req.query('playlists');
+  let playlistIds: string[] = [];
+
+  if (playlistsParam) {
+    try {
+      const parsed = JSON.parse(playlistsParam) as unknown;
+      if (Array.isArray(parsed) && parsed.every((id) => typeof id === 'string')) {
+        playlistIds = parsed;
+      }
+    } catch {
+      // Invalid JSON, ignore playlists
+    }
+  }
 
   if (isNaN(offset) || offset < 0) {
     return c.json({ error: 'Invalid offset' }, 400);
   }
 
+  // If no sources selected, default to liked songs
+  if (!includeLikedSongs && playlistIds.length === 0) {
+    return c.json({ error: 'No sources selected' }, 400);
+  }
+
   try {
     const user = await getCurrentUser(session.spotifyAccessToken);
-    const chunkCacheKey = `${CHUNK_CACHE_PREFIX}${user.id}_${offset}_${limit}`;
 
-    // Check chunk cache
-    const cachedChunk = await c.env.SESSIONS.get<ChunkCacheData>(chunkCacheKey, 'json');
-    if (cachedChunk) {
-      // Get total from a quick /me/tracks call
-      const totalResponse = await getLikedTracks(session.spotifyAccessToken, 1, 0);
-      const totalInLibrary = totalResponse.total;
-      const hasMore = offset + limit < totalInLibrary;
+    // Include playlist IDs in cache key for different source combinations
+    const sourceHash = includeLikedSongs ? 'liked' : '';
+    const playlistHash = playlistIds.length > 0 ? `_pl_${playlistIds.sort().join('_').slice(0, 50)}` : '';
+    const chunkCacheKey = `${CHUNK_CACHE_PREFIX}${user.id}_${offset}_${limit}_${sourceHash}${playlistHash}`;
 
-      return c.json({
-        chunk: cachedChunk,
-        pagination: {
-          offset,
-          limit,
-          hasMore,
-          nextOffset: hasMore ? offset + limit : null,
-          totalInLibrary,
-        },
-        progress: Math.min(100, Math.round(((offset + limit) / totalInLibrary) * 100)),
-        fromCache: true,
-      });
-    }
+    // Check chunk cache (skip cache when playlists included - too variable)
+    if (playlistIds.length === 0) {
+      const cachedChunk = await c.env.SESSIONS.get<ChunkCacheData>(chunkCacheKey, 'json');
+      if (cachedChunk) {
+        // Get total from a quick /me/tracks call
+        const totalResponse = await getLikedTracks(session.spotifyAccessToken, 1, 0);
+        const totalInLibrary = totalResponse.total;
+        const hasMore = offset + limit < totalInLibrary;
 
-    // OPTIMIZATION: Fetch tracks in parallel for faster chunk loading
-    // Calculate how many pages we need
-    const allChunkTracks = [];
-    let totalInLibrary = 0;
-    const pagesToFetch = Math.min(MAX_TRACK_REQUESTS_PER_CHUNK, Math.ceil(limit / 50));
-
-    // Build array of offsets to fetch in parallel
-    const fetchPromises = [];
-    for (let i = 0; i < pagesToFetch; i++) {
-      const pageOffset = offset + (i * 50);
-      const pageLimit = Math.min(50, offset + limit - pageOffset);
-      if (pageLimit > 0) {
-        fetchPromises.push(getLikedTracks(session.spotifyAccessToken, pageLimit, pageOffset));
+        return c.json({
+          chunk: cachedChunk,
+          pagination: {
+            offset,
+            limit,
+            hasMore,
+            nextOffset: hasMore ? offset + limit : null,
+            totalInLibrary,
+          },
+          progress: Math.min(100, Math.round(((offset + limit) / totalInLibrary) * 100)),
+          fromCache: true,
+        });
       }
     }
 
-    // Fetch all pages in parallel
-    const responses = await Promise.all(fetchPromises);
+    // Collect all tracks from selected sources
+    const allChunkTracks: Array<{ track: { id: string; name: string; artists: { id: string; name: string }[] } }> = [];
+    const seenTrackIds = new Set<string>();
+    let totalInLibrary = 0;
 
-    for (const response of responses) {
-      allChunkTracks.push(...response.items);
-      totalInLibrary = response.total;
-      // Stop if we've reached the end of the library
-      if (allChunkTracks.length >= response.total - offset) break;
+    // Fetch from playlists first (only on first chunk to avoid re-fetching)
+    if (playlistIds.length > 0 && offset === 0) {
+      for (const playlistId of playlistIds.slice(0, 5)) { // Limit to 5 playlists to avoid timeout
+        try {
+          const playlistTracks = await getPlaylistTracks(session.spotifyAccessToken, playlistId, 500);
+          for (const pt of playlistTracks) {
+            if (pt.track && pt.track.id && !seenTrackIds.has(pt.track.id)) {
+              seenTrackIds.add(pt.track.id);
+              allChunkTracks.push({ track: pt.track as { id: string; name: string; artists: { id: string; name: string }[] } });
+            }
+          }
+        } catch (e) {
+          console.error(`Error fetching playlist ${playlistId}:`, e);
+        }
+      }
+      // Add playlist track count to total
+      totalInLibrary += allChunkTracks.length;
+    }
+
+    // Fetch liked songs if included
+    if (includeLikedSongs) {
+      const pagesToFetch = Math.min(MAX_TRACK_REQUESTS_PER_CHUNK, Math.ceil(limit / 50));
+      const fetchPromises = [];
+      for (let i = 0; i < pagesToFetch; i++) {
+        const pageOffset = offset + (i * 50);
+        const pageLimit = Math.min(50, offset + limit - pageOffset);
+        if (pageLimit > 0) {
+          fetchPromises.push(getLikedTracks(session.spotifyAccessToken, pageLimit, pageOffset));
+        }
+      }
+
+      const responses = await Promise.all(fetchPromises);
+
+      for (const response of responses) {
+        for (const item of response.items) {
+          // Dedupe against playlist tracks
+          if (!seenTrackIds.has(item.track.id)) {
+            seenTrackIds.add(item.track.id);
+            allChunkTracks.push(item);
+          }
+        }
+        totalInLibrary = response.total + (playlistIds.length > 0 && offset === 0 ? seenTrackIds.size - response.items.length : 0);
+        if (allChunkTracks.length >= response.total - offset) break;
+      }
     }
 
     if (allChunkTracks.length === 0) {
