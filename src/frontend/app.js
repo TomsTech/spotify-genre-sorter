@@ -2450,6 +2450,16 @@
       updateNowPlaying();
       // PERF-006 FIX: Reduced polling from 10s to 30s
       nowPlayingInterval = setInterval(updateNowPlaying, 30000); // Poll every 30s (was 10s)
+
+      // Add dismiss button handler
+      const dismissBtn = document.getElementById('now-playing-dismiss');
+      if (dismissBtn) {
+        dismissBtn.addEventListener('click', (e) => {
+          e.stopPropagation(); // Don't trigger widget click
+          const widget = document.getElementById('now-playing-widget');
+          if (widget) widget.style.display = 'none';
+        });
+      }
     }
 
     function stopNowPlayingMonitor() {
