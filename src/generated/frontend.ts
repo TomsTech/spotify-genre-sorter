@@ -8879,7 +8879,7 @@ export function getHtml(nonce: string): string {
     if (headerActions) {
       headerActions.innerHTML = \`
         <button id="swedish-toggle" class="btn btn-ghost btn-sm swedish-toggle-btn" title="\${swedishMode ? 'Switch to English' : 'Switch to Swedish'}" aria-label="\${swedishMode ? 'Switch to English' : 'Switch to Swedish'}">
-          \${swedishMode ? '🇬🇧' : '🇸🇪'}
+          \${swedishMode ? '<svg viewBox="0 0 60 30" width="20" height="10" style="vertical-align:middle"><clipPath id="t"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/></clipPath><path d="M0,0 v30 h60 v-30 z" fill="#00247d"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#t)" stroke="#cf142b" stroke-width="4"/><path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/><path d="M30,0 v30 M0,15 h60" stroke="#cf142b" stroke-width="6"/></svg>' : '<svg viewBox="0 0 16 10" width="20" height="12" style="vertical-align:middle"><rect width="16" height="10" fill="#006aa7"/><rect x="5" width="2" height="10" fill="#fecc00"/><rect y="4" width="16" height="2" fill="#fecc00"/></svg>'}
         </button>
         <button id="theme-toggle" class="btn btn-ghost btn-sm theme-toggle-btn" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}" aria-label="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
           \${lightMode ? '🌙' : '☀️'}
@@ -11410,7 +11410,7 @@ export function getHtml(nonce: string): string {
       // Keep Swedish toggle, theme toggle and user info in header
       headerActions.innerHTML = \`
         <button id="swedish-toggle" class="btn btn-ghost btn-sm swedish-toggle-btn" title="\${swedishMode ? 'Switch to English' : 'Switch to Swedish'}" aria-label="\${swedishMode ? 'Switch to English' : 'Switch to Swedish'}">
-          \${swedishMode ? '🇬🇧' : '🇸🇪'}
+          \${swedishMode ? '<svg viewBox="0 0 60 30" width="20" height="10" style="vertical-align:middle"><clipPath id="t"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/></clipPath><path d="M0,0 v30 h60 v-30 z" fill="#00247d"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#t)" stroke="#cf142b" stroke-width="4"/><path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/><path d="M30,0 v30 M0,15 h60" stroke="#cf142b" stroke-width="6"/></svg>' : '<svg viewBox="0 0 16 10" width="20" height="12" style="vertical-align:middle"><rect width="16" height="10" fill="#006aa7"/><rect x="5" width="2" height="10" fill="#fecc00"/><rect y="4" width="16" height="2" fill="#fecc00"/></svg>'}
         </button>
         <button id="theme-toggle" class="btn btn-ghost btn-sm theme-toggle-btn" data-testid="theme-toggle" title="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}" aria-label="\${lightMode ? 'Switch to dark mode' : 'Switch to light mode'}">
           \${lightMode ? '🌙' : '☀️'}
@@ -12828,8 +12828,11 @@ export function getHtml(nonce: string): string {
     }
 
     function updateSelectedCount() {
-      document.getElementById('selected-count').textContent = selectedGenres.size;
-      document.getElementById('create-btn').disabled = selectedGenres.size === 0;
+      const countEl = document.getElementById('selected-count');
+      const createBtn = document.getElementById('create-btn');
+      // Guard against elements not existing (e.g., in admin panel)
+      if (countEl) countEl.textContent = selectedGenres.size;
+      if (createBtn) createBtn.disabled = selectedGenres.size === 0;
 
       // Update select-all checkbox state
       updateSelectAllCheckbox();
