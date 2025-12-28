@@ -1435,13 +1435,14 @@ export function getHtml(nonce: string): string {
     .now-playing-widget {
       display: none; /* Hidden by default - JS sets display:flex when playing */
       position: fixed;
-      bottom: 4rem;
+      bottom: 5.5rem;
       left: 50%;
       transform: translateX(-50%);
       background: linear-gradient(135deg, rgba(30, 30, 30, 0.95), rgba(18, 18, 18, 0.98));
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 0.75rem;
+      padding-right: 2rem;
       align-items: center;
       gap: 0.75rem;
       z-index: 1000;
@@ -1450,6 +1451,30 @@ export function getHtml(nonce: string): string {
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
       backdrop-filter: blur(10px);
       animation: slideUpFadeIn 0.3s ease;
+    }
+
+    .now-playing-dismiss {
+      position: absolute;
+      top: 0.25rem;
+      right: 0.25rem;
+      width: 20px;
+      height: 20px;
+      border: none;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      border-radius: 50%;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .now-playing-dismiss:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: var(--text);
     }
 
     @keyframes slideUpFadeIn {
@@ -1571,7 +1596,7 @@ export function getHtml(nonce: string): string {
 
     @media (max-width: 600px) {
       .now-playing-widget {
-        bottom: 4rem;
+        bottom: 5.5rem;
         left: 1rem;
         right: 1rem;
         transform: none;
@@ -8293,6 +8318,7 @@ export function getHtml(nonce: string): string {
 
   <!-- Now Playing Widget -->
   <div class="now-playing-widget" id="now-playing-widget" style="display: none;" role="region" aria-label="Now playing">
+    <button class="now-playing-dismiss" id="now-playing-dismiss" aria-label="Hide now playing" title="Hide">×</button>
     <div class="now-playing-art">
       <img id="now-playing-art" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
       <div class="now-playing-equalizer" aria-hidden="true">
@@ -10871,6 +10897,16 @@ export function getHtml(nonce: string): string {
       updateNowPlaying();
       // PERF-006 FIX: Reduced polling from 10s to 30s
       nowPlayingInterval = setInterval(updateNowPlaying, 30000); // Poll every 30s (was 10s)
+
+      // Add dismiss button handler
+      const dismissBtn = document.getElementById('now-playing-dismiss');
+      if (dismissBtn) {
+        dismissBtn.addEventListener('click', (e) => {
+          e.stopPropagation(); // Don't trigger widget click
+          const widget = document.getElementById('now-playing-widget');
+          if (widget) widget.style.display = 'none';
+        });
+      }
     }
 
     function stopNowPlayingMonitor() {
