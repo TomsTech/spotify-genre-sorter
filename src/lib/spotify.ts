@@ -480,8 +480,9 @@ export async function getCurrentUser(
 export interface SpotifyPlaylist {
   id: string;
   name: string;
-  owner: { id: string };
+  owner: { id: string; display_name?: string };
   tracks: { total: number };
+  images?: Array<{ url: string; width: number; height: number }>;
 }
 
 export async function getUserPlaylists(
