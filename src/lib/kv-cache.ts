@@ -195,10 +195,15 @@ export const cachedKV = {
     checkMetricsReset();
 
     // Check memory cache first
-    const cached = memoryCache.get<string>(key);
+    const cached = memoryCache.get<unknown>(key);
     if (cached !== null) {
       metrics.cacheHits++;
-      return cached;
+      // If cached value is an object (from put()), stringify it back
+      // This handles the case where put() parsed JSON and cached the object
+      if (typeof cached === 'object') {
+        return JSON.stringify(cached);
+      }
+      return cached as string;
     }
 
     metrics.cacheMisses++;
