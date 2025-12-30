@@ -494,6 +494,54 @@ export const test = base.extend<AuthFixtures>({
       });
     });
 
+    // Intercept /api/user-playlists
+    await page.route('**/api/user-playlists', async (route, request) => {
+      const cookieHeader = request.headers()['cookie'] || '';
+      const hasSessionCookie = cookieHeader.includes('session_id=');
+
+      if (!hasSessionCookie || !sessionState.authenticated) {
+        await route.fulfill({
+          status: 401,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Not authenticated' }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          playlists: [
+            {
+              id: 'playlist-owned-1',
+              name: 'My Rock Collection',
+              trackCount: 150,
+              image: 'https://i.pravatar.cc/300?rock',
+              owner: testUsers.default.display_name,
+              isOwned: true,
+            },
+            {
+              id: 'playlist-owned-2',
+              name: 'Workout Mix',
+              trackCount: 45,
+              image: 'https://i.pravatar.cc/300?workout',
+              owner: testUsers.default.display_name,
+              isOwned: true,
+            },
+            {
+              id: 'playlist-followed-1',
+              name: 'Top 50 Global',
+              trackCount: 50,
+              image: 'https://i.pravatar.cc/300?global',
+              owner: 'Spotify',
+              isOwned: false,
+            },
+          ],
+        }),
+      });
+    });
+
     // Intercept /api/me
     await page.route('**/api/me', async (route, request) => {
       const cookieHeader = request.headers()['cookie'] || '';
@@ -535,6 +583,7 @@ export const test = base.extend<AuthFixtures>({
     await page.unroute('**/api/leaderboard');
     await page.unroute('**/api/scoreboard');
     await page.unroute('**/api/recent-playlists');
+    await page.unroute('**/api/user-playlists');
     await page.unroute('**/api/me');
   },
 });
