@@ -507,6 +507,55 @@ const allHandlers = [
     });
   }),
 
+  // GET /api/user-playlists - Get user's playlists for source selection
+  http.get('*/api/user-playlists', ({ request }) => {
+    // Check for session cookie
+    const cookie = request.headers.get('cookie') || '';
+    const hasSessionCookie = cookie.includes('session_id=');
+
+    if (!hasSessionCookie) {
+      return HttpResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    // Return mock playlists for source selection
+    const mockPlaylists = [
+      {
+        id: 'playlist-owned-1',
+        name: 'My Rock Collection',
+        trackCount: 150,
+        image: 'https://i.pravatar.cc/300?rock',
+        owner: testUsers.default.display_name,
+        isOwned: true,
+      },
+      {
+        id: 'playlist-owned-2',
+        name: 'Workout Mix',
+        trackCount: 45,
+        image: 'https://i.pravatar.cc/300?workout',
+        owner: testUsers.default.display_name,
+        isOwned: true,
+      },
+      {
+        id: 'playlist-followed-1',
+        name: 'Top 50 Global',
+        trackCount: 50,
+        image: 'https://i.pravatar.cc/300?global',
+        owner: 'Spotify',
+        isOwned: false,
+      },
+      {
+        id: 'playlist-collab-1',
+        name: 'Road Trip 2024',
+        trackCount: 80,
+        image: null,
+        owner: 'Friend',
+        isOwned: false,
+      },
+    ];
+
+    return HttpResponse.json({ playlists: mockPlaylists });
+  }),
+
   // GET /api/now-playing - Get current playback state
   http.get('*/api/now-playing', ({ request }) => {
     // Check for session cookie
