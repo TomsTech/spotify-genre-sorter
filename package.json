@@ -39,7 +39,7 @@
     "check:size": "node scripts/check-bundle-size.mjs --warn-threshold=1500 --fail-threshold=2000"
   },
   "dependencies": {
-    "hono": "^4.6.0"
+    "hono": "^4.11.4"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250525.0",
