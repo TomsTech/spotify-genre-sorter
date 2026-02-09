@@ -19,13 +19,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'json'
           output: 'trivy-results.json'
           severity: 'CRITICAL,HIGH,MEDIUM'
+          skip-dirs: 'node_modules,.git'
+          github-pat: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Process and send to New Relic & Grafana
         if: always()
@@ -40,11 +42,11 @@ jobs:
             exit 0
           fi
 
-          # Count vulnerabilities
-          VULN_COUNT=$(jq '.Results[]?.Vulnerabilities // [] | length' trivy-results.json | paste -sd+ | bc || echo "0")
-          CRITICAL=$(jq '[.Results[]?.Vulnerabilities // [] | .[] | select(.Severity == "CRITICAL")] | length' trivy-results.json || echo "0")
-          HIGH=$(jq '[.Results[]?.Vulnerabilities // [] | .[] | select(.Severity == "HIGH")] | length' trivy-results.json || echo "0")
-          MEDIUM=$(jq '[.Results[]?.Vulnerabilities // [] | .[] | select(.Severity == "MEDIUM")] | length' trivy-results.json || echo "0")
+          # Count vulnerabilities (with error handling for malformed output)
+          VULN_COUNT=$(jq -r '[.Results[]?.Vulnerabilities // [] | length] | add // 0' trivy-results.json 2>/dev/null || echo "0")
+          CRITICAL=$(jq -r '[.Results[]?.Vulnerabilities // [] | .[] | select(.Severity == "CRITICAL")] | length // 0' trivy-results.json 2>/dev/null || echo "0")
+          HIGH=$(jq -r '[.Results[]?.Vulnerabilities // [] | .[] | select(.Severity == "HIGH")] | length // 0' trivy-results.json 2>/dev/null || echo "0")
+          MEDIUM=$(jq -r '[.Results[]?.Vulnerabilities // [] | .[] | select(.Severity == "MEDIUM")] | length // 0' trivy-results.json 2>/dev/null || echo "0")
 
           # Create summary log
           SUMMARY=$(cat <<EOF
