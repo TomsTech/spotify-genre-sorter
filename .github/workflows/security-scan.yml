@@ -31,6 +31,7 @@ jobs:
 
       - name: Process and send to New Relic & Grafana
         if: always()
+        continue-on-error: true
         env:
           NEW_RELIC_LICENSE_KEY: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
           GRAFANA_API_KEY: ${{ secrets.GRAFANA_API_KEY }}
