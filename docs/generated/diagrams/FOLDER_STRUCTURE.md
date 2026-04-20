@@ -33,7 +33,9 @@
 ├── docs
 │   ├── generated
 │   │   ├── diagrams
-│   │   └── .gitkeep
+│   │   ├── .gitkeep
+│   │   ├── INDEX.md
+│   │   └── STATISTICS.md
 │   ├── BACKLOG.md
 │   ├── BETTERUPTIME_SETUP.html
 │   ├── BETTERUPTIME_SETUP.md
@@ -164,7 +166,7 @@
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-30 directories, 128 files
+30 directories, 130 files
 ```
 
 ## Key Directories
