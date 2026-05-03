@@ -30,6 +30,8 @@
 │   │   └── security.yml
 │   ├── AGENTS.md
 │   └── renovate.json
+├── .jules
+│   └── sentinel.md
 ├── docs
 │   ├── generated
 │   │   ├── diagrams
@@ -166,7 +168,7 @@
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-30 directories, 130 files
+31 directories, 131 files
 ```
 
 ## Key Directories
