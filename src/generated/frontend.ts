@@ -15643,7 +15643,7 @@ export function getHtml(nonce: string): string {
         '<div class="share-modal">',
         '  <button class="share-close" onclick="this.closest(\\'.share-modal-overlay\\').remove()" aria-label="Close">&times;</button>',
         '  <h3>' + (swedishMode ? '🎉 Dela din spellista!' : '🎉 Share your playlist!') + '</h3>',
-        '  <p class="share-playlist-name">' + playlistName + '</p>',
+        '  <p class="share-playlist-name">' + escapeHtml(playlistName) + '</p>',
         '  <div class="share-qr-container">',
         '    <img src="' + qrCodeUrl + '" alt="QR Code" class="share-qr-code" />',
         '  </div>',
