@@ -33,6 +33,7 @@ import {
   getPlaylistTracks,
 } from '../lib/spotify';
 import { getKVMonitorData } from '../lib/kv-monitor';
+import { optionalCsrfProtection } from '../lib/csrf-middleware';
 
 const api = new Hono<{ Bindings: Env }>();
 
@@ -179,6 +180,9 @@ api.use('/*', async (c, next) => {
   c.set('session' as never, session);
   await next();
 });
+
+// Apply CSRF protection to state-changing endpoints
+api.use('/*', optionalCsrfProtection);
 
 // Get current user info
 api.get('/me', async (c) => {
