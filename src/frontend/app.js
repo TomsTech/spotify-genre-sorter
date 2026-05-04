@@ -864,7 +864,7 @@
                     <span>Joined \${formatTimeAgo(new Date(user.registeredAt))}</span>
                   </div>
                 </div>
-                <button class="btn btn-danger btn-sm admin-delete-user" onclick="confirmDeleteUser('\${user.spotifyId}', '\${escapeForHtml(user.spotifyName)}')" title="Remove user">
+                <button class="btn btn-danger btn-sm admin-delete-user" onclick="confirmDeleteUser('\${user.spotifyId}', '\${escapeForHtml(user.spotifyName)}')" title="Remove user" aria-label="Delete user \${escapeForHtml(user.spotifyName)}">
                   🗑️
                 </button>
               </div>
@@ -4532,6 +4532,7 @@
             class="btn btn-ghost genre-hide"
             onclick="event.preventDefault(); toggleHideGenre('\${genre.name.replace(/'/g, "\\\\'")}')"
             title="\${isHidden ? (swedishMode ? 'Visa' : 'Show') : (swedishMode ? 'Dölj' : 'Hide')}"
+            aria-label="\${isHidden ? (swedishMode ? 'Visa ' : 'Show ') + genre.name : (swedishMode ? 'Dölj ' : 'Hide ') + genre.name}"
           >
             \${isHidden ? '👁️' : '🙈'}
           </button>
@@ -4539,6 +4540,7 @@
             class="btn btn-ghost genre-create"
             onclick="event.preventDefault(); createPlaylist('\${genre.name.replace(/'/g, "\\\\'")}')"
             data-i18n="create"
+            aria-label="\${swedishMode ? 'Skapa spellista för ' : 'Create playlist for '} \${genre.name}"
           >
             \${t('create')}
           </button>

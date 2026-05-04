@@ -1,0 +1,1 @@
+## 2024-05-04 - Context-Specific ARIA Labels **Learning:** Reusable list items with dynamic data (like genre names) need context-specific ARIA labels on action buttons, otherwise screen readers only read 'Create' or 'Show' without context. **Action:** Always include the item name/context in the `aria-label` for list action buttons.

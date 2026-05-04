@@ -845,7 +845,7 @@ api.get('/genres/chunk', async (c) => {
           for (const pt of playlistTracks) {
             if (pt.track && pt.track.id && !seenTrackIds.has(pt.track.id)) {
               seenTrackIds.add(pt.track.id);
-              allChunkTracks.push({ track: pt.track as { id: string; name: string; artists: { id: string; name: string }[] } });
+              allChunkTracks.push({ track: pt.track });
             }
           }
         } catch (e) {
