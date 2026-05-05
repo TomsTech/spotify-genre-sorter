@@ -31,6 +31,7 @@
 │   ├── AGENTS.md
 │   └── renovate.json
 ├── .jules
+│   ├── bolt.md
 │   └── sentinel.md
 ├── docs
 │   ├── generated
@@ -168,7 +169,7 @@
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-31 directories, 131 files
+31 directories, 132 files
 ```
 
 ## Key Directories
