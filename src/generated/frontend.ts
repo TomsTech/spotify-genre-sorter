@@ -13048,7 +13048,7 @@ export function getHtml(nonce: string): string {
             class="search-input"
             placeholder="\${t('searchGenres')}"
             data-i18n-placeholder="searchGenres"
-            oninput="filterAndRenderGenres(this.value)"
+            oninput="debouncedFilterAndRenderGenres(this.value)"
           >
           <div class="select-all-row">
             <label class="select-all-label">
@@ -13099,6 +13099,22 @@ export function getHtml(nonce: string): string {
       const filtered = filterGenres(query);
       renderGenreList(filtered);
     }
+
+    // Performance optimization: Debounce search to prevent UI blocking
+    // while filtering potentially thousands of genres
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+    const debouncedFilterAndRenderGenres = debounce(filterAndRenderGenres, 150);
+    window.debouncedFilterAndRenderGenres = debouncedFilterAndRenderGenres;
 
     function renderGenreList(genres) {
       const list = document.getElementById('genre-list');
