@@ -3971,14 +3971,35 @@
 
     // === Hidden Genres Functions ===
     function toggleHideGenre(genre) {
-      if (hiddenGenres.has(genre)) {
-        hiddenGenres.delete(genre);
-      } else {
+      const isHiding = !hiddenGenres.has(genre);
+      if (isHiding) {
         hiddenGenres.add(genre);
+      } else {
+        hiddenGenres.delete(genre);
       }
       saveHiddenGenres();
-      filterAndRenderGenres(document.querySelector('.search-input')?.value || '');
       updateHiddenCount();
+
+      // Performance optimization: Avoid full list re-render on hide/show
+      const checkboxes = document.querySelectorAll('.genre-checkbox');
+      for (const cb of checkboxes) {
+        if (cb.value === genre) {
+          const label = cb.closest('.genre-item');
+          if (label) {
+            if (isHiding && !showHiddenGenres) {
+              label.remove();
+            } else {
+              label.classList.toggle('hidden', isHiding);
+              const btn = label.querySelector('.genre-hide');
+              if (btn) {
+                btn.title = isHiding ? (swedishMode ? 'Visa' : 'Show') : (swedishMode ? 'Dölj' : 'Hide');
+                btn.innerHTML = isHiding ? '👁️' : '🙈';
+              }
+            }
+          }
+          break;
+        }
+      }
     }
 
     function saveHiddenGenres() {
@@ -4492,20 +4513,15 @@
     }
 
     function filterGenres(query) {
-      let filtered = genreData.genres;
+      // Performance optimization: Combine filtering passes into a single O(n) loop
+      // to reduce array allocations and iteration overhead for large genre lists
+      const lowerQuery = query ? query.toLowerCase() : null;
 
-      // Filter by search query
-      if (query) {
-        const lower = query.toLowerCase();
-        filtered = filtered.filter(g => g.name.toLowerCase().includes(lower));
-      }
-
-      // Filter hidden genres (unless showing hidden)
-      if (!showHiddenGenres) {
-        filtered = filtered.filter(g => !hiddenGenres.has(g.name));
-      }
-
-      return filtered;
+      return genreData.genres.filter(g => {
+        if (lowerQuery && !g.name.toLowerCase().includes(lowerQuery)) return false;
+        if (!showHiddenGenres && hiddenGenres.has(g.name)) return false;
+        return true;
+      });
     }
 
     function filterAndRenderGenres(query) {
