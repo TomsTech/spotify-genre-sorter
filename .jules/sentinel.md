@@ -7,3 +7,7 @@
 **Vulnerability:** The API routes (`/api/*`) were missing CSRF protection, leaving state-changing endpoints (like playlist creation) vulnerable to Cross-Site Request Forgery attacks if the attacker can trick an authenticated user into submitting a malicious request.
 **Learning:** Although the application implemented a CSRF protection middleware in `src/lib/csrf-middleware.ts`, it was never applied to the main API router in `src/routes/api.ts`.
 **Prevention:** Ensure that all state-changing endpoints (POST, PUT, DELETE, PATCH) are protected by a CSRF token. Apply `optionalCsrfProtection` globally to the API router so it covers authenticated state-changing requests while bypassing unauthenticated ones (like public logs).
+## 2024-05-18 - [Auth] Hardcoded Admin Backdoor
+**Vulnerability:** Several admin endpoints (`/admin/invites`, `/admin/errors`, `/admin/perf`) contained a locally defined `adminUsers` array (`['tomspseudonym', 'tomstech']`) that bypassed the proper environment-based `getAdminUsers` implementation.
+**Learning:** Hardcoding administrative usernames directly in route handlers overrides centralized environment configuration and creates an unauthorized backdoor for those specific users.
+**Prevention:** Always use the centralized authorization functions (like `isAdmin()`) that rely on environment variables rather than hardcoding user identifiers in specific routes.
