@@ -4427,7 +4427,7 @@
                 class="search-input"
                 id="template-input"
                 value="\${playlistTemplate.replace(/"/g, '&quot;')}"
-                oninput="updatePlaylistTemplate(this.value)"
+                oninput="debouncedUpdatePlaylistTemplate(this.value)"
                 placeholder="{genre} (from Likes)"
               >
               <button onclick="resetTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ mall' : 'Reset template'}">↺</button>
@@ -4443,7 +4443,7 @@
                 class="search-input"
                 id="desc-template-input"
                 value="\${playlistDescTemplate.replace(/"/g, '&quot;')}"
-                oninput="updateDescTemplate(this.value)"
+                oninput="debouncedUpdateDescTemplate(this.value)"
                 placeholder="{genre} tracks • {count} songs"
               >
               <button onclick="resetDescTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ beskrivningsmall' : 'Reset description template'}">↺</button>
@@ -4528,6 +4528,14 @@
     }
     const debouncedFilterAndRenderGenres = debounce(filterAndRenderGenres, 150);
     window.debouncedFilterAndRenderGenres = debouncedFilterAndRenderGenres;
+
+    // Performance optimization: Debounce template updates to prevent UI blocking
+    // and excessive localStorage writes on every keystroke
+    const debouncedUpdatePlaylistTemplate = debounce(updatePlaylistTemplate, 150);
+    window.debouncedUpdatePlaylistTemplate = debouncedUpdatePlaylistTemplate;
+
+    const debouncedUpdateDescTemplate = debounce(updateDescTemplate, 150);
+    window.debouncedUpdateDescTemplate = debouncedUpdateDescTemplate;
 
     function renderGenreList(genres) {
       const list = document.getElementById('genre-list');
