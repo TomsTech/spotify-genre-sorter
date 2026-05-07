@@ -849,7 +849,7 @@ api.get('/genres/chunk', async (c) => {
           for (const pt of playlistTracks) {
             if (pt.track && pt.track.id && !seenTrackIds.has(pt.track.id)) {
               seenTrackIds.add(pt.track.id);
-              allChunkTracks.push({ track: pt.track as { id: string; name: string; artists: { id: string; name: string }[] } });
+              allChunkTracks.push({ track: pt.track });
             }
           }
         } catch (e) {
@@ -1786,9 +1786,8 @@ api.post('/invite-request', async (c) => {
 // Admin endpoint to view invite requests
 api.get('/admin/invites', async (c) => {
   const session = await getSession(c);
-  const adminUsers = ['tomspseudonym', 'tomstech'];
 
-  if (!session?.spotifyUser || !adminUsers.includes(session.spotifyUser.toLowerCase())) {
+  if (!await isAdmin(c, session)) {
     return c.json({ error: 'Forbidden' }, 403);
   }
 
@@ -1894,9 +1893,8 @@ api.post('/log-perf', async (c) => {
 // Admin endpoint to view error logs
 api.get('/admin/errors', async (c) => {
   const session = await getSession(c);
-  const adminUsers = ['tomspseudonym', 'tomstech'];
 
-  if (!session?.spotifyUser || !adminUsers.includes(session.spotifyUser.toLowerCase())) {
+  if (!await isAdmin(c, session)) {
     return c.json({ error: 'Forbidden' }, 403);
   }
 
@@ -1913,9 +1911,8 @@ api.get('/admin/errors', async (c) => {
 // Admin endpoint to view performance metrics
 api.get('/admin/perf', async (c) => {
   const session = await getSession(c);
-  const adminUsers = ['tomspseudonym', 'tomstech'];
 
-  if (!session?.spotifyUser || !adminUsers.includes(session.spotifyUser.toLowerCase())) {
+  if (!await isAdmin(c, session)) {
     return c.json({ error: 'Forbidden' }, 403);
   }
 
