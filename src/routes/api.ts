@@ -2230,31 +2230,34 @@ api.get('/admin/users', async (c) => {
   // Track which Spotify IDs we've seen
   const seenIds = new Set<string>();
 
-  // PERF-014 FIX: Use Promise.all for parallel reads instead of sequential loop
-  const dataPromises = userStatsList.keys.map(key => kv.get(key.name));
+  // PERF-014 FIX: Interleave JSON.parse inside Promise.all mapping for better CPU/IO utilization
+  const dataPromises = userStatsList.keys.map(async key => {
+    const data = await kv.get(key.name);
+    if (!data) return null;
+    try {
+      return JSON.parse(data) as {
+        spotifyId: string;
+        spotifyName: string;
+        spotifyAvatar?: string;
+        playlistsCreated?: number;
+        firstSeen?: string;
+        lastActive?: string;
+      };
+    } catch { return null; }
+  });
   const dataResults = await Promise.all(dataPromises);
 
-  for (const statsJson of dataResults) {
-    if (statsJson) {
-      try {
-        const stats = JSON.parse(statsJson) as {
-          spotifyId: string;
-          spotifyName: string;
-          spotifyAvatar?: string;
-          playlistsCreated?: number;
-          firstSeen?: string;
-          lastActive?: string;
-        };
-        seenIds.add(stats.spotifyId);
-        users.push({
-          spotifyId: stats.spotifyId,
-          spotifyName: stats.spotifyName || 'Unknown',
-          spotifyAvatar: stats.spotifyAvatar || null,
-          playlistCount: stats.playlistsCreated || 0,
-          registeredAt: stats.firstSeen || 'Unknown',
-          lastActive: stats.lastActive || null,
-        });
-      } catch { /* skip malformed entries */ }
+  for (const stats of dataResults) {
+    if (stats) {
+      seenIds.add(stats.spotifyId);
+      users.push({
+        spotifyId: stats.spotifyId,
+        spotifyName: stats.spotifyName || 'Unknown',
+        spotifyAvatar: stats.spotifyAvatar || null,
+        playlistCount: stats.playlistsCreated || 0,
+        registeredAt: stats.firstSeen || 'Unknown',
+        lastActive: stats.lastActive || null,
+      });
     }
   }
 
