@@ -15365,12 +15365,12 @@ export function getHtml(nonce: string): string {
 
           e.target.style.display = 'none';
         } else {
-          resultDiv.innerHTML = '<p style="color: var(--danger);">' + (data.error || 'Failed to submit request') + '</p>';
+          resultDiv.innerHTML = '<p style="color: var(--danger);">' + escapeHtml(data.error || 'Failed to submit request') + '</p>';
           submitBtn.disabled = false;
           submitBtn.textContent = swedishMode ? 'Försök igen' : 'Try again';
         }
       } catch (err) {
-        resultDiv.innerHTML = '<p style="color: var(--danger);">' + (swedishMode ? 'Nätverksfel' : 'Network error') + '</p>';
+        resultDiv.innerHTML = '<p style="color: var(--danger);">' + escapeHtml(swedishMode ? 'Nätverksfel' : 'Network error') + '</p>';
         submitBtn.disabled = false;
         submitBtn.textContent = swedishMode ? 'Försök igen' : 'Try again';
       }
@@ -15669,10 +15669,10 @@ export function getHtml(nonce: string): string {
         '  <h3>' + (swedishMode ? '🎉 Dela din spellista!' : '🎉 Share your playlist!') + '</h3>',
         '  <p class="share-playlist-name">' + escapeHtml(playlistName) + '</p>',
         '  <div class="share-qr-container">',
-        '    <img src="' + qrCodeUrl + '" alt="QR Code" class="share-qr-code" />',
+        '    <img src="' + escapeHtml(qrCodeUrl) + '" alt="QR Code" class="share-qr-code" />',
         '  </div>',
         '  <div class="share-link-container">',
-        '    <input type="text" class="share-link-input" value="' + playlistUrl + '" readonly />',
+        '    <input type="text" class="share-link-input" value="' + escapeHtml(playlistUrl) + '" readonly />',
         '    <button class="btn btn-secondary share-copy-btn" onclick="copyShareLink(this)">' + (swedishMode ? 'Kopiera' : 'Copy') + '</button>',
         '  </div>',
         '  <div class="share-social-buttons">',
@@ -15923,7 +15923,7 @@ export function getHtml(nonce: string): string {
       const artistList = sortedArtists.map(([id, count]) => {
         const name = artistNames.get(id) || 'Unknown';
         return '<div class="artist-breakdown-item">' +
-          '<span class="artist-name">' + name + '</span>' +
+          '<span class="artist-name">' + escapeHtml(name) + '</span>' +
           '<span class="artist-count">' + count + ' ' + (swedishMode ? 'låtar' : 'tracks') + '</span>' +
           '</div>';
       }).join('');
@@ -16337,7 +16337,7 @@ export function getHtml(nonce: string): string {
         '        <span class="wrapped-logo-icon">🧞</span>',
         '        <span class="wrapped-logo-text">Genre Genie</span>',
         '      </div>',
-        userAvatar ? '      <img src="' + userAvatar + '" class="wrapped-avatar" alt="' + userName + '" />' : '',
+        userAvatar ? '      <img src="' + escapeHtml(userAvatar) + '" class="wrapped-avatar" alt="' + escapeHtml(userName) + '" />' : '',
         '    </div>',
         '    <div class="wrapped-personality">',
         '      <span class="wrapped-emoji">' + personality[lang].emoji + '</span>',
@@ -16367,7 +16367,7 @@ export function getHtml(nonce: string): string {
         '      <p>"' + fact + '"</p>',
         '    </div>',
         '    <div class="wrapped-footer">',
-        '      <span class="wrapped-user">' + userName + '</span>',
+        '      <span class="wrapped-user">' + escapeHtml(userName) + '</span>',
         '      <span class="wrapped-date">' + new Date().toLocaleDateString(swedishMode ? 'sv-SE' : 'en-US', { month: 'short', year: 'numeric' }) + '</span>',
         '    </div>',
         '  </div>',
