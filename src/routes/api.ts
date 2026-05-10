@@ -1506,19 +1506,17 @@ api.get('/listening', async (c) => {
       updatedAt: string;
     }
 
-    // PERF-013 FIX: Use Promise.all for parallel reads instead of sequential loop
-    const dataPromises = list.keys.map(key => kv.get(key.name));
-    const dataResults = await Promise.all(dataPromises);
-
-    const listeners: ListeningEntry[] = [];
-    for (const data of dataResults) {
-      if (data) {
-        try {
-          const entry = JSON.parse(data) as ListeningEntry;
-          listeners.push(entry);
-        } catch { /* skip malformed entries */ }
+    // PERF-013 FIX: Use Promise.all for parallel reads AND parsing
+    const dataPromises = list.keys.map(async (key) => {
+      try {
+        const data = await kv.get(key.name);
+        return data ? JSON.parse(data) as ListeningEntry : null;
+      } catch {
+        return null; /* skip malformed or failed entries */
       }
-    }
+    });
+    const dataResults = await Promise.all(dataPromises);
+    const listeners = dataResults.filter((entry): entry is ListeningEntry => entry !== null);
 
     return c.json({
       listeners,
@@ -2233,31 +2231,35 @@ api.get('/admin/users', async (c) => {
   // Track which Spotify IDs we've seen
   const seenIds = new Set<string>();
 
-  // PERF-014 FIX: Use Promise.all for parallel reads instead of sequential loop
-  const dataPromises = userStatsList.keys.map(key => kv.get(key.name));
+  // PERF-014 FIX: Use Promise.all for parallel reads AND parsing
+  const dataPromises = userStatsList.keys.map(async (key) => {
+    try {
+      const statsJson = await kv.get(key.name);
+      return statsJson ? JSON.parse(statsJson) as {
+        spotifyId: string;
+        spotifyName: string;
+        spotifyAvatar?: string;
+        playlistsCreated?: number;
+        firstSeen?: string;
+        lastActive?: string;
+      } : null;
+    } catch {
+      return null;
+    }
+  });
   const dataResults = await Promise.all(dataPromises);
 
-  for (const statsJson of dataResults) {
-    if (statsJson) {
-      try {
-        const stats = JSON.parse(statsJson) as {
-          spotifyId: string;
-          spotifyName: string;
-          spotifyAvatar?: string;
-          playlistsCreated?: number;
-          firstSeen?: string;
-          lastActive?: string;
-        };
-        seenIds.add(stats.spotifyId);
-        users.push({
-          spotifyId: stats.spotifyId,
-          spotifyName: stats.spotifyName || 'Unknown',
-          spotifyAvatar: stats.spotifyAvatar || null,
-          playlistCount: stats.playlistsCreated || 0,
-          registeredAt: stats.firstSeen || 'Unknown',
-          lastActive: stats.lastActive || null,
-        });
-      } catch { /* skip malformed entries */ }
+  for (const stats of dataResults) {
+    if (stats) {
+      seenIds.add(stats.spotifyId);
+      users.push({
+        spotifyId: stats.spotifyId,
+        spotifyName: stats.spotifyName || 'Unknown',
+        spotifyAvatar: stats.spotifyAvatar || null,
+        playlistCount: stats.playlistsCreated || 0,
+        registeredAt: stats.firstSeen || 'Unknown',
+        lastActive: stats.lastActive || null,
+      });
     }
   }
 
@@ -2590,19 +2592,18 @@ api.get('/admin/access-requests', async (c) => {
   const existingList = await kv.get(listKey);
   const emails: string[] = existingList ? JSON.parse(existingList) as string[] : [];
 
-  // PERF-015 FIX: Use Promise.all for parallel reads instead of sequential loop
+  // PERF-015 FIX: Use Promise.all for parallel reads AND parsing
   const requestKeys = emails.map(email => `access_request_${email}`);
-  const dataPromises = requestKeys.map(key => kv.get(key));
-  const dataResults = await Promise.all(dataPromises);
-
-  const requests: AccessRequest[] = [];
-  for (const data of dataResults) {
-    if (data) {
-      try {
-        requests.push(JSON.parse(data) as AccessRequest);
-      } catch { /* skip malformed entries */ }
+  const dataPromises = requestKeys.map(async (key) => {
+    try {
+      const data = await kv.get(key);
+      return data ? JSON.parse(data) as AccessRequest : null;
+    } catch {
+      return null;
     }
-  }
+  });
+  const dataResults = await Promise.all(dataPromises);
+  const requests = dataResults.filter((req): req is AccessRequest => req !== null);
 
   // Sort by most recent first
   requests.sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime());
