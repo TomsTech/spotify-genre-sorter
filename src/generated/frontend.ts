@@ -9763,7 +9763,7 @@ export function getHtml(nonce: string): string {
           <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header">
               <h2>🔍 Key Details</h2>
-              <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+              <button class="modal-close" onclick="this.closest('.modal-overlay').remove()" aria-label="Close">×</button>
             </div>
             <div style="padding: 1.5rem;">
               <div style="margin-bottom: 1rem;">
@@ -13143,6 +13143,7 @@ export function getHtml(nonce: string): string {
             class="btn btn-ghost genre-hide"
             onclick="event.preventDefault(); toggleHideGenre('\${genre.name.replace(/'/g, "\\\\'")}')"
             title="\${isHidden ? (swedishMode ? 'Visa' : 'Show') : (swedishMode ? 'Dölj' : 'Hide')}"
+            aria-label="\${isHidden ? (swedishMode ? 'Visa' : 'Show') : (swedishMode ? 'Dölj' : 'Hide')} \${escapeForHtml(genre.name)}"
           >
             \${isHidden ? '👁️' : '🙈'}
           </button>
