@@ -357,14 +357,16 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
   const list = await kv.list({ prefix: 'user_stats:' });
 
   // PERF-001 FIX: Use Promise.all for parallel reads instead of sequential
-  const dataPromises = list.keys.map(key => kv.get(key.name));
+  // PERF-016 FIX: Interleave JSON.parse in Promise.all for faster KV reads
+  const dataPromises = list.keys.map(async key => {
+    const data = await kv.get(key.name);
+    return data ? JSON.parse(data) as UserStats : null;
+  });
   const dataResults = await Promise.all(dataPromises);
 
   const allStats: UserStats[] = [];
-  for (const data of dataResults) {
-    if (data) {
-      const stats = JSON.parse(data) as UserStats;
-
+  for (const stats of dataResults) {
+    if (stats) {
       // Backfill estimation: if totalTracksInPlaylists is 0 but user has playlists,
       // estimate based on average tracks per playlist
       if ((!stats.totalTracksInPlaylists || stats.totalTracksInPlaylists === 0) && stats.playlistsCreated > 0) {
