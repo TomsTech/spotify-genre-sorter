@@ -32,6 +32,7 @@
 │   └── renovate.json
 ├── .jules
 │   ├── bolt.md
+│   ├── palette.md
 │   └── sentinel.md
 ├── docs
 │   ├── generated
@@ -138,6 +139,7 @@
 ├── tests
 │   ├── api.test.ts
 │   ├── artist-genre-cache.test.ts
+│   ├── error-middleware.test.ts
 │   ├── frontend.test.ts
 │   ├── retry.test.ts
 │   ├── session.test.ts
@@ -170,7 +172,7 @@
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-31 directories, 133 files
+31 directories, 135 files
 ```
 
 ## Key Directories
