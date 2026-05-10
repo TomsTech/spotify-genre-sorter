@@ -357,23 +357,22 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
   const list = await kv.list({ prefix: 'user_stats:' });
 
   // PERF-001 FIX: Use Promise.all for parallel reads instead of sequential
-  const dataPromises = list.keys.map(key => kv.get(key.name));
-  const dataResults = await Promise.all(dataPromises);
+  // PERF-016 FIX: Interleave JSON.parse with KV fetches
+  const dataPromises = list.keys.map(async key => {
+    const data = await kv.get(key.name);
+    if (!data) return null;
 
-  const allStats: UserStats[] = [];
-  for (const data of dataResults) {
-    if (data) {
-      const stats = JSON.parse(data) as UserStats;
-
-      // Backfill estimation: if totalTracksInPlaylists is 0 but user has playlists,
-      // estimate based on average tracks per playlist
-      if ((!stats.totalTracksInPlaylists || stats.totalTracksInPlaylists === 0) && stats.playlistsCreated > 0) {
-        stats.totalTracksInPlaylists = stats.playlistsCreated * AVERAGE_TRACKS_PER_PLAYLIST;
-      }
-
-      allStats.push(stats);
+    const stats = JSON.parse(data) as UserStats;
+    // Backfill estimation: if totalTracksInPlaylists is 0 but user has playlists,
+    // estimate based on average tracks per playlist
+    if ((!stats.totalTracksInPlaylists || stats.totalTracksInPlaylists === 0) && stats.playlistsCreated > 0) {
+      stats.totalTracksInPlaylists = stats.playlistsCreated * AVERAGE_TRACKS_PER_PLAYLIST;
     }
-  }
+    return stats;
+  });
+
+  const parsedResults = await Promise.all(dataPromises);
+  const allStats: UserStats[] = parsedResults.filter((stats): stats is UserStats => stats !== null);
 
   // Sort and rank for each category
   const makeRanking = (
@@ -449,31 +448,26 @@ export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData
   // PERF-002 FIX: Use Promise.all for parallel reads instead of sequential
 
   // Get pioneers (first 10 users) - parallel reads
+  // PERF-017 FIX: Interleave JSON.parse with KV fetches
   const pioneerKeys = Array.from({ length: 10 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
-  const pioneerPromises = pioneerKeys.map(key => kv.get(key));
-  const pioneerResults = await Promise.all(pioneerPromises);
-
-  const pioneers: LeaderboardData['pioneers'] = [];
-  for (const data of pioneerResults) {
-    if (data) {
-      pioneers.push(JSON.parse(data) as LeaderboardData['pioneers'][number]);
-    }
-  }
+  const pioneerPromises = pioneerKeys.map(async key => {
+    const data = await kv.get(key);
+    return data ? JSON.parse(data) as LeaderboardData['pioneers'][number] : null;
+  });
+  const parsedPioneers = await Promise.all(pioneerPromises);
+  const pioneers = parsedPioneers.filter((p): p is LeaderboardData['pioneers'][number] => p !== null);
 
   // Get recent users (last 10 registered) - parallel reads
   const userList = await kv.list({ prefix: 'user:' });
 
   // Only fetch up to 50 users to limit KV reads - but do it in parallel
   const userKeys = userList.keys.slice(0, 50);
-  const userPromises = userKeys.map(key => kv.get(key.name));
-  const userResults = await Promise.all(userPromises);
-
-  const recentUsers: LeaderboardData['newUsers'] = [];
-  for (const data of userResults) {
-    if (data) {
-      recentUsers.push(JSON.parse(data) as LeaderboardData['newUsers'][number]);
-    }
-  }
+  const userPromises = userKeys.map(async key => {
+    const data = await kv.get(key.name);
+    return data ? JSON.parse(data) as LeaderboardData['newUsers'][number] : null;
+  });
+  const parsedUsers = await Promise.all(userPromises);
+  const recentUsers = parsedUsers.filter((u): u is LeaderboardData['newUsers'][number] => u !== null);
 
   // Sort by registeredAt descending and take last 10
   recentUsers.sort((a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime());
