@@ -1507,18 +1507,19 @@ api.get('/listening', async (c) => {
     }
 
     // PERF-013 FIX: Use Promise.all for parallel reads instead of sequential loop
-    const dataPromises = list.keys.map(key => kv.get(key.name));
-    const dataResults = await Promise.all(dataPromises);
-
-    const listeners: ListeningEntry[] = [];
-    for (const data of dataResults) {
+    // PERF-018 FIX: Interleave JSON.parse with KV fetches
+    const dataPromises = list.keys.map(async key => {
+      const data = await kv.get(key.name);
       if (data) {
         try {
-          const entry = JSON.parse(data) as ListeningEntry;
-          listeners.push(entry);
+          return JSON.parse(data) as ListeningEntry;
         } catch { /* skip malformed entries */ }
       }
-    }
+      return null;
+    });
+
+    const dataResults = await Promise.all(dataPromises);
+    const listeners: ListeningEntry[] = dataResults.filter((entry): entry is ListeningEntry => entry !== null);
 
     return c.json({
       listeners,
@@ -2231,10 +2232,9 @@ api.get('/admin/users', async (c) => {
   const seenIds = new Set<string>();
 
   // PERF-014 FIX: Use Promise.all for parallel reads instead of sequential loop
-  const dataPromises = userStatsList.keys.map(key => kv.get(key.name));
-  const dataResults = await Promise.all(dataPromises);
-
-  for (const statsJson of dataResults) {
+  // PERF-019 FIX: Interleave JSON.parse with KV fetches
+  const dataPromises = userStatsList.keys.map(async key => {
+    const statsJson = await kv.get(key.name);
     if (statsJson) {
       try {
         const stats = JSON.parse(statsJson) as {
@@ -2245,16 +2245,24 @@ api.get('/admin/users', async (c) => {
           firstSeen?: string;
           lastActive?: string;
         };
-        seenIds.add(stats.spotifyId);
-        users.push({
+        return {
           spotifyId: stats.spotifyId,
           spotifyName: stats.spotifyName || 'Unknown',
           spotifyAvatar: stats.spotifyAvatar || null,
           playlistCount: stats.playlistsCreated || 0,
           registeredAt: stats.firstSeen || 'Unknown',
           lastActive: stats.lastActive || null,
-        });
+        };
       } catch { /* skip malformed entries */ }
+    }
+    return null;
+  });
+
+  const dataResults = await Promise.all(dataPromises);
+  for (const user of dataResults) {
+    if (user) {
+      seenIds.add(user.spotifyId);
+      users.push(user);
     }
   }
 
@@ -2588,18 +2596,20 @@ api.get('/admin/access-requests', async (c) => {
   const emails: string[] = existingList ? JSON.parse(existingList) as string[] : [];
 
   // PERF-015 FIX: Use Promise.all for parallel reads instead of sequential loop
+  // PERF-020 FIX: Interleave JSON.parse with KV fetches
   const requestKeys = emails.map(email => `access_request_${email}`);
-  const dataPromises = requestKeys.map(key => kv.get(key));
-  const dataResults = await Promise.all(dataPromises);
-
-  const requests: AccessRequest[] = [];
-  for (const data of dataResults) {
+  const dataPromises = requestKeys.map(async key => {
+    const data = await kv.get(key);
     if (data) {
       try {
-        requests.push(JSON.parse(data) as AccessRequest);
+        return JSON.parse(data) as AccessRequest;
       } catch { /* skip malformed entries */ }
     }
-  }
+    return null;
+  });
+
+  const dataResults = await Promise.all(dataPromises);
+  const requests: AccessRequest[] = dataResults.filter((req): req is AccessRequest => req !== null);
 
   // Sort by most recent first
   requests.sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime());
