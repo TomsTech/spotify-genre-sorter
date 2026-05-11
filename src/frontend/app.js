@@ -616,6 +616,7 @@
         adminBtn.innerHTML = '⚙️';
         adminBtn.onclick = showAdminPanel;
         adminBtn.title = 'Debug panel - reuses cached data';
+        adminBtn.setAttribute('aria-label', 'Open admin panel');
         headerActions.insertBefore(adminBtn, headerActions.firstChild);
         isAdminUser = true;
       }
@@ -864,7 +865,7 @@
                     <span>Joined \${formatTimeAgo(new Date(user.registeredAt))}</span>
                   </div>
                 </div>
-                <button class="btn btn-danger btn-sm admin-delete-user" onclick="confirmDeleteUser('\${user.spotifyId}', '\${escapeForHtml(user.spotifyName)}')" title="Remove user">
+                <button class="btn btn-danger btn-sm admin-delete-user" onclick="confirmDeleteUser('\${user.spotifyId}', '\${escapeForHtml(user.spotifyName)}')" title="Remove user" aria-label="Remove user \${escapeForHtml(user.spotifyName)}">
                   🗑️
                 </button>
               </div>
