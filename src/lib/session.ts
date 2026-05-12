@@ -647,7 +647,16 @@ export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
   const analyticsKeys = dateKeys.map(dateKey => `${ANALYTICS_KEY}:${dateKey}`);
 
   // Fetch all 7 days in parallel
-  const dataPromises = analyticsKeys.map(key => kv.get(key));
+  // PERF-021 FIX: Interleave JSON.parse with KV fetches
+  const dataPromises = analyticsKeys.map(async key => {
+    const json = await kv.get(key);
+    if (!json) return null;
+    try {
+      return JSON.parse(json) as AnalyticsData;
+    } catch {
+      return null;
+    }
+  });
   const dataResults = await Promise.all(dataPromises);
 
   // Get last 7 days
@@ -665,10 +674,8 @@ export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
   let today: AnalyticsData | null = null;
 
   for (let i = 0; i < dataResults.length; i++) {
-    const data = dataResults[i];
-    if (data) {
-      const dayData = JSON.parse(data) as AnalyticsData;
-
+    const dayData = dataResults[i];
+    if (dayData) {
       // First result is today
       if (i === 0) {
         today = dayData;
