@@ -13,3 +13,8 @@
 **Prevention:** Always use the centralized authorization functions (like `isAdmin()`) that rely on environment variables rather than hardcoding user identifiers in specific routes.
 
 ## 2025-10-24 - [XSS Prevention] **Vulnerability:** Unescaped external data (Spotify artist names, user display names, playlist URLs) injected into `innerHTML`. **Learning:** Even when data comes from a trusted third-party API (like Spotify), it must be treated as untrusted user input and escaped before being rendered in the DOM, as users control their display names and artist names can contain malicious payloads. **Prevention:** Always use `escapeHtml` (or `textContent`) when dynamically generating HTML strings that include external or user-provided data.
+
+## 2024-05-24 - DOM-based XSS via Error Messages
+**Vulnerability:** Unescaped error messages (`err.message`) were interpolated directly into DOM elements via `innerHTML` in multiple admin error handlers.
+**Learning:** Client-side error messages returned from APIs or catching generic exceptions may contain user-controllable input or API payload data, making them unsafe to render directly without escaping.
+**Prevention:** Always wrap dynamically generated strings or error properties in an escaping function (like `escapeHtml()`) before assigning them to `innerHTML`.

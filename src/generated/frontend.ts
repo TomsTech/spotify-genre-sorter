@@ -9471,7 +9471,7 @@ export function getHtml(nonce: string): string {
           });
         });
       } catch (err) {
-        content.innerHTML = \`<div class="admin-error">Failed to load users: \${err.message}</div>\`;
+        content.innerHTML = \`<div class="admin-error">Failed to load users: \${escapeHtml(err.message)}</div>\`;
       }
     }
 
@@ -9493,7 +9493,7 @@ export function getHtml(nonce: string): string {
           throw new Error(result.error || 'Failed to delete user');
         }
       } catch (err) {
-        showNotification(\`Failed to delete user: \${err.message}\`, 'error');
+        showNotification(\`Failed to delete user: \${escapeHtml(err.message)}\`, 'error');
       }
     }
 
@@ -9675,7 +9675,7 @@ export function getHtml(nonce: string): string {
         \`;
       } catch (err) {
         console.error('Failed to load KV monitor:', err);
-        content.innerHTML = \`<div class="admin-error">Failed to load KV monitoring data: \${err.message}</div>\`;
+        content.innerHTML = \`<div class="admin-error">Failed to load KV monitoring data: \${escapeHtml(err.message)}</div>\`;
       }
     }
 
@@ -9743,7 +9743,7 @@ export function getHtml(nonce: string): string {
         \`;
       } catch (err) {
         console.error('Failed to browse keys:', err);
-        content.innerHTML = \`<div class="admin-error">Failed to load keys: \${err.message}</div>\`;
+        content.innerHTML = \`<div class="admin-error">Failed to load keys: \${escapeHtml(err.message)}</div>\`;
       }
     }
 
@@ -9791,7 +9791,7 @@ export function getHtml(nonce: string): string {
         \`;
         document.body.appendChild(infoModal);
       } catch (err) {
-        showNotification(\`Failed to load key: \${err.message}\`, 'error');
+        showNotification(\`Failed to load key: \${escapeHtml(err.message)}\`, 'error');
       }
     }
 
@@ -9811,7 +9811,7 @@ export function getHtml(nonce: string): string {
         // Reload the key browser
         await browseKVKeys(prefix, namespaceName);
       } catch (err) {
-        showNotification(\`Failed to delete key: \${err.message}\`, 'error');
+        showNotification(\`Failed to delete key: \${escapeHtml(err.message)}\`, 'error');
       }
     }
 
@@ -9904,7 +9904,7 @@ export function getHtml(nonce: string): string {
           throw new Error(result.error || 'Failed to clear cache');
         }
       } catch (err) {
-        showNotification(\`❌ Failed to clear cache: \${err.message}\`, 'error');
+        showNotification(\`❌ Failed to clear cache: \${escapeHtml(err.message)}\`, 'error');
       }
     }
 
@@ -9927,7 +9927,7 @@ export function getHtml(nonce: string): string {
           throw new Error(result.error || 'Failed to rebuild caches');
         }
       } catch (err) {
-        showNotification(\`❌ Failed to rebuild caches: \${err.message}\`, 'error');
+        showNotification(\`❌ Failed to rebuild caches: \${escapeHtml(err.message)}\`, 'error');
       }
     }
 
@@ -10043,7 +10043,7 @@ export function getHtml(nonce: string): string {
           \` : ''}
         \`;
       } catch (err) {
-        content.innerHTML = \`<div class="admin-error">Failed to load health metrics: \${err.message}</div>\`;
+        content.innerHTML = \`<div class="admin-error">Failed to load health metrics: \${escapeHtml(err.message)}</div>\`;
       }
     }
 
@@ -10087,7 +10087,7 @@ export function getHtml(nonce: string): string {
           </div>
         \`;
       } catch (err) {
-        content.innerHTML = \`<div class="admin-error">Failed to load errors: \${err.message}</div>\`;
+        content.innerHTML = \`<div class="admin-error">Failed to load errors: \${escapeHtml(err.message)}</div>\`;
       }
     }
 
@@ -10162,7 +10162,7 @@ export function getHtml(nonce: string): string {
           </div>
         \`;
       } catch (err) {
-        content.innerHTML = \`<div class="admin-error">Failed to load performance data: \${err.message}</div>\`;
+        content.innerHTML = \`<div class="admin-error">Failed to load performance data: \${escapeHtml(err.message)}</div>\`;
       }
     }
 
