@@ -4282,6 +4282,7 @@
         toggleBtn.textContent = showStatsDashboard
           ? (swedishMode ? 'Dölj statistik' : 'Hide Stats')
           : (swedishMode ? 'Visa statistik' : 'Show Stats');
+        toggleBtn.setAttribute('aria-expanded', showStatsDashboard.toString());
       }
     }
 
@@ -4388,7 +4389,7 @@
           <button onclick="showGenreWrapped()" class="btn btn-primary btn-sm wrapped-btn" title="\${swedishMode ? 'Dela din musiksmak!' : 'Share your music taste!'}">
             ✨ \${swedishMode ? 'Dela Din Smak' : 'Share Your Taste'}
           </button>
-          <button onclick="toggleStatsDashboard()" class="btn btn-ghost btn-sm stats-toggle" id="stats-toggle">
+          <button onclick="toggleStatsDashboard()" class="btn btn-ghost btn-sm stats-toggle" id="stats-toggle" aria-expanded="\${showStatsDashboard}" aria-controls="stats-dashboard">
             \${showStatsDashboard ? (swedishMode ? '📊 Dölj statistik' : '📊 Hide Stats') : (swedishMode ? '📊 Visa statistik' : '📊 Show Stats')}
           </button>
           <button onclick="toggleMergeMode()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Välj genrer att slå ihop' : 'Select genres to merge into one playlist'}">
