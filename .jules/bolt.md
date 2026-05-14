@@ -7,3 +7,6 @@
 ## 2024-05-08 - [Interleaving JSON.parse with KV fetches]
 **Learning:** Sequential processing of `Promise.all` results for KV fetches causes a large synchronous parsing block and delays CPU-bound work until all I/O is finished. By moving `JSON.parse` and data transformations directly into the async `map` closure, parsing can execute as soon as each individual KV read completes, reducing peak memory usage and overall wall-clock time.
 **Action:** Always interleave parsing with async KV fetches by performing `JSON.parse` inside the `async` callback passed to `map`, rather than iterating over raw JSON results afterwards.
+## 2026-05-14 - [Micro-optimizations on Cold Paths]
+**Learning:** Applying the "Interleave JSON.parse with KV fetches" pattern to small datasets (like the 20 Hall of Fame entries) or infrequently accessed cold paths (like admin routes) yields zero measurable performance improvement and introduces unnecessary code churn. These are considered forbidden micro-optimizations.
+**Action:** Before applying a known performance pattern, measure the actual data size and path frequency to ensure the optimization will have a measurable, meaningful impact. If no hot path opportunity exists, abort the task.
