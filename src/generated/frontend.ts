@@ -8552,7 +8552,7 @@ export function getHtml(nonce: string): string {
       </aside>
 
       <!-- Mobile sidebar toggle -->
-      <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">
+      <button class="sidebar-toggle" id="sidebar-toggle" aria-controls="sidebar" aria-expanded="false" aria-label="Toggle sidebar">
         <span class="toggle-icon">◀</span>
       </button>
 
