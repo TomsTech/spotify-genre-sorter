@@ -1,3 +1,6 @@
 ## 2024-05-18 - Missing ARIA Labels on Contextual Toggles
 **Learning:** Found multiple instances of icon-only toggle buttons (like show/hide, modal close) that lacked `aria-label` attributes, making them opaque to screen readers despite having visual cues or `title` attributes.
 **Action:** When adding or reviewing interactive icons, always ensure they are wrapped in an element with an explicit `aria-label` or accompanied by `sr-only` text, especially for dynamic states (e.g., 'Show [Item]' vs 'Hide [Item]').
+## 2024-05-19 - ARIA Labels on Collapsible Toggles & Dynamic Buttons
+**Learning:** Found an accessibility issue where the sidebar toggle (`#sidebar-toggle`) lacked `aria-controls` and `aria-expanded` attributes, failing to programmatically link it to the collapsible panel. Also observed that adding `aria-label` to buttons with visible text or dynamically updated text (like `#donation-btn`) can result in redundant screen reader announcements or text mismatches.
+**Action:** When creating toggle buttons for collapsible regions, ensure `aria-controls` targets the region's ID and `aria-expanded` dynamically reflects the state. Only use `aria-label` for icon-only buttons or when the visible text is insufficient.

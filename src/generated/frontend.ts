@@ -8540,19 +8540,19 @@ export function getHtml(nonce: string): string {
           </div>
         </div>
 
-        <button class="btn btn-secondary sidebar-scoreboard-btn" id="scoreboard-btn" data-testid="scoreboard-btn" aria-label="View Scoreboard - Rankings update every hour">
+        <button class="btn btn-secondary sidebar-scoreboard-btn" id="scoreboard-btn" data-testid="scoreboard-btn" title="Rankings update every hour">
           <span aria-hidden="true">📊</span> <span data-i18n="viewScoreboard">View Scoreboard</span>
         </button>
 
         <!-- Donation button moved to sidebar -->
-        <a href="https://buymeacoffee.com/tomstech" target="_blank" rel="noopener noreferrer" class="sidebar-donate-btn" id="donation-btn" aria-label="Support the project - Buy me a coffee">
+        <a href="https://buymeacoffee.com/tomstech" target="_blank" rel="noopener noreferrer" class="sidebar-donate-btn" id="donation-btn">
           <span class="icon" aria-hidden="true">🚬</span>
           <span class="text">Shout me a durry <sup class="bryan-text">do it for bryan</sup></span>
         </a>
       </aside>
 
       <!-- Mobile sidebar toggle -->
-      <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">
+      <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar" aria-controls="sidebar" aria-expanded="true">
         <span class="toggle-icon">◀</span>
       </button>
 
@@ -14618,7 +14618,12 @@ export function getHtml(nonce: string): string {
       // On mobile, start with sidebar collapsed
       if (window.innerWidth <= 1024) {
         const sidebar = document.getElementById('sidebar');
+        const toggle = document.getElementById('sidebar-toggle');
         if (sidebar) sidebar.classList.add('collapsed');
+        if (toggle) {
+          toggle.querySelector('.toggle-icon').textContent = '▶';
+          toggle.setAttribute('aria-expanded', 'false');
+        }
       }
     }
 
