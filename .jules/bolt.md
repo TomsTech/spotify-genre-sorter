@@ -7,3 +7,6 @@
 ## 2024-05-08 - [Interleaving JSON.parse with KV fetches]
 **Learning:** Sequential processing of `Promise.all` results for KV fetches causes a large synchronous parsing block and delays CPU-bound work until all I/O is finished. By moving `JSON.parse` and data transformations directly into the async `map` closure, parsing can execute as soon as each individual KV read completes, reducing peak memory usage and overall wall-clock time.
 **Action:** Always interleave parsing with async KV fetches by performing `JSON.parse` inside the `async` callback passed to `map`, rather than iterating over raw JSON results afterwards.
+## 2024-05-10 - [Batch Promise.all for KV fetches]
+**Learning:** Using `Promise.all` mapping over `kv.list().keys` natively bounds max concurrency when the `list()` limit is reached. In extreme cases, doing unbounded Promise.all with very high limits (e.g., > 1000) could cause rate limiting or connection drops, so chunking `Promise.all` into smaller batches (50-100) is often safer in production.
+**Action:** When converting sequential KV loops to parallel `Promise.all` fetches, verify if chunking the promises is necessary depending on the length of the list, although for `<1000` it typically acts as a fast win in isolated edge cases.
