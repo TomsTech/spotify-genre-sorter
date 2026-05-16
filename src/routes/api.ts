@@ -2366,17 +2366,25 @@ api.delete('/admin/user/:spotifyId', async (c) => {
 
   // Find and delete any active sessions for this user
   const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
-  for (const key of sessionsList.keys) {
+  // PERF-021 FIX: Use Promise.all for parallel reads instead of sequential loop
+  // PERF-022 FIX: Interleave JSON.parse with KV fetches
+  const sessionPromises = sessionsList.keys.map(async key => {
     try {
       const sessionJson = await kv.get(key.name);
       if (sessionJson) {
         const sessionData = JSON.parse(sessionJson) as { spotifyUserId?: string };
         if (sessionData.spotifyUserId === spotifyId) {
           await cachedKV.delete(kv, key.name);
-          deleted.push(key.name);
+          return key.name;
         }
       }
     } catch { /* skip malformed sessions */ }
+    return null;
+  });
+
+  const sessionResults = await Promise.all(sessionPromises);
+  for (const keyName of sessionResults) {
+    if (keyName) deleted.push(keyName);
   }
 
   // Decrement user count if we deleted a user_stats entry
