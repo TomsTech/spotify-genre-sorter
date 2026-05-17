@@ -165,6 +165,7 @@
 ├── openapi.yaml
 ├── package-lock.json
 ├── package.json
+├── plan.md
 ├── playwright.config.ts
 ├── pnpm-lock.yaml
 ├── tsconfig.json
@@ -172,7 +173,7 @@
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-31 directories, 135 files
+31 directories, 136 files
 ```
 
 ## Key Directories
