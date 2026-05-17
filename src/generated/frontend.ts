@@ -14828,7 +14828,7 @@ export function getHtml(nonce: string): string {
         const container = document.getElementById('playlist-list-container');
         if (container) {
           const errorText = swedishMode ? 'Kunde inte ladda spellistor' : 'Failed to load playlists';
-          container.innerHTML = '<p style="color: var(--danger)">' + errorText + '</p>';
+          container.innerHTML = '<p style="color: var(--danger)">' + escapeHtml(errorText) + '</p>';
         }
       }
     }
@@ -14869,7 +14869,7 @@ export function getHtml(nonce: string): string {
       const container = document.getElementById('playlist-list-container');
       if (!container) return;
 
-      const scanningText = swedishMode ? 'Skannar ' + playlistName + '...' : 'Scanning ' + playlistName + '...';
+      const scanningText = swedishMode ? 'Skannar ' + escapeHtml(playlistName) + '...' : 'Scanning ' + escapeHtml(playlistName) + '...';
       container.innerHTML = '<div class="scanning-indicator"><div class="spinner"></div>' + scanningText + '</div>';
 
       try {
@@ -14881,7 +14881,7 @@ export function getHtml(nonce: string): string {
       } catch (err) {
         console.error('Error scanning playlist:', err);
         const errorText = swedishMode ? 'Kunde inte skanna spellistan' : 'Failed to scan playlist';
-        container.innerHTML = '<p style="color: var(--danger)">' + errorText + '</p>' +
+        container.innerHTML = '<p style="color: var(--danger)">' + escapeHtml(errorText) + '</p>' +
           '<button class="back-to-playlists-btn" onclick="renderPlaylistList()">← Back</button>';
       }
     }
