@@ -5867,7 +5867,7 @@
 
       if (toggle) {
         toggle.querySelector('.toggle-icon').textContent = isCollapsed ? '▶' : '◀';
-        toggle.setAttribute('aria-expanded', !isCollapsed);
+        toggle.setAttribute('aria-expanded', !isCollapsed ? 'true' : 'false');
       }
     }
     // Make toggleSidebar globally accessible
