@@ -11574,7 +11574,7 @@ export function getHtml(nonce: string): string {
 
       app.innerHTML = \`
         <div class="welcome">
-          \${error ? \`<div class="error">\${errorMessages[error] || error}\${requestAccessButton}</div>\` : ''}
+          \${error ? \`<div class="error">\${errorMessages[error] || escapeForHtml(error)}\${requestAccessButton}</div>\` : ''}
           \${userCounterHtml}
           <h2 data-i18n="organiseMusic">\${t('organiseMusic')}</h2>
           <p data-i18n="organiseDesc">\${t('organiseDesc')}</p>
@@ -12457,7 +12457,7 @@ export function getHtml(nonce: string): string {
           app.innerHTML = \`
             <div class="error">
               <strong>Error \${stepLabels[step] || ''}</strong>
-              <p>\${errorDetail}</p>
+              <p>\${escapeForHtml(errorDetail)}</p>
               \${data.tracksFound ? \`<p class="error-detail">Tracks found: \${data.tracksFound}</p>\` : ''}
               \${data.artistsToFetch ? \`<p class="error-detail">Artists to fetch: \${data.artistsToFetch}</p>\` : ''}
             </div>
@@ -12510,7 +12510,7 @@ export function getHtml(nonce: string): string {
           <div class="error">
             <strong>Connection Error</strong>
             <p>Could not connect to the server. Please check your internet connection.</p>
-            <p class="error-detail">\${error.message || 'Unknown error'}</p>
+            <p class="error-detail">\${escapeForHtml(error.message || 'Unknown error')}</p>
           </div>
           <button onclick="loadGenres()" class="btn btn-secondary">Try Again</button>
         \`;
@@ -13852,7 +13852,7 @@ export function getHtml(nonce: string): string {
                     ? \`<a href="\${r.url}" target="_blank" class="result-success" data-i18n="openSpotify">\${t('openSpotify')}</a>\`
                     : r.skipped
                       ? \`<span class="result-skipped">\${swedishMode ? 'Finns redan' : 'Already exists'}</span>\`
-                      : \`<span class="result-error">\${r.error}</span>\`
+                      : \`<span class="result-error">\${escapeForHtml(r.error)}</span>\`
                   }
                 </div>
               \`).join('')}
@@ -14828,7 +14828,7 @@ export function getHtml(nonce: string): string {
         const container = document.getElementById('playlist-list-container');
         if (container) {
           const errorText = swedishMode ? 'Kunde inte ladda spellistor' : 'Failed to load playlists';
-          container.innerHTML = '<p style="color: var(--danger)">' + errorText + '</p>';
+          container.innerHTML = '<p style="color: var(--danger)">' + escapeForHtml(errorText) + '</p>';
         }
       }
     }
@@ -14881,7 +14881,7 @@ export function getHtml(nonce: string): string {
       } catch (err) {
         console.error('Error scanning playlist:', err);
         const errorText = swedishMode ? 'Kunde inte skanna spellistan' : 'Failed to scan playlist';
-        container.innerHTML = '<p style="color: var(--danger)">' + errorText + '</p>' +
+        container.innerHTML = '<p style="color: var(--danger)">' + escapeForHtml(errorText) + '</p>' +
           '<button class="back-to-playlists-btn" onclick="renderPlaylistList()">← Back</button>';
       }
     }
