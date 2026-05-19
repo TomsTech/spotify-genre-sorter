@@ -5867,7 +5867,7 @@
 
       if (toggle) {
         toggle.querySelector('.toggle-icon').textContent = isCollapsed ? '▶' : '◀';
-        toggle.setAttribute('aria-expanded', !isCollapsed);
+        toggle.setAttribute('aria-expanded', !isCollapsed ? 'true' : 'false');
       }
     }
     // Make toggleSidebar globally accessible
@@ -6031,7 +6031,14 @@
       // On mobile, start with sidebar collapsed
       if (window.innerWidth <= 1024) {
         const sidebar = document.getElementById('sidebar');
-        if (sidebar) sidebar.classList.add('collapsed');
+        const toggle = document.getElementById('sidebar-toggle');
+        if (sidebar) {
+          sidebar.classList.add('collapsed');
+          if (toggle) {
+            toggle.querySelector('.toggle-icon').textContent = '▶';
+            toggle.setAttribute('aria-expanded', 'false');
+          }
+        }
       }
     }
 
