@@ -2163,11 +2163,14 @@ api.get('/admin', async (c) => {
   const metrics = getKVMetrics();
   const analytics = await getAnalytics(kv);
 
+  // PERF-023 FIX: Use Promise.all for parallel KV listing
+  const prefixes = ['session:', 'user:', 'user_stats:', 'hof:', 'genre_cache_', 'scan_progress:'];
+  const listResults = await Promise.all(prefixes.map(prefix => kv.list({ prefix, limit: 1000 })));
+
   const keyCounts: Record<string, number> = {};
-  for (const prefix of ['session:', 'user:', 'user_stats:', 'hof:', 'genre_cache_', 'scan_progress:']) {
-    const list = await kv.list({ prefix, limit: 1000 });
-    keyCounts[prefix] = list.keys.length;
-  }
+  prefixes.forEach((prefix, index) => {
+    keyCounts[prefix] = listResults[index].keys.length;
+  });
 
   return c.json({
     admin: { user: session?.githubUser || session?.spotifyUserId, accessTime: new Date().toISOString() },
@@ -2192,7 +2195,9 @@ api.post('/admin/clear-cache', async (c) => {
     case 'scoreboard': await kv.delete('scoreboard_cache'); cleared = 1; break;
     case 'all_genre_caches': {
       const list = await kv.list({ prefix: 'genre_cache_' });
-      for (const key of list.keys) { await kv.delete(key.name); cleared++; }
+      // PERF-024 FIX: Use Promise.all for parallel KV deletes
+      await Promise.all(list.keys.map(key => kv.delete(key.name)));
+      cleared = list.keys.length;
       break;
     }
   }
