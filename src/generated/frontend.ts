@@ -15932,7 +15932,7 @@ export function getHtml(nonce: string): string {
 
       modal.innerHTML = [
         '<div class="modal artist-breakdown">',
-        '  <h3>' + getFamilyEmoji(getGenreFamily(genreName)) + ' ' + genreName + '</h3>',
+        '  <h3>' + getFamilyEmoji(getGenreFamily(genreName)) + ' ' + escapeHtml(genreName) + '</h3>',
         '  <p class="artist-breakdown-subtitle">' + (swedishMode ? 'Topp artister i denna genre' : 'Top artists in this genre') + '</p>',
         '  <div class="artist-breakdown-list">' + (artistList || '<p>' + (swedishMode ? 'Ingen artistdata tillgänglig' : 'No artist data available') + '</p>') + '</div>',
         '  <div class="modal-actions">',
