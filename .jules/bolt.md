@@ -10,3 +10,6 @@
 ## 2024-05-14 - [Parallelizing KV Delete and List Operations]
 **Learning:** Sequential `await kv.delete()` and `await kv.list()` operations inside `for...of` loops cause massive N+1 slowdowns in Cloudflare Workers, significantly increasing wall-clock time for API routes like `/admin/clear-cache` and `/admin`.
 **Action:** Always wrap concurrent `kv` operations (e.g., `list`, `delete`, `get`, `put`) in `Promise.all()` to execute them in parallel, effectively binding total latency to the slowest single operation instead of the sum of all operations.
+## 2024-05-21 - [Parallelizing Array of Known Keys in KV Delete]
+**Learning:** We previously saw N+1 latency from `list` combined with `delete`. It turns out there's another N+1 bottleneck when deleting a hardcoded list of keys using a `for...of` loop (`for (const key of keysToDelete) { await kv.delete(key); }`). This forces sequential network requests.
+**Action:** Any synchronous sequence of predictable `await kv.delete()` (or get/put) operations based on a known array should be executed concurrently using `await Promise.all(keys.map(key => kv.delete(key)))` to maximize throughput.
