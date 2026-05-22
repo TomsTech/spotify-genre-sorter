@@ -846,7 +846,7 @@ api.get('/genres/chunk', async (c) => {
       // PERF-025 FIX: Parallelize playlist fetching
       const playlistPromises = playlistIds.slice(0, 5).map(async (playlistId) => { // Limit to 5 playlists to avoid timeout
         try {
-          const playlistTracks = await getPlaylistTracks(session.spotifyAccessToken, playlistId, 500);
+          const playlistTracks = await getPlaylistTracks(session.spotifyAccessToken as string, playlistId, 500);
           return { playlistId, tracks: playlistTracks };
         } catch (e) {
           console.error(`Error fetching playlist ${playlistId}:`, e);
