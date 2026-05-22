@@ -10,3 +10,6 @@
 ## 2024-05-14 - [Parallelizing KV Delete and List Operations]
 **Learning:** Sequential `await kv.delete()` and `await kv.list()` operations inside `for...of` loops cause massive N+1 slowdowns in Cloudflare Workers, significantly increasing wall-clock time for API routes like `/admin/clear-cache` and `/admin`.
 **Action:** Always wrap concurrent `kv` operations (e.g., `list`, `delete`, `get`, `put`) in `Promise.all()` to execute them in parallel, effectively binding total latency to the slowest single operation instead of the sum of all operations.
+## 2024-05-18 - [Parallelizing Spotify API Requests]
+**Learning:** The application was sequentially fetching playlist tracks within a loop, which caused high latency since it waited for each API request to complete before starting the next.
+**Action:** Replaced sequential awaits inside `for...of` loops with `Promise.all()` and mapped promises array when fetching independent data like multiple playlists tracks, effectively parallelizing the operations and reducing the total request time to the duration of the longest single request.
