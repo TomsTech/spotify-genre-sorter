@@ -8552,7 +8552,7 @@ export function getHtml(nonce: string): string {
       </aside>
 
       <!-- Mobile sidebar toggle -->
-      <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">
+      <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar" aria-controls="sidebar" aria-expanded="true">
         <span class="toggle-icon">◀</span>
       </button>
 
@@ -14454,7 +14454,7 @@ export function getHtml(nonce: string): string {
 
       if (toggle) {
         toggle.querySelector('.toggle-icon').textContent = isCollapsed ? '▶' : '◀';
-        toggle.setAttribute('aria-expanded', !isCollapsed);
+        toggle.setAttribute('aria-expanded', !isCollapsed ? 'true' : 'false');
       }
     }
     // Make toggleSidebar globally accessible
