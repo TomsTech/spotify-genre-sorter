@@ -843,17 +843,25 @@ api.get('/genres/chunk', async (c) => {
 
     // Fetch from playlists first (only on first chunk to avoid re-fetching)
     if (playlistIds.length > 0 && offset === 0) {
-      for (const playlistId of playlistIds.slice(0, 5)) { // Limit to 5 playlists to avoid timeout
+      // PERF-025 FIX: Use Promise.all to fetch playlist tracks concurrently
+      const playlistPromises = playlistIds.slice(0, 5).map(async (playlistId) => {
         try {
           const playlistTracks = await getPlaylistTracks(session.spotifyAccessToken, playlistId, 500);
-          for (const pt of playlistTracks) {
-            if (pt.track && pt.track.id && !seenTrackIds.has(pt.track.id)) {
-              seenTrackIds.add(pt.track.id);
-              allChunkTracks.push({ track: pt.track });
-            }
-          }
+          return { playlistId, tracks: playlistTracks, error: null };
         } catch (e) {
           console.error(`Error fetching playlist ${playlistId}:`, e);
+          return { playlistId, tracks: [], error: e };
+        }
+      });
+
+      const playlistResults = await Promise.all(playlistPromises);
+
+      for (const result of playlistResults) {
+        for (const pt of result.tracks) {
+          if (pt.track && pt.track.id && !seenTrackIds.has(pt.track.id)) {
+            seenTrackIds.add(pt.track.id);
+            allChunkTracks.push({ track: pt.track });
+          }
         }
       }
       // Add playlist track count to total
@@ -1637,9 +1645,15 @@ api.get('/scan-playlist/:playlistId', async (c) => {
 
     // Fetch artists in batches of 50 (limited to stay under subrequest limit)
     // Pass KV namespace to enable persistent caching (#74)
+    // PERF-026 FIX: Use Promise.all to fetch artist batches concurrently
+    const artistPromises = [];
     for (let i = 0; i < artistIdList.length && i < 500; i += 50) {
       const batch = artistIdList.slice(i, i + 50);
-      const { artists } = await getArtists(accessToken, batch, undefined, c.env.SESSIONS);
+      artistPromises.push(getArtists(accessToken, batch, undefined, c.env.SESSIONS));
+    }
+
+    const artistResults = await Promise.all(artistPromises);
+    for (const { artists } of artistResults) {
       for (const artist of artists) {
         artistGenres.set(artist.id, artist.genres);
       }
