@@ -844,9 +844,10 @@ api.get('/genres/chunk', async (c) => {
     // Fetch from playlists first (only on first chunk to avoid re-fetching)
     if (playlistIds.length > 0 && offset === 0) {
       // PERF-025 FIX: Use Promise.all to fetch playlist tracks concurrently
+      const accessToken = session.spotifyAccessToken;
       const playlistPromises = playlistIds.slice(0, 5).map(async (playlistId) => {
         try {
-          const playlistTracks = await getPlaylistTracks(session.spotifyAccessToken, playlistId, 500);
+          const playlistTracks = await getPlaylistTracks(accessToken, playlistId, 500);
           return { playlistId, tracks: playlistTracks, error: null };
         } catch (e) {
           console.error(`Error fetching playlist ${playlistId}:`, e);
