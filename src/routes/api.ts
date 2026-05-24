@@ -2343,11 +2343,12 @@ api.delete('/admin/user/:spotifyId', async (c) => {
     `listening:${spotifyId}` // Also delete listening status
   ];
 
+  // PERF-025 FIX: Use Promise.all for parallel KV deletions
   // Delete all standard keys without checking existence (delete is idempotent)
-  for (const key of keysToDelete) {
+  await Promise.all(keysToDelete.map(async key => {
     await cachedKV.delete(kv, key);
     deleted.push(key);
-  }
+  }));
 
   // Find and delete HoF entry by scanning for matching spotifyId
   // HoF keys are formatted as hof:001, hof:002, etc.
