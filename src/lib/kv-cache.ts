@@ -132,14 +132,21 @@ async function flushWriteQueue(kv: KVNamespace): Promise<void> {
 
   const batch = writeQueue.splice(0, WRITE_BATCH_MAX_SIZE);
 
-  for (const entry of batch) {
-    try {
-      await kv.put(entry.key, entry.value, entry.expirationTtl ? { expirationTtl: entry.expirationTtl } : undefined);
-      metrics.writes++;
-    } catch (err) {
-      console.error(`KV write failed for key ${entry.key}:`, err);
-    }
-  }
+  // ⚡ PERF FIX: Use Promise.all for parallel KV writes instead of sequential loop
+  await Promise.all(
+    batch.map(async (entry) => {
+      try {
+        await kv.put(
+          entry.key,
+          entry.value,
+          entry.expirationTtl ? { expirationTtl: entry.expirationTtl } : undefined
+        );
+        metrics.writes++;
+      } catch (err) {
+        console.error(`KV write failed for key ${entry.key}:`, err);
+      }
+    })
+  );
 
   // Schedule next flush if there are more items
   if (writeQueue.length > 0) {

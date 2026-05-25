@@ -10,3 +10,6 @@
 ## 2024-05-14 - [Parallelizing KV Delete and List Operations]
 **Learning:** Sequential `await kv.delete()` and `await kv.list()` operations inside `for...of` loops cause massive N+1 slowdowns in Cloudflare Workers, significantly increasing wall-clock time for API routes like `/admin/clear-cache` and `/admin`.
 **Action:** Always wrap concurrent `kv` operations (e.g., `list`, `delete`, `get`, `put`) in `Promise.all()` to execute them in parallel, effectively binding total latency to the slowest single operation instead of the sum of all operations.
+## 2026-05-25 - [Parallelizing KV Put Operations]
+**Learning:** Sequential `await kv.put()` calls inside a batch flushing loop cause significant N+1 delays during Cloudflare Worker execution. Although the individual writes are backgrounded via `ctx.waitUntil` in some cases, the loop itself blocks while waiting for each I/O operation to complete sequentially.
+**Action:** Always wrap concurrent `kv.put` operations in `Promise.all()` mapping for arrays or queues to parallelize the network requests, drastically reducing total latency for batch operations.
