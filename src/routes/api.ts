@@ -2344,10 +2344,11 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   ];
 
   // Delete all standard keys without checking existence (delete is idempotent)
-  for (const key of keysToDelete) {
+  // PERF-025 FIX: Use Promise.all for parallel deletes instead of sequential loop
+  await Promise.all(keysToDelete.map(async (key) => {
     await cachedKV.delete(kv, key);
     deleted.push(key);
-  }
+  }));
 
   // Find and delete HoF entry by scanning for matching spotifyId
   // HoF keys are formatted as hof:001, hof:002, etc.
