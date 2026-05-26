@@ -22,3 +22,8 @@
 **Vulnerability:** The `genreName` variable was being directly concatenated into the HTML string of the artist breakdown modal without any sanitization or escaping (`'  <h3>' + getFamilyEmoji(getGenreFamily(genreName)) + ' ' + genreName + '</h3>'`). This could allow an attacker to craft a malicious genre name containing JavaScript code.
 **Learning:** This occurred because the artist breakdown modal's HTML was being constructed manually via string concatenation and then injected into the DOM. This is a common pattern for introducing DOM-based XSS vulnerabilities.
 **Prevention:** Always sanitize or escape user-provided data before inserting it into the DOM. In this case, wrapping the variable with `escapeHtml(genreName)` effectively mitigates the vulnerability by converting potentially dangerous characters into their safe HTML entity equivalents.
+
+## 2026-05-26 - [XSS] DOM-based Cross-Site Scripting in Playlist Scanner
+**Vulnerability:** The `playlistName` argument in `scanPlaylist` was concatenated directly into the HTML string (`scanningText`) and injected via `innerHTML`.
+**Learning:** Escaping data inside inline HTML event handlers (e.g., `onclick="scanPlaylist(..., escapeHtml(name))"`) does not prevent DOM-based XSS when the invoked JavaScript function then interpolates the raw argument into `innerHTML`. The browser unescapes the HTML entities within the attribute *before* passing the string to the JavaScript function, making the data "unsafe" again.
+**Prevention:** The correct defense strategy is to always apply `escapeHtml()` immediately before the data is injected into `innerHTML`, rather than relying on escaping done during the creation of the inline event handler.
