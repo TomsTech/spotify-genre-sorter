@@ -14869,7 +14869,7 @@ export function getHtml(nonce: string): string {
       const container = document.getElementById('playlist-list-container');
       if (!container) return;
 
-      const scanningText = swedishMode ? 'Skannar ' + playlistName + '...' : 'Scanning ' + playlistName + '...';
+      const scanningText = swedishMode ? 'Skannar ' + escapeHtml(playlistName) + '...' : 'Scanning ' + escapeHtml(playlistName) + '...';
       container.innerHTML = '<div class="scanning-indicator"><div class="spinner"></div>' + scanningText + '</div>';
 
       try {
