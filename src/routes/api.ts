@@ -843,7 +843,8 @@ api.get('/genres/chunk', async (c) => {
 
     // Fetch from playlists first (only on first chunk to avoid re-fetching)
     if (playlistIds.length > 0 && offset === 0) {
-      for (const playlistId of playlistIds.slice(0, 5)) { // Limit to 5 playlists to avoid timeout
+      // PERF-024 FIX: Parallelize playlist fetching to reduce latency
+      await Promise.all(playlistIds.slice(0, 5).map(async (playlistId) => {
         try {
           const playlistTracks = await getPlaylistTracks(session.spotifyAccessToken, playlistId, 500);
           for (const pt of playlistTracks) {
@@ -855,7 +856,7 @@ api.get('/genres/chunk', async (c) => {
         } catch (e) {
           console.error(`Error fetching playlist ${playlistId}:`, e);
         }
-      }
+      }));
       // Add playlist track count to total
       totalInLibrary += allChunkTracks.length;
     }
@@ -2344,10 +2345,11 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   ];
 
   // Delete all standard keys without checking existence (delete is idempotent)
-  for (const key of keysToDelete) {
+  // PERF-025 FIX: Use Promise.all to parallelize standard key deletions
+  await Promise.all(keysToDelete.map(async (key) => {
     await cachedKV.delete(kv, key);
     deleted.push(key);
-  }
+  }));
 
   // Find and delete HoF entry by scanning for matching spotifyId
   // HoF keys are formatted as hof:001, hof:002, etc.
