@@ -844,9 +844,10 @@ api.get('/genres/chunk', async (c) => {
     // Fetch from playlists first (only on first chunk to avoid re-fetching)
     if (playlistIds.length > 0 && offset === 0) {
       // PERF-024 FIX: Parallelize playlist fetching to reduce latency
+      const accessToken = session.spotifyAccessToken || '';
       await Promise.all(playlistIds.slice(0, 5).map(async (playlistId) => {
         try {
-          const playlistTracks = await getPlaylistTracks(session.spotifyAccessToken, playlistId, 500);
+          const playlistTracks = await getPlaylistTracks(accessToken, playlistId, 500);
           for (const pt of playlistTracks) {
             if (pt.track && pt.track.id && !seenTrackIds.has(pt.track.id)) {
               seenTrackIds.add(pt.track.id);
