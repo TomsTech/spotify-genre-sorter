@@ -6282,7 +6282,8 @@
       const container = document.getElementById('playlist-list-container');
       if (!container) return;
 
-      const scanningText = swedishMode ? 'Skannar ' + playlistName + '...' : 'Scanning ' + playlistName + '...';
+      const safePlaylistName = escapeHtml(playlistName);
+      const scanningText = swedishMode ? 'Skannar ' + safePlaylistName + '...' : 'Scanning ' + safePlaylistName + '...';
       container.innerHTML = '<div class="scanning-indicator"><div class="spinner"></div>' + scanningText + '</div>';
 
       try {
