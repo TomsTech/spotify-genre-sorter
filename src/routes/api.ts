@@ -318,8 +318,11 @@ api.get('/user-playlists', async (c) => {
   try {
     // Refresh token if needed
     if (session.spotifyExpiresAt && Date.now() > session.spotifyExpiresAt - 60000) {
+      if (!session.spotifyRefreshToken) {
+        return c.json({ error: 'Missing refresh token' }, 401);
+      }
       const newTokens = await refreshSpotifyToken(
-        session.spotifyRefreshToken!,
+        session.spotifyRefreshToken,
         c.env.SPOTIFY_CLIENT_ID,
         c.env.SPOTIFY_CLIENT_SECRET
       );
@@ -844,9 +847,10 @@ api.get('/genres/chunk', async (c) => {
     // Fetch from playlists first (only on first chunk to avoid re-fetching)
     if (playlistIds.length > 0 && offset === 0) {
       // PERF-025 FIX: Use Promise.all for parallel playlist fetching
+      const accessToken = session.spotifyAccessToken;
       const playlistPromises = playlistIds.slice(0, 5).map(async (playlistId) => {
         try {
-          return await getPlaylistTracks(session.spotifyAccessToken, playlistId, 500);
+          return await getPlaylistTracks(accessToken, playlistId, 500);
         } catch (e) {
           console.error(`Error fetching playlist ${playlistId}:`, e);
           return []; // Return empty array on failure so Promise.all succeeds
