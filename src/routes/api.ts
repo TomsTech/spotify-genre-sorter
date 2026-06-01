@@ -843,19 +843,27 @@ api.get('/genres/chunk', async (c) => {
 
     // Fetch from playlists first (only on first chunk to avoid re-fetching)
     if (playlistIds.length > 0 && offset === 0) {
-      for (const playlistId of playlistIds.slice(0, 5)) { // Limit to 5 playlists to avoid timeout
+      // PERF-025 FIX: Use Promise.all for parallel playlist fetching
+      const playlistPromises = playlistIds.slice(0, 5).map(async (playlistId) => {
         try {
-          const playlistTracks = await getPlaylistTracks(session.spotifyAccessToken, playlistId, 500);
-          for (const pt of playlistTracks) {
-            if (pt.track && pt.track.id && !seenTrackIds.has(pt.track.id)) {
-              seenTrackIds.add(pt.track.id);
-              allChunkTracks.push({ track: pt.track });
-            }
-          }
+          return await getPlaylistTracks(session.spotifyAccessToken, playlistId, 500);
         } catch (e) {
           console.error(`Error fetching playlist ${playlistId}:`, e);
+          return []; // Return empty array on failure so Promise.all succeeds
+        }
+      });
+
+      const playlistsTracksResults = await Promise.all(playlistPromises);
+
+      for (const playlistTracks of playlistsTracksResults) {
+        for (const pt of playlistTracks) {
+          if (pt.track && pt.track.id && !seenTrackIds.has(pt.track.id)) {
+            seenTrackIds.add(pt.track.id);
+            allChunkTracks.push({ track: pt.track });
+          }
         }
       }
+
       // Add playlist track count to total
       totalInLibrary += allChunkTracks.length;
     }
