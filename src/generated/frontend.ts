@@ -8552,7 +8552,7 @@ export function getHtml(nonce: string): string {
       </aside>
 
       <!-- Mobile sidebar toggle -->
-      <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">
+      <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar" aria-controls="sidebar" aria-expanded="true">
         <span class="toggle-icon">◀</span>
       </button>
 
@@ -14454,7 +14454,7 @@ export function getHtml(nonce: string): string {
 
       if (toggle) {
         toggle.querySelector('.toggle-icon').textContent = isCollapsed ? '▶' : '◀';
-        toggle.setAttribute('aria-expanded', !isCollapsed);
+        toggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
       }
     }
     // Make toggleSidebar globally accessible
@@ -14619,6 +14619,11 @@ export function getHtml(nonce: string): string {
       if (window.innerWidth <= 1024) {
         const sidebar = document.getElementById('sidebar');
         if (sidebar) sidebar.classList.add('collapsed');
+        const toggle = document.getElementById('sidebar-toggle');
+        if (toggle) {
+          toggle.querySelector('.toggle-icon').textContent = '▶';
+          toggle.setAttribute('aria-expanded', 'false');
+        }
       }
     }
 
