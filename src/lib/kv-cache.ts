@@ -132,14 +132,18 @@ async function flushWriteQueue(kv: KVNamespace): Promise<void> {
 
   const batch = writeQueue.splice(0, WRITE_BATCH_MAX_SIZE);
 
-  for (const entry of batch) {
+  // PERF-025 FIX: Parallelize KV writes instead of sequential awaits.
+  // Impact: Reduces flush time from O(N) to O(1) regarding network latency.
+  const writePromises = batch.map(async (entry) => {
     try {
       await kv.put(entry.key, entry.value, entry.expirationTtl ? { expirationTtl: entry.expirationTtl } : undefined);
       metrics.writes++;
     } catch (err) {
       console.error(`KV write failed for key ${entry.key}:`, err);
     }
-  }
+  });
+
+  await Promise.all(writePromises);
 
   // Schedule next flush if there are more items
   if (writeQueue.length > 0) {
