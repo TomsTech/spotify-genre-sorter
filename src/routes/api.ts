@@ -2280,41 +2280,48 @@ api.get('/admin/users', async (c) => {
 
   // Also fetch HoF users (pioneers) who might not have user_stats entries
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
-  const hofPromises = hofKeys.map(key => kv.get(key));
-  const hofResults = await Promise.all(hofPromises);
-
-  for (let i = 0; i < hofResults.length; i++) {
-    const hofJson = hofResults[i];
+  // PERF-029 FIX: Interleave JSON.parse with KV fetches
+  const hofPromises = hofKeys.map(async key => {
+    const hofJson = await kv.get(key);
     if (hofJson) {
       try {
-        const hofUser = JSON.parse(hofJson) as {
+        return JSON.parse(hofJson) as {
           spotifyId: string;
           spotifyName: string;
           spotifyAvatar?: string;
           registeredAt?: string;
         };
-        // Only add if not already in users list
-        if (!seenIds.has(hofUser.spotifyId)) {
-          seenIds.add(hofUser.spotifyId);
-          users.push({
-            spotifyId: hofUser.spotifyId,
-            spotifyName: hofUser.spotifyName || 'Unknown',
-            spotifyAvatar: hofUser.spotifyAvatar || null,
-            playlistCount: 0,
-            registeredAt: hofUser.registeredAt || 'Unknown',
-            lastActive: null,
-            isPioneer: true,
-            hofPosition: i + 1,
-          });
-        } else {
-          // Mark existing user as pioneer
-          const existingUser = users.find(u => u.spotifyId === hofUser.spotifyId);
-          if (existingUser) {
-            existingUser.isPioneer = true;
-            existingUser.hofPosition = i + 1;
-          }
-        }
       } catch { /* skip malformed entries */ }
+    }
+    return null;
+  });
+
+  const hofResults = await Promise.all(hofPromises);
+
+  for (let i = 0; i < hofResults.length; i++) {
+    const hofUser = hofResults[i];
+    if (hofUser) {
+      // Only add if not already in users list
+      if (!seenIds.has(hofUser.spotifyId)) {
+        seenIds.add(hofUser.spotifyId);
+        users.push({
+          spotifyId: hofUser.spotifyId,
+          spotifyName: hofUser.spotifyName || 'Unknown',
+          spotifyAvatar: hofUser.spotifyAvatar || null,
+          playlistCount: 0,
+          registeredAt: hofUser.registeredAt || 'Unknown',
+          lastActive: null,
+          isPioneer: true,
+          hofPosition: i + 1,
+        });
+      } else {
+        // Mark existing user as pioneer
+        const existingUser = users.find(u => u.spotifyId === hofUser.spotifyId);
+        if (existingUser) {
+          existingUser.isPioneer = true;
+          existingUser.hofPosition = i + 1;
+        }
+      }
     }
   }
 
@@ -2360,20 +2367,28 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   // Find and delete HoF entry by scanning for matching spotifyId
   // HoF keys are formatted as hof:001, hof:002, etc.
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
-  const hofPromises = hofKeys.map(key => kv.get(key));
+  // PERF-030 FIX: Interleave JSON.parse with KV fetches
+  const hofPromises = hofKeys.map(async key => {
+    const hofJson = await kv.get(key);
+    if (hofJson) {
+      try {
+        return JSON.parse(hofJson) as { spotifyId?: string };
+      } catch { /* skip malformed entries */ }
+    }
+    return null;
+  });
+
   const hofResults = await Promise.all(hofPromises);
 
   for (let i = 0; i < hofResults.length; i++) {
-    if (hofResults[i]) {
-      try {
-        const hofData = JSON.parse(hofResults[i] as string) as { spotifyId?: string };
-        if (hofData.spotifyId === spotifyId) {
-          const hofKey = `hof:${String(i + 1).padStart(3, '0')}`;
-          await cachedKV.delete(kv, hofKey);
-          deleted.push(hofKey);
-          break; // User can only be in HoF once
-        }
-      } catch { /* skip malformed entries */ }
+    const hofData = hofResults[i];
+    if (hofData) {
+      if (hofData.spotifyId === spotifyId) {
+        const hofKey = `hof:${String(i + 1).padStart(3, '0')}`;
+        await cachedKV.delete(kv, hofKey);
+        deleted.push(hofKey);
+        break; // User can only be in HoF once
+      }
     }
   }
 
