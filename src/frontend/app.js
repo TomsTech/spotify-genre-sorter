@@ -1485,7 +1485,7 @@
                 <div class="admin-error-header">
                   <span class="admin-error-num">#${idx + 1}</span>
                   <span class="admin-error-time">${new Date(error.serverTime || error.timestamp).toLocaleString()}</span>
-                  <span class="admin-error-ip">${error.ip || 'unknown'}</span>
+                  <span class="admin-error-ip">${escapeHtml(error.ip || 'unknown')}</span>
                 </div>
                 <div class="admin-error-message">${escapeHtml(error.message || error.raw || 'Unknown error')}</div>
                 ${error.stack ? `
