@@ -117,7 +117,7 @@
         modal.innerHTML = [
           '<h3 id="prompt-title">' + (swedishMode ? '📝 Ange namn' : '📝 Enter name') + '</h3>',
           '<p class="prompt-message">' + message + '</p>',
-          '<input type="text" class="prompt-input" id="prompt-input" value="' + escapeForHtml(defaultValue) + '" maxlength="100">',
+          '<input type="text" class="prompt-input" id="prompt-input" value="' + escapeForHtml(defaultValue) + '" maxlength="100" aria-label="' + (swedishMode ? 'Ange namn' : 'Enter name') + '">',
           '<div class="prompt-buttons">',
           '  <button class="btn btn-ghost" id="prompt-cancel">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
           '  <button class="btn btn-primary" id="prompt-confirm">' + (swedishMode ? 'OK' : 'OK') + '</button>',
@@ -357,7 +357,7 @@
         '    <button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()" aria-label="Close modal">×</button>',
         '  </div>',
         '  <div class="modal-body">',
-        '    <label>' + (swedishMode ? 'Spellistans namn' : 'Playlist Name') + '</label>',
+        '    <label for="merge-playlist-name">' + (swedishMode ? 'Spellistans namn' : 'Playlist Name') + '</label>',
         '    <input type="text" id="merge-playlist-name" class="search-input" value="' + escapeForHtml(suggestedName) + '" style="margin-bottom: 1rem;">',
         '    <label>' + (swedishMode ? 'Genrer som slås ihop:' : 'Genres to merge:') + '</label>',
         '    <div class="merge-preview">',
@@ -845,7 +845,7 @@
         content.innerHTML = \`
           <div class="admin-users-header">
             <span>\${data.total} users total</span>
-            <input type="text" class="admin-search" id="admin-user-search" placeholder="Search users..." />
+            <input type="text" class="admin-search" id="admin-user-search" placeholder="Search users..." aria-label="Search users" />
           </div>
           <div class="admin-users-list" id="admin-users-list">
             \${data.users.map(user => \`
@@ -4752,11 +4752,11 @@
         '  </div>',
         '  <div class="customise-body">',
         '    <div class="customise-field">',
-        '      <label>' + (swedishMode ? 'Namn' : 'Name') + '</label>',
+        '      <label for="custom-name">' + (swedishMode ? 'Namn' : 'Name') + '</label>',
         '      <input type="text" id="custom-name" value="' + escapeForHtml(defaultName) + '" maxlength="100">',
         '    </div>',
         '    <div class="customise-field">',
-        '      <label>' + (swedishMode ? 'Beskrivning' : 'Description') + '</label>',
+        '      <label for="custom-desc">' + (swedishMode ? 'Beskrivning' : 'Description') + '</label>',
         '      <textarea id="custom-desc" maxlength="300">' + escapeForHtml(defaultDesc) + '</textarea>',
         '      <div class="field-hint">' + (swedishMode ? 'Max 300 tecken' : 'Max 300 characters') + '</div>',
         '    </div>',
@@ -6745,8 +6745,8 @@
         '<p>' + subtitle + '</p>' +
         '<p>' + desc + '</p>' +
         '<form class="invite-form" onsubmit="submitInviteRequest(event)">' +
-          '<input type="text" id="invite-email" placeholder="' + emailLabel + '" required>' +
-          '<textarea id="invite-note" placeholder="' + noteLabel + '"></textarea>' +
+          '<input type="text" id="invite-email" placeholder="' + emailLabel + '" aria-label="' + emailLabel + '" required>' +
+          '<textarea id="invite-note" placeholder="' + noteLabel + '" aria-label="' + noteLabel + '"></textarea>' +
           '<button type="submit" class="btn btn-primary">' + submitText + '</button>' +
         '</form>' +
         '<div id="invite-result"></div>' +
@@ -7095,7 +7095,7 @@
         '    <img src="' + escapeHtml(qrCodeUrl) + '" alt="QR Code" class="share-qr-code" />',
         '  </div>',
         '  <div class="share-link-container">',
-        '    <input type="text" class="share-link-input" value="' + escapeHtml(playlistUrl) + '" readonly />',
+        '    <input type="text" class="share-link-input" value="' + escapeHtml(playlistUrl) + '" readonly aria-label="' + (swedishMode ? 'Spellistans URL' : 'Playlist URL') + '" />',
         '    <button class="btn btn-secondary share-copy-btn" onclick="copyShareLink(this)">' + (swedishMode ? 'Kopiera' : 'Copy') + '</button>',
         '  </div>',
         '  <div class="share-social-buttons">',
