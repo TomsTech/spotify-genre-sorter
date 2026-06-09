@@ -1644,9 +1644,23 @@ api.get('/scan-playlist/:playlistId', async (c) => {
 
     // Fetch artists in batches of 50 (limited to stay under subrequest limit)
     // Pass KV namespace to enable persistent caching (#74)
+    // PERF-031 FIX: Use Promise.all for parallel API requests instead of sequential loop
+    const batches = [];
     for (let i = 0; i < artistIdList.length && i < 500; i += 50) {
-      const batch = artistIdList.slice(i, i + 50);
-      const { artists } = await getArtists(accessToken, batch, undefined, c.env.SESSIONS);
+      batches.push(artistIdList.slice(i, i + 50));
+    }
+
+    const artistPromises = batches.map(async (batch) => {
+      try {
+        return await getArtists(accessToken, batch, undefined, c.env.SESSIONS);
+      } catch (err) {
+        console.error('Failed to fetch artists batch:', err);
+        return { artists: [], totalArtists: 0, truncated: false };
+      }
+    });
+
+    const artistResults = await Promise.all(artistPromises);
+    for (const { artists } of artistResults) {
       for (const artist of artists) {
         artistGenres.set(artist.id, artist.genres);
       }
