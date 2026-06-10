@@ -845,7 +845,7 @@
         content.innerHTML = \`
           <div class="admin-users-header">
             <span>\${data.total} users total</span>
-            <input type="text" class="admin-search" id="admin-user-search" placeholder="Search users..." />
+            <input type="text" class="admin-search" id="admin-user-search" placeholder="Search users..." aria-label="Search users" />
           </div>
           <div class="admin-users-list" id="admin-users-list">
             \${data.users.map(user => \`
@@ -4461,6 +4461,7 @@
             type="text"
             class="search-input"
             placeholder="\${t('searchGenres')}"
+            aria-label="\${t('searchGenres')}"
             data-i18n-placeholder="searchGenres"
             oninput="debouncedFilterAndRenderGenres(this.value)"
           >
