@@ -30,3 +30,8 @@
 **Vulnerability:** The `error.ip` variable, sourced from the `cf-connecting-ip` header in the backend, was inserted directly into the `src/frontend/app.js` DOM without any sanitization in the admin panel errors tab.
 **Learning:** IP address strings sourced from HTTP headers can be spoofed by attackers (e.g. via `X-Forwarded-For`) to contain malicious HTML/JS payloads. If these are rendered back to administrators without escaping, they represent a stored XSS vector targeting privileged users.
 **Prevention:** Even seemingly safe metadata like IP addresses must be escaped using `escapeHtml()` before being rendered into the DOM using `.innerHTML`.
+
+## 2026-06-10 - Unsafe JSON injection in innerHTML
+**Vulnerability:** XSS vulnerability where JSON.stringify(data.value) from a KV key was inserted directly into innerHTML.
+**Learning:** Stringifying a JSON object does NOT make it safe for HTML injection, as malicious HTML tags inside string values will still be interpreted by the browser.
+**Prevention:** Always wrap JSON.stringify outputs with escapeHtml() when interpolating into innerHTML, or assign it via textContent instead.
