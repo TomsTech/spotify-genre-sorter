@@ -1751,7 +1751,6 @@ api.post('/invite-request', async (c) => {
     }
 
     // Store the request
-    const existingRaw = await c.env.SESSIONS.get(INVITE_REQUESTS_KEY);
     interface InviteRequest {
       email: string;
       note: string;
@@ -1759,7 +1758,7 @@ api.post('/invite-request', async (c) => {
       status: 'pending' | 'approved' | 'denied';
       ip?: string;
     }
-    const existing: InviteRequest[] = existingRaw ? JSON.parse(existingRaw) as InviteRequest[] : [];
+    const existing = await cachedKV.get<InviteRequest[]>(c.env.SESSIONS, INVITE_REQUESTS_KEY) || [];
 
     // Check if already requested
     if (existing.some(r => r.email.toLowerCase() === email.toLowerCase())) {
@@ -1775,7 +1774,9 @@ api.post('/invite-request', async (c) => {
     };
 
     existing.push(request);
-    await c.env.SESSIONS.put(INVITE_REQUESTS_KEY, JSON.stringify(existing));
+    await cachedKV.put(c.env.SESSIONS, INVITE_REQUESTS_KEY, JSON.stringify(existing), {
+      immediate: false
+    });
 
     // Track analytics
     await trackAnalyticsEvent(c.env.SESSIONS, 'inviteRequest');
@@ -1800,9 +1801,7 @@ api.get('/admin/invites', async (c) => {
   }
 
   try {
-    const requestsRaw = await c.env.SESSIONS.get(INVITE_REQUESTS_KEY);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const requests: unknown[] = requestsRaw ? JSON.parse(requestsRaw) as unknown[] : [];
+    const requests = await cachedKV.get<unknown[]>(c.env.SESSIONS, INVITE_REQUESTS_KEY) || [];
     return c.json({ requests });
   } catch (err) {
     console.error('Error fetching invites:', err);
@@ -1907,9 +1906,7 @@ api.get('/admin/errors', async (c) => {
   }
 
   try {
-    const errorsRaw = await c.env.SESSIONS.get(ERROR_LOG_KEY);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const errors: unknown[] = errorsRaw ? JSON.parse(errorsRaw) as unknown[] : [];
+    const errors = await cachedKV.get<unknown[]>(c.env.SESSIONS, ERROR_LOG_KEY) || [];
     return c.json({ errors, count: errors.length });
   } catch {
     return c.json({ error: 'Failed to fetch errors' }, 500);
@@ -1925,9 +1922,7 @@ api.get('/admin/perf', async (c) => {
   }
 
   try {
-    const perfRaw = await c.env.SESSIONS.get(PERF_LOG_KEY);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const samples: unknown[] = perfRaw ? JSON.parse(perfRaw) as unknown[] : [];
+    const samples = await cachedKV.get<unknown[]>(c.env.SESSIONS, PERF_LOG_KEY) || [];
 
     // Calculate averages
     const validSamples = samples.filter((s: unknown): s is Record<string, number> =>

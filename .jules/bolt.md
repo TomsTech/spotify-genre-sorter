@@ -14,3 +14,7 @@
 ## 2024-05-24 - [Parallelizing KV Put Operations]
 **Learning:** The `flushWriteQueue` function in `kv-cache.ts` used a `for...of` loop with `await kv.put`, creating an N+1 latency bottleneck for batch KV writes. Cloudflare Workers handle concurrent I/O well, so sequential awaits unnecessarily block execution.
 **Action:** Use `Promise.all()` with an array of mapped promises to parallelize `kv.put` operations when processing queues or batches, reducing O(N) network latency to O(1).
+
+## 2024-05-25 - [Use cachedKV for Error and Perf Logs]
+**Learning:** Bypassing `cachedKV` and using `c.env.SESSIONS.get` directly for reading error, perf logs, and invite requests ignores the in-memory cache and automatic JSON parsing. Using `c.env.SESSIONS.put` directly instead of `cachedKV.put` with `immediate: false` misses out on batching capabilities which can reduce KV write operations and costs.
+**Action:** Always use the `cachedKV` wrapper functions (`cachedKV.get` and `cachedKV.put`) for KV access where possible to leverage built-in memory caching, batched writes, and automated parsing.
