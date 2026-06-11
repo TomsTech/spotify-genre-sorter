@@ -14,3 +14,11 @@
 ## 2024-05-24 - [Parallelizing KV Put Operations]
 **Learning:** The `flushWriteQueue` function in `kv-cache.ts` used a `for...of` loop with `await kv.put`, creating an N+1 latency bottleneck for batch KV writes. Cloudflare Workers handle concurrent I/O well, so sequential awaits unnecessarily block execution.
 **Action:** Use `Promise.all()` with an array of mapped promises to parallelize `kv.put` operations when processing queues or batches, reducing O(N) network latency to O(1).
+
+## 2026-06-11 - Optimize API loops
+**Learning:** Sequential multiple passes over large `allChunkTracks` arrays, especially with intermediate Set creation `new Set()` inside the loops, can be slow. By building an inverse map of `artistId -> trackIds` during the first pass, we can completely eliminate the second pass over tracks.
+**Action:** Re-write redundant track mapping loops into a single pass that maps relations, and then process the results independently.
+
+## 2026-06-11 - Optimize API loops
+**Learning:** Sequential multiple passes over large `allChunkTracks` arrays, especially with intermediate Set creation `new Set()` inside the loops, can be slow. By building an inverse map of `artistId -> trackIds` during the first pass, we can completely eliminate the second pass over tracks.
+**Action:** Re-write redundant track mapping loops into a single pass that maps relations, and then process the results independently.

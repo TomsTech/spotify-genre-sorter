@@ -419,11 +419,19 @@ api.get('/genres', async (c) => {
       });
     }
 
-    // Step 2: Collect unique artist IDs
-    const artistIds = new Set<string>();
-    for (const { track } of likedTracks) {
-      for (const artist of track.artists) {
-        artistIds.add(artist.id);
+    // Step 2: Build artist to track mapping and collect artist IDs
+    // PERF-031 FIX: Single pass array mapping to avoid redundant track iterations
+    const artistIdToTracks = new Map<string, string[]>();
+    for (let i = 0; i < likedTracks.length; i++) {
+      const track = likedTracks[i].track;
+      for (let j = 0; j < track.artists.length; j++) {
+        const aId = track.artists[j].id;
+        const tList = artistIdToTracks.get(aId);
+        if (tList === undefined) {
+          artistIdToTracks.set(aId, [track.id]);
+        } else {
+          tList.push(track.id);
+        }
       }
     }
 
@@ -431,7 +439,7 @@ api.get('/genres', async (c) => {
     // Pass KV namespace to enable persistent caching (#74)
     let artists;
     try {
-      const artistResult = await getArtists(session.spotifyAccessToken, [...artistIds], undefined, c.env.SESSIONS);
+      const artistResult = await getArtists(session.spotifyAccessToken, [...artistIdToTracks.keys()], undefined, c.env.SESSIONS);
       artists = artistResult.artists;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -441,33 +449,29 @@ api.get('/genres', async (c) => {
         details: message,
         step: 'fetching_artists',
         tracksFound: likedTracks.length,
-        artistsToFetch: artistIds.size
+        artistsToFetch: artistIdToTracks.size
       }, 500);
     }
 
-    const artistGenreMap = new Map<string, string[]>();
-    for (const artist of artists) {
-      artistGenreMap.set(artist.id, artist.genres);
-    }
-
     // Step 4: Count tracks per genre and collect track IDs
-    const genreData = new Map<string, { count: number; trackIds: string[] }>();
+    const genreData = new Map<string, { trackIdSet: Set<string> }>();
 
-    for (const { track } of likedTracks) {
-      const trackGenres = new Set<string>();
-      for (const artist of track.artists) {
-        const genres = artistGenreMap.get(artist.id) || [];
-        genres.forEach(g => trackGenres.add(g));
-      }
+    for (let a = 0; a < artists.length; a++) {
+      const artist = artists[a];
+      const tList = artistIdToTracks.get(artist.id);
+      if (tList === undefined) continue;
 
-      for (const genre of trackGenres) {
+      for (let g = 0; g < artist.genres.length; g++) {
+        const genre = artist.genres[g];
         let data = genreData.get(genre);
-        if (!data) {
-          data = { count: 0, trackIds: [] };
+        if (data === undefined) {
+          data = { trackIdSet: new Set(tList) };
           genreData.set(genre, data);
+        } else {
+          for (let i = 0; i < tList.length; i++) {
+            data.trackIdSet.add(tList[i]);
+          }
         }
-        data.count++;
-        data.trackIds.push(track.id);
       }
     }
 
@@ -475,8 +479,8 @@ api.get('/genres', async (c) => {
     const genres = [...genreData.entries()]
       .map(([name, data]) => ({
         name,
-        count: data.count,
-        trackIds: data.trackIds,
+        count: data.trackIdSet.size,
+        trackIds: Array.from(data.trackIdSet),
       }))
       .sort((a, b) => b.count - a.count);
 
@@ -489,7 +493,7 @@ api.get('/genres', async (c) => {
     const responseData: GenreCacheData = {
       totalTracks: likedTracks.length,
       totalGenres: genres.length,
-      totalArtists: artistIds.size,
+      totalArtists: artistIdToTracks.size,
       genres,
       cachedAt: Date.now(),
       cacheExpiresAt: Date.now() + (cacheTtl * 1000),
@@ -691,43 +695,67 @@ api.get('/genres/progressive', async (c) => {
     }
 
     // Process chunk: get artists and genres
-    const artistIds = new Set<string>();
-    for (const { track } of allChunkTracks) {
-      for (const artist of track.artists) {
-        artistIds.add(artist.id);
+    // PERF-031 FIX: Single pass array mapping to avoid redundant track iterations
+    const artistIdToTracks = new Map<string, string[]>();
+    for (let i = 0; i < allChunkTracks.length; i++) {
+      const track = allChunkTracks[i].track;
+      for (let j = 0; j < track.artists.length; j++) {
+        const aId = track.artists[j].id;
+        const tList = artistIdToTracks.get(aId);
+        if (tList === undefined) {
+          artistIdToTracks.set(aId, [track.id]);
+        } else {
+          tList.push(track.id);
+        }
       }
     }
 
-    const { artists } = await getArtists(session.spotifyAccessToken, [...artistIds].slice(0, 500), undefined, c.env.SESSIONS);
-    const artistGenreMap = new Map<string, string[]>();
-    for (const artist of artists) {
-      artistGenreMap.set(artist.id, artist.genres);
-    }
+    const { artists } = await getArtists(session.spotifyAccessToken, [...artistIdToTracks.keys()].slice(0, 500), undefined, c.env.SESSIONS);
 
     // Merge into progress
     const genreMap = new Map<string, { count: number; trackIds: string[] }>();
 
     // Load existing partial genres
-    for (const g of progress.partialGenres) {
-      genreMap.set(g.name, { count: g.count, trackIds: g.trackIds });
+    for (let i = 0; i < progress.partialGenres.length; i++) {
+      const g = progress.partialGenres[i];
+      genreMap.set(g.name, { count: g.count, trackIds: [...g.trackIds] });
     }
 
     // Add new tracks
-    for (const { track } of allChunkTracks) {
-      const trackGenres = new Set<string>();
-      for (const artist of track.artists) {
-        const genres = artistGenreMap.get(artist.id) || [];
-        genres.forEach(g => trackGenres.add(g));
-      }
+    const addedGenres = new Map<string, Set<string>>();
+    for (let a = 0; a < artists.length; a++) {
+      const artist = artists[a];
+      const tList = artistIdToTracks.get(artist.id);
+      if (tList === undefined) continue;
 
-      for (const genre of trackGenres) {
-        let data = genreMap.get(genre);
-        if (!data) {
-          data = { count: 0, trackIds: [] };
-          genreMap.set(genre, data);
+      for (let g = 0; g < artist.genres.length; g++) {
+        const genre = artist.genres[g];
+        let set = addedGenres.get(genre);
+        if (set === undefined) {
+          set = new Set(tList);
+          addedGenres.set(genre, set);
+        } else {
+          for (let i = 0; i < tList.length; i++) {
+            set.add(tList[i]);
+          }
         }
-        data.count++;
-        data.trackIds.push(track.id);
+      }
+    }
+
+    for (const [genre, trackIdSet] of addedGenres.entries()) {
+      let data = genreMap.get(genre);
+      if (data === undefined) {
+        data = { count: 0, trackIds: [] };
+        genreMap.set(genre, data);
+      }
+      // Dedupe against existing trackIds
+      const existingSet = new Set(data.trackIds);
+      for (const tId of trackIdSet) {
+        if (!existingSet.has(tId)) {
+          data.count++;
+          data.trackIds.push(tId);
+          existingSet.add(tId);
+        }
       }
     }
 
@@ -916,41 +944,45 @@ api.get('/genres/chunk', async (c) => {
     }
 
     // Collect unique artist IDs from this chunk
-    const artistIds = new Set<string>();
-    for (const { track } of allChunkTracks) {
-      for (const artist of track.artists) {
-        artistIds.add(artist.id);
+    // PERF-031 FIX: Single pass array mapping to avoid redundant track iterations
+    const artistIdToTracks = new Map<string, string[]>();
+    for (let i = 0; i < allChunkTracks.length; i++) {
+      const track = allChunkTracks[i].track;
+      for (let j = 0; j < track.artists.length; j++) {
+        const aId = track.artists[j].id;
+        const tList = artistIdToTracks.get(aId);
+        if (tList === undefined) {
+          artistIdToTracks.set(aId, [track.id]);
+        } else {
+          tList.push(track.id);
+        }
       }
     }
 
     // Fetch artists (stay under subrequest limit)
     // Pass KV namespace to enable persistent caching (#74)
-    const artistIdArray = [...artistIds].slice(0, MAX_ARTIST_REQUESTS_PER_CHUNK * 50);
+    const artistIdArray = [...artistIdToTracks.keys()].slice(0, MAX_ARTIST_REQUESTS_PER_CHUNK * 50);
     const { artists } = await getArtists(session.spotifyAccessToken, artistIdArray, undefined, c.env.SESSIONS);
 
-    const artistGenreMap = new Map<string, string[]>();
-    for (const artist of artists) {
-      artistGenreMap.set(artist.id, artist.genres);
-    }
-
     // Build genre data for this chunk
-    const genreData = new Map<string, { count: number; trackIds: string[] }>();
+    const genreData = new Map<string, { trackIdSet: Set<string> }>();
 
-    for (const { track } of allChunkTracks) {
-      const trackGenres = new Set<string>();
-      for (const artist of track.artists) {
-        const genres = artistGenreMap.get(artist.id) || [];
-        genres.forEach(g => trackGenres.add(g));
-      }
+    for (let a = 0; a < artists.length; a++) {
+      const artist = artists[a];
+      const tList = artistIdToTracks.get(artist.id);
+      if (tList === undefined) continue;
 
-      for (const genre of trackGenres) {
+      for (let g = 0; g < artist.genres.length; g++) {
+        const genre = artist.genres[g];
         let data = genreData.get(genre);
-        if (!data) {
-          data = { count: 0, trackIds: [] };
+        if (data === undefined) {
+          data = { trackIdSet: new Set(tList) };
           genreData.set(genre, data);
+        } else {
+          for (let i = 0; i < tList.length; i++) {
+            data.trackIdSet.add(tList[i]);
+          }
         }
-        data.count++;
-        data.trackIds.push(track.id);
       }
     }
 
@@ -958,15 +990,15 @@ api.get('/genres/chunk', async (c) => {
     const genres = [...genreData.entries()]
       .map(([name, data]) => ({
         name,
-        count: data.count,
-        trackIds: data.trackIds,
+        count: data.trackIdSet.size,
+        trackIds: Array.from(data.trackIdSet),
       }))
       .sort((a, b) => b.count - a.count);
 
     const chunkData: ChunkCacheData = {
       genres,
       trackCount: allChunkTracks.length,
-      artistCount: artistIds.size,
+      artistCount: artistIdToTracks.size,
       cachedAt: Date.now(),
     };
 
@@ -1623,61 +1655,65 @@ api.get('/scan-playlist/:playlistId', async (c) => {
     const tracks = await getPlaylistTracks(accessToken, playlistId, 500);
 
     // Get unique artists
-    const artistIds = new Set<string>();
-    const trackData: { id: string; name: string; artistIds: string[] }[] = [];
+    // PERF-031 FIX: Single pass array mapping to avoid redundant track iterations
+    const artistIdToTracks = new Map<string, string[]>();
+    let trackCount = 0;
 
-    for (const item of tracks) {
+    for (let i = 0; i < tracks.length; i++) {
+      const item = tracks[i];
       if (item.track && item.track.id) {
-        const artistIdsForTrack = item.track.artists.map(a => a.id);
-        artistIdsForTrack.forEach(id => artistIds.add(id));
-        trackData.push({
-          id: item.track.id,
-          name: item.track.name,
-          artistIds: artistIdsForTrack
-        });
+        trackCount++;
+        for (let j = 0; j < item.track.artists.length; j++) {
+          const aId = item.track.artists[j].id;
+          const tList = artistIdToTracks.get(aId);
+          if (tList === undefined) {
+            artistIdToTracks.set(aId, [item.track.id]);
+          } else {
+            tList.push(item.track.id);
+          }
+        }
       }
     }
 
     // Get artist genres
-    const artistIdList = Array.from(artistIds);
-    const artistGenres = new Map<string, string[]>();
+    const artistIdList = Array.from(artistIdToTracks.keys());
+
+    // Aggregate genres directly from fetches
+    const genreData = new Map<string, { trackIdSet: Set<string> }>();
 
     // Fetch artists in batches of 50 (limited to stay under subrequest limit)
     // Pass KV namespace to enable persistent caching (#74)
     for (let i = 0; i < artistIdList.length && i < 500; i += 50) {
       const batch = artistIdList.slice(i, i + 50);
       const { artists } = await getArtists(accessToken, batch, undefined, c.env.SESSIONS);
-      for (const artist of artists) {
-        artistGenres.set(artist.id, artist.genres);
-      }
-    }
+      for (let a = 0; a < artists.length; a++) {
+        const artist = artists[a];
+        const tList = artistIdToTracks.get(artist.id);
+        if (tList === undefined) continue;
 
-    // Aggregate genres
-    const genreCounts = new Map<string, { count: number; trackIds: string[] }>();
-
-    for (const track of trackData) {
-      const trackGenres = new Set<string>();
-      for (const artistId of track.artistIds) {
-        const genres = artistGenres.get(artistId) || [];
-        genres.forEach(g => trackGenres.add(g));
-      }
-
-      for (const genre of trackGenres) {
-        const existing = genreCounts.get(genre) || { count: 0, trackIds: [] };
-        existing.count++;
-        existing.trackIds.push(track.id);
-        genreCounts.set(genre, existing);
+        for (let g = 0; g < artist.genres.length; g++) {
+          const genre = artist.genres[g];
+          let data = genreData.get(genre);
+          if (data === undefined) {
+            data = { trackIdSet: new Set(tList) };
+            genreData.set(genre, data);
+          } else {
+            for (let k = 0; k < tList.length; k++) {
+              data.trackIdSet.add(tList[k]);
+            }
+          }
+        }
       }
     }
 
     // Convert to sorted array
-    const genres = Array.from(genreCounts.entries())
-      .map(([name, data]) => ({ name, count: data.count, trackIds: data.trackIds }))
+    const genres = Array.from(genreData.entries())
+      .map(([name, data]) => ({ name, count: data.trackIdSet.size, trackIds: Array.from(data.trackIdSet) }))
       .sort((a, b) => b.count - a.count);
 
     return c.json({
-      totalTracks: trackData.length,
-      totalArtists: artistIds.size,
+      totalTracks: trackCount,
+      totalArtists: artistIdToTracks.size,
       totalGenres: genres.length,
       genres,
       truncated: tracks.length >= 500
