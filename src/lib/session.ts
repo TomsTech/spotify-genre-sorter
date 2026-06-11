@@ -169,8 +169,7 @@ export async function verifyState(
   const data = await cachedKV.getString(kv, `state:${state}`);
   if (!data) return null;
   await cachedKV.delete(kv, `state:${state}`);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const parsed: Record<string, string> = JSON.parse(data);
+  const parsed = JSON.parse(data) as Record<string, string>;
   return parsed;
 }
 
