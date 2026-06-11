@@ -500,8 +500,7 @@ api.get('/genres', async (c) => {
     // Store in cache
     // CRITICAL FIX: Use cachedKV for genre cache writes to leverage batching
     await cachedKV.put(c.env.SESSIONS, cacheKey, JSON.stringify(responseData), {
-      expirationTtl: cacheTtl,
-      immediate: true // Genre cache is important - write immediately
+      expirationTtl: cacheTtl
     });
 
     // Update user stats with analysis results
