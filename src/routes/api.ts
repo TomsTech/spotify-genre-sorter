@@ -1644,12 +1644,10 @@ api.get('/scan-playlist/:playlistId', async (c) => {
 
     // Fetch artists in batches of 50 (limited to stay under subrequest limit)
     // Pass KV namespace to enable persistent caching (#74)
-    for (let i = 0; i < artistIdList.length && i < 500; i += 50) {
-      const batch = artistIdList.slice(i, i + 50);
-      const { artists } = await getArtists(accessToken, batch, undefined, c.env.SESSIONS);
-      for (const artist of artists) {
-        artistGenres.set(artist.id, artist.genres);
-      }
+    // PERF-031 FIX: Pass full array and let getArtists handle parallelization instead of sequential awaits
+    const { artists } = await getArtists(accessToken, artistIdList.slice(0, 500), undefined, c.env.SESSIONS);
+    for (const artist of artists) {
+      artistGenres.set(artist.id, artist.genres);
     }
 
     // Aggregate genres
