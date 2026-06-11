@@ -1168,7 +1168,7 @@
         const data = await response.json();
 
         const valueDisplay = data.valueType === 'json'
-          ? \`<pre style="background: var(--surface-2); padding: 1rem; border-radius: 6px; overflow-x: auto; max-height: 400px;">\${JSON.stringify(data.value, null, 2)}</pre>\`
+          ? \`<pre style="background: var(--surface-2); padding: 1rem; border-radius: 6px; overflow-x: auto; max-height: 400px;">\${escapeHtml(JSON.stringify(data.value, null, 2))}</pre>\`
           : \`<pre style="background: var(--surface-2); padding: 1rem; border-radius: 6px; overflow-x: auto; max-height: 400px;">\${escapeHtml(data.rawValue)}</pre>\`;
 
         const infoModal = document.createElement('div');
