@@ -13,6 +13,7 @@ import {
   generateCodeVerifier,
   createCodeChallenge,
 } from '../lib/spotify';
+import { createLogger } from '../lib/logger';
 import {
   createSession,
   getSession,
@@ -165,6 +166,7 @@ auth.get('/github', async (c) => {
 
 // GitHub OAuth - callback
 auth.get('/github/callback', async (c) => {
+  const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN);
   if (isSpotifyOnlyMode(c.env)) {
     return c.redirect('/');
   }
@@ -198,7 +200,7 @@ auth.get('/github/callback', async (c) => {
       const cookieData = decodeStateFromCookie(cookieValue);
       if (cookieData && cookieData.state === state && Date.now() - cookieData.ts < 600000) {
         stateData = cookieData.data;
-        console.log('OAuth state recovered from cookie (KV eventual consistency fallback)');
+        log.info('OAuth state recovered from cookie (KV eventual consistency fallback)');
       }
     }
   }
@@ -235,7 +237,7 @@ auth.get('/github/callback', async (c) => {
 
     return c.redirect('/');
   } catch (err) {
-    console.error('GitHub auth error:', err);
+    log.logError('GitHub auth error:', err);
     await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: `GitHub auth failed: ${err instanceof Error ? err.message : 'Unknown error'}` });
     return c.redirect('/?error=auth_failed');
   }
@@ -286,6 +288,7 @@ auth.get('/spotify', async (c) => {
 
 // Spotify OAuth - callback
 auth.get('/spotify/callback', async (c) => {
+  const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN);
   const code = c.req.query('code');
   const state = c.req.query('state');
   const error = c.req.query('error');
@@ -316,7 +319,7 @@ auth.get('/spotify/callback', async (c) => {
       // Verify the state matches and cookie isn't too old (10 min max)
       if (cookieData && cookieData.state === state && Date.now() - cookieData.ts < 600000) {
         stateData = cookieData.data;
-        console.log('OAuth state recovered from cookie (KV eventual consistency fallback)');
+        log.info('OAuth state recovered from cookie (KV eventual consistency fallback)');
       }
     }
   }
@@ -386,7 +389,7 @@ auth.get('/spotify/callback', async (c) => {
 
     return c.redirect('/');
   } catch (err) {
-    console.error('Spotify auth error:', err);
+    log.logError('Spotify auth error:', err);
     await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: `Spotify auth failed: ${err instanceof Error ? err.message : 'Unknown error'}` });
     return c.redirect('/?error=spotify_auth_failed');
   }
