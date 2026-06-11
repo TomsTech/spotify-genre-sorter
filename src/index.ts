@@ -16,8 +16,6 @@ const app = new Hono<{ Bindings: Env }>();
 
 // Global error handler with analytics tracking and BetterStack logging
 app.onError(async (err, c) => {
-  console.error('Worker error:', err);
-
   // Send to BetterStack
   const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
     path: c.req.path,
@@ -76,7 +74,8 @@ app.use('*', async (c, next) => {
   try {
     await cachedKV.flush(c.env.SESSIONS);
   } catch (err) {
-    console.error('Failed to flush KV write queue:', err);
+    const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method });
+    log.logError('Failed to flush KV write queue', err, { path: c.req.path });
   }
 });
 
@@ -249,7 +248,8 @@ app.get('/kv-health', async (c) => {
 
     return c.json(response);
   } catch (err) {
-    console.error('KV health check failed:', err);
+    const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method });
+    log.logError('KV health check failed', err, { path: c.req.path });
     return c.json({
       status: 'error',
       message: 'Failed to check KV health',

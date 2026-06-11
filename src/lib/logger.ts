@@ -37,7 +37,13 @@ export function sendLog(
   if (!token) {
     // No token configured, fallback to console (intentional for local dev)
     // eslint-disable-next-line no-console
-    console.log(`[${entry.level.toUpperCase()}] ${entry.message}`);
+    if (entry.level === 'error') {
+      // eslint-disable-next-line no-console
+      console.error(`[${entry.level.toUpperCase()}] ${entry.message}`, entry.error ? '\n' + entry.error : '', entry.stack ? '\n' + entry.stack : '');
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(`[${entry.level.toUpperCase()}] ${entry.message}`);
+    }
     return;
   }
 
