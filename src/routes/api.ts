@@ -1211,6 +1211,7 @@ api.post('/playlists/bulk', async (c) => {
 
     const results: { genre: string; success: boolean; url?: string; error?: string; skipped?: boolean }[] = [];
 
+    const accessToken = session.spotifyAccessToken;
     // PERF-031 FIX: Use Promise.all for parallel API requests instead of sequential loop
     await Promise.all(genres.map(async ({ name, trackIds }) => {
       // Validate each genre
@@ -1246,7 +1247,7 @@ api.post('/playlists/bulk', async (c) => {
         const safeTrackIds = trackValidation.value;
 
         const playlist = await createPlaylist(
-          session.spotifyAccessToken,
+          accessToken,
           user.id,
           playlistName,
           `${safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`,
@@ -1254,7 +1255,7 @@ api.post('/playlists/bulk', async (c) => {
         );
 
         const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
-        await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
+        await addTracksToPlaylist(accessToken, playlist.id, trackUris);
 
         // Add to existing names to prevent duplicates within same batch
         existingNames.add(playlistName.toLowerCase());
