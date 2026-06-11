@@ -83,6 +83,7 @@ interface KVMetrics {
   deletes: number;
   cacheHits: number;
   cacheMisses: number;
+  errors: number;
   lastReset: number;
 }
 
@@ -92,6 +93,7 @@ const metrics: KVMetrics = {
   deletes: 0,
   cacheHits: 0,
   cacheMisses: 0,
+  errors: 0,
   lastReset: Date.now(),
 };
 
@@ -105,6 +107,7 @@ function checkMetricsReset(): void {
     metrics.deletes = 0;
     metrics.cacheHits = 0;
     metrics.cacheMisses = 0;
+    metrics.errors = 0;
     metrics.lastReset = now;
   }
 }
@@ -139,6 +142,7 @@ async function flushWriteQueue(kv: KVNamespace): Promise<void> {
       await kv.put(entry.key, entry.value, entry.expirationTtl ? { expirationTtl: entry.expirationTtl } : undefined);
       metrics.writes++;
     } catch (err) {
+      metrics.errors++;
       console.error(`KV write failed for key ${entry.key}:`, err);
     }
   });
