@@ -1,3 +1,4 @@
+import { cachedKV } from '../lib/kv-cache';
 import { Hono } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import {
@@ -66,7 +67,7 @@ async function registerUser(
 ): Promise<void> {
   const key = `user:${spotifyId}`;
   // PERF-011 FIX: Use cachedKV for user registration to reduce KV reads
-  const existingStr = await kv.get(key); // Use direct KV here as this is infrequent and needs accuracy
+  const existingStr = await cachedKV.getString(kv, key);
   const now = new Date().toISOString();
 
   // Track sign-in
