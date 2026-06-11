@@ -369,7 +369,7 @@ api.get('/genres', async (c) => {
 
     // Check cache unless forcing refresh
     if (!forceRefresh) {
-      const cachedData = await c.env.SESSIONS.get<GenreCacheData>(cacheKey, 'json');
+      const cachedData = await cachedKV.get<GenreCacheData>(c.env.SESSIONS, cacheKey, { cacheTtlMs: GENRE_CACHE_TTL_LARGE * 1000 });
       if (cachedData) {
         return c.json({
           ...cachedData,
@@ -613,7 +613,7 @@ api.get('/genres/progressive', async (c) => {
     // If scan is complete, return the full cache
     if (progress.status === 'completed') {
       const cacheKey = `${GENRE_CACHE_PREFIX}${user.id}`;
-      const cachedData = await c.env.SESSIONS.get<GenreCacheData>(cacheKey, 'json');
+      const cachedData = await cachedKV.get<GenreCacheData>(c.env.SESSIONS, cacheKey, { cacheTtlMs: GENRE_CACHE_TTL_LARGE * 1000 });
       if (cachedData) {
         return c.json({
           ...cachedData,

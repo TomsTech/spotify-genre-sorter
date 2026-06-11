@@ -14,3 +14,6 @@
 ## 2024-05-24 - [Parallelizing KV Put Operations]
 **Learning:** The `flushWriteQueue` function in `kv-cache.ts` used a `for...of` loop with `await kv.put`, creating an N+1 latency bottleneck for batch KV writes. Cloudflare Workers handle concurrent I/O well, so sequential awaits unnecessarily block execution.
 **Action:** Use `Promise.all()` with an array of mapped promises to parallelize `kv.put` operations when processing queues or batches, reducing O(N) network latency to O(1).
+## 2026-06-11 - CachedKV usage in Cloudflare Workers
+**Learning:** When using the `cachedKV` wrapper to read data, you must apply the `cacheTtlMs` configuration option (in milliseconds) to properly utilize the in-memory caching layer, whereas the underlying KV TTL is typically in seconds.
+**Action:** Always ensure corresponding read and write paths for the same cache key utilize the `cachedKV` abstraction with matched TTLs to prevent raw KV API fallbacks and potential rate limits.
