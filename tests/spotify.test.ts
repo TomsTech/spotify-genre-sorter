@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { getSpotifyAuthUrl } from '../src/lib/spotify';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { getSpotifyAuthUrl, refreshSpotifyToken } from '../src/lib/spotify';
+
 
 describe('Spotify Library', () => {
   describe('getSpotifyAuthUrl', () => {
@@ -122,5 +123,66 @@ describe('Artist Chunking', () => {
     expect(chunks.length).toBe(4);
     expect(chunks[0].length).toBe(50);
     expect(chunks[3].length).toBe(25);
+  });
+});
+
+describe('refreshSpotifyToken', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should throw an error if the fetch to Spotify token endpoint fails due to network error', async () => {
+    vi.useFakeTimers();
+
+    // Mock the global fetch object to simulate a network error
+    global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+
+    // Start the fetch and immediately set up the rejection handler
+    const promise = refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret');
+
+    // Store a reference to catch the rejection (prevents unhandled rejection warning)
+    let caughtError: Error | null = null;
+    const catchPromise = promise.catch(err => {
+      caughtError = err;
+    });
+
+    // Advance timers for all retry delays
+    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(4000);
+
+    // Wait for the catch handler to complete
+    await catchPromise;
+
+    expect(caughtError).toBeInstanceOf(Error);
+    expect(caughtError?.message).toBe('Network error');
+
+    vi.useRealTimers();
+  });
+
+  it('should throw an error if the response is not ok', async () => {
+    // Mock the global fetch object
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: async () => 'Bad Request',
+      headers: new Headers()
+    });
+
+    await expect(refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret')).rejects.toThrow('Failed to refresh Spotify token');
+  });
+
+  it('should successfully refresh the token', async () => {
+    // Mock the global fetch object
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ access_token: 'new-access-token', expires_in: 3600 }),
+      headers: new Headers()
+    });
+
+    const tokens = await refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret');
+    expect(tokens.access_token).toBe('new-access-token');
+    expect(tokens.refresh_token).toBe('fake-refresh-token'); // It should preserve the refresh token if not returned
   });
 });
