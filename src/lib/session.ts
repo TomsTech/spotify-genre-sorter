@@ -142,7 +142,7 @@ export async function deleteSession(
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   const sessionId = getCookie(c, SESSION_COOKIE);
   if (sessionId) {
-    await c.env.SESSIONS.delete(`session:${sessionId}`);
+    await cachedKV.delete(c.env.SESSIONS, `session:${sessionId}`);
   }
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   deleteCookie(c, SESSION_COOKIE, { path: '/' });
