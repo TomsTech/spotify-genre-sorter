@@ -14,3 +14,6 @@
 ## 2024-05-24 - [Parallelizing KV Put Operations]
 **Learning:** The `flushWriteQueue` function in `kv-cache.ts` used a `for...of` loop with `await kv.put`, creating an N+1 latency bottleneck for batch KV writes. Cloudflare Workers handle concurrent I/O well, so sequential awaits unnecessarily block execution.
 **Action:** Use `Promise.all()` with an array of mapped promises to parallelize `kv.put` operations when processing queues or batches, reducing O(N) network latency to O(1).
+## 2024-05-24 - [Use cachedKV for Session Deletion]
+**Learning:** When using a memory cache wrapper (like `cachedKV`) over Cloudflare KV for read/write operations (e.g., session management), all operations including `delete` must use the wrapper. Direct calls to `kv.delete` bypass the cache, leaving stale data in memory which can cause inconsistencies or security issues with session management.
+**Action:** Ensure all CRUD operations for cached resources route through the caching layer (e.g., `cachedKV.delete`) rather than calling the underlying KV directly.
