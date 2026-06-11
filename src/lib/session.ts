@@ -337,16 +337,30 @@ const LEADERBOARD_CACHE_KEY = 'leaderboard_cache';
 const LEADERBOARD_CACHE_TTL = 900; // 15 minutes - reduces 112+ KV ops to 1 read
 
 export async function getScoreboard(kv: KVNamespace): Promise<Scoreboard | null> {
-  // Use memory cache with 1 hour TTL
-  const cached = await cachedKV.get<Scoreboard>(kv, SCOREBOARD_CACHE_KEY, { cacheTtlMs: CACHE_TTL.SCOREBOARD });
-  if (cached) {
-    // Check if cache is still valid
-    const cacheTime = new Date(cached.updatedAt).getTime();
-    if (Date.now() - cacheTime < SCOREBOARD_CACHE_TTL * 1000) {
-      return cached;
+  try {
+    // Use memory cache with 1 hour TTL
+    const cached = await cachedKV.get<Scoreboard>(kv, SCOREBOARD_CACHE_KEY, { cacheTtlMs: CACHE_TTL.SCOREBOARD });
+    if (cached) {
+      // Check if cache is still valid
+      const cacheTime = new Date(cached.updatedAt).getTime();
+      if (Date.now() - cacheTime < SCOREBOARD_CACHE_TTL * 1000) {
+        return cached;
+      }
     }
+    return null;
+  } catch (err) {
+    console.error('Error fetching scoreboard:', err);
+    // Return empty scoreboard on error rather than failing the request
+    return {
+      byGenres: [],
+      byArtists: [],
+      byTracks: [],
+      byPlaylists: [],
+      byTracksInPlaylists: [],
+      totalUsers: 0,
+      updatedAt: new Date().toISOString()
+    };
   }
-  return null;
 }
 
 // Average tracks per playlist for estimation

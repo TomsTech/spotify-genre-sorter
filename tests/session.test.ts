@@ -58,3 +58,29 @@ describe('Token Refresh Logic', () => {
     expect(needsRefresh).toBe(false);
   });
 });
+
+import { vi } from 'vitest';
+import { getScoreboard, cachedKV } from '../src/lib/session';
+
+describe('getScoreboard', () => {
+  it('should return empty scoreboard on error', async () => {
+    // mock cachedKV.get to throw error
+    const originalGet = cachedKV.get;
+    cachedKV.get = vi.fn().mockRejectedValue(new Error('KV Error'));
+
+    const result = await getScoreboard({} as any);
+
+    expect(result).toBeDefined();
+    if (result) {
+      expect(result.byGenres).toEqual([]);
+      expect(result.byArtists).toEqual([]);
+      expect(result.byTracks).toEqual([]);
+      expect(result.byPlaylists).toEqual([]);
+      expect(result.byTracksInPlaylists).toEqual([]);
+      expect(result.totalUsers).toBe(0);
+    }
+
+    // restore
+    cachedKV.get = originalGet;
+  });
+});
