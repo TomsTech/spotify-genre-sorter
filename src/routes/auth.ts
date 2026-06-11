@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
+import { createLogger } from '../lib/logger';
 import {
   getGitHubAuthUrl,
   exchangeGitHubCode,
@@ -198,7 +199,11 @@ auth.get('/github/callback', async (c) => {
       const cookieData = decodeStateFromCookie(cookieValue);
       if (cookieData && cookieData.state === state && Date.now() - cookieData.ts < 600000) {
         stateData = cookieData.data;
-        console.log('OAuth state recovered from cookie (KV eventual consistency fallback)');
+        const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+          path: c.req.path,
+          method: c.req.method,
+        });
+        log.info('OAuth state recovered from cookie (KV eventual consistency fallback)');
       }
     }
   }
@@ -316,7 +321,11 @@ auth.get('/spotify/callback', async (c) => {
       // Verify the state matches and cookie isn't too old (10 min max)
       if (cookieData && cookieData.state === state && Date.now() - cookieData.ts < 600000) {
         stateData = cookieData.data;
-        console.log('OAuth state recovered from cookie (KV eventual consistency fallback)');
+        const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+          path: c.req.path,
+          method: c.req.method,
+        });
+        log.info('OAuth state recovered from cookie (KV eventual consistency fallback)');
       }
     }
   }
