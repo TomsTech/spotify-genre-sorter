@@ -14,3 +14,6 @@
 ## 2024-05-24 - [Parallelizing KV Put Operations]
 **Learning:** The `flushWriteQueue` function in `kv-cache.ts` used a `for...of` loop with `await kv.put`, creating an N+1 latency bottleneck for batch KV writes. Cloudflare Workers handle concurrent I/O well, so sequential awaits unnecessarily block execution.
 **Action:** Use `Promise.all()` with an array of mapped promises to parallelize `kv.put` operations when processing queues or batches, reducing O(N) network latency to O(1).
+## 2024-06-08 - Use Promise.all with cursor for parallel KV deletes
+**Learning:** When dealing with KV namespaces list method which may return a subset of the results, it is a performance anti-pattern to just delete the returned list and miss entries, a cursor loop is required to iterate over all entries to reliably clear a cache.
+**Action:** Iterate with while(cursor) to process the list completely and use Promise.all to fetch concurrent KV requests.

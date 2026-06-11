@@ -2201,10 +2201,16 @@ api.post('/admin/clear-cache', async (c) => {
     case 'leaderboard': await kv.delete('leaderboard_cache'); cleared = 1; break;
     case 'scoreboard': await kv.delete('scoreboard_cache'); cleared = 1; break;
     case 'all_genre_caches': {
-      const list = await kv.list({ prefix: 'genre_cache_' });
-      // PERF-024 FIX: Use Promise.all for parallel KV deletes
-      await Promise.all(list.keys.map(key => kv.delete(key.name)));
-      cleared = list.keys.length;
+      let cursor: string | undefined = undefined;
+      do {
+        /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unnecessary-type-assertion */
+        const list: any = await kv.list({ prefix: 'genre_cache_', cursor });
+        // PERF-024 FIX: Use Promise.all for parallel KV deletes
+        await Promise.all(list.keys.map((key: any) => kv.delete(key.name)));
+        cleared += list.keys.length;
+        cursor = list.list_complete ? undefined : list.cursor;
+        /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unnecessary-type-assertion */
+      } while (cursor);
       break;
     }
   }
