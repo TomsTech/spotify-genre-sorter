@@ -14,3 +14,6 @@
 ## 2024-05-24 - [Parallelizing KV Put Operations]
 **Learning:** The `flushWriteQueue` function in `kv-cache.ts` used a `for...of` loop with `await kv.put`, creating an N+1 latency bottleneck for batch KV writes. Cloudflare Workers handle concurrent I/O well, so sequential awaits unnecessarily block execution.
 **Action:** Use `Promise.all()` with an array of mapped promises to parallelize `kv.put` operations when processing queues or batches, reducing O(N) network latency to O(1).
+## 2026-06-11 - kv-cache.ts Test Coverage
+**Learning:** Implementing tests for batched writing logic in KV namespaces requires faking timers (`vi.useFakeTimers`) and simulating async promise resolutions correctly, particularly because `cachedKV.flush` queues and acts asynchronously without awaiting outside callers.
+**Action:** Apply `vi.advanceTimersByTime` combined with explicit flush awaits or timer resolution for test stability with async queues.
