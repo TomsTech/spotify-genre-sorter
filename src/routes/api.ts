@@ -2604,11 +2604,11 @@ api.post('/request-access', async (c) => {
 
     // Also add to a list for easy admin review
     const listKey = 'access_requests_list';
-    const existingList = await kv.get(listKey);
-    const list: string[] = existingList ? JSON.parse(existingList) as string[] : [];
+    // PERF-030 FIX: Use cachedKV for access_requests_list
+    const list = await cachedKV.get<string[]>(kv, listKey) || [];
     if (!list.includes(email.toLowerCase())) {
       list.push(email.toLowerCase());
-      await kv.put(listKey, JSON.stringify(list));
+      await cachedKV.put(kv, listKey, JSON.stringify(list));
     }
 
     // Track analytics
@@ -2628,8 +2628,8 @@ api.get('/admin/access-requests', async (c) => {
 
   const kv = c.env.SESSIONS;
   const listKey = 'access_requests_list';
-  const existingList = await kv.get(listKey);
-  const emails: string[] = existingList ? JSON.parse(existingList) as string[] : [];
+  // PERF-031 FIX: Use cachedKV for access_requests_list
+  const emails = await cachedKV.get<string[]>(kv, listKey) || [];
 
   // PERF-015 FIX: Use Promise.all for parallel reads instead of sequential loop
   // PERF-020 FIX: Interleave JSON.parse with KV fetches
