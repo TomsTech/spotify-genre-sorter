@@ -23,6 +23,7 @@ import {
   verifyState,
   createOrUpdateUserStats,
   trackAnalyticsEvent,
+  cachedKV,
 } from '../lib/session';
 
 // OAuth state cookie name (backup for KV eventual consistency)
@@ -107,9 +108,10 @@ async function registerUser(
     await kv.put(key, JSON.stringify(registration));
 
     // Update user count - direct KV for accuracy
-    const countStr = await kv.get('stats:user_count');
+    const countStr = await cachedKV.getString(kv, 'stats:user_count');
     const count = countStr ? parseInt(countStr, 10) : 0;
-    await kv.put('stats:user_count', String(count + 1));
+    // PERF-012 FIX: Use cachedKV with immediate write for user count to reduce KV operations
+    await cachedKV.put(kv, 'stats:user_count', String(count + 1), { immediate: true });
 
     // Add to hall of fame list (first 100 users) - direct KV (infrequent)
     if (count < 100) {
