@@ -34,6 +34,7 @@ import {
 } from '../lib/spotify';
 import { getKVMonitorData } from '../lib/kv-monitor';
 import { optionalCsrfProtection } from '../lib/csrf-middleware';
+import { createLogger } from '../lib/logger';
 
 const api = new Hono<{ Bindings: Env }>();
 
@@ -172,7 +173,11 @@ api.use('/*', async (c, next) => {
 
       session.spotifyAccessToken = tokens.access_token;
     } catch (err) {
-      console.error('Token refresh failed:', err);
+      const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+        path: c.req.path,
+        method: c.req.method,
+      });
+      log.logError('Token refresh failed', err);
       return c.json({ error: 'Failed to refresh Spotify token' }, 401);
     }
   }
