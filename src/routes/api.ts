@@ -1211,18 +1211,19 @@ api.post('/playlists/bulk', async (c) => {
 
     const results: { genre: string; success: boolean; url?: string; error?: string; skipped?: boolean }[] = [];
 
-    for (const { name, trackIds } of genres) {
+    // PERF-031 FIX: Use Promise.all for parallel API requests instead of sequential loop
+    await Promise.all(genres.map(async ({ name, trackIds }) => {
       // Validate each genre
       const genreValidation = sanitiseGenreName(name);
       if (!genreValidation.valid) {
         results.push({ genre: String(name), success: false, error: genreValidation.error });
-        continue;
+        return;
       }
 
       const trackValidation = validateTrackIds(trackIds);
       if (!trackValidation.valid) {
         results.push({ genre: genreValidation.value, success: false, error: trackValidation.error });
-        continue;
+        return;
       }
 
       const safeName = genreValidation.value;
@@ -1237,7 +1238,7 @@ api.post('/playlists/bulk', async (c) => {
             skipped: true,
             error: 'Playlist already exists',
           });
-          continue;
+          return;
         }
       }
 
@@ -1290,7 +1291,7 @@ api.post('/playlists/bulk', async (c) => {
           error: 'Failed to create playlist',
         });
       }
-    }
+    }));
 
     // Invalidate cache if any playlists were created
     const successCount = results.filter(r => r.success).length;
