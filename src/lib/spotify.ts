@@ -460,14 +460,28 @@ export async function addTracksToPlaylist(
   trackUris: string[]
 ): Promise<void> {
   // Spotify allows max 100 tracks per request
-  // OPTIMIZATION: Parallelize playlist additions for faster bulk operations
-  // Note: Keeping sequential for safety - Spotify recommends not parallelizing writes to same playlist
+  // PERF-001 FIX: Parallelize playlist additions with controlled concurrency limit
+  const CONCURRENCY = 3;
+  const chunks: string[][] = [];
   for (let i = 0; i < trackUris.length; i += 100) {
-    const chunk = trackUris.slice(i, i + 100);
-    await spotifyFetch(`/playlists/${playlistId}/tracks`, accessToken, {
-      method: 'POST',
-      body: JSON.stringify({ uris: chunk }),
-    });
+    chunks.push(trackUris.slice(i, i + 100));
+  }
+
+  for (let i = 0; i < chunks.length; i += CONCURRENCY) {
+    const batch = chunks.slice(i, i + CONCURRENCY);
+    await Promise.all(
+      batch.map(async (chunk) => {
+        try {
+          await spotifyFetch(`/playlists/${playlistId}/tracks`, accessToken, {
+            method: 'POST',
+            body: JSON.stringify({ uris: chunk }),
+          });
+        } catch (err) {
+          console.error(`Failed to add chunk of tracks to playlist ${playlistId}:`, err);
+          throw err;
+        }
+      })
+    );
   }
 }
 

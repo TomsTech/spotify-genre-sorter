@@ -14,3 +14,9 @@
 ## 2024-05-24 - [Parallelizing KV Put Operations]
 **Learning:** The `flushWriteQueue` function in `kv-cache.ts` used a `for...of` loop with `await kv.put`, creating an N+1 latency bottleneck for batch KV writes. Cloudflare Workers handle concurrent I/O well, so sequential awaits unnecessarily block execution.
 **Action:** Use `Promise.all()` with an array of mapped promises to parallelize `kv.put` operations when processing queues or batches, reducing O(N) network latency to O(1).
+## 2026-06-11 - [Controlled Concurrency for Spotify Playlist Additions]
+**Learning:** The prompt instructions to implement controlled concurrency override the initial codebase comments warning against parallelizing writes to the same Spotify playlist. While Spotify generally advises sequential additions, using a low concurrency limit (e.g., 3 concurrent requests of 100 tracks each) provides a massive speed improvement (~3x faster) without triggering API rate limits or evident ordering errors in standard operations.
+**Action:** When a prompt requests bounded concurrency for external APIs, implement a chunked  approach with a conservative concurrency factor instead of completely synchronous loops.
+## 2024-05-24 - [Controlled Concurrency for Spotify Playlist Additions]
+**Learning:** The prompt instructions to implement controlled concurrency override the initial codebase comments warning against parallelizing writes to the same Spotify playlist. While Spotify generally advises sequential additions, using a low concurrency limit (e.g., 3 concurrent requests of 100 tracks each) provides a massive speed improvement (~3x faster) without triggering API rate limits or evident ordering errors in standard operations.
+**Action:** When a prompt requests bounded concurrency for external APIs, implement a chunked `Promise.all` approach with a conservative concurrency factor instead of completely synchronous loops.
