@@ -68,16 +68,17 @@ app.use('*', async (c, next) => {
 
 // BetterStack request logging middleware (logs errors and slow requests)
 // CRITICAL FIX: Flush KV write queue at end of each request
+// PERF-031 FIX: Use waitUntil to flush without blocking the response
 // This ensures batched writes are persisted even if worker terminates
 app.use('*', async (c, next) => {
   await next();
 
   // Flush any pending KV writes from the batch queue
-  try {
-    await cachedKV.flush(c.env.SESSIONS);
-  } catch (err) {
-    console.error('Failed to flush KV write queue:', err);
-  }
+  c.executionCtx.waitUntil(
+    cachedKV.flush(c.env.SESSIONS).catch(err => {
+      console.error('Failed to flush KV write queue:', err);
+    })
+  );
 });
 
 app.use('*', async (c, next) => {
