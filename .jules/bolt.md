@@ -14,3 +14,4 @@
 ## 2024-05-24 - [Parallelizing KV Put Operations]
 **Learning:** The `flushWriteQueue` function in `kv-cache.ts` used a `for...of` loop with `await kv.put`, creating an N+1 latency bottleneck for batch KV writes. Cloudflare Workers handle concurrent I/O well, so sequential awaits unnecessarily block execution.
 **Action:** Use `Promise.all()` with an array of mapped promises to parallelize `kv.put` operations when processing queues or batches, reducing O(N) network latency to O(1).
+## 2026-06-11 - [Code Health Improvement: Custom Logger usage in api route] **Learning:** Found that custom logger improves observability compared to console.error, especially when integrated with Betterstack logs in the app. **Action:** Prefer using createLogger with proper context over console.error for unhandled errors.

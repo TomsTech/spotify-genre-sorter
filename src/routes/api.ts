@@ -34,6 +34,7 @@ import {
 } from '../lib/spotify';
 import { getKVMonitorData } from '../lib/kv-monitor';
 import { optionalCsrfProtection } from '../lib/csrf-middleware';
+import { createLogger } from '../lib/logger';
 
 const api = new Hono<{ Bindings: Env }>();
 
@@ -303,7 +304,11 @@ api.get('/now-playing', async (c) => {
       device: playback.device?.name || 'Unknown device',
     });
   } catch (err) {
-    console.error('Error fetching playback:', err);
+    const logger = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+      path: '/now-playing',
+      method: 'GET',
+    });
+    logger.logError('Error fetching playback:', err);
     return c.json({ playing: false, error: 'Failed to fetch playback' });
   }
 });
