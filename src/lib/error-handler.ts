@@ -435,32 +435,43 @@ export function logError(
     userId: ctx?.requestContext?.userId,
   };
 
-  // Log to console
-  console.error('[ERROR]', {
-    code: logEntry.code,
-    message: logEntry.message,
-    statusCode: logEntry.statusCode,
-    path: logEntry.path,
-  });
-
-  // Log to BetterStack if available
-  if (ctx?.executionContext && ctx?.betterStackToken) {
+  if (ctx?.executionContext) {
     try {
       const logger = createLogger(
         ctx.executionContext,
         ctx.betterStackToken,
         ctx.requestContext
       );
-      logger.logError(classified.message, originalError || new Error(classified.message), {
-        errorCode: classified.code,
-        statusCode: classified.statusCode,
-        recoverable: classified.recoverable,
-        retryable: classified.retryable,
-        ...classified.context,
+
+      // Log using custom logger instead of console.error
+      logger.error('[ERROR]', {
+        code: logEntry.code,
+        message: logEntry.message,
+        statusCode: logEntry.statusCode,
+        path: logEntry.path,
       });
+
+      // Maintain BetterStack-specific detailed logging if token is available
+      if (ctx.betterStackToken) {
+        logger.logError(classified.message, originalError || new Error(classified.message), {
+          errorCode: classified.code,
+          statusCode: classified.statusCode,
+          recoverable: classified.recoverable,
+          retryable: classified.retryable,
+          ...classified.context,
+        });
+      }
     } catch (logErr) {
-      console.error('Failed to send error to BetterStack:', logErr);
+      console.error('Failed to send error to logger:', logErr);
     }
+  } else {
+    // Fallback strictly for cases where ExecutionContext is unavailable
+    console.error('[ERROR]', {
+      code: logEntry.code,
+      message: logEntry.message,
+      statusCode: logEntry.statusCode,
+      path: logEntry.path,
+    });
   }
 
   return logEntry;
