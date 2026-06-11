@@ -1,3 +1,4 @@
+import { cachedKV } from '../lib/kv-cache';
 import { Hono } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import {
@@ -65,7 +66,7 @@ async function registerUser(
 ): Promise<void> {
   const key = `user:${spotifyId}`;
   // PERF-011 FIX: Use cachedKV for user registration to reduce KV reads
-  const existingStr = await kv.get(key); // Use direct KV here as this is infrequent and needs accuracy
+  const existingStr = await cachedKV.getString(kv, key);
   const now = new Date().toISOString();
 
   // Track sign-in
@@ -86,7 +87,7 @@ async function registerUser(
     if (spotifyAvatar) data.spotifyAvatar = spotifyAvatar;
     if (githubUser) data.githubUser = githubUser;
     // PERF-011 FIX: Use immediate write for user data (critical)
-    await kv.put(key, JSON.stringify(data));
+    await cachedKV.put(kv, key, JSON.stringify(data), { immediate: true });
 
     // Update user stats (name/avatar might have changed) - already uses cachedKV
     await createOrUpdateUserStats(kv, spotifyId, {
@@ -104,7 +105,7 @@ async function registerUser(
       lastSeenAt: now,
     };
     // PERF-011 FIX: Write immediately for new user registration (critical)
-    await kv.put(key, JSON.stringify(registration));
+    await cachedKV.put(kv, key, JSON.stringify(registration), { immediate: true });
 
     // Update user count - direct KV for accuracy
     const countStr = await kv.get('stats:user_count');
