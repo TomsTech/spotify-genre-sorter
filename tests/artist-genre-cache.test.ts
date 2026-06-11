@@ -5,7 +5,17 @@
  * Note: These are demonstration tests. Full E2E tests would require KV namespace setup.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import {
+  getCachedArtistGenres,
+  cacheArtistGenres,
+  getArtistGenreCacheStats,
+  updateArtistGenreCacheStats,
+  getCachedArtistCount,
+  clearAllArtistGenreCache,
+  cleanupOldArtistGenreCache
+} from '../src/lib/artist-genre-cache';
+import { cachedKV } from '../src/lib/kv-cache';
 
 describe('Artist Genre Cache (#74)', () => {
   it('should have correct cache configuration', () => {
@@ -131,5 +141,114 @@ describe('Cache Performance Benefits (#74)', () => {
     console.log(`   Time saved: ~${timeSaved}s (${reductionPercent.toFixed(0)}% faster)`);
 
     expect(reductionPercent).toBeGreaterThan(75); // At least 75% faster
+  });
+});
+
+
+describe('Artist Genre Cache - Error Handling', () => {
+  it('getCachedArtistGenres handles KV cache errors gracefully', async () => {
+    const mockKv = {} as any;
+    const artistId = 'error-artist-id';
+
+    vi.spyOn(cachedKV, 'get').mockRejectedValueOnce(new Error('KV connection failed'));
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await getCachedArtistGenres(mockKv, artistId);
+
+    expect(result).toBeNull();
+    expect(consoleSpy).toHaveBeenCalledWith(`Error fetching cached genres for artist ${artistId}:`, expect.any(Error));
+
+    consoleSpy.mockRestore();
+    vi.restoreAllMocks();
+  });
+
+  it('cacheArtistGenres handles KV cache errors gracefully', async () => {
+    const mockKv = {} as any;
+    const artistId = 'error-artist-id';
+
+    vi.spyOn(cachedKV, 'put').mockRejectedValueOnce(new Error('KV put failed'));
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await cacheArtistGenres(mockKv, artistId, ['rock']);
+
+    expect(consoleSpy).toHaveBeenCalledWith(`Error caching genres for artist ${artistId}:`, expect.any(Error));
+
+    consoleSpy.mockRestore();
+    vi.restoreAllMocks();
+  });
+
+  it('getArtistGenreCacheStats handles KV cache errors gracefully', async () => {
+    const mockKv = {} as any;
+
+    vi.spyOn(cachedKV, 'get').mockRejectedValueOnce(new Error('KV get failed'));
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await getArtistGenreCacheStats(mockKv);
+
+    expect(result).toEqual({
+      totalCached: 0,
+      cacheHits: 0,
+      cacheMisses: 0,
+      apiCallsSaved: 0,
+      lastUpdated: expect.any(String),
+    });
+    expect(consoleSpy).toHaveBeenCalledWith('Error fetching cache stats:', expect.any(Error));
+
+    consoleSpy.mockRestore();
+    vi.restoreAllMocks();
+  });
+
+  it('updateArtistGenreCacheStats handles KV cache errors gracefully', async () => {
+    const mockKv = {} as any;
+
+    vi.spyOn(cachedKV, 'get').mockResolvedValueOnce(null);
+    vi.spyOn(cachedKV, 'put').mockRejectedValueOnce(new Error('KV put failed'));
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await updateArtistGenreCacheStats(mockKv, { cacheHits: 1 });
+
+    expect(consoleSpy).toHaveBeenCalledWith('Error updating cache stats:', expect.any(Error));
+
+    consoleSpy.mockRestore();
+    vi.restoreAllMocks();
+  });
+
+  it('getCachedArtistCount handles KV list errors gracefully', async () => {
+    const mockKv = { list: vi.fn().mockRejectedValueOnce(new Error('KV list failed')) } as any;
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await getCachedArtistCount(mockKv);
+
+    expect(result).toBe(0);
+    expect(consoleSpy).toHaveBeenCalledWith('Error getting cached artist count:', expect.any(Error));
+
+    consoleSpy.mockRestore();
+    vi.restoreAllMocks();
+  });
+
+  it('clearAllArtistGenreCache handles errors gracefully', async () => {
+    const mockKv = { list: vi.fn().mockRejectedValueOnce(new Error('KV list failed')) } as any;
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await clearAllArtistGenreCache(mockKv);
+
+    expect(result).toBe(0);
+    expect(consoleSpy).toHaveBeenCalledWith('Error clearing artist genre cache:', expect.any(Error));
+
+    consoleSpy.mockRestore();
+    vi.restoreAllMocks();
+  });
+
+  it('cleanupOldArtistGenreCache handles errors gracefully', async () => {
+    const mockKv = { list: vi.fn().mockRejectedValueOnce(new Error('KV list failed')) } as any;
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await cleanupOldArtistGenreCache(mockKv);
+
+    expect(result).toBe(0);
+    expect(consoleSpy).toHaveBeenCalledWith('Error cleaning up old cache entries:', expect.any(Error));
+
+    consoleSpy.mockRestore();
+    vi.restoreAllMocks();
   });
 });
