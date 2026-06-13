@@ -34,3 +34,7 @@
 **Vulnerability:** XSS from JSON.stringify results flowing into innerHTML.
 **Learning:** JSON stringification does not escape HTML tags (like < and >). If stringified user data is directly injected into the DOM via innerHTML, it can lead to XSS.
 **Prevention:** Always wrap JSON.stringify outputs with escapeHtml() when interpolating into HTML templates.
+## 2026-06-13 - [Privilege Escalation via Profile Name]
+**Vulnerability:** Admin check compared configured admin names against user-controlled Spotify display name (`spotifyName`).
+**Learning:** Relying on mutable, user-controlled data (like display names) for authorization checks allows privilege escalation.
+**Prevention:** Always use immutable, provider-assigned IDs (like `spotifyUserId` or `githubUser`) for authorization comparisons.
