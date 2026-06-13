@@ -4421,7 +4421,7 @@
           <h2 class="card-title" data-i18n="yourGenres">\${t('yourGenres')}</h2>
 
           <div class="template-settings">
-            <label>\${swedishMode ? 'Spellistnamn mall' : 'Playlist Name Template'}</label>
+            <label for="template-input">\${swedishMode ? 'Spellistnamn mall' : 'Playlist Name Template'}</label>
             <div class="template-input-row">
               <input
                 type="text"
@@ -4437,7 +4437,7 @@
               \${swedishMode ? 'Förhandsvisning:' : 'Preview:'} <span id="template-preview">\${getTemplatePreview()}</span>
             </div>
 
-            <label style="margin-top: 1rem;">\${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}</label>
+            <label for="desc-template-input" style="margin-top: 1rem;">\${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}</label>
             <div class="template-input-row">
               <input
                 type="text"
@@ -4460,6 +4460,7 @@
           <input
             type="text"
             class="search-input"
+            aria-label="\${t('searchGenres')}"
             placeholder="\${t('searchGenres')}"
             data-i18n-placeholder="searchGenres"
             oninput="debouncedFilterAndRenderGenres(this.value)"
