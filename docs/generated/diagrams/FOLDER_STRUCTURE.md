@@ -139,8 +139,14 @@
 ├── tests
 │   ├── api.test.ts
 │   ├── artist-genre-cache.test.ts
+│   ├── csrf.test.ts
+│   ├── error-handler.test.ts
 │   ├── error-middleware.test.ts
 │   ├── frontend.test.ts
+│   ├── github.test.ts
+│   ├── kv-cache.test.ts
+│   ├── kv-monitor.test.ts
+│   ├── logger.test.ts
 │   ├── retry.test.ts
 │   ├── session.test.ts
 │   ├── spotify.test.ts
@@ -168,12 +174,13 @@
 ├── plan.md
 ├── playwright.config.ts
 ├── pnpm-lock.yaml
+├── pr_description.md
 ├── tsconfig.json
 ├── vitest.config.ts
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-31 directories, 136 files
+31 directories, 143 files
 ```
 
 ## Key Directories
