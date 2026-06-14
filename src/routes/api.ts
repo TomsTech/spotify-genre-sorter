@@ -458,14 +458,21 @@ api.get('/genres', async (c) => {
     // Step 4: Count tracks per genre and collect track IDs
     const genreData = new Map<string, { count: number; trackIds: string[] }>();
 
+    // Performance Optimization Pattern: Eliminate redundant sequential passes over large data arrays
+    // Instantiating a new Set for every track causes massive N*M garbage collection overhead
+    // Use a single reusable Set instead to maintain O(N) deduplication without the memory penalty
+    const reusableTrackGenresSet = new Set<string>();
+
     for (const { track } of likedTracks) {
-      const trackGenres = new Set<string>();
+      reusableTrackGenresSet.clear();
       for (const artist of track.artists) {
         const genres = artistGenreMap.get(artist.id) || [];
-        genres.forEach(g => trackGenres.add(g));
+        for (let i = 0; i < genres.length; i++) {
+          reusableTrackGenresSet.add(genres[i]);
+        }
       }
 
-      for (const genre of trackGenres) {
+      for (const genre of reusableTrackGenresSet) {
         let data = genreData.get(genre);
         if (!data) {
           data = { count: 0, trackIds: [] };
@@ -718,14 +725,17 @@ api.get('/genres/progressive', async (c) => {
     }
 
     // Add new tracks
+    const reusableTrackGenresSet = new Set<string>();
     for (const { track } of allChunkTracks) {
-      const trackGenres = new Set<string>();
+      reusableTrackGenresSet.clear();
       for (const artist of track.artists) {
         const genres = artistGenreMap.get(artist.id) || [];
-        genres.forEach(g => trackGenres.add(g));
+        for (let i = 0; i < genres.length; i++) {
+          reusableTrackGenresSet.add(genres[i]);
+        }
       }
 
-      for (const genre of trackGenres) {
+      for (const genre of reusableTrackGenresSet) {
         let data = genreMap.get(genre);
         if (!data) {
           data = { count: 0, trackIds: [] };
@@ -941,14 +951,17 @@ api.get('/genres/chunk', async (c) => {
     // Build genre data for this chunk
     const genreData = new Map<string, { count: number; trackIds: string[] }>();
 
+    const reusableTrackGenresSet = new Set<string>();
     for (const { track } of allChunkTracks) {
-      const trackGenres = new Set<string>();
+      reusableTrackGenresSet.clear();
       for (const artist of track.artists) {
         const genres = artistGenreMap.get(artist.id) || [];
-        genres.forEach(g => trackGenres.add(g));
+        for (let i = 0; i < genres.length; i++) {
+          reusableTrackGenresSet.add(genres[i]);
+        }
       }
 
-      for (const genre of trackGenres) {
+      for (const genre of reusableTrackGenresSet) {
         let data = genreData.get(genre);
         if (!data) {
           data = { count: 0, trackIds: [] };
@@ -1658,14 +1671,17 @@ api.get('/scan-playlist/:playlistId', async (c) => {
     // Aggregate genres
     const genreCounts = new Map<string, { count: number; trackIds: string[] }>();
 
+    const reusableTrackGenresSet = new Set<string>();
     for (const track of trackData) {
-      const trackGenres = new Set<string>();
+      reusableTrackGenresSet.clear();
       for (const artistId of track.artistIds) {
         const genres = artistGenres.get(artistId) || [];
-        genres.forEach(g => trackGenres.add(g));
+        for (let i = 0; i < genres.length; i++) {
+          reusableTrackGenresSet.add(genres[i]);
+        }
       }
 
-      for (const genre of trackGenres) {
+      for (const genre of reusableTrackGenresSet) {
         const existing = genreCounts.get(genre) || { count: 0, trackIds: [] };
         existing.count++;
         existing.trackIds.push(track.id);
