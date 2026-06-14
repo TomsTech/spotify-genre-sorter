@@ -1801,7 +1801,7 @@ api.post('/invite-request', async (c) => {
 api.get('/admin/invites', async (c) => {
   const session = await getSession(c);
 
-  if (!await isAdmin(c, session)) {
+  if (!isAdmin(c, session)) {
     return c.json({ error: 'Forbidden' }, 403);
   }
 
@@ -1906,7 +1906,7 @@ api.post('/log-perf', async (c) => {
 api.get('/admin/errors', async (c) => {
   const session = await getSession(c);
 
-  if (!await isAdmin(c, session)) {
+  if (!isAdmin(c, session)) {
     return c.json({ error: 'Forbidden' }, 403);
   }
 
@@ -1922,7 +1922,7 @@ api.get('/admin/errors', async (c) => {
 api.get('/admin/perf', async (c) => {
   const session = await getSession(c);
 
-  if (!await isAdmin(c, session)) {
+  if (!isAdmin(c, session)) {
     return c.json({ error: 'Forbidden' }, 403);
   }
 
@@ -2145,26 +2145,18 @@ function getAdminUsers(env: Env): string[] {
   return adminList.split(',').map(u => u.trim().toLowerCase()).filter(Boolean);
 }
 
-async function isAdmin(c: { env: Env }, session: { githubUser?: string; spotifyUserId?: string } | null): Promise<boolean> {
+function isAdmin(c: { env: Env }, session: { githubUser?: string; spotifyUserId?: string } | null): boolean {
   if (!session) return false;
   const adminUsers = getAdminUsers(c.env);
   if (adminUsers.length === 0) return false; // No admins configured = no admin access
   if (session.githubUser && adminUsers.includes(session.githubUser.toLowerCase())) return true;
-  if (session.spotifyUserId) {
-    try {
-      const stats = await cachedKV.getString(c.env.SESSIONS, `user_stats:${session.spotifyUserId}`);
-      if (stats) {
-        const parsed = JSON.parse(stats) as { spotifyName?: string };
-        if (parsed.spotifyName && adminUsers.includes(parsed.spotifyName.toLowerCase())) return true;
-      }
-    } catch { /* ignore */ }
-  }
+  if (session.spotifyUserId && adminUsers.includes(session.spotifyUserId.toLowerCase())) return true;
   return false;
 }
 
 api.get('/admin', async (c) => {
   const session = await getSession(c);
-  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+  if (!isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
 
   const kv = c.env.SESSIONS;
   const metrics = getKVMetrics();
@@ -2194,7 +2186,7 @@ api.get('/admin', async (c) => {
 
 api.post('/admin/clear-cache', async (c) => {
   const session = await getSession(c);
-  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+  if (!isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
 
   const { cache } = await c.req.json<{ cache: string }>();
   const kv = c.env.SESSIONS;
@@ -2216,7 +2208,7 @@ api.post('/admin/clear-cache', async (c) => {
 
 api.post('/admin/rebuild-caches', async (c) => {
   const session = await getSession(c);
-  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+  if (!isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
 
   const kv = c.env.SESSIONS;
   await buildLeaderboard(kv);
@@ -2227,7 +2219,7 @@ api.post('/admin/rebuild-caches', async (c) => {
 // List all users for admin management
 api.get('/admin/users', async (c) => {
   const session = await getSession(c);
-  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+  if (!isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
 
   const kv = c.env.SESSIONS;
   const userStatsList = await kv.list({ prefix: 'user_stats:', limit: 500 });
@@ -2341,7 +2333,7 @@ api.get('/admin/users', async (c) => {
 // Delete a user and all their data
 api.delete('/admin/user/:spotifyId', async (c) => {
   const session = await getSession(c);
-  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+  if (!isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
 
   // URL decode the spotifyId in case it contains special characters
   const spotifyId = decodeURIComponent(c.req.param('spotifyId') || '');
@@ -2482,7 +2474,7 @@ api.get('/cache/artist-genres/stats', async (c) => {
 // Admin: Clear artist genre cache
 api.post('/admin/cache/artist-genres/clear', async (c) => {
   const session = await getSession(c);
-  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+  if (!isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
 
   try {
     const { clearAllArtistGenreCache } = await import('../lib/artist-genre-cache');
@@ -2502,7 +2494,7 @@ api.post('/admin/cache/artist-genres/clear', async (c) => {
 // Admin: Cleanup old artist genre cache entries
 api.post('/admin/cache/artist-genres/cleanup', async (c) => {
   const session = await getSession(c);
-  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+  if (!isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
 
   try {
     const body = await c.req.json<{ maxAgeDays?: number }>();
@@ -2526,7 +2518,7 @@ api.post('/admin/cache/artist-genres/cleanup', async (c) => {
 // Admin: Invalidate specific artists from cache
 api.post('/admin/cache/artist-genres/invalidate', async (c) => {
   const session = await getSession(c);
-  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+  if (!isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
 
   try {
     const body = await c.req.json<{ artistIds: string[] }>();
@@ -2627,7 +2619,7 @@ api.post('/request-access', async (c) => {
 // Admin: Get access requests
 api.get('/admin/access-requests', async (c) => {
   const session = await getSession(c);
-  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+  if (!isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
 
   const kv = c.env.SESSIONS;
   const listKey = 'access_requests_list';
@@ -2664,7 +2656,7 @@ api.get('/admin/access-requests', async (c) => {
  */
 api.get('/admin/kv-monitor', async (c) => {
   const session = await getSession(c);
-  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+  if (!isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
 
   try {
     const data = await getKVMonitorData(c.env.SESSIONS);
@@ -2682,7 +2674,7 @@ api.get('/admin/kv-monitor', async (c) => {
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 api.get('/admin/kv-keys', async (c) => {
   const session = await getSession(c);
-  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+  if (!isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
 
   const prefix = c.req.query('prefix') || '';
   const limit = Math.min(parseInt(c.req.query('limit') || '50'), 100);
@@ -2721,7 +2713,7 @@ api.get('/admin/kv-keys', async (c) => {
  */
 api.get('/admin/kv-key/:key', async (c) => {
   const session = await getSession(c);
-  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+  if (!isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
 
   const keyName = c.req.param('key');
   if (!keyName) return c.json({ error: 'Key name required' }, 400);
@@ -2770,7 +2762,7 @@ api.get('/admin/kv-key/:key', async (c) => {
  */
 api.delete('/admin/kv-key/:key', async (c) => {
   const session = await getSession(c);
-  if (!await isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+  if (!isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
 
   const keyName = c.req.param('key');
   if (!keyName) return c.json({ error: 'Key name required' }, 400);
