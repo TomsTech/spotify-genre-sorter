@@ -425,13 +425,22 @@ export async function getTracksWithGenres(
 
   // Map tracks to their genres
   const tracksWithGenres = new Map<string, { track: SpotifyTrack; genres: string[]; addedAt: string }>();
+
+  // PERF-031 FIX: Eliminate redundant GC overhead
+  // Instantiating a new Set for every track causes massive garbage collection overhead.
+  // Using a single reusable Set instead maintains O(N) deduplication without memory penalty.
+  const reusableGenresSet = new Set<string>();
+
   for (const { track, added_at } of likedTracks) {
-    const genres = new Set<string>();
+    reusableGenresSet.clear();
     for (const artist of track.artists) {
       const artistGenres = artistGenreMap.get(artist.id) || [];
-      artistGenres.forEach(g => genres.add(g));
+      // Replace forEach with a simple for loop for slightly better performance
+      for (let i = 0; i < artistGenres.length; i++) {
+        reusableGenresSet.add(artistGenres[i]);
+      }
     }
-    tracksWithGenres.set(track.id, { track, genres: [...genres], addedAt: added_at });
+    tracksWithGenres.set(track.id, { track, genres: [...reusableGenresSet], addedAt: added_at });
   }
 
   return tracksWithGenres;
