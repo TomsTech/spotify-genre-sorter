@@ -20,3 +20,6 @@
 ## 2024-06-14 - [Optimize Genre Aggregation]
 **Learning:** When aggregating nested relations (e.g., tracks -> artists -> genres), creating temporary Sets for uniqueness on a per-item basis inside a loop generates massive garbage collection overhead.
 **Action:** Instantiate a single reusable Set outside the loop and use .clear() to achieve O(1) deduplication without the memory penalty of continuous object allocation.
+## 2024-06-25 - [Non-Blocking Background Tasks in Hono]
+**Learning:** In Cloudflare Workers / Hono, using `await` on non-essential background tasks (like flushing batched KV writes or logging analytics) inside middleware or error handlers delays the HTTP response to the client. This negatively impacts the Time To First Byte (TTFB).
+**Action:** Wrap such background tasks in `c.executionCtx.waitUntil(...)` (and ensure they have their own `.catch()` blocks). This allows the Worker to return the HTTP response immediately while ensuring the background task is allowed to finish.

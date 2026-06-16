@@ -15,7 +15,7 @@ const GITHUB_REPO = 'TomsTech/spotify-genre-sorter';
 const app = new Hono<{ Bindings: Env }>();
 
 // Global error handler with analytics tracking and BetterStack logging
-app.onError(async (err, c) => {
+app.onError((err, c) => {
   // Send to BetterStack
   const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
     path: c.req.path,
@@ -23,15 +23,20 @@ app.onError(async (err, c) => {
   });
   log.logError('Worker error', err, { path: c.req.path });
 
+  // PERF-033 FIX: Use c.executionCtx.waitUntil for analytics tracking to avoid blocking the HTTP error response
   // Track error in analytics
   try {
-    await trackAnalyticsEvent(c.env.SESSIONS, 'error', {
-      message: err.message || 'Unknown error',
-      path: c.req.path,
-      timestamp: new Date().toISOString(),
-    });
+    c.executionCtx.waitUntil(
+      trackAnalyticsEvent(c.env.SESSIONS, 'error', {
+        message: err.message || 'Unknown error',
+        path: c.req.path,
+        timestamp: new Date().toISOString(),
+      }).catch(() => {
+        // Don't fail on analytics error
+      })
+    );
   } catch {
-    // Don't fail on analytics error
+    // Don't fail on analytics error initiation
   }
   return c.json({ error: err.message || 'Internal error' }, 500);
 });
@@ -70,12 +75,18 @@ app.use('*', async (c, next) => {
 app.use('*', async (c, next) => {
   await next();
 
+  // PERF-032 FIX: Use c.executionCtx.waitUntil for KV flush to avoid blocking the HTTP response
   // Flush any pending KV writes from the batch queue
   try {
-    await cachedKV.flush(c.env.SESSIONS);
+    c.executionCtx.waitUntil(
+      cachedKV.flush(c.env.SESSIONS).catch((err) => {
+        const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method });
+        log.logError('Failed to flush KV write queue', err, { path: c.req.path });
+      })
+    );
   } catch (err) {
     const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method });
-    log.logError('Failed to flush KV write queue', err, { path: c.req.path });
+    log.logError('Failed to initiate KV write queue flush', err, { path: c.req.path });
   }
 });
 
