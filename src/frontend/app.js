@@ -4566,6 +4566,7 @@
             class="btn btn-ghost genre-create"
             onclick="event.preventDefault(); createPlaylist('\${genre.name.replace(/'/g, "\\\\'")}')"
             data-i18n="create"
+            aria-label="\${t('create')} \${escapeForHtml(genre.name)}"
           >
             \${t('create')}
           </button>
