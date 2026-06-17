@@ -280,13 +280,19 @@ api.get('/now-playing', async (c) => {
         updatedAt: new Date().toISOString(),
       };
       // CRITICAL FIX: Use cachedKV for listening status writes
-      await cachedKV.put(kv, `listening:${session.spotifyUserId}`, JSON.stringify(listeningData), {
-        expirationTtl: 90, // 90 seconds - auto-expires if user stops polling
-        immediate: false // Can be batched - not critical if delayed by a few seconds
-      });
+      // Bolt Optimization: Offloaded to background task to reduce latency
+      c.executionCtx.waitUntil(
+        cachedKV.put(kv, `listening:${session.spotifyUserId}`, JSON.stringify(listeningData), {
+          expirationTtl: 90, // 90 seconds - auto-expires if user stops polling
+          immediate: false // Can be batched - not critical if delayed by a few seconds
+        }).catch(err => console.error('Background task failed:', err))
+      );
     } else if (session.spotifyUserId) {
       // User not playing - delete their listening entry
-      await cachedKV.delete(kv, `listening:${session.spotifyUserId}`);
+      c.executionCtx.waitUntil(
+        cachedKV.delete(kv, `listening:${session.spotifyUserId}`)
+          .catch(err => console.error('Background task failed:', err))
+      );
     }
 
     if (!playback || !playback.item) {
@@ -518,18 +524,24 @@ api.get('/genres', async (c) => {
 
     // Update user stats with analysis results
     if (session.spotifyUserId) {
-      await createOrUpdateUserStats(c.env.SESSIONS, session.spotifyUserId, {
-        totalGenresDiscovered: responseData.totalGenres,
-        totalArtistsDiscovered: responseData.totalArtists,
-        totalTracksAnalysed: responseData.totalTracks,
-      });
+      // Bolt Optimization: Offloaded to background task to reduce latency
+      c.executionCtx.waitUntil(
+        createOrUpdateUserStats(c.env.SESSIONS, session.spotifyUserId, {
+          totalGenresDiscovered: responseData.totalGenres,
+          totalArtistsDiscovered: responseData.totalArtists,
+          totalTracksAnalysed: responseData.totalTracks,
+        }).catch(err => console.error('Background task failed:', err))
+      );
     }
 
     // Track library scan in analytics
-    await trackAnalyticsEvent(c.env.SESSIONS, 'libraryScan', {
-      tracksCount: responseData.totalTracks,
-      visitorId: session.spotifyUserId,
-    });
+    // Bolt Optimization: Offloaded to background task to reduce latency
+    c.executionCtx.waitUntil(
+      trackAnalyticsEvent(c.env.SESSIONS, 'libraryScan', {
+        tracksCount: responseData.totalTracks,
+        visitorId: session.spotifyUserId,
+      }).catch(err => console.error('Background task failed:', err))
+    );
 
     return c.json({
       ...responseData,
@@ -688,11 +700,14 @@ api.get('/genres/progressive', async (c) => {
       });
 
       // Update user stats
-      await createOrUpdateUserStats(c.env.SESSIONS, user.id, {
-        totalGenresDiscovered: finalData.totalGenres,
-        totalArtistsDiscovered: finalData.totalArtists,
-        totalTracksAnalysed: finalData.totalTracks,
-      });
+      // Bolt Optimization: Offloaded to background task to reduce latency
+      c.executionCtx.waitUntil(
+        createOrUpdateUserStats(c.env.SESSIONS, user.id, {
+          totalGenresDiscovered: finalData.totalGenres,
+          totalArtistsDiscovered: finalData.totalArtists,
+          totalTracksAnalysed: finalData.totalTracks,
+        }).catch(err => console.error('Background task failed:', err))
+      );
 
       return c.json({
         ...finalData,
@@ -1159,7 +1174,11 @@ api.post('/playlist', async (c) => {
     await invalidateGenreCache(c.env.SESSIONS, user.id);
 
     // Update user stats
-    await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length);
+    // Bolt Optimization: Offloaded to background task to reduce latency
+    c.executionCtx.waitUntil(
+      addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length)
+        .catch(err => console.error('Background task failed:', err))
+    );
 
     // Add to recent playlists feed
     const recentPlaylist: RecentPlaylist = {
@@ -1175,10 +1194,18 @@ api.post('/playlist', async (c) => {
       createdAt: new Date().toISOString(),
       spotifyUrl: playlist.external_urls.spotify,
     };
-    await addRecentPlaylist(c.env.SESSIONS, recentPlaylist);
+    // Bolt Optimization: Offloaded to background task to reduce latency
+    c.executionCtx.waitUntil(
+      addRecentPlaylist(c.env.SESSIONS, recentPlaylist)
+        .catch(err => console.error('Background task failed:', err))
+    );
 
     // Track playlist creation in analytics
-    await trackAnalyticsEvent(c.env.SESSIONS, 'playlistCreated', { visitorId: user.id });
+    // Bolt Optimization: Offloaded to background task to reduce latency
+    c.executionCtx.waitUntil(
+      trackAnalyticsEvent(c.env.SESSIONS, 'playlistCreated', { visitorId: user.id })
+        .catch(err => console.error('Background task failed:', err))
+    );
 
     return c.json({
       success: true,
@@ -1277,7 +1304,11 @@ api.post('/playlists/bulk', async (c) => {
         existingNames.add(playlistName.toLowerCase());
 
         // Update user stats
-        await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length);
+        // Bolt Optimization: Offloaded to background task to reduce latency
+        c.executionCtx.waitUntil(
+          addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length)
+            .catch(err => console.error('Background task failed:', err))
+        );
 
         // Add to recent playlists feed
         const recentPlaylist: RecentPlaylist = {
@@ -1293,7 +1324,11 @@ api.post('/playlists/bulk', async (c) => {
           createdAt: new Date().toISOString(),
           spotifyUrl: playlist.external_urls.spotify,
         };
-        await addRecentPlaylist(c.env.SESSIONS, recentPlaylist);
+        // Bolt Optimization: Offloaded to background task to reduce latency
+        c.executionCtx.waitUntil(
+          addRecentPlaylist(c.env.SESSIONS, recentPlaylist)
+            .catch(err => console.error('Background task failed:', err))
+        );
 
         results.push({
           genre: safeName,
@@ -1316,7 +1351,11 @@ api.post('/playlists/bulk', async (c) => {
     if (successCount > 0) {
       await invalidateGenreCache(c.env.SESSIONS, user.id);
       // Track bulk playlist creation in analytics (single KV write instead of N writes)
-      await trackAnalyticsEvent(c.env.SESSIONS, 'playlistCreated', { visitorId: user.id, count: successCount });
+      // Bolt Optimization: Offloaded to background task to reduce latency
+      c.executionCtx.waitUntil(
+        trackAnalyticsEvent(c.env.SESSIONS, 'playlistCreated', { visitorId: user.id, count: successCount })
+          .catch(err => console.error('Background task failed:', err))
+      );
     }
 
     return c.json({
@@ -1794,13 +1833,20 @@ api.post('/invite-request', async (c) => {
 
     existing.push(request);
     // Use cachedKV with batching for invite requests
-    await cachedKV.put(c.env.SESSIONS, INVITE_REQUESTS_KEY, JSON.stringify(existing), {
-      expirationTtl: 86400 * 30, // 30 days
-      immediate: false // Batch to reduce KV writes
-    });
+    // Bolt Optimization: Offloaded to background task to reduce latency
+    c.executionCtx.waitUntil(
+      cachedKV.put(c.env.SESSIONS, INVITE_REQUESTS_KEY, JSON.stringify(existing), {
+        expirationTtl: 86400 * 30, // 30 days
+        immediate: false // Batch to reduce KV writes
+      }).catch(err => console.error('Background task failed:', err))
+    );
 
     // Track analytics
-    await trackAnalyticsEvent(c.env.SESSIONS, 'inviteRequest');
+    // Bolt Optimization: Offloaded to background task to reduce latency
+    c.executionCtx.waitUntil(
+      trackAnalyticsEvent(c.env.SESSIONS, 'inviteRequest')
+        .catch(err => console.error('Background task failed:', err))
+    );
 
     return c.json({
       success: true,
@@ -1863,10 +1909,13 @@ api.post('/log-error', async (c) => {
     const combined = [...newErrors, ...existing].slice(0, 100);
 
     // CRITICAL FIX: Use cachedKV with batching for error logs (non-critical, can be delayed)
-    await cachedKV.put(c.env.SESSIONS, ERROR_LOG_KEY, JSON.stringify(combined), {
-      expirationTtl: 86400 * 7, // 7 days
-      immediate: false // Batch error logs to reduce KV writes
-    });
+    // Bolt Optimization: Offloaded to background task to reduce latency
+    c.executionCtx.waitUntil(
+      cachedKV.put(c.env.SESSIONS, ERROR_LOG_KEY, JSON.stringify(combined), {
+        expirationTtl: 86400 * 7, // 7 days
+        immediate: false // Batch error logs to reduce KV writes
+      }).catch(err => console.error('Background task failed:', err))
+    );
 
     // Log to console for immediate visibility
     console.error('[CLIENT ERROR]', JSON.stringify(newErrors[0]));
@@ -1906,10 +1955,13 @@ api.post('/log-perf', async (c) => {
     const combined = [sample, ...existing].slice(0, 1000);
 
     // CRITICAL FIX: Use cachedKV with batching for perf logs (non-critical, can be delayed)
-    await cachedKV.put(c.env.SESSIONS, PERF_LOG_KEY, JSON.stringify(combined), {
-      expirationTtl: 86400 * 30, // 30 days
-      immediate: false // Batch perf logs to reduce KV writes
-    });
+    // Bolt Optimization: Offloaded to background task to reduce latency
+    c.executionCtx.waitUntil(
+      cachedKV.put(c.env.SESSIONS, PERF_LOG_KEY, JSON.stringify(combined), {
+        expirationTtl: 86400 * 30, // 30 days
+        immediate: false // Batch perf logs to reduce KV writes
+      }).catch(err => console.error('Background task failed:', err))
+    );
 
     return c.json({ ok: true });
   } catch (err) {
@@ -2623,7 +2675,11 @@ api.post('/request-access', async (c) => {
     }
 
     // Track analytics
-    await trackAnalyticsEvent(kv, 'accessRequest', { email: email.toLowerCase() });
+    // Bolt Optimization: Offloaded to background task to reduce latency
+    c.executionCtx.waitUntil(
+      trackAnalyticsEvent(kv, 'accessRequest', { email: email.toLowerCase() })
+        .catch(err => console.error('Background task failed:', err))
+    );
 
     return c.json({ success: true, message: 'Request submitted successfully' });
   } catch (err) {
