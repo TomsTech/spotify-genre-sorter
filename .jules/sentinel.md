@@ -38,3 +38,12 @@
 **Vulnerability:** Admin check compared configured admin names against user-controlled Spotify display name (`spotifyName`).
 **Learning:** Relying on mutable, user-controlled data (like display names) for authorization checks allows privilege escalation.
 **Prevention:** Always use immutable, provider-assigned IDs (like `spotifyUserId` or `githubUser`) for authorization comparisons.
+## 2026-06-17 - [Auth] Hardcoded Admin Backdoor Fixed
+**Vulnerability:** Several admin endpoints contained a locally defined `adminUsers` array bypassing the proper `getAdminUsers` implementation.
+**Learning:** The implementation wasn't fully consistent.
+**Prevention:** Ensure `isAdmin` function is always used.
+
+## 2026-06-17 - [CSRF] Missing CSRF Protection Middleware on API Routes Fixed
+**Vulnerability:** The API routes (`/api/*`) were missing CSRF protection, leaving state-changing endpoints vulnerable to Cross-Site Request Forgery attacks.
+**Learning:** The `optionalCsrfProtection` was not properly used.
+**Prevention:** Add `api.use('/*', optionalCsrfProtection);` for all API routes.

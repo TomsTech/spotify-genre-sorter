@@ -38,6 +38,7 @@ import { createLogger } from '../lib/logger';
 
 const api = new Hono<{ Bindings: Env }>();
 
+
 // Cache constants
 const GENRE_CACHE_TTL = 3600; // 1 hour in seconds
 const GENRE_CACHE_TTL_LARGE = 86400; // 24 hours for large libraries
