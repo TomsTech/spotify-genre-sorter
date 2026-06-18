@@ -2177,7 +2177,6 @@ api.get('/admin', async (c) => {
   const kv = c.env.SESSIONS;
   const metrics = getKVMetrics();
 
-  // PERF-023 FIX: Use Promise.all for parallel KV listing
   // PERF-031 FIX: Parallelize getAnalytics and KV listing
   const prefixes = ['session:', 'user:', 'user_stats:', 'hof:', 'genre_cache_', 'scan_progress:'];
   const [analytics, listResults] = await Promise.all([
