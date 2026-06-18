@@ -65,18 +65,16 @@ app.use('*', async (c, next) => {
 });
 
 // BetterStack request logging middleware (logs errors and slow requests)
-// CRITICAL FIX: Flush KV write queue at end of each request
-// This ensures batched writes are persisted even if worker terminates
 app.use('*', async (c, next) => {
   await next();
 
-  // Flush any pending KV writes from the batch queue
-  try {
-    await cachedKV.flush(c.env.SESSIONS);
-  } catch (err) {
-    const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method });
-    log.logError('Failed to flush KV write queue', err, { path: c.req.path });
-  }
+  // Flush any pending KV writes from the batch queue without blocking response
+  c.executionCtx.waitUntil(
+    cachedKV.flush(c.env.SESSIONS).catch((err) => {
+      const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method });
+      log.logError('Failed to flush KV write queue', err, { path: c.req.path });
+    })
+  );
 });
 
 app.use('*', async (c, next) => {
