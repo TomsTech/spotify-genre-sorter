@@ -10399,7 +10399,7 @@ export function getHtml(nonce: string): string {
         deployText.textContent = deployment.currentStep || 'Deploying...';
       } else if (deployment?.conclusion === 'success') {
         widget.classList.add('success');
-        statusIcon.innerHTML = \`<img class="avatar" src="\${deployment.author?.avatar || ''}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
+        statusIcon.innerHTML = \`<img class="avatar" src="\${escapeHtml(deployment.author?.avatar) || ''}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
         const updatedAt = new Date(deployment.updatedAt);
         const timeAgo = formatTimeAgo(updatedAt);
         // Show version, release hint if available, and time
@@ -10545,7 +10545,7 @@ export function getHtml(nonce: string): string {
 
       const footer = document.createElement('div');
       footer.className = 'changelog-footer';
-      footer.innerHTML = \`<a href="\${changelogCache.repoUrl}/releases" target="_blank">\${swedishMode ? 'Visa alla utgåvor' : 'View all releases'} →</a>\`;
+      footer.innerHTML = \`<a href="\${escapeHtml(changelogCache.repoUrl)}/releases" target="_blank">\${swedishMode ? 'Visa alla utgåvor' : 'View all releases'} →</a>\`;
 
       panel.appendChild(header);
       panel.appendChild(timeline);
@@ -13008,7 +13008,7 @@ export function getHtml(nonce: string): string {
           <h2 class="card-title" data-i18n="yourGenres">\${t('yourGenres')}</h2>
 
           <div class="template-settings">
-            <label>\${swedishMode ? 'Spellistnamn mall' : 'Playlist Name Template'}</label>
+            <label for="template-input">\${swedishMode ? 'Spellistnamn mall' : 'Playlist Name Template'}</label>
             <div class="template-input-row">
               <input
                 type="text"
@@ -13024,7 +13024,7 @@ export function getHtml(nonce: string): string {
               \${swedishMode ? 'Förhandsvisning:' : 'Preview:'} <span id="template-preview">\${getTemplatePreview()}</span>
             </div>
 
-            <label style="margin-top: 1rem;">\${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}</label>
+            <label for="desc-template-input" style="margin-top: 1rem;">\${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}</label>
             <div class="template-input-row">
               <input
                 type="text"
@@ -13047,6 +13047,7 @@ export function getHtml(nonce: string): string {
           <input
             type="text"
             class="search-input"
+            aria-label="\${t('searchGenres')}"
             placeholder="\${t('searchGenres')}"
             data-i18n-placeholder="searchGenres"
             oninput="debouncedFilterAndRenderGenres(this.value)"
@@ -15370,7 +15371,7 @@ export function getHtml(nonce: string): string {
             '<div class="invite-success">' +
               '<h3>' + successTitle + '</h3>' +
               '<p>' + successMsg + '</p>' +
-              (data.trackingUrl ? '<a href="' + data.trackingUrl + '" class="btn btn-secondary" target="_blank">' + trackText + '</a>' : '') +
+              (data.trackingUrl ? '<a href="' + escapeHtml(data.trackingUrl) + '" class="btn btn-secondary" target="_blank">' + trackText + '</a>' : '') +
             '</div>';
 
           e.target.style.display = 'none';

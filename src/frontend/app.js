@@ -1812,7 +1812,7 @@
         deployText.textContent = deployment.currentStep || 'Deploying...';
       } else if (deployment?.conclusion === 'success') {
         widget.classList.add('success');
-        statusIcon.innerHTML = \`<img class="avatar" src="\${deployment.author?.avatar || ''}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
+        statusIcon.innerHTML = \`<img class="avatar" src="\${escapeHtml(deployment.author?.avatar) || ''}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
         const updatedAt = new Date(deployment.updatedAt);
         const timeAgo = formatTimeAgo(updatedAt);
         // Show version, release hint if available, and time
@@ -1958,7 +1958,7 @@
 
       const footer = document.createElement('div');
       footer.className = 'changelog-footer';
-      footer.innerHTML = \`<a href="\${changelogCache.repoUrl}/releases" target="_blank">\${swedishMode ? 'Visa alla utgåvor' : 'View all releases'} →</a>\`;
+      footer.innerHTML = \`<a href="\${escapeHtml(changelogCache.repoUrl)}/releases" target="_blank">\${swedishMode ? 'Visa alla utgåvor' : 'View all releases'} →</a>\`;
 
       panel.appendChild(header);
       panel.appendChild(timeline);
@@ -6784,7 +6784,7 @@
             '<div class="invite-success">' +
               '<h3>' + successTitle + '</h3>' +
               '<p>' + successMsg + '</p>' +
-              (data.trackingUrl ? '<a href="' + data.trackingUrl + '" class="btn btn-secondary" target="_blank">' + trackText + '</a>' : '') +
+              (data.trackingUrl ? '<a href="' + escapeHtml(data.trackingUrl) + '" class="btn btn-secondary" target="_blank">' + trackText + '</a>' : '') +
             '</div>';
 
           e.target.style.display = 'none';
