@@ -2886,6 +2886,94 @@
       await showSourceSelector();
     }
 
+    function getWelcomeErrorHtml(error, errorMessages, requestAccessButton) {
+      if (!error) return '';
+      return `<div class="error">${errorMessages[error] || error}${requestAccessButton}</div>`;
+    }
+
+    function getUserCounterHtml(statsData, swedishMode) {
+      return statsData?.userCount ? `
+        <div class="user-counter">
+          <span>${swedishMode ? '🇸🇪' : '🎵'}</span>
+          <span><span class="count">${statsData.userCount}</span> ${t('musicLoversJoined')}</span>
+        </div>
+      ` : '';
+    }
+
+    function getLoginButtonHtml(spotifyOnlyMode) {
+      return spotifyOnlyMode ? `
+        <a href="/auth/spotify" class="btn btn-primary" data-testid="sign-in-button">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 01-.277-1.215c3.809-.87 7.076-.496 9.712 1.115.293.18.386.563.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.972c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.071zm.105-2.835c-3.223-1.914-8.54-2.09-11.618-1.156a.935.935 0 11-.543-1.79c3.533-1.072 9.404-.865 13.115 1.338a.935.935 0 11-.954 1.608z"/>
+          </svg>
+          <span>${t('signInSpotify')}</span>
+        </a>
+      ` : `
+        <a href="/auth/github" class="btn btn-primary" data-testid="sign-in-button">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+          </svg>
+          <span data-i18n="signInGithub">${t('signInGithub')}</span>
+        </a>
+      `;
+    }
+
+    function getPrivacyExplainerHtml() {
+      return `
+        <details class="privacy-explainer">
+          <summary>${t('privacyTitle')}</summary>
+          <div class="privacy-grid">
+            <div class="privacy-item privacy-permission">
+              <span class="privacy-icon">📖</span>
+              <div>
+                <strong>${t('privacyReadLibrary')}</strong>
+                <span>${t('privacyReadLibraryDesc')}</span>
+              </div>
+            </div>
+            <div class="privacy-item privacy-permission">
+              <span class="privacy-icon">👤</span>
+              <div>
+                <strong>${t('privacyReadProfile')}</strong>
+                <span>${t('privacyReadProfileDesc')}</span>
+              </div>
+            </div>
+            <div class="privacy-item privacy-permission">
+              <span class="privacy-icon">📝</span>
+              <div>
+                <strong>${t('privacyCreatePlaylists')}</strong>
+                <span>${t('privacyCreatePlaylistsDesc')}</span>
+              </div>
+            </div>
+            <div class="privacy-divider"></div>
+            <div class="privacy-item privacy-reassurance">
+              <span class="privacy-icon">🛡️</span>
+              <div>
+                <strong>${t('privacyNoDelete')}</strong>
+                <span>${t('privacyNoDeleteDesc')}</span>
+              </div>
+            </div>
+            <div class="privacy-item privacy-reassurance">
+              <span class="privacy-icon">⏱️</span>
+              <div>
+                <strong>${t('privacyTempData')}</strong>
+                <span>${t('privacyTempDataDesc')}</span>
+              </div>
+            </div>
+            <div class="privacy-item privacy-reassurance">
+              <span class="privacy-icon">🔒</span>
+              <div>
+                <strong>${t('privacySecure')}</strong>
+                <span>${t('privacySecureDesc')}</span>
+              </div>
+            </div>
+          </div>
+          <a href="https://github.com/TomsTech/spotify-genre-sorter/blob/main/docs/security.md" target="_blank" class="privacy-docs-link">
+            📄 ${t('privacyReviewDocs')}
+          </a>
+        </details>
+      `;
+    }
+
     function renderWelcome(error) {
       const errorMessages = {
         'github_denied': t('errorGithubDenied'),
@@ -2896,113 +2984,30 @@
         'spotify_auth_failed': 'Spotify authentication failed. Please try again.',
       };
 
-      // User counter HTML - now with Swedish translation
-      const userCounterHtml = statsData?.userCount ? \`
-        <div class="user-counter">
-          <span>\${swedishMode ? '🇸🇪' : '🎵'}</span>
-          <span><span class="count">\${statsData.userCount}</span> \${t('musicLoversJoined')}</span>
-        </div>
-      \` : '';
-
-      // Hall of fame removed - now using sidebar Pioneers section
-
-      // Different login button based on mode
-      const loginButton = spotifyOnlyMode ? \`
-        <a href="/auth/spotify" class="btn btn-primary" data-testid="sign-in-button">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 01-.277-1.215c3.809-.87 7.076-.496 9.712 1.115.293.18.386.563.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.972c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.071zm.105-2.835c-3.223-1.914-8.54-2.09-11.618-1.156a.935.935 0 11-.543-1.79c3.533-1.072 9.404-.865 13.115 1.338a.935.935 0 11-.954 1.608z"/>
-          </svg>
-          <span>\${t('signInSpotify')}</span>
-        </a>
-      \` : \`
-        <a href="/auth/github" class="btn btn-primary" data-testid="sign-in-button">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
-          </svg>
-          <span data-i18n="signInGithub">\${t('signInGithub')}</span>
-        </a>
-      \`;
-
-      // Request access button for not_allowed errors
-      const requestAccessButton = error === 'not_allowed' ? \`
+      const requestAccessButton = error === 'not_allowed' ? `
         <button onclick="showRequestAccessModal()" class="btn btn-secondary request-access-btn">
-          🔑 \${t('requestAccess')}
+          🔑 ${t('requestAccess')}
         </button>
-      \` : '';
+      ` : '';
 
-      // Privacy explainer HTML - collapsible section
-      const privacyExplainer = \`
-        <details class="privacy-explainer">
-          <summary>\${t('privacyTitle')}</summary>
-          <div class="privacy-grid">
-            <div class="privacy-item privacy-permission">
-              <span class="privacy-icon">📖</span>
-              <div>
-                <strong>\${t('privacyReadLibrary')}</strong>
-                <span>\${t('privacyReadLibraryDesc')}</span>
-              </div>
-            </div>
-            <div class="privacy-item privacy-permission">
-              <span class="privacy-icon">👤</span>
-              <div>
-                <strong>\${t('privacyReadProfile')}</strong>
-                <span>\${t('privacyReadProfileDesc')}</span>
-              </div>
-            </div>
-            <div class="privacy-item privacy-permission">
-              <span class="privacy-icon">📝</span>
-              <div>
-                <strong>\${t('privacyCreatePlaylists')}</strong>
-                <span>\${t('privacyCreatePlaylistsDesc')}</span>
-              </div>
-            </div>
-            <div class="privacy-divider"></div>
-            <div class="privacy-item privacy-reassurance">
-              <span class="privacy-icon">🛡️</span>
-              <div>
-                <strong>\${t('privacyNoDelete')}</strong>
-                <span>\${t('privacyNoDeleteDesc')}</span>
-              </div>
-            </div>
-            <div class="privacy-item privacy-reassurance">
-              <span class="privacy-icon">⏱️</span>
-              <div>
-                <strong>\${t('privacyTempData')}</strong>
-                <span>\${t('privacyTempDataDesc')}</span>
-              </div>
-            </div>
-            <div class="privacy-item privacy-reassurance">
-              <span class="privacy-icon">🔒</span>
-              <div>
-                <strong>\${t('privacySecure')}</strong>
-                <span>\${t('privacySecureDesc')}</span>
-              </div>
-            </div>
-          </div>
-          <a href="https://github.com/TomsTech/spotify-genre-sorter/blob/main/docs/security.md" target="_blank" class="privacy-docs-link">
-            📄 \${t('privacyReviewDocs')}
-          </a>
-        </details>
-      \`;
-
-      app.innerHTML = \`
+      app.innerHTML = `
         <div class="welcome">
-          \${error ? \`<div class="error">\${errorMessages[error] || error}\${requestAccessButton}</div>\` : ''}
-          \${userCounterHtml}
-          <h2 data-i18n="organiseMusic">\${t('organiseMusic')}</h2>
-          <p data-i18n="organiseDesc">\${t('organiseDesc')}</p>
-          \${privacyExplainer}
-          \${loginButton}
+          ${getWelcomeErrorHtml(error, errorMessages, requestAccessButton)}
+          ${getUserCounterHtml(statsData, swedishMode)}
+          <h2 data-i18n="organiseMusic">${t('organiseMusic')}</h2>
+          <p data-i18n="organiseDesc">${t('organiseDesc')}</p>
+          ${getPrivacyExplainerHtml()}
+          ${getLoginButtonHtml(spotifyOnlyMode)}
           <div class="footer-badges">
-            <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank" class="github-star-badge" title="\${swedishMode ? 'Gillar du det? Stjärnmärk oss! ⭐' : 'Love this? Star us! ⭐'}">
+            <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank" class="github-star-badge" title="${swedishMode ? 'Gillar du det? Stjärnmärk oss! ⭐' : 'Love this? Star us! ⭐'}">
               <img src="https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=for-the-badge&logo=github&logoColor=white&label=Star&color=1DB954&labelColor=191414" alt="Star on GitHub" loading="lazy" onerror="this.style.display='none'">
             </a>
-            <a href="https://spotify.houstons.tech" target="_blank" class="uptime-badge" title="\${swedishMode ? 'Tjänststatus' : 'Service Status'}">
+            <a href="https://spotify.houstons.tech" target="_blank" class="uptime-badge" title="${swedishMode ? 'Tjänststatus' : 'Service Status'}">
               <img src="https://img.shields.io/website?url=https%3A%2F%2Fspotify.houstons.tech&style=for-the-badge&logo=spotify&logoColor=white&label=Status&up_color=1DB954&down_color=e74c3c&labelColor=191414" alt="Service Status" loading="lazy" onerror="this.style.display='none'">
             </a>
           </div>
         </div>
-      \`;
+      `;
     }
 
     function renderHeaderUser(session) {
