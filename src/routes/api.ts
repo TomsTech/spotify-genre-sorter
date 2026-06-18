@@ -1849,7 +1849,6 @@ api.post('/log-error', async (c) => {
     }
 
     // Get existing errors (last 100)
-    // CRITICAL FIX: Use cachedKV for error log reads
     const existing = await cachedKV.get<unknown[]>(c.env.SESSIONS, ERROR_LOG_KEY) || [];
 
     // Add new errors with server timestamp
@@ -1862,7 +1861,6 @@ api.post('/log-error', async (c) => {
     // Keep last 100 errors
     const combined = [...newErrors, ...existing].slice(0, 100);
 
-    // CRITICAL FIX: Use cachedKV with batching for error logs (non-critical, can be delayed)
     await cachedKV.put(c.env.SESSIONS, ERROR_LOG_KEY, JSON.stringify(combined), {
       expirationTtl: 86400 * 7, // 7 days
       immediate: false // Batch error logs to reduce KV writes
@@ -1890,7 +1888,6 @@ api.post('/log-perf', async (c) => {
     }
 
     // Get existing perf data (last 1000 samples)
-    // CRITICAL FIX: Use cachedKV for perf log reads
     const existing = await cachedKV.get<unknown[]>(c.env.SESSIONS, PERF_LOG_KEY) || [];
 
     // Add new sample
@@ -1905,7 +1902,6 @@ api.post('/log-perf', async (c) => {
 
     const combined = [sample, ...existing].slice(0, 1000);
 
-    // CRITICAL FIX: Use cachedKV with batching for perf logs (non-critical, can be delayed)
     await cachedKV.put(c.env.SESSIONS, PERF_LOG_KEY, JSON.stringify(combined), {
       expirationTtl: 86400 * 30, // 30 days
       immediate: false // Batch perf logs to reduce KV writes
