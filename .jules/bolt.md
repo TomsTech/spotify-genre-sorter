@@ -20,3 +20,6 @@
 ## 2024-06-14 - [Optimize Genre Aggregation]
 **Learning:** When aggregating nested relations (e.g., tracks -> artists -> genres), creating temporary Sets for uniqueness on a per-item basis inside a loop generates massive garbage collection overhead.
 **Action:** Instantiate a single reusable Set outside the loop and use .clear() to achieve O(1) deduplication without the memory penalty of continuous object allocation.
+## 2024-06-15 - [Optimize Track Genre Aggregation]
+**Learning:** Instantiating a new `Set` inside a nested loop for deduping per-track genres causes massive garbage collection overhead when dealing with large Spotify libraries.
+**Action:** Pulled the `Set` instantiation out of the loop and cleared it each iteration to process each track, significantly reducing memory allocation pressure while retaining O(N) lookup/add performance.
