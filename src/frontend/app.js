@@ -3466,102 +3466,114 @@
       playlists: [] // Array of playlist IDs to include
     };
 
+    async function fetchUserPlaylists() {
+      const response = await fetch('/api/user-playlists');
+      if (!response.ok) {
+        return null;
+      }
+      const data = await response.json();
+      return data.playlists || [];
+    }
+
+    function buildSourceSelectorModal(playlists) {
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay source-selector-modal';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width: 500px; max-height: 80vh; overflow-y: auto;">
+          <h2>${swedishMode ? '🎵 Välj musikkällor' : '🎵 Select Music Sources'}</h2>
+          <p style="color: var(--text-muted); margin-bottom: 1rem;">
+            ${swedishMode ? 'Välj vilka låtar som ska analyseras för genrer:' : 'Choose which songs to analyze for genres:'}
+          </p>
+
+          <div class="source-options">
+            <label class="source-option source-liked">
+              <input type="checkbox" id="source-liked" checked>
+              <span class="source-icon">❤️</span>
+              <span class="source-info">
+                <span class="source-name">${swedishMode ? 'Gillade låtar' : 'Liked Songs'}</span>
+                <span class="source-desc">${swedishMode ? 'Ditt Spotify-bibliotek' : 'Your Spotify library'}</span>
+              </span>
+            </label>
+
+            ${playlists.length > 0 ? `
+              <div class="source-divider">
+                <span>${swedishMode ? 'Dina spellistor' : 'Your Playlists'}</span>
+              </div>
+              ${playlists.slice(0, 20).map(p => `
+                <label class="source-option">
+                  <input type="checkbox" data-playlist-id="${p.id}">
+                  <span class="source-icon">${p.image ? `<img src="${p.image}" alt="">` : '🎵'}</span>
+                  <span class="source-info">
+                    <span class="source-name">${escapeHtml(p.name)}</span>
+                    <span class="source-desc">${p.trackCount} ${swedishMode ? 'låtar' : 'tracks'}</span>
+                  </span>
+                </label>
+              `).join('')}
+              ${playlists.length > 20 ? `<p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">+ ${playlists.length - 20} ${swedishMode ? 'fler spellistor' : 'more playlists'}...</p>` : ''}
+            ` : ''}
+          </div>
+
+          <div class="modal-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end;">
+            <button class="btn btn-ghost" id="source-cancel">${swedishMode ? 'Avbryt' : 'Cancel'}</button>
+            <button class="btn btn-primary" id="source-confirm">
+              ${swedishMode ? '🔍 Börja analysera' : '🔍 Start Analysis'}
+            </button>
+          </div>
+        </div>
+      `;
+      return modal;
+    }
+
+    function setupSourceSelectorListeners(modal) {
+      // Handle cancel
+      modal.querySelector('#source-cancel').addEventListener('click', () => {
+        modal.remove();
+      });
+
+      // Handle confirm
+      modal.querySelector('#source-confirm').addEventListener('click', async () => {
+        const likedChecked = modal.querySelector('#source-liked').checked;
+        const playlistCheckboxes = modal.querySelectorAll('input[data-playlist-id]:checked');
+        const selectedPlaylistIds = Array.from(playlistCheckboxes).map(cb => cb.dataset.playlistId);
+
+        if (!likedChecked && selectedPlaylistIds.length === 0) {
+          showNotification(
+            swedishMode ? 'Välj minst en källa!' : 'Select at least one source!',
+            'warning'
+          );
+          return;
+        }
+
+        selectedSources = {
+          likedSongs: likedChecked,
+          playlists: selectedPlaylistIds
+        };
+
+        modal.remove();
+        await loadGenres();
+      });
+
+      // Close on backdrop click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+      });
+    }
+
     // Show source selector modal before scanning
     async function showSourceSelector() {
       try {
-        // Fetch user's playlists
-        const response = await fetch('/api/user-playlists');
-        if (!response.ok) {
-          // If we can't fetch playlists, just proceed with liked songs only
+        const playlists = await fetchUserPlaylists();
+        if (playlists === null) {
           console.warn('Could not fetch playlists, using liked songs only');
           selectedSources = { likedSongs: true, playlists: [] };
           await loadGenres();
           return;
         }
-        const data = await response.json();
-        const playlists = data.playlists || [];
 
-        // Create modal
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay source-selector-modal';
-        modal.innerHTML = \`
-          <div class="modal-content" style="max-width: 500px; max-height: 80vh; overflow-y: auto;">
-            <h2>\${swedishMode ? '🎵 Välj musikkällor' : '🎵 Select Music Sources'}</h2>
-            <p style="color: var(--text-muted); margin-bottom: 1rem;">
-              \${swedishMode ? 'Välj vilka låtar som ska analyseras för genrer:' : 'Choose which songs to analyze for genres:'}
-            </p>
-
-            <div class="source-options">
-              <label class="source-option source-liked">
-                <input type="checkbox" id="source-liked" checked>
-                <span class="source-icon">❤️</span>
-                <span class="source-info">
-                  <span class="source-name">\${swedishMode ? 'Gillade låtar' : 'Liked Songs'}</span>
-                  <span class="source-desc">\${swedishMode ? 'Ditt Spotify-bibliotek' : 'Your Spotify library'}</span>
-                </span>
-              </label>
-
-              \${playlists.length > 0 ? \`
-                <div class="source-divider">
-                  <span>\${swedishMode ? 'Dina spellistor' : 'Your Playlists'}</span>
-                </div>
-                \${playlists.slice(0, 20).map(p => \`
-                  <label class="source-option">
-                    <input type="checkbox" data-playlist-id="\${p.id}">
-                    <span class="source-icon">\${p.image ? \`<img src="\${p.image}" alt="">\` : '🎵'}</span>
-                    <span class="source-info">
-                      <span class="source-name">\${escapeHtml(p.name)}</span>
-                      <span class="source-desc">\${p.trackCount} \${swedishMode ? 'låtar' : 'tracks'}</span>
-                    </span>
-                  </label>
-                \`).join('')}
-                \${playlists.length > 20 ? \`<p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">+ \${playlists.length - 20} \${swedishMode ? 'fler spellistor' : 'more playlists'}...</p>\` : ''}
-              \` : ''}
-            </div>
-
-            <div class="modal-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end;">
-              <button class="btn btn-ghost" id="source-cancel">\${swedishMode ? 'Avbryt' : 'Cancel'}</button>
-              <button class="btn btn-primary" id="source-confirm">
-                \${swedishMode ? '🔍 Börja analysera' : '🔍 Start Analysis'}
-              </button>
-            </div>
-          </div>
-        \`;
-
+        const modal = buildSourceSelectorModal(playlists);
         document.body.appendChild(modal);
 
-        // Handle cancel
-        modal.querySelector('#source-cancel').addEventListener('click', () => {
-          modal.remove();
-        });
-
-        // Handle confirm
-        modal.querySelector('#source-confirm').addEventListener('click', async () => {
-          const likedChecked = modal.querySelector('#source-liked').checked;
-          const playlistCheckboxes = modal.querySelectorAll('input[data-playlist-id]:checked');
-          const selectedPlaylistIds = Array.from(playlistCheckboxes).map(cb => cb.dataset.playlistId);
-
-          if (!likedChecked && selectedPlaylistIds.length === 0) {
-            showNotification(
-              swedishMode ? 'Välj minst en källa!' : 'Select at least one source!',
-              'warning'
-            );
-            return;
-          }
-
-          selectedSources = {
-            likedSongs: likedChecked,
-            playlists: selectedPlaylistIds
-          };
-
-          modal.remove();
-          await loadGenres();
-        });
-
-        // Close on backdrop click
-        modal.addEventListener('click', (e) => {
-          if (e.target === modal) modal.remove();
-        });
+        setupSourceSelectorListeners(modal);
 
       } catch (err) {
         console.error('Error showing source selector:', err);
@@ -3570,6 +3582,7 @@
         await loadGenres();
       }
     }
+
 
     // Save scan progress to localStorage for resume capability
     function saveScanState() {
