@@ -463,26 +463,32 @@ export async function addTracksToPlaylist(
   // PERF-001 FIX: Parallelize playlist additions for faster bulk operations
   // Note: Using a controlled concurrency limit of 3 to balance speed and safety.
   const CONCURRENCY_LIMIT = 3;
-  for (let i = 0; i < trackUris.length; i += 100 * CONCURRENCY_LIMIT) {
-    const batchPromises = [];
-    for (let j = 0; j < CONCURRENCY_LIMIT && (i + j * 100) < trackUris.length; j++) {
-      const chunkStart = i + j * 100;
-      const chunk = trackUris.slice(chunkStart, chunkStart + 100);
-      batchPromises.push(
-        (async () => {
-          try {
-            await spotifyFetch(`/playlists/${playlistId}/tracks`, accessToken, {
-              method: 'POST',
-              body: JSON.stringify({ uris: chunk }),
-            });
-          } catch (error) {
-            console.error(`Failed to add tracks chunk starting at index ${chunkStart}:`, error);
-          }
-        })()
-      );
+  const activePromises = new Set<Promise<void>>();
+
+  for (let i = 0; i < trackUris.length; i += 100) {
+    const chunkStart = i;
+    const chunk = trackUris.slice(chunkStart, chunkStart + 100);
+
+    const promise = (async () => {
+      try {
+        await spotifyFetch(`/playlists/${playlistId}/tracks`, accessToken, {
+          method: 'POST',
+          body: JSON.stringify({ uris: chunk }),
+        });
+      } catch (error) {
+        console.error(`Failed to add tracks chunk starting at index ${chunkStart}:`, error);
+      }
+    })();
+
+    activePromises.add(promise);
+    void promise.finally(() => activePromises.delete(promise));
+
+    if (activePromises.size >= CONCURRENCY_LIMIT) {
+      await Promise.race(activePromises);
     }
-    await Promise.all(batchPromises);
   }
+
+  await Promise.all(activePromises);
 }
 
 export async function getCurrentUser(

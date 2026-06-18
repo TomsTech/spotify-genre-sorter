@@ -20,3 +20,7 @@
 ## 2024-06-14 - [Optimize Genre Aggregation]
 **Learning:** When aggregating nested relations (e.g., tracks -> artists -> genres), creating temporary Sets for uniqueness on a per-item basis inside a loop generates massive garbage collection overhead.
 **Action:** Instantiate a single reusable Set outside the loop and use .clear() to achieve O(1) deduplication without the memory penalty of continuous object allocation.
+
+## 2024-06-18 - Sliding Window Concurrency
+**Learning:** Sequential batching of promises using nested loops and `Promise.all` causes unnecessary pipeline stalls where fast promises wait for the slowest promise in a chunk.
+**Action:** Always use a sliding window concurrency pattern via `Set` and `Promise.race()` to keep maximum concurrency saturated across batch processing.
