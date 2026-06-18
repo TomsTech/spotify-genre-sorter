@@ -1849,7 +1849,6 @@ api.post('/log-error', async (c) => {
     }
 
     // Get existing errors (last 100)
-    // CRITICAL FIX: Use cachedKV for error log reads
     const existing = await cachedKV.get<unknown[]>(c.env.SESSIONS, ERROR_LOG_KEY) || [];
 
     // Add new errors with server timestamp
