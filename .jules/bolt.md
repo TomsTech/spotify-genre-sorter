@@ -20,3 +20,6 @@
 ## 2024-06-14 - [Optimize Genre Aggregation]
 **Learning:** When aggregating nested relations (e.g., tracks -> artists -> genres), creating temporary Sets for uniqueness on a per-item basis inside a loop generates massive garbage collection overhead.
 **Action:** Instantiate a single reusable Set outside the loop and use .clear() to achieve O(1) deduplication without the memory penalty of continuous object allocation.
+## 2024-05-19 - [API Performance] Optimize Loop Over I/O Boundaries
+**Learning:** Sequential async operations within a loop over large collections severely limits throughput because both KV writes and Spotify API calls wait idly instead of running in parallel. Standard `Promise.all(array.map())` hits Cloudflare limits or Spotify API rate-limits due to unbounded concurrency.
+**Action:** Always employ a bound-concurrency pattern via utilities such as `pMap` with limits (e.g., `concurrency: 3`) to safely parallelize operations within loops, maximizing throughput while remaining beneath limits.

@@ -1,4 +1,6 @@
 import { Hono } from 'hono';
+import { pMap } from '../lib/p-map';
+
 import {
   getSession,
   updateSession,
@@ -1227,20 +1229,17 @@ api.post('/playlists/bulk', async (c) => {
         .map(p => p.name.toLowerCase())
     );
 
-    const results: { genre: string; success: boolean; url?: string; error?: string; skipped?: boolean }[] = [];
-
-    for (const { name, trackIds } of genres) {
+    const token = session.spotifyAccessToken;
+    const mappedResults = await pMap(genres, async ({ name, trackIds }) => {
       // Validate each genre
       const genreValidation = sanitiseGenreName(name);
       if (!genreValidation.valid) {
-        results.push({ genre: String(name), success: false, error: genreValidation.error });
-        continue;
+        return { genre: String(name), success: false, error: genreValidation.error };
       }
 
       const trackValidation = validateTrackIds(trackIds);
       if (!trackValidation.valid) {
-        results.push({ genre: genreValidation.value, success: false, error: trackValidation.error });
-        continue;
+        return { genre: genreValidation.value, success: false, error: trackValidation.error };
       }
 
       const safeName = genreValidation.value;
@@ -1249,21 +1248,19 @@ api.post('/playlists/bulk', async (c) => {
       // Check for duplicate
       if (existingNames.has(playlistName.toLowerCase())) {
         if (skipDuplicates) {
-          results.push({
+          return {
             genre: safeName,
             success: false,
             skipped: true,
             error: 'Playlist already exists',
-          });
-          continue;
+          };
         }
       }
 
       try {
         const safeTrackIds = trackValidation.value;
 
-        const playlist = await createPlaylist(
-          session.spotifyAccessToken,
+        const playlist = await createPlaylist(token,
           user.id,
           playlistName,
           `${safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`,
@@ -1271,7 +1268,7 @@ api.post('/playlists/bulk', async (c) => {
         );
 
         const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
-        await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
+        await addTracksToPlaylist(token, playlist.id, trackUris);
 
         // Add to existing names to prevent duplicates within same batch
         existingNames.add(playlistName.toLowerCase());
@@ -1295,20 +1292,22 @@ api.post('/playlists/bulk', async (c) => {
         };
         await addRecentPlaylist(c.env.SESSIONS, recentPlaylist);
 
-        results.push({
+        return {
           genre: safeName,
           success: true,
           url: playlist.external_urls.spotify,
-        });
+        };
       } catch {
         // Don't expose internal error details
-        results.push({
+        return {
           genre: safeName,
           success: false,
           error: 'Failed to create playlist',
-        });
+        };
       }
-    }
+    }, { concurrency: 3 });
+
+    const results = mappedResults.filter((r): r is NonNullable<typeof r> => r !== undefined);
 
     // Invalidate cache if any playlists were created
     const successCount = results.filter(r => r.success).length;
