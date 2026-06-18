@@ -989,7 +989,6 @@ api.get('/genres/chunk', async (c) => {
     };
 
     // Cache this chunk
-    // CRITICAL FIX: Use cachedKV for chunk cache writes
     await cachedKV.put(c.env.SESSIONS, chunkCacheKey, JSON.stringify(chunkData), {
       expirationTtl: GENRE_CACHE_TTL,
       immediate: false // Can be batched - chunks are accessed sequentially
