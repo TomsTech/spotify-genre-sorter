@@ -78,22 +78,21 @@ async function registerUser(
 ): Promise<void> {
   const key = `user:${spotifyId}`;
   // PERF-011 FIX: Use cachedKV for user registration to reduce KV reads
-  const existingStr = await cachedKV.getString(kv, key);
+  const data = await cachedKV.get<{
+    spotifyId: string;
+    spotifyName: string;
+    spotifyAvatar?: string;
+    githubUser?: string;
+    registeredAt: string;
+    lastSeenAt: string;
+  }>(kv, key);
   const now = new Date().toISOString();
 
   // Track sign-in
   await trackAnalyticsEvent(kv, 'signIn', { visitorId: spotifyId });
 
-  if (existingStr) {
+  if (data) {
     // Update last seen
-    const data = JSON.parse(existingStr) as {
-      spotifyId: string;
-      spotifyName: string;
-      spotifyAvatar?: string;
-      githubUser?: string;
-      registeredAt: string;
-      lastSeenAt: string;
-    };
     data.lastSeenAt = now;
     data.spotifyName = spotifyName;
     if (spotifyAvatar) data.spotifyAvatar = spotifyAvatar;
