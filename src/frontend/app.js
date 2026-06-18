@@ -7700,41 +7700,9 @@
       ]
     };
 
-    function showGenreWrapped() {
-      // Get current genre data from the app state
-      const genres = window.currentGenres || [];
-      if (genres.length === 0) {
-        alert(swedishMode ? 'Analysera dina låtar först!' : 'Analyze your tracks first!');
-        return;
-      }
-
-      const existing = document.querySelector('.wrapped-overlay');
-      if (existing) existing.remove();
-
-      // Calculate stats - use actual track count, not genre assignment sum
-      const totalTracks = genreData?.totalTracks || window.totalTracks || genres.length;
-      const topGenres = genres.slice(0, 5);
-      const topFamily = getGenreFamily(topGenres[0]?.name || '');
-      const diversityScore = calculateDiversityScore(genres);
-      const personality = GENRE_PERSONALITIES[topFamily] || GENRE_PERSONALITIES.other;
-      const lang = swedishMode ? 'sv' : 'en';
-      const gradient = swedishMode ? GENRE_GRADIENTS.swedish : (GENRE_GRADIENTS[topFamily] || GENRE_GRADIENTS.other);
-      const reading = getRandomReading(topFamily, lang);
-
-      // Get unique artists count from actual data or estimate
-      const uniqueArtists = genreData?.totalArtists || Math.round(totalTracks * 0.6);
-
-      // Random fun fact
-      const facts = WRAPPED_FACTS[lang];
-      const fact = facts[Math.floor(Math.random() * facts.length)]
-        .replace('{pct}', Math.max(5, 100 - diversityScore))
-        .replace('{count}', genres.length)
-        .replace('{artists}', uniqueArtists)
-        .replace('{genres}', genres.length);
-
-      // Build top genres bars
+    function buildGenreBarsHtml(topGenres) {
       const maxCount = topGenres[0]?.count || 1;
-      const genreBars = topGenres.map((g, i) => {
+      return topGenres.map((g, i) => {
         const pct = Math.round((g.count / maxCount) * 100);
         const delay = i * 0.1;
         return '<div class="wrapped-genre-bar" style="animation-delay: ' + delay + 's">' +
@@ -7745,53 +7713,86 @@
                '  </div>' +
                '</div>';
       }).join('');
+    }
 
-      // Get user info
+    function prepareGenreWrappedData(genres) {
+      const totalTracks = genreData?.totalTracks || window.totalTracks || genres.length;
+      const topGenres = genres.slice(0, 5);
+      const topFamily = getGenreFamily(topGenres[0]?.name || '');
+      const diversityScore = calculateDiversityScore(genres);
+      const personality = GENRE_PERSONALITIES[topFamily] || GENRE_PERSONALITIES.other;
+      const lang = swedishMode ? 'sv' : 'en';
+      const gradient = swedishMode ? GENRE_GRADIENTS.swedish : (GENRE_GRADIENTS[topFamily] || GENRE_GRADIENTS.other);
+      const reading = getRandomReading(topFamily, lang);
+      const uniqueArtists = genreData?.totalArtists || Math.round(totalTracks * 0.6);
+
+      const facts = WRAPPED_FACTS[lang];
+      const fact = facts[Math.floor(Math.random() * facts.length)]
+        .replace('{pct}', Math.max(5, 100 - diversityScore))
+        .replace('{count}', genres.length)
+        .replace('{artists}', uniqueArtists)
+        .replace('{genres}', genres.length);
+
+      const genreBars = buildGenreBarsHtml(topGenres);
       const userName = window.currentUser?.display_name || 'Music Lover';
       const userAvatar = window.currentUser?.images?.[0]?.url || '';
 
-      const modal = document.createElement('div');
-      modal.className = 'wrapped-overlay';
-      modal.innerHTML = [
+      return {
+        genresLength: genres.length,
+        totalTracks,
+        diversityScore,
+        personality,
+        lang,
+        gradient,
+        reading,
+        fact,
+        genreBars,
+        userName,
+        userAvatar
+      };
+    }
+
+    function buildGenreWrappedHtml(data) {
+      return [
         '<div class="wrapped-container">',
         '  <button class="wrapped-close" onclick="this.closest(\'.wrapped-overlay\').remove()" aria-label="Close">&times;</button>',
-        '  <div class="wrapped-card" id="wrapped-card" style="background: ' + gradient + '">',
+        '  <div class="wrapped-card" id="wrapped-card" style="background: ' + data.gradient + '">',
         '    <div class="wrapped-header">',
         '      <div class="wrapped-logo">',
         '        <span class="wrapped-logo-icon">🧞</span>',
         '        <span class="wrapped-logo-text">Genre Genie</span>',
         '      </div>',
-        userAvatar ? '      <img src="' + escapeHtml(userAvatar) + '" class="wrapped-avatar" alt="' + escapeHtml(userName) + '" />' : '',
+        data.userAvatar ? '      <img src="' + escapeHtml(data.userAvatar) + '" class="wrapped-avatar" alt="' + escapeHtml(data.userName) + '" />' : '',
         '    </div>',
         '    <div class="wrapped-personality">',
-        '      <span class="wrapped-emoji">' + personality[lang].emoji + '</span>',
-        '      <h2 class="wrapped-title">' + personality[lang].title + '</h2>',
-        '      <p class="wrapped-desc">' + personality[lang].desc + '</p>',
-        '      <p class="wrapped-reading">"' + reading + '"</p>',
+        '      <span class="wrapped-emoji">' + data.personality[data.lang].emoji + '</span>',
+        '      <h2 class="wrapped-title">' + data.personality[data.lang].title + '</h2>',
+        '      <p class="wrapped-desc">' + data.personality[data.lang].desc + '</p>',
+        '      <p class="wrapped-reading">"' + data.reading + '"</p>',
         '    </div>',
         '    <div class="wrapped-stats">',
         '      <div class="wrapped-stat">',
-        '        <span class="wrapped-stat-value">' + totalTracks + '</span>',
+        '        <span class="wrapped-stat-value">' + data.totalTracks + '</span>',
         '        <span class="wrapped-stat-label">' + (swedishMode ? 'Låtar' : 'Tracks') + '</span>',
         '      </div>',
         '      <div class="wrapped-stat">',
-        '        <span class="wrapped-stat-value">' + genres.length + '</span>',
+        '        <span class="wrapped-stat-value">' + data.genresLength + '</span>',
         '        <span class="wrapped-stat-label">' + (swedishMode ? 'Genrer' : 'Genres') + '</span>',
         '      </div>',
         '      <div class="wrapped-stat">',
-        '        <span class="wrapped-stat-value">' + diversityScore + '%</span>',
+        '        <span class="wrapped-stat-value">' + data.diversityScore + '%</span>',
         '        <span class="wrapped-stat-label">' + (swedishMode ? 'Mångfald' : 'Diversity') + '</span>',
         '      </div>',
         '    </div>',
         '    <div class="wrapped-top-genres">',
         '      <h3>' + (swedishMode ? 'Dina Toppgenrer' : 'Your Top Genres') + '</h3>',
-        '      ' + genreBars,
+        '      ' + data.genreBars,
         '    </div>',
         '    <div class="wrapped-fact">',
-        '      <p>"' + fact + '"</p>',
+        '      <p>"' + data.fact + '"</p>',
         '    </div>',
         '    <div class="wrapped-footer">',
-        '      <span class="wrapped-user">' + escapeHtml(userName) + '</span>',
+        '      <span class="wrapped-user">' + escapeHtml(data.userName) + '</span>',
         '      <span class="wrapped-date">' + new Date().toLocaleDateString(swedishMode ? 'sv-SE' : 'en-US', { month: 'short', year: 'numeric' }) + '</span>',
         '    </div>',
         '  </div>',
@@ -7808,6 +7809,23 @@
         '  </div>',
         '</div>'
       ].join('');
+    }
+
+    function showGenreWrapped() {
+      const genres = window.currentGenres || [];
+      if (genres.length === 0) {
+        alert(swedishMode ? 'Analysera dina låtar först!' : 'Analyze your tracks first!');
+        return;
+      }
+
+      const existing = document.querySelector('.wrapped-overlay');
+      if (existing) existing.remove();
+
+      const data = prepareGenreWrappedData(genres);
+
+      const modal = document.createElement('div');
+      modal.className = 'wrapped-overlay';
+      modal.innerHTML = buildGenreWrappedHtml(data);
 
       document.body.appendChild(modal);
       modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
