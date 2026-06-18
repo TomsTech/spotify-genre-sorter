@@ -1671,21 +1671,26 @@ api.get('/scan-playlist/:playlistId', async (c) => {
     // Aggregate genres
     const genreCounts = new Map<string, { count: number; trackIds: string[] }>();
 
-    const reusableTrackGenresSet = new Set<string>();
     for (const track of trackData) {
-      reusableTrackGenresSet.clear();
-      for (const artistId of track.artistIds) {
-        const genres = artistGenres.get(artistId) || [];
-        for (let i = 0; i < genres.length; i++) {
-          reusableTrackGenresSet.add(genres[i]);
-        }
-      }
+      const trackGenresSet = new Set<string>();
 
-      for (const genre of reusableTrackGenresSet) {
-        const existing = genreCounts.get(genre) || { count: 0, trackIds: [] };
-        existing.count++;
-        existing.trackIds.push(track.id);
-        genreCounts.set(genre, existing);
+      for (const artistId of track.artistIds) {
+        const genres = artistGenres.get(artistId);
+        if (!genres) continue;
+
+        for (let i = 0; i < genres.length; i++) {
+          const genre = genres[i];
+          if (!trackGenresSet.has(genre)) {
+            trackGenresSet.add(genre);
+            let existing = genreCounts.get(genre);
+            if (!existing) {
+              existing = { count: 0, trackIds: [] };
+              genreCounts.set(genre, existing);
+            }
+            existing.count++;
+            existing.trackIds.push(track.id);
+          }
+        }
       }
     }
 
