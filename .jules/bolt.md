@@ -20,3 +20,4 @@
 ## 2024-06-14 - [Optimize Genre Aggregation]
 **Learning:** When aggregating nested relations (e.g., tracks -> artists -> genres), creating temporary Sets for uniqueness on a per-item basis inside a loop generates massive garbage collection overhead.
 **Action:** Instantiate a single reusable Set outside the loop and use .clear() to achieve O(1) deduplication without the memory penalty of continuous object allocation.
+## 2025-05-24 - [PERF-018 FIX: Interleave JSON.parse with KV fetches] **Learning:** Sometimes a task to implement a fix might actually be pointing out a fix that is already present in the code, and the only required action is to remove the tracking comment. **Action:** Next time I encounter a performance fix task, I will thoroughly review the context to see if the fix is already implemented before attempting to rewrite functional code.
