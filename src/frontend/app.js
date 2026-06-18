@@ -4134,108 +4134,122 @@
     }
 
     // Fun Spotify Wrapped-style quotes based on diversity score
+    const DIVERSITY_QUOTES = {
+      high: {
+        sv: [
+          'Din musiksmak? Omöjlig att sätta i ett fack. Du är en genre-anomali!',
+          'Du lyssnar på allt från ABBA till death metal. Respekt.',
+          'Dina spellistor ger Spotify-algoritmerna existentiell kris.',
+          'Du är typ den där personen som DJ:ar på fester med "vänta, ni MÅSTE höra den här".',
+          'Musikalisk kameleont med oförutsägbar nästa låt.',
+          'Du har sagt "jag gillar typ allt" och faktiskt menat det.',
+          'Din shuffle är en berg-och-dalbana ingen bad om men alla behöver.',
+          'Genre? Aldrig hört talas om henne.',
+        ],
+        en: [
+          'Your music taste? Impossible to pigeonhole. You are a genre anomaly.',
+          'You listen to everything from ABBA to death metal. Respect.',
+          'Your playlists give Spotify algorithms an existential crisis.',
+          'You are that person who DJs at parties with "wait, you HAVE to hear this one".',
+          'Musical chameleon with an unpredictable next track.',
+          'You have said "I like basically everything" and actually meant it.',
+          'Your shuffle is a rollercoaster nobody asked for but everyone needs.',
+          'Genre? Never heard of her.',
+        ]
+      },
+      diverse: {
+        sv: [
+          'Du gillar variation! Dina öron är nyfikna äventyrare.',
+          'Bra blandning! Du vet vad du gillar men är öppen för överraskningar.',
+          'Din musiksmak är som en välkryddad måltid - lite av varje.',
+          'Du har en bred smak men det är inte kaotiskt. Organiserat eklektiskt.',
+          'Du växlar mellan stämningar som en proffs.',
+          'Mångsidighet är ditt mellannamn. Eller borde vara.',
+          'Du är den vännen alla frågar om musikrekommendationer.',
+        ],
+        en: [
+          'You like variety! Your ears are curious adventurers.',
+          'Nice mix! You know what you like but stay open to surprises.',
+          'Your music taste is like a well-seasoned meal - a bit of everything.',
+          'You have broad taste but it is not chaotic. Organised eclectic.',
+          'You switch between moods like a pro.',
+          'Versatility is your middle name. Or should be.',
+          'You are the friend everyone asks for music recommendations.',
+        ]
+      },
+      moderate: {
+        sv: [
+          'Du har hittat din groove och du äger den!',
+          'Bekväm i dina favoritgenrer, men du tar ibland en omväg.',
+          'Solid grund med plats för utforskning när stämningen stämmer.',
+          'Du vet vad du gillar - ingen skam i det spelet.',
+          'Din musiksmak har en tydlig identitet och det är vackert.',
+          'Balanserad som en bra playlist. Lagom är bäst.',
+          'Du har dina go-to-genrer och det är helt rätt.',
+        ],
+        en: [
+          'You have found your groove and you own it!',
+          'Comfortable in your favourite genres, but you take a detour sometimes.',
+          'Solid foundation with room for exploration when the mood strikes.',
+          'You know what you like - no shame in that game.',
+          'Your music taste has a clear identity and that is beautiful.',
+          'Balanced like a good playlist. Goldilocks approved.',
+          'You have your go-to genres and that is perfectly valid.',
+        ]
+      },
+      focused: {
+        sv: [
+          'Du har en typ och du håller dig till den. Konsekvent legend.',
+          'Dedikerad lyssnare alert! Du vet exakt vad du vill ha.',
+          'Låt ingen säga att du inte är engagerad.',
+          'Genre-specialist! Du har valt din bana och du kör hårt.',
+          'Djup kunskap > bred kunskap. Du gräver djupt.',
+          'Du är den där vännen som vet ALLT om en specifik genre.',
+          'Fokuserad energi. Inga distraktioner. Ren musiksmak.',
+        ],
+        en: [
+          'You have a type and you stick with it. Consistent legend.',
+          'Dedicated listener alert! You know exactly what you want.',
+          'Let nobody say you are not committed.',
+          'Genre specialist! You picked your lane and you are thriving.',
+          'Deep knowledge > broad knowledge. You dig deep.',
+          'You are that friend who knows EVERYTHING about one specific genre.',
+          'Focused energy. No distractions. Pure music taste.',
+        ]
+      },
+      veryFocused: {
+        sv: [
+          'En genre att styra dem alla! Du är fullt dedikerad.',
+          'Du har hittat DET ljudet och du släpper det inte.',
+          'Laser-fokuserad musiksmak. Ingen ifrågasätter din dedikation.',
+          'Du vet vad du gillar och du äger det. Absolut inga ursäkter.',
+          'Genremästare! 100% koncentrerad passion.',
+          'När du gillar något, gillar du det PÅ RIKTIGT.',
+          'Din musikbibliotek har en estetik och den är tight.',
+          'Dedikation nivå: Expert. Du har valt din grej.',
+        ],
+        en: [
+          'One genre to rule them all! You are fully committed.',
+          'You found THE sound and you are not letting go.',
+          'Laser-focused music taste. Nobody questions your dedication.',
+          'You know what you like and you own it. Zero apologies.',
+          'Genre master! 100% concentrated passion.',
+          'When you like something, you REALLY like it.',
+          'Your music library has an aesthetic and it is tight.',
+          'Dedication level: Expert. You picked your thing.',
+        ]
+      }
+    };
+
     function getDiversityQuote(score) {
-      const highDiversityQuotes = swedishMode ? [
-        'Din musiksmak? Omöjlig att sätta i ett fack. Du är en genre-anomali!',
-        'Du lyssnar på allt från ABBA till death metal. Respekt.',
-        'Dina spellistor ger Spotify-algoritmerna existentiell kris.',
-        'Du är typ den där personen som DJ:ar på fester med "vänta, ni MÅSTE höra den här".',
-        'Musikalisk kameleont med oförutsägbar nästa låt.',
-        'Du har sagt "jag gillar typ allt" och faktiskt menat det.',
-        'Din shuffle är en berg-och-dalbana ingen bad om men alla behöver.',
-        'Genre? Aldrig hört talas om henne.',
-      ] : [
-        'Your music taste? Impossible to pigeonhole. You are a genre anomaly.',
-        'You listen to everything from ABBA to death metal. Respect.',
-        'Your playlists give Spotify algorithms an existential crisis.',
-        'You are that person who DJs at parties with "wait, you HAVE to hear this one".',
-        'Musical chameleon with an unpredictable next track.',
-        'You have said "I like basically everything" and actually meant it.',
-        'Your shuffle is a rollercoaster nobody asked for but everyone needs.',
-        'Genre? Never heard of her.',
-      ];
+      let level = 'veryFocused';
+      if (score >= 80) level = 'high';
+      else if (score >= 60) level = 'diverse';
+      else if (score >= 40) level = 'moderate';
+      else if (score >= 20) level = 'focused';
 
-      const diverseQuotes = swedishMode ? [
-        'Du gillar variation! Dina öron är nyfikna äventyrare.',
-        'Bra blandning! Du vet vad du gillar men är öppen för överraskningar.',
-        'Din musiksmak är som en välkryddad måltid - lite av varje.',
-        'Du har en bred smak men det är inte kaotiskt. Organiserat eklektiskt.',
-        'Du växlar mellan stämningar som en proffs.',
-        'Mångsidighet är ditt mellannamn. Eller borde vara.',
-        'Du är den vännen alla frågar om musikrekommendationer.',
-      ] : [
-        'You like variety! Your ears are curious adventurers.',
-        'Nice mix! You know what you like but stay open to surprises.',
-        'Your music taste is like a well-seasoned meal - a bit of everything.',
-        'You have broad taste but it is not chaotic. Organised eclectic.',
-        'You switch between moods like a pro.',
-        'Versatility is your middle name. Or should be.',
-        'You are the friend everyone asks for music recommendations.',
-      ];
-
-      const moderateQuotes = swedishMode ? [
-        'Du har hittat din groove och du äger den!',
-        'Bekväm i dina favoritgenrer, men du tar ibland en omväg.',
-        'Solid grund med plats för utforskning när stämningen stämmer.',
-        'Du vet vad du gillar - ingen skam i det spelet.',
-        'Din musiksmak har en tydlig identitet och det är vackert.',
-        'Balanserad som en bra playlist. Lagom är bäst.',
-        'Du har dina go-to-genrer och det är helt rätt.',
-      ] : [
-        'You have found your groove and you own it!',
-        'Comfortable in your favourite genres, but you take a detour sometimes.',
-        'Solid foundation with room for exploration when the mood strikes.',
-        'You know what you like - no shame in that game.',
-        'Your music taste has a clear identity and that is beautiful.',
-        'Balanced like a good playlist. Goldilocks approved.',
-        'You have your go-to genres and that is perfectly valid.',
-      ];
-
-      const focusedQuotes = swedishMode ? [
-        'Du har en typ och du håller dig till den. Konsekvent legend.',
-        'Dedikerad lyssnare alert! Du vet exakt vad du vill ha.',
-        'Låt ingen säga att du inte är engagerad.',
-        'Genre-specialist! Du har valt din bana och du kör hårt.',
-        'Djup kunskap > bred kunskap. Du gräver djupt.',
-        'Du är den där vännen som vet ALLT om en specifik genre.',
-        'Fokuserad energi. Inga distraktioner. Ren musiksmak.',
-      ] : [
-        'You have a type and you stick with it. Consistent legend.',
-        'Dedicated listener alert! You know exactly what you want.',
-        'Let nobody say you are not committed.',
-        'Genre specialist! You picked your lane and you are thriving.',
-        'Deep knowledge > broad knowledge. You dig deep.',
-        'You are that friend who knows EVERYTHING about one specific genre.',
-        'Focused energy. No distractions. Pure music taste.',
-      ];
-
-      const veryFocusedQuotes = swedishMode ? [
-        'En genre att styra dem alla! Du är fullt dedikerad.',
-        'Du har hittat DET ljudet och du släpper det inte.',
-        'Laser-fokuserad musiksmak. Ingen ifrågasätter din dedikation.',
-        'Du vet vad du gillar och du äger det. Absolut inga ursäkter.',
-        'Genremästare! 100% koncentrerad passion.',
-        'När du gillar något, gillar du det PÅ RIKTIGT.',
-        'Din musikbibliotek har en estetik och den är tight.',
-        'Dedikation nivå: Expert. Du har valt din grej.',
-      ] : [
-        'One genre to rule them all! You are fully committed.',
-        'You found THE sound and you are not letting go.',
-        'Laser-focused music taste. Nobody questions your dedication.',
-        'You know what you like and you own it. Zero apologies.',
-        'Genre master! 100% concentrated passion.',
-        'When you like something, you REALLY like it.',
-        'Your music library has an aesthetic and it is tight.',
-        'Dedication level: Expert. You picked your thing.',
-      ];
-
-      let quotes;
-      if (score >= 80) quotes = highDiversityQuotes;
-      else if (score >= 60) quotes = diverseQuotes;
-      else if (score >= 40) quotes = moderateQuotes;
-      else if (score >= 20) quotes = focusedQuotes;
-      else quotes = veryFocusedQuotes;
-
+      const lang = swedishMode ? 'sv' : 'en';
+      const quotes = DIVERSITY_QUOTES[level][lang];
       return quotes[Math.floor(Math.random() * quotes.length)];
     }
 
