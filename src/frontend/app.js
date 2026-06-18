@@ -6784,7 +6784,7 @@
             '<div class="invite-success">' +
               '<h3>' + successTitle + '</h3>' +
               '<p>' + successMsg + '</p>' +
-              (data.trackingUrl ? '<a href="' + data.trackingUrl + '" class="btn btn-secondary" target="_blank">' + trackText + '</a>' : '') +
+              (data.trackingUrl && data.trackingUrl.startsWith('https://') ? '<a href="' + escapeHtml(data.trackingUrl) + '" class="btn btn-secondary" target="_blank">' + trackText + '</a>' : '') +
             '</div>';
 
           e.target.style.display = 'none';
