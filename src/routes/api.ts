@@ -1890,7 +1890,6 @@ api.post('/log-perf', async (c) => {
     }
 
     // Get existing perf data (last 1000 samples)
-    // CRITICAL FIX: Use cachedKV for perf log reads
     const existing = await cachedKV.get<unknown[]>(c.env.SESSIONS, PERF_LOG_KEY) || [];
 
     // Add new sample
