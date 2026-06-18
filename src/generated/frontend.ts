@@ -13008,7 +13008,7 @@ export function getHtml(nonce: string): string {
           <h2 class="card-title" data-i18n="yourGenres">\${t('yourGenres')}</h2>
 
           <div class="template-settings">
-            <label>\${swedishMode ? 'Spellistnamn mall' : 'Playlist Name Template'}</label>
+            <label for="template-input">\${swedishMode ? 'Spellistnamn mall' : 'Playlist Name Template'}</label>
             <div class="template-input-row">
               <input
                 type="text"
@@ -13024,7 +13024,7 @@ export function getHtml(nonce: string): string {
               \${swedishMode ? 'Förhandsvisning:' : 'Preview:'} <span id="template-preview">\${getTemplatePreview()}</span>
             </div>
 
-            <label style="margin-top: 1rem;">\${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}</label>
+            <label for="desc-template-input" style="margin-top: 1rem;">\${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}</label>
             <div class="template-input-row">
               <input
                 type="text"
@@ -13047,6 +13047,7 @@ export function getHtml(nonce: string): string {
           <input
             type="text"
             class="search-input"
+            aria-label="\${t('searchGenres')}"
             placeholder="\${t('searchGenres')}"
             data-i18n-placeholder="searchGenres"
             oninput="debouncedFilterAndRenderGenres(this.value)"
@@ -14653,8 +14654,20 @@ export function getHtml(nonce: string): string {
         const fnName = match[1];
         const argsStr = match[2];
 
-        // Get the function from window
-        const fn = window[fnName];
+        // Get the function from an allowlist to prevent DOM XSS
+        const ALLOWED_FUNCTIONS = {
+          adminClearCache, adminRebuildCaches, browseKVKeys, cancelMerge, closePlaylistModal,
+          closeScoreboard, confirmDeleteUser, copyShareLink, copyWrappedToClipboard,
+          createMergedPlaylist, createPlaylistForce, createSelectedPlaylists, deleteKVKey,
+          dismissRateLimitBanner, downloadWrappedCard, endTutorial, exportGenresCSV,
+          exportGenresJSON, hideSmallGenres, loadFullLibrary, loadGenres, nextTutorialStep,
+          pauseProgressiveScan, refreshGenres, renderPlaylistList, resetDescTemplate,
+          resetTemplate, resumeProgressiveScan, scanPlaylist, selectAll, selectNone,
+          shareWrappedNative, showGenreWrapped, showMergeModal, showRequestAccessModal,
+          stopProgressiveScan, toggleMergeMode, toggleShowHidden, toggleStatsDashboard,
+          unhideAllGenres, viewKVKey
+        };
+        const fn = ALLOWED_FUNCTIONS[fnName];
         if (typeof fn === 'function') {
           // Parse arguments (handle strings, booleans, numbers)
           let args = [];

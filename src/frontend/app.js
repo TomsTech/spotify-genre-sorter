@@ -6067,8 +6067,20 @@
         const fnName = match[1];
         const argsStr = match[2];
 
-        // Get the function from window
-        const fn = window[fnName];
+        // Get the function from an allowlist to prevent DOM XSS
+        const ALLOWED_FUNCTIONS = {
+          adminClearCache, adminRebuildCaches, browseKVKeys, cancelMerge, closePlaylistModal,
+          closeScoreboard, confirmDeleteUser, copyShareLink, copyWrappedToClipboard,
+          createMergedPlaylist, createPlaylistForce, createSelectedPlaylists, deleteKVKey,
+          dismissRateLimitBanner, downloadWrappedCard, endTutorial, exportGenresCSV,
+          exportGenresJSON, hideSmallGenres, loadFullLibrary, loadGenres, nextTutorialStep,
+          pauseProgressiveScan, refreshGenres, renderPlaylistList, resetDescTemplate,
+          resetTemplate, resumeProgressiveScan, scanPlaylist, selectAll, selectNone,
+          shareWrappedNative, showGenreWrapped, showMergeModal, showRequestAccessModal,
+          stopProgressiveScan, toggleMergeMode, toggleShowHidden, toggleStatsDashboard,
+          unhideAllGenres, viewKVKey
+        };
+        const fn = ALLOWED_FUNCTIONS[fnName];
         if (typeof fn === 'function') {
           // Parse arguments (handle strings, booleans, numbers)
           let args = [];
