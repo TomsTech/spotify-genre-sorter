@@ -20,3 +20,6 @@
 ## 2024-06-14 - [Optimize Genre Aggregation]
 **Learning:** When aggregating nested relations (e.g., tracks -> artists -> genres), creating temporary Sets for uniqueness on a per-item basis inside a loop generates massive garbage collection overhead.
 **Action:** Instantiate a single reusable Set outside the loop and use .clear() to achieve O(1) deduplication without the memory penalty of continuous object allocation.
+## 2024-06-12 - [PERF-011] Optimize User Registration KV Writes
+**Learning:** `cachedKV.get` automatically handles JSON parsing and typing via a generic argument (`cachedKV.get<Type>`), making manual `JSON.parse()` after `cachedKV.getString()` redundant and less optimal.
+**Action:** Always use generic `cachedKV.get<Type>()` directly instead of `cachedKV.getString()` followed by manual parsing to simplify code and improve execution efficiency.
