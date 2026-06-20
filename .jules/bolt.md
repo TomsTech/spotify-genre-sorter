@@ -23,3 +23,6 @@
 ## 2024-06-15 - [Optimize Track Genre Aggregation]
 **Learning:** Instantiating a new `Set` inside a nested loop for deduping per-track genres causes massive garbage collection overhead when dealing with large Spotify libraries.
 **Action:** Pulled the `Set` instantiation out of the loop and cleared it each iteration to process each track, significantly reducing memory allocation pressure while retaining O(N) lookup/add performance.
+## 2024-06-20 - [Parallelizing Spotify API Pagination]
+**Learning:** Functions fetching paginated data from Spotify API (e.g., `getUserPlaylists`, `getPlaylistTracks`) were using sequential `while` loops, causing `O(N * Latency)` delays for users with large libraries.
+**Action:** Always fetch the first page to obtain the `total` count, calculate the remaining offsets, and fetch the rest concurrently using `Promise.all()` to bound the latency to `O(Latency)`.

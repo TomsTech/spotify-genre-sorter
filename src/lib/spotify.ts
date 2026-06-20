@@ -511,21 +511,38 @@ export interface SpotifyPlaylist {
 export async function getUserPlaylists(
   accessToken: string
 ): Promise<SpotifyPlaylist[]> {
-  const allPlaylists: SpotifyPlaylist[] = [];
-  let offset = 0;
   const limit = 50;
-  let hasMore = true;
 
-  while (hasMore && offset < 200) {
-    const response = await spotifyFetch<{
-      items: SpotifyPlaylist[];
-      total: number;
-      next: string | null;
-    }>(`/me/playlists?limit=${limit}&offset=${offset}`, accessToken);
+  // Fetch first page to get total count
+  const firstPage = await spotifyFetch<{
+    items: SpotifyPlaylist[];
+    total: number;
+    next: string | null;
+  }>(`/me/playlists?limit=${limit}&offset=0`, accessToken);
 
-    allPlaylists.push(...response.items);
-    offset += limit;
-    hasMore = !!response.next;
+  const allPlaylists: SpotifyPlaylist[] = [...firstPage.items];
+
+  // If there are more playlists and we haven't hit our 200 limit
+  if (firstPage.next && firstPage.total > limit) {
+    // We only want to fetch up to 200 playlists total (offsets 50, 100, 150)
+    const maxOffset = Math.min(200, firstPage.total);
+    const promises = [];
+
+    for (let offset = limit; offset < maxOffset; offset += limit) {
+      promises.push(
+        spotifyFetch<{
+          items: SpotifyPlaylist[];
+        }>(`/me/playlists?limit=${limit}&offset=${offset}`, accessToken)
+      );
+    }
+
+    if (promises.length > 0) {
+      // PERF-032 FIX: Use Promise.all for parallel pagination instead of sequential while loop
+      const results = await Promise.all(promises);
+      for (const response of results) {
+        allPlaylists.push(...response.items);
+      }
+    }
   }
 
   return allPlaylists;
@@ -545,21 +562,36 @@ export async function getPlaylistTracks(
   playlistId: string,
   limit = 100
 ): Promise<PlaylistTrack[]> {
-  const allTracks: PlaylistTrack[] = [];
-  let offset = 0;
   const pageLimit = 50;
-  let hasMore = true;
 
-  while (hasMore && allTracks.length < limit) {
-    const response = await spotifyFetch<{
-      items: PlaylistTrack[];
-      total: number;
-      next: string | null;
-    }>(`/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${offset}`, accessToken);
+  // Fetch first page to get total count
+  const firstPage = await spotifyFetch<{
+    items: PlaylistTrack[];
+    total: number;
+    next: string | null;
+  }>(`/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=0`, accessToken);
 
-    allTracks.push(...response.items);
-    offset += pageLimit;
-    hasMore = !!response.next && allTracks.length < limit;
+  const allTracks: PlaylistTrack[] = [...firstPage.items];
+
+  if (firstPage.next && firstPage.total > pageLimit && allTracks.length < limit) {
+    const maxOffset = Math.min(limit, firstPage.total);
+    const promises = [];
+
+    for (let offset = pageLimit; offset < maxOffset; offset += pageLimit) {
+      promises.push(
+        spotifyFetch<{
+          items: PlaylistTrack[];
+        }>(`/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${offset}`, accessToken)
+      );
+    }
+
+    if (promises.length > 0) {
+      // PERF-032 FIX: Use Promise.all for parallel pagination instead of sequential while loop
+      const results = await Promise.all(promises);
+      for (const response of results) {
+        allTracks.push(...response.items);
+      }
+    }
   }
 
   return allTracks.slice(0, limit);
