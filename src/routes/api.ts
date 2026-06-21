@@ -519,18 +519,22 @@ api.get('/genres', async (c) => {
 
     // Update user stats with analysis results
     if (session.spotifyUserId) {
-      await createOrUpdateUserStats(c.env.SESSIONS, session.spotifyUserId, {
+      c.executionCtx.waitUntil(
+      createOrUpdateUserStats(c.env.SESSIONS, session.spotifyUserId, {
         totalGenresDiscovered: responseData.totalGenres,
         totalArtistsDiscovered: responseData.totalArtists,
         totalTracksAnalysed: responseData.totalTracks,
-      });
+      }).catch(err => console.error('Failed to update user stats:', err))
+    );
     }
 
     // Track library scan in analytics
-    await trackAnalyticsEvent(c.env.SESSIONS, 'libraryScan', {
+    c.executionCtx.waitUntil(
+      trackAnalyticsEvent(c.env.SESSIONS, 'libraryScan', {
       tracksCount: responseData.totalTracks,
       visitorId: session.spotifyUserId,
-    });
+    }).catch(err => console.error('Failed to track analytics:', err))
+    );
 
     return c.json({
       ...responseData,
@@ -689,11 +693,13 @@ api.get('/genres/progressive', async (c) => {
       });
 
       // Update user stats
-      await createOrUpdateUserStats(c.env.SESSIONS, user.id, {
+      c.executionCtx.waitUntil(
+        createOrUpdateUserStats(c.env.SESSIONS, user.id, {
         totalGenresDiscovered: finalData.totalGenres,
         totalArtistsDiscovered: finalData.totalArtists,
         totalTracksAnalysed: finalData.totalTracks,
-      });
+      }).catch(err => console.error('Failed to update user stats:', err))
+      );
 
       return c.json({
         ...finalData,
@@ -1156,13 +1162,7 @@ api.post('/playlist', async (c) => {
     const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
     await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
 
-    // Invalidate cache since library has changed
-    await invalidateGenreCache(c.env.SESSIONS, user.id);
-
-    // Update user stats
-    await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length);
-
-    // Add to recent playlists feed
+    // Create recent playlist object before the background tasks
     const recentPlaylist: RecentPlaylist = {
       playlistId: playlist.id,
       playlistName: playlistName,
@@ -1176,10 +1176,20 @@ api.post('/playlist', async (c) => {
       createdAt: new Date().toISOString(),
       spotifyUrl: playlist.external_urls.spotify,
     };
-    await addRecentPlaylist(c.env.SESSIONS, recentPlaylist);
 
-    // Track playlist creation in analytics
-    await trackAnalyticsEvent(c.env.SESSIONS, 'playlistCreated', { visitorId: user.id });
+    // Run non-essential background tasks concurrently
+    c.executionCtx.waitUntil(
+      Promise.all([
+        // Invalidate cache since library has changed
+        invalidateGenreCache(c.env.SESSIONS, user.id),
+        // Update user stats
+        addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length),
+        // Add to recent playlists feed
+        addRecentPlaylist(c.env.SESSIONS, recentPlaylist),
+        // Track playlist creation in analytics
+        trackAnalyticsEvent(c.env.SESSIONS, 'playlistCreated', { visitorId: user.id })
+      ]).catch(err => console.error('Failed to execute background tasks:', err))
+    );
 
     return c.json({
       success: true,
@@ -1315,9 +1325,13 @@ api.post('/playlists/bulk', async (c) => {
     const successCount = results.filter(r => r.success).length;
     const skippedCount = results.filter(r => r.skipped).length;
     if (successCount > 0) {
-      await invalidateGenreCache(c.env.SESSIONS, user.id);
-      // Track bulk playlist creation in analytics (single KV write instead of N writes)
-      await trackAnalyticsEvent(c.env.SESSIONS, 'playlistCreated', { visitorId: user.id, count: successCount });
+      c.executionCtx.waitUntil(
+        Promise.all([
+          invalidateGenreCache(c.env.SESSIONS, user.id),
+          // Track bulk playlist creation in analytics (single KV write instead of N writes)
+      trackAnalyticsEvent(c.env.SESSIONS, 'playlistCreated', { visitorId: user.id, count: successCount })
+        ]).catch(err => console.error('Failed to execute bulk background tasks:', err))
+      );
     }
 
     return c.json({
