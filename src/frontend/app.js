@@ -1477,7 +1477,7 @@
         content.innerHTML = `
           <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
             <span><strong>${data.count}</strong> errors logged (last 100)</span>
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('admin-tab-content').scrollTop = 0">↑ Top</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('admin-tab-content').scrollTop = 0" aria-label="Scroll to top">↑ Top</button>
           </div>
           <div class="admin-errors-list">
             ${data.errors.slice(0, 50).map((error, idx) => `
@@ -4430,6 +4430,7 @@
                 value="\${playlistTemplate.replace(/"/g, '&quot;')}"
                 oninput="debouncedUpdatePlaylistTemplate(this.value)"
                 placeholder="{genre} (from Likes)"
+                aria-label="\${swedishMode ? 'Spellistnamn mall' : 'Playlist Name Template'}"
               >
               <button onclick="resetTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ mall' : 'Reset template'}">↺</button>
             </div>
@@ -4446,6 +4447,7 @@
                 value="\${playlistDescTemplate.replace(/"/g, '&quot;')}"
                 oninput="debouncedUpdateDescTemplate(this.value)"
                 placeholder="{genre} tracks • {count} songs"
+                aria-label="\${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}"
               >
               <button onclick="resetDescTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ beskrivningsmall' : 'Reset description template'}">↺</button>
             </div>
