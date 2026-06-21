@@ -23,3 +23,6 @@
 ## 2024-06-15 - [Optimize Track Genre Aggregation]
 **Learning:** Instantiating a new `Set` inside a nested loop for deduping per-track genres causes massive garbage collection overhead when dealing with large Spotify libraries.
 **Action:** Pulled the `Set` instantiation out of the loop and cleared it each iteration to process each track, significantly reducing memory allocation pressure while retaining O(N) lookup/add performance.
+## 2024-05-18 - Use waitUntil for background tasks
+**Learning:** In Cloudflare Workers / Hono, non-essential background tasks (like analytics tracking or updating user stats) in middleware or route handlers should be wrapped in `c.executionCtx.waitUntil(...)` to return the HTTP response immediately while ensuring the background task completes.
+**Action:** Always wrap non-critical background operations in `c.executionCtx.waitUntil()` when writing route handlers in Cloudflare Workers.
