@@ -10081,7 +10081,7 @@ export function getHtml(nonce: string): string {
                     <pre class="admin-error-stack">\${escapeHtml(error.stack)}</pre>
                   </details>
                 \` : ''}
-                \${error.context ? \`<div class="admin-error-context">Context: \${escapeHtml(error.context)}</div>\` : ''}
+                \${error.context ? \`<div class="admin-error-context">Context: \${escapeHtml(typeof error.context === 'object' ? JSON.stringify(error.context) : String(error.context))}</div>\` : ''}
               </div>
             \`).join('')}
           </div>

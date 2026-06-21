@@ -47,3 +47,7 @@
 **Vulnerability:** The API routes (`/api/*`) were missing CSRF protection, leaving state-changing endpoints vulnerable to Cross-Site Request Forgery attacks.
 **Learning:** The `optionalCsrfProtection` was not properly used.
 **Prevention:** Add `api.use('/*', optionalCsrfProtection);` for all API routes.
+## 2026-06-21 - [XSS] DOM-based Cross-Site Scripting in Admin Error Logs
+**Vulnerability:** The `error.context` object was converted to a string when interpolated in `src/frontend/app.js` and if it is an object it will evaluate to `[object Object]`. However, if it's a stringified JSON that isn't escaped or an object that is later `JSON.stringify`'d without being escaped, it could be a vector for XSS.
+**Learning:** Even when interpolating objects that are seemingly safe into template literals, if they contain user-controlled data and are coerced into a string, they may be an XSS vector if not escaped. Similarly, calling `escapeHtml(error.context)` where `error.context` is an object doesn't stringify the object securely if it contains malicious data and needs to be printed as JSON.
+**Prevention:** Ensure that objects that might contain malicious payloads are stringified safely (using `JSON.stringify()`) before being passed to an HTML escaping function like `escapeHtml()`.
