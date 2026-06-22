@@ -1494,7 +1494,7 @@
                     <pre class="admin-error-stack">${escapeHtml(error.stack)}</pre>
                   </details>
                 ` : ''}
-                ${error.context ? `<div class="admin-error-context">Context: ${escapeHtml(error.context)}</div>` : ''}
+                ${error.context ? `<div class="admin-error-context">Context: ${escapeHtml(typeof error.context === 'object' ? JSON.stringify(error.context) : error.context)}</div>` : ''}
               </div>
             `).join('')}
           </div>
@@ -3096,7 +3096,8 @@
 
     // Escape text for safe HTML/JSON output
     function escapeForHtml(text) {
-      return text
+      if (text === null || text === undefined) return '';
+      return String(text)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
