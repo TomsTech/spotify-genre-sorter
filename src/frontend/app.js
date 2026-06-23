@@ -3096,7 +3096,15 @@
 
     // Escape text for safe HTML/JSON output
     function escapeForHtml(text) {
-      return text
+      if (text === null || text === undefined) return '';
+      if (typeof text === 'object') {
+        try {
+          text = JSON.stringify(text);
+        } catch (e) {
+          text = String(text);
+        }
+      }
+      return String(text)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
@@ -5855,6 +5863,13 @@
     // Escape HTML for safe display
     function escapeHtml(text) {
       if (text === null || text === undefined) return '';
+      if (typeof text === 'object') {
+        try {
+          text = JSON.stringify(text);
+        } catch (e) {
+          text = String(text);
+        }
+      }
       return String(text)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')

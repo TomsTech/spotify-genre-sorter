@@ -52,3 +52,8 @@
 **Vulnerability:** The `escapeHtml` function used DOM `textContent` assignment (`div.textContent = text; return div.innerHTML`), which successfully escapes `<` and `>`, but fails to escape single (`'`) and double (`"`) quotes. This left the application vulnerable to XSS when the escaped output was interpolated directly into HTML attributes (e.g., `<button onclick="doSomething('${escapeHtml(value)}')">`).
 **Learning:** Using DOM-based escaping mechanisms (`textContent`) is insufficient when the escaped string is intended for use inside HTML attributes, particularly event handlers. A malicious string like `' onmouseover='alert(1)` remains intact and can breakout of the attribute context.
 **Prevention:** Always use regex-based escaping mechanisms that comprehensively replace all critical HTML entities (`&`, `<`, `>`, `"`, and `'`) when sanitizing user input intended for HTML insertion, especially when dealing with attributes.
+
+## 2024-05-24 - [DOM-based XSS via Object Injection in Error Context]
+**Vulnerability:** A DOM-based XSS vulnerability existed when rendering `error.context` in the admin errors panel. If `error.context` was an object with a malicious `toString` method or a `.replace` method, it could bypass the `escapeHtml` string coercion and execute arbitrary JavaScript.
+**Learning:** When passing potentially user-controlled objects to custom HTML escaping functions, implicit string coercion (`String(text)`) can be bypassed if the object overrides `toString()` or `.replace()`.
+**Prevention:** Explicitly check for object types and serialize them using `JSON.stringify()` before escaping. Additionally, ensure inputs to `.replace()` are strictly cast to primitive strings to prevent object method hijacking.
