@@ -2432,6 +2432,8 @@
 
       const percent = Math.min((currentProgress / currentDuration) * 100, 100);
       progressEl.style.width = \`\${percent}%\`;
+      const progressBar = progressEl.closest('[role="progressbar"]');
+      if (progressBar) progressBar.setAttribute('aria-valuenow', Math.round(percent));
     }
 
     function startProgressUpdates() {
@@ -5154,7 +5156,7 @@
           \${shuffled.map(art => \`<img class="album-art" src="\${art}" alt="" onerror="this.style.background='var(--surface-2)'">\`).join('')}
         </div>
         <div class="loading-text" id="loading-text">\${swedishMode ? 'Skapar spellistor...' : 'Creating playlists...'}</div>
-        <div class="loading-progress">
+        <div class="loading-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Playlist creation progress">
           <div class="loading-progress-bar" id="loading-progress-bar" style="width: 0%"></div>
         </div>
         <div class="loading-stats">
@@ -5178,6 +5180,8 @@
       const textEl = document.getElementById('loading-text');
 
       if (progressBar) progressBar.style.width = \`\${(completed / total) * 100}%\`;
+      const progressContainer = progressBar?.closest('[role="progressbar"]');
+      if (progressContainer) progressContainer.setAttribute('aria-valuenow', Math.round((completed / total) * 100));
       if (completedEl) completedEl.textContent = completed;
       if (textEl && currentGenre) {
         textEl.textContent = swedishMode
@@ -7213,9 +7217,9 @@
         '    <button class="btn btn-secondary share-copy-btn" onclick="copyShareLink(this)">' + (swedishMode ? 'Kopiera' : 'Copy') + '</button>',
         '  </div>',
         '  <div class="share-social-buttons">',
-        '    <a href="https://twitter.com/intent/tweet?url=' + encodeURIComponent(playlistUrl) + '&text=' + encodeURIComponent('Check out my ' + playlistName + ' playlist! 🎵') + '" target="_blank" class="share-social-btn twitter">𝕏</a>',
-        '    <a href="https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(playlistUrl) + '" target="_blank" class="share-social-btn facebook">f</a>',
-        '    <a href="whatsapp://send?text=' + encodeURIComponent(playlistName + ' - ' + playlistUrl) + '" target="_blank" class="share-social-btn whatsapp">💬</a>',
+        '    <a href="https://twitter.com/intent/tweet?url=' + encodeURIComponent(playlistUrl) + '&text=' + encodeURIComponent('Check out my ' + playlistName + ' playlist! 🎵') + '" target="_blank" class="share-social-btn twitter" aria-label="Share on X (Twitter)">𝕏</a>',
+        '    <a href="https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(playlistUrl) + '" target="_blank" class="share-social-btn facebook" aria-label="Share on Facebook">f</a>',
+        '    <a href="whatsapp://send?text=' + encodeURIComponent(playlistName + ' - ' + playlistUrl) + '" target="_blank" class="share-social-btn whatsapp" aria-label="Share on WhatsApp">💬</a>',
         '  </div>',
         '  <a href="' + playlistUrl + '" target="_blank" class="btn btn-primary share-open-btn">' + (swedishMode ? 'Öppna i Spotify' : 'Open in Spotify') + '</a>',
         '</div>'
