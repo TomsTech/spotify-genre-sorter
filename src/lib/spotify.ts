@@ -257,20 +257,34 @@ export async function getAllLikedTracks(
   const trackLimit = maxTracks || MAX_TRACKS_FREE_TIER;
   let requestCount = 0;
 
-  do {
-    const response = await getLikedTracks(accessToken, limit, offset);
-    allTracks.push(...response.items);
-    totalInLibrary = response.total;
-    offset += limit;
-    requestCount++;
-    onProgress?.(allTracks.length, totalInLibrary);
+  // Fetch first page to get total
+  const initialResponse = await getLikedTracks(accessToken, limit, offset);
+  allTracks.push(...initialResponse.items);
+  totalInLibrary = initialResponse.total;
+  offset += limit;
+  requestCount++;
+  onProgress?.(allTracks.length, totalInLibrary);
 
-    // Stop if we've hit our limits to avoid subrequest errors
-    if (requestCount >= MAX_TRACK_REQUESTS || allTracks.length >= trackLimit) {
-      // Note: Truncation info is returned in the response for client-side display
-      break;
+  if (offset < totalInLibrary && requestCount < MAX_TRACK_REQUESTS && allTracks.length < trackLimit) {
+    // Balance speed and rate limits using a concurrency limit of 3
+    const CONCURRENCY_LIMIT = 3;
+
+    while (offset < totalInLibrary && requestCount < MAX_TRACK_REQUESTS && allTracks.length < trackLimit) {
+      const fetchPromises = [];
+
+      for (let i = 0; i < CONCURRENCY_LIMIT && offset < totalInLibrary && requestCount < MAX_TRACK_REQUESTS && (allTracks.length + fetchPromises.length * limit) < trackLimit; i++) {
+        fetchPromises.push(getLikedTracks(accessToken, limit, offset));
+        offset += limit;
+        requestCount++;
+      }
+
+      const responses = await Promise.all(fetchPromises);
+      for (const response of responses) {
+        allTracks.push(...response.items);
+        onProgress?.(allTracks.length, totalInLibrary);
+      }
     }
-  } while (offset < totalInLibrary);
+  }
 
   return {
     tracks: allTracks,

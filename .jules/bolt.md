@@ -26,3 +26,7 @@
 ## 2024-05-18 - Use waitUntil for background tasks
 **Learning:** In Cloudflare Workers / Hono, non-essential background tasks (like analytics tracking or updating user stats) in middleware or route handlers should be wrapped in `c.executionCtx.waitUntil(...)` to return the HTTP response immediately while ensuring the background task completes.
 **Action:** Always wrap non-critical background operations in `c.executionCtx.waitUntil()` when writing route handlers in Cloudflare Workers.
+
+## 2025-12-09 - [Replacing Sequential API Loops with Parallel Promise.all Fetching]
+**Learning:** Replacing sequential API loops with a single `Promise.all` can break UI progress callbacks (e.g., `onProgress`) by stalling the UI and then updating all at once.
+**Action:** When parallelizing API calls, preserve the behavior of UI progress callbacks by executing the parallel requests in smaller, controlled batches (chunking) and updating the progress incrementally after each batch.
