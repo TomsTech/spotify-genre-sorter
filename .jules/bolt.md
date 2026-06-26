@@ -26,3 +26,6 @@
 ## 2024-05-18 - Use waitUntil for background tasks
 **Learning:** In Cloudflare Workers / Hono, non-essential background tasks (like analytics tracking or updating user stats) in middleware or route handlers should be wrapped in `c.executionCtx.waitUntil(...)` to return the HTTP response immediately while ensuring the background task completes.
 **Action:** Always wrap non-critical background operations in `c.executionCtx.waitUntil()` when writing route handlers in Cloudflare Workers.
+## 2024-06-25 - [Distinguish Performance vs Correctness Fixes]
+**Learning:** Fixing a bug where code prematurely skips processing data (e.g., missing pagination in Cloudflare KV `list()` calls capping results at 1000) is a functional correctness fix, not a performance optimization. In fact, correctness fixes often *increase* the workload and execution time since they process the previously skipped data.
+**Action:** When tasked with identifying a performance optimization, strictly look for ways to reduce latency, memory, or CPU cycles (e.g., parallelizing I/O, removing blocking `await` calls, preventing unnecessary allocations) rather than fixing logic bugs that result in incomplete execution.

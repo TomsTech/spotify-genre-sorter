@@ -281,13 +281,17 @@ api.get('/now-playing', async (c) => {
         updatedAt: new Date().toISOString(),
       };
       // CRITICAL FIX: Use cachedKV for listening status writes
-      await cachedKV.put(kv, `listening:${session.spotifyUserId}`, JSON.stringify(listeningData), {
-        expirationTtl: 90, // 90 seconds - auto-expires if user stops polling
-        immediate: false // Can be batched - not critical if delayed by a few seconds
-      });
+      c.executionCtx.waitUntil(
+        cachedKV.put(kv, `listening:${session.spotifyUserId}`, JSON.stringify(listeningData), {
+          expirationTtl: 90, // 90 seconds - auto-expires if user stops polling
+          immediate: false // Can be batched - not critical if delayed by a few seconds
+        }).catch(err => console.error('Failed to put listening status:', err))
+      );
     } else if (session.spotifyUserId) {
       // User not playing - delete their listening entry
-      await cachedKV.delete(kv, `listening:${session.spotifyUserId}`);
+      c.executionCtx.waitUntil(
+        cachedKV.delete(kv, `listening:${session.spotifyUserId}`).catch(err => console.error('Failed to delete listening status:', err))
+      );
     }
 
     if (!playback || !playback.item) {
@@ -1815,7 +1819,9 @@ api.post('/invite-request', async (c) => {
     });
 
     // Track analytics
-    await trackAnalyticsEvent(c.env.SESSIONS, 'inviteRequest');
+    c.executionCtx.waitUntil(
+      trackAnalyticsEvent(c.env.SESSIONS, 'inviteRequest').catch(err => console.error('Failed to track analytics:', err))
+    );
 
     return c.json({
       success: true,
@@ -2638,7 +2644,9 @@ api.post('/request-access', async (c) => {
     }
 
     // Track analytics
-    await trackAnalyticsEvent(kv, 'accessRequest', { email: email.toLowerCase() });
+    c.executionCtx.waitUntil(
+      trackAnalyticsEvent(kv, 'accessRequest', { email: email.toLowerCase() }).catch(err => console.error('Failed to track analytics:', err))
+    );
 
     return c.json({ success: true, message: 'Request submitted successfully' });
   } catch (err) {
