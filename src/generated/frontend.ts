@@ -9695,7 +9695,7 @@ export function getHtml(nonce: string): string {
           <div class="admin-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
               <h3>🗄️ Keys in "\${namespaceName}"</h3>
-              <button class="btn btn-ghost btn-sm" onclick="document.querySelector('[data-tab=kv]').click()">
+              <button class="btn btn-ghost btn-sm" onclick="document.querySelector('[data-tab=kv]').click()" aria-label="Back to KV Monitor">
                 ← Back to KV Monitor
               </button>
             </div>
@@ -10064,7 +10064,7 @@ export function getHtml(nonce: string): string {
         content.innerHTML = \`
           <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
             <span><strong>\${data.count}</strong> errors logged (last 100)</span>
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('admin-tab-content').scrollTop = 0">↑ Top</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('admin-tab-content').scrollTop = 0" aria-label="Scroll to top">↑ Top</button>
           </div>
           <div class="admin-errors-list">
             \${data.errors.slice(0, 50).map((error, idx) => \`
@@ -13017,6 +13017,7 @@ export function getHtml(nonce: string): string {
                 value="\${playlistTemplate.replace(/"/g, '&quot;')}"
                 oninput="debouncedUpdatePlaylistTemplate(this.value)"
                 placeholder="{genre} (from Likes)"
+                aria-label="\${swedishMode ? 'Spellistnamn mall' : 'Playlist Name Template'}"
               >
               <button onclick="resetTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ mall' : 'Reset template'}">↺</button>
             </div>
@@ -13033,6 +13034,7 @@ export function getHtml(nonce: string): string {
                 value="\${playlistDescTemplate.replace(/"/g, '&quot;')}"
                 oninput="debouncedUpdateDescTemplate(this.value)"
                 placeholder="{genre} tracks • {count} songs"
+                aria-label="\${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}"
               >
               <button onclick="resetDescTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ beskrivningsmall' : 'Reset description template'}">↺</button>
             </div>
@@ -13068,7 +13070,7 @@ export function getHtml(nonce: string): string {
           <div class="actions">
             <button onclick="selectAll()" class="btn btn-secondary" data-i18n="selectAll">\${t('selectAll')}</button>
             <button onclick="selectNone()" class="btn btn-secondary" data-i18n="selectNone">\${t('selectNone')}</button>
-            <button onclick="createSelectedPlaylists()" class="btn btn-primary" id="create-btn" disabled data-i18n="createPlaylists">
+            <button onclick="createSelectedPlaylists()" class="btn btn-primary" id="create-btn" disabled data-i18n="createPlaylists" title="Select at least one genre to create playlists">
               \${t('createPlaylists')}
             </button>
           </div>
@@ -13128,6 +13130,19 @@ export function getHtml(nonce: string): string {
 
     function renderGenreList(genres) {
       const list = document.getElementById('genre-list');
+
+      if (!genres || genres.length === 0) {
+        list.innerHTML = \`<div class="empty-state" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted); background: var(--surface-2); border-radius: 8px; margin: 1rem 0;">
+          <div style="font-size: 3rem; margin-bottom: 1rem;" aria-hidden="true">🔍</div>
+          <h3 style="color: var(--text); margin-bottom: 0.5rem;">\${swedishMode ? 'Inga genrer hittades' : 'No genres found'}</h3>
+          <p style="margin-bottom: 1.5rem;">\${swedishMode ? 'Kunde inte hitta några genrer som matchar din sökning.' : 'Could not find any genres matching your search.'}</p>
+          <button class="btn btn-secondary" onclick="document.querySelector('.search-input').value=''; filterAndRenderGenres(''); document.querySelector('.search-input').focus();">
+            \${swedishMode ? 'Rensa sökning' : 'Clear search'}
+          </button>
+        </div>\`;
+        return;
+      }
+
       list.innerHTML = genres.map(genre => {
         const isHidden = hiddenGenres.has(genre.name);
         return \`
@@ -13174,7 +13189,12 @@ export function getHtml(nonce: string): string {
       const createBtn = document.getElementById('create-btn');
       // Guard against elements not existing (e.g., in admin panel)
       if (countEl) countEl.textContent = selectedGenres.size;
-      if (createBtn) createBtn.disabled = selectedGenres.size === 0;
+      if (createBtn) {
+        createBtn.disabled = selectedGenres.size === 0;
+        createBtn.title = selectedGenres.size === 0
+          ? (swedishMode ? 'Välj minst en genre för att skapa spellistor' : 'Select at least one genre to create playlists')
+          : '';
+      }
 
       // Update select-all checkbox state
       updateSelectAllCheckbox();
@@ -15002,7 +15022,7 @@ export function getHtml(nonce: string): string {
         console.error('Error scanning playlist:', err);
         const errorText = swedishMode ? 'Kunde inte skanna spellistan' : 'Failed to scan playlist';
         container.innerHTML = '<p style="color: var(--danger)">' + errorText + '</p>' +
-          '<button class="back-to-playlists-btn" onclick="renderPlaylistList()">← Back</button>';
+          '<button class="back-to-playlists-btn" onclick="renderPlaylistList()" aria-label="Back to playlists">← Back</button>';
       }
     }
 
@@ -15018,7 +15038,7 @@ export function getHtml(nonce: string): string {
 
       let html = '<div class="playlist-genres-result">' +
         '<div class="playlist-genres-header">' +
-          '<button class="back-to-playlists-btn" onclick="renderPlaylistList()">' + backText + '</button>' +
+          '<button class="back-to-playlists-btn" onclick="renderPlaylistList()" aria-label="' + backText + '">' + backText + '</button>' +
           '<div class="playlist-genres-stats">' +
             '<span>' + data.totalGenres + ' ' + genresText + '</span>' +
             '<span>' + data.totalTracks + ' ' + tracksText + '</span>' +
