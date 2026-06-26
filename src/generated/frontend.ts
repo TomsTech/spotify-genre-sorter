@@ -10064,7 +10064,7 @@ export function getHtml(nonce: string): string {
         content.innerHTML = \`
           <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
             <span><strong>\${data.count}</strong> errors logged (last 100)</span>
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('admin-tab-content').scrollTop = 0">↑ Top</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('admin-tab-content').scrollTop = 0" aria-label="Scroll to top">↑ Top</button>
           </div>
           <div class="admin-errors-list">
             \${data.errors.slice(0, 50).map((error, idx) => \`
@@ -10081,7 +10081,7 @@ export function getHtml(nonce: string): string {
                     <pre class="admin-error-stack">\${escapeHtml(error.stack)}</pre>
                   </details>
                 \` : ''}
-                \${error.context ? \`<div class="admin-error-context">Context: \${escapeHtml(error.context)}</div>\` : ''}
+                \${error.context ? \`<div class="admin-error-context">Context: \${escapeHtml(typeof error.context === 'object' ? JSON.stringify(error.context) : error.context)}</div>\` : ''}
               </div>
             \`).join('')}
           </div>
@@ -11683,7 +11683,8 @@ export function getHtml(nonce: string): string {
 
     // Escape text for safe HTML/JSON output
     function escapeForHtml(text) {
-      return text
+      if (text === null || text === undefined) return '';
+      return String(text)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
@@ -13017,6 +13018,7 @@ export function getHtml(nonce: string): string {
                 value="\${playlistTemplate.replace(/"/g, '&quot;')}"
                 oninput="debouncedUpdatePlaylistTemplate(this.value)"
                 placeholder="{genre} (from Likes)"
+                aria-label="\${swedishMode ? 'Spellistnamn mall' : 'Playlist Name Template'}"
               >
               <button onclick="resetTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ mall' : 'Reset template'}">↺</button>
             </div>
@@ -13033,6 +13035,7 @@ export function getHtml(nonce: string): string {
                 value="\${playlistDescTemplate.replace(/"/g, '&quot;')}"
                 oninput="debouncedUpdateDescTemplate(this.value)"
                 placeholder="{genre} tracks • {count} songs"
+                aria-label="\${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}"
               >
               <button onclick="resetDescTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ beskrivningsmall' : 'Reset description template'}">↺</button>
             </div>
