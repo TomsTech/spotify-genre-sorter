@@ -10064,7 +10064,7 @@ export function getHtml(nonce: string): string {
         content.innerHTML = \`
           <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
             <span><strong>\${data.count}</strong> errors logged (last 100)</span>
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('admin-tab-content').scrollTop = 0">↑ Top</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('admin-tab-content').scrollTop = 0" aria-label="Scroll to top">↑ Top</button>
           </div>
           <div class="admin-errors-list">
             \${data.errors.slice(0, 50).map((error, idx) => \`
@@ -13017,6 +13017,7 @@ export function getHtml(nonce: string): string {
                 value="\${playlistTemplate.replace(/"/g, '&quot;')}"
                 oninput="debouncedUpdatePlaylistTemplate(this.value)"
                 placeholder="{genre} (from Likes)"
+                aria-label="\${swedishMode ? 'Spellistnamn mall' : 'Playlist Name Template'}"
               >
               <button onclick="resetTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ mall' : 'Reset template'}">↺</button>
             </div>
@@ -13033,6 +13034,7 @@ export function getHtml(nonce: string): string {
                 value="\${playlistDescTemplate.replace(/"/g, '&quot;')}"
                 oninput="debouncedUpdateDescTemplate(this.value)"
                 placeholder="{genre} tracks • {count} songs"
+                aria-label="\${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}"
               >
               <button onclick="resetDescTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ beskrivningsmall' : 'Reset description template'}">↺</button>
             </div>
@@ -14416,13 +14418,13 @@ export function getHtml(nonce: string): string {
           <div class="listening-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms" title="\${escapeHtml(track.name || '')} by \${escapeHtml(track.artists || '')}">
             <div class="listening-user">
               \${listener.spotifyAvatar
-                ? \`<img class="user-avatar" src="\${listener.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+                ? \`<img class="user-avatar" src="\${escapeHtml(listener.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
                 : '<div class="user-avatar-placeholder">👤</div>'}
               <span class="user-name">\${escapeHtml(listener.spotifyName)}</span>
             </div>
             <div class="listening-track">
               \${track.albumArt
-                ? \`<img class="track-album-art" src="\${track.albumArt}" alt="">\`
+                ? \`<img class="track-album-art" src="\${escapeHtml(track.albumArt)}" alt="">\`
                 : '<div class="track-album-placeholder">🎵</div>'}
               <div class="track-info">
                 <div class="track-name">\${escapeHtml(track.name || 'Unknown Track')}</div>

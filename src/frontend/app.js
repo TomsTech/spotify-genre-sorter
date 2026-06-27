@@ -5831,13 +5831,13 @@
           <div class="listening-list-item animate-in ${specialClass}" style="animation-delay: ${delay}ms" title="${escapeHtml(track.name || '')} by ${escapeHtml(track.artists || '')}">
             <div class="listening-user">
               ${listener.spotifyAvatar
-                ? `<img class="user-avatar" src="${listener.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">`
+                ? `<img class="user-avatar" src="${escapeHtml(listener.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">`
                 : '<div class="user-avatar-placeholder">👤</div>'}
               <span class="user-name">${escapeHtml(listener.spotifyName)}</span>
             </div>
             <div class="listening-track">
               ${track.albumArt
-                ? `<img class="track-album-art" src="${track.albumArt}" alt="">`
+                ? `<img class="track-album-art" src="${escapeHtml(track.albumArt)}" alt="">`
                 : '<div class="track-album-placeholder">🎵</div>'}
               <div class="track-info">
                 <div class="track-name">${escapeHtml(track.name || 'Unknown Track')}</div>
