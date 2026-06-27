@@ -5615,7 +5615,7 @@
             const tooltip = document.createElement('div');
             tooltip.className = 'now-playing-tooltip';
             tooltip.innerHTML = \`
-              <img class="now-playing-album-art" src="\${data.track.albumArt || ''}" alt="" \${data.track.albumArt ? '' : 'style="display:none"'}>
+              <img class="now-playing-album-art" src="\${escapeHtml(data.track.albumArt || '')}" alt="" \${data.track.albumArt ? '' : 'style="display:none"'}>
               <div class="now-playing-info">
                 <div class="now-playing-label">\${swedishMode ? 'Spelar nu' : 'Now Playing'}</div>
                 <div class="now-playing-track">\${escapeHtml(data.track.name)}</div>
@@ -5837,7 +5837,7 @@
             </div>
             <div class="listening-track">
               ${track.albumArt
-                ? `<img class="track-album-art" src="${track.albumArt}" alt="">`
+                ? `<img class="track-album-art" src="${escapeHtml(track.albumArt)}" alt="">`
                 : '<div class="track-album-placeholder">🎵</div>'}
               <div class="track-info">
                 <div class="track-name">${escapeHtml(track.name || 'Unknown Track')}</div>
