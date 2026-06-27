@@ -852,7 +852,7 @@
               <div class="admin-user-row" data-spotify-id="\${user.spotifyId}" data-name="\${user.spotifyName.toLowerCase()}">
                 <div class="admin-user-avatar">
                   \${user.spotifyAvatar
-                    ? \`<img src="\${user.spotifyAvatar}" alt="" />\`
+                    ? \`<img src="\${escapeHtml(user.spotifyAvatar)}" alt="" />\`
                     : '<span class="avatar-placeholder">👤</span>'}
                 </div>
                 <div class="admin-user-info">

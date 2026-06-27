@@ -9439,7 +9439,7 @@ export function getHtml(nonce: string): string {
               <div class="admin-user-row" data-spotify-id="\${user.spotifyId}" data-name="\${user.spotifyName.toLowerCase()}">
                 <div class="admin-user-avatar">
                   \${user.spotifyAvatar
-                    ? \`<img src="\${user.spotifyAvatar}" alt="" />\`
+                    ? \`<img src="\${escapeHtml(user.spotifyAvatar)}" alt="" />\`
                     : '<span class="avatar-placeholder">👤</span>'}
                 </div>
                 <div class="admin-user-info">
@@ -10064,7 +10064,7 @@ export function getHtml(nonce: string): string {
         content.innerHTML = \`
           <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
             <span><strong>\${data.count}</strong> errors logged (last 100)</span>
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('admin-tab-content').scrollTop = 0">↑ Top</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('admin-tab-content').scrollTop = 0" aria-label="Scroll to top">↑ Top</button>
           </div>
           <div class="admin-errors-list">
             \${data.errors.slice(0, 50).map((error, idx) => \`
@@ -13017,6 +13017,7 @@ export function getHtml(nonce: string): string {
                 value="\${playlistTemplate.replace(/"/g, '&quot;')}"
                 oninput="debouncedUpdatePlaylistTemplate(this.value)"
                 placeholder="{genre} (from Likes)"
+                aria-label="\${swedishMode ? 'Spellistnamn mall' : 'Playlist Name Template'}"
               >
               <button onclick="resetTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ mall' : 'Reset template'}">↺</button>
             </div>
@@ -13033,6 +13034,7 @@ export function getHtml(nonce: string): string {
                 value="\${playlistDescTemplate.replace(/"/g, '&quot;')}"
                 oninput="debouncedUpdateDescTemplate(this.value)"
                 placeholder="{genre} tracks • {count} songs"
+                aria-label="\${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}"
               >
               <button onclick="resetDescTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ beskrivningsmall' : 'Reset description template'}">↺</button>
             </div>
