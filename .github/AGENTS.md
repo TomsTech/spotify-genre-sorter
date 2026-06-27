@@ -71,7 +71,12 @@ Before any PR:
 
 ## Known Limitations
 
-{{TODO: Document known limitations}}
+- **Track Limit**: Maximum 10,000 tracks due to Spotify API constraints and worker timeout limits.
+- **Genre Data**: Genres are derived from artists, not individual tracks.
+- **Playlists**: Playlists are created as private by default.
+- **Sessions**: User sessions expire after 7 days.
+- **Rate Limiting**: The API is rate-limited to 30 requests per minute per IP.
+- **Agent Environment Limitations**: The `git push` command is blocked. Use the submit tool. Tests are written in TypeScript/Node.js, not Python.
 
 ---
 
