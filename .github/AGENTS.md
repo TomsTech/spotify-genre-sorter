@@ -71,7 +71,13 @@ Before any PR:
 
 ## Known Limitations
 
-{{TODO: Document known limitations}}
+- **Cloudflare Workers Environment**: The project runs on Cloudflare Workers. Standard Node.js built-in modules (e.g., `fs`, `path`) are not available. Use Web Standard APIs instead.
+- **Cloudflare KV Eventual Consistency**: Writes to Cloudflare KV are not immediately globally visible. Be aware of eventual consistency.
+- **Spotify API Limits**: The Spotify API has strict rate limits and limits on track numbers (max 10,000 tracks). Large libraries require patience (paginated API calls).
+- **Genre Derivation**: Genres are derived from **artists**, not individual tracks.
+- **Playlists**: Playlists are created as **private** by default.
+- **Session Expiration**: Sessions expire after 7 days.
+- **Testing**: E2E tests use a mocked Spotify API. Real API changes will not be caught by tests unless mocks are updated.
 
 ---
 
