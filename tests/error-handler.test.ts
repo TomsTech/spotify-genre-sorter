@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { determineRecoveryStrategy, ErrorCode, ErrorContext } from '../src/lib/error-handler';
+import { determineRecoveryStrategy, classifyError, AppError, ErrorCode, ErrorContext } from '../src/lib/error-handler';
 
 describe('determineRecoveryStrategy', () => {
   const createMockError = (code: ErrorCode, retryable = false, userMessage = 'Test error'): ErrorContext => ({
@@ -114,5 +114,91 @@ describe('determineRecoveryStrategy', () => {
       expect(strategy.action).toBe('abort');
       expect(strategy.message).toBe('An error occurred.');
     });
+  });
+});
+
+
+describe('classifyError', () => {
+  it('should correctly map properties from an AppError instance', () => {
+    const context = {
+      code: ErrorCode.VALIDATION_ERROR,
+      message: 'App error message',
+      userMessage: 'User friendly app message',
+      recoverable: true,
+      retryable: false,
+      statusCode: 400,
+      context: { foo: 'bar' },
+    };
+    const appError = new AppError(context);
+    const classified = classifyError(appError);
+
+    expect(classified.code).toBe(ErrorCode.VALIDATION_ERROR);
+    expect(classified.message).toBe('App error message');
+    expect(classified.userMessage).toBe('User friendly app message');
+    expect(classified.recoverable).toBe(true);
+    expect(classified.retryable).toBe(false);
+    expect(classified.statusCode).toBe(400);
+    expect(classified.context).toEqual({ foo: 'bar' });
+  });
+
+  it('should classify standard Error with network keywords as NETWORK_ERROR', () => {
+    const error = new Error('Failed to fetch data');
+    const classified = classifyError(error);
+
+    expect(classified.code).toBe(ErrorCode.NETWORK_ERROR);
+    expect(classified.statusCode).toBe(503);
+    expect(classified.retryable).toBe(true);
+    expect(classified.originalError).toBe(error);
+  });
+
+  it('should classify standard Error with rate limit keywords as RATE_LIMIT_ERROR', () => {
+    const error = new Error('API returned 429 Too Many Requests');
+    const classified = classifyError(error);
+
+    expect(classified.code).toBe(ErrorCode.RATE_LIMIT_ERROR);
+    expect(classified.statusCode).toBe(429);
+    expect(classified.retryable).toBe(true);
+    expect(classified.originalError).toBe(error);
+  });
+
+  it('should classify standard Error with auth keywords as AUTH_ERROR', () => {
+    const error = new Error('Invalid token provided');
+    const classified = classifyError(error);
+
+    expect(classified.code).toBe(ErrorCode.AUTH_ERROR);
+    expect(classified.statusCode).toBe(401);
+    expect(classified.retryable).toBe(false);
+    expect(classified.originalError).toBe(error);
+  });
+
+  it('should classify standard Error with timeout keywords as TIMEOUT_ERROR', () => {
+    const error = new Error('Request timed out after 3000ms');
+    const classified = classifyError(error);
+
+    expect(classified.code).toBe(ErrorCode.TIMEOUT_ERROR);
+    expect(classified.statusCode).toBe(504);
+    expect(classified.retryable).toBe(true);
+    expect(classified.originalError).toBe(error);
+  });
+
+  it('should classify unknown standard Error as UNKNOWN_ERROR', () => {
+    const error = new Error('Something weird happened');
+    const classified = classifyError(error);
+
+    expect(classified.code).toBe(ErrorCode.UNKNOWN_ERROR);
+    expect(classified.statusCode).toBe(500);
+    expect(classified.retryable).toBe(true);
+    expect(classified.originalError).toBe(error);
+  });
+
+  it('should classify string error as UNKNOWN_ERROR', () => {
+    const error = 'String error message';
+    const classified = classifyError(error);
+
+    expect(classified.code).toBe(ErrorCode.UNKNOWN_ERROR);
+    expect(classified.message).toBe('String error message');
+    expect(classified.statusCode).toBe(500);
+    expect(classified.retryable).toBe(true);
+    expect(classified.originalError).toBeUndefined();
   });
 });
