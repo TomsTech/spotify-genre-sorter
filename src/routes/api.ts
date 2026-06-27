@@ -1129,9 +1129,18 @@ api.post('/playlist', async (c) => {
     // Check for duplicate playlist unless force=true
     if (!force) {
       const existingPlaylists = await getUserPlaylists(session.spotifyAccessToken);
-      const duplicate = existingPlaylists.find(
-        p => p.name.toLowerCase() === playlistName.toLowerCase() && p.owner.id === user.id
-      );
+      const targetName = playlistName.toLowerCase();
+
+      // OPTIMIZATION: Pre-build a simple loop to find the duplicate for maximum performance.
+      // This avoids the overhead of repeated .toLowerCase() and callback creation inside .find().
+      let duplicate;
+      for (const p of existingPlaylists) {
+        if (p.owner.id === user.id && p.name.toLowerCase() === targetName) {
+          duplicate = p;
+          break;
+        }
+      }
+
       if (duplicate) {
         return c.json({
           success: false,
