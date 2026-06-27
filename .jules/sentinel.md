@@ -52,3 +52,7 @@
 **Vulnerability:** The `escapeHtml` function used DOM `textContent` assignment (`div.textContent = text; return div.innerHTML`), which successfully escapes `<` and `>`, but fails to escape single (`'`) and double (`"`) quotes. This left the application vulnerable to XSS when the escaped output was interpolated directly into HTML attributes (e.g., `<button onclick="doSomething('${escapeHtml(value)}')">`).
 **Learning:** Using DOM-based escaping mechanisms (`textContent`) is insufficient when the escaped string is intended for use inside HTML attributes, particularly event handlers. A malicious string like `' onmouseover='alert(1)` remains intact and can breakout of the attribute context.
 **Prevention:** Always use regex-based escaping mechanisms that comprehensively replace all critical HTML entities (`&`, `<`, `>`, `"`, and `'`) when sanitizing user input intended for HTML insertion, especially when dealing with attributes.
+## 2026-06-27 - Stored XSS in Avatar URLs
+**Vulnerability:** Unescaped avatar URLs injected directly into HTML attributes (e.g., `src="${user.spotifyAvatar}"`).
+**Learning:** Even though avatar URLs are typically controlled by third-party APIs (like Spotify or GitHub), they can potentially be manipulated or replaced by attackers, leading to Stored XSS via attribute injection (e.g., `onload="alert(1)"`).
+**Prevention:** Always escape variables inserted into HTML string templates using an escaping function (like `escapeHtml`), even for URL attributes such as `src` and `href`.

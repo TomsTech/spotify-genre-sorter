@@ -852,7 +852,7 @@
               <div class="admin-user-row" data-spotify-id="\${user.spotifyId}" data-name="\${user.spotifyName.toLowerCase()}">
                 <div class="admin-user-avatar">
                   \${user.spotifyAvatar
-                    ? \`<img src="\${user.spotifyAvatar}" alt="" />\`
+                    ? \`<img src="\${escapeHtml(user.spotifyAvatar)}" alt="" />\`
                     : '<span class="avatar-placeholder">👤</span>'}
                 </div>
                 <div class="admin-user-info">
@@ -1812,7 +1812,7 @@
         deployText.textContent = deployment.currentStep || 'Deploying...';
       } else if (deployment?.conclusion === 'success') {
         widget.classList.add('success');
-        statusIcon.innerHTML = \`<img class="avatar" src="\${deployment.author?.avatar || ''}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
+        statusIcon.innerHTML = \`<img class="avatar" src="\${escapeHtml(deployment.author?.avatar || '')}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
         const updatedAt = new Date(deployment.updatedAt);
         const timeAgo = formatTimeAgo(updatedAt);
         // Show version, release hint if available, and time
@@ -3025,7 +3025,7 @@
           \${lightMode ? '🌙' : '☀️'}
         </button>
         <div class="user-info" data-testid="user-info">
-          \${avatar ? \`<img src="\${avatar}" alt="" class="avatar" data-testid="user-avatar" onerror="this.style.display='none'">\` : ''}
+          \${avatar ? \`<img src="\${escapeHtml(avatar)}" alt="" class="avatar" data-testid="user-avatar" onerror="this.style.display='none'">\` : ''}
           <span data-testid="user-name">\${user || 'User'}</span>
           <a href="/auth/logout" class="btn btn-ghost" data-testid="logout-button" data-i18n="logout">\${t('logout')}</a>
         </div>
@@ -5715,7 +5715,7 @@
           return \`
             <div class="user-list-item animate-in owner-item \${specialClass}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
               \${user.spotifyAvatar
-                ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+                ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
                 : '<div class="user-avatar-placeholder">👤</div>'}
               <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
             </div>
@@ -5741,7 +5741,7 @@
             <div class="user-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
               <span class="position \${posClass}">#\${i + 1}</span>
               \${user.spotifyAvatar
-                ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+                ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
                 : '<div class="user-avatar-placeholder">👤</div>'}
               <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
               \${regalia}
@@ -5770,7 +5770,7 @@
         return \`
           <div class="user-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms">
             \${user.spotifyAvatar
-              ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+              ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
               : '<div class="user-avatar-placeholder">👤</div>'}
             <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
             <span class="regalia relative-time" data-timestamp="\${user.registeredAt}">\${formatTimeAgo(new Date(user.registeredAt))}</span>
@@ -5800,7 +5800,7 @@
               <div class="playlist-meta">
                 <span class="playlist-creator">
                   \${playlist.createdBy.spotifyAvatar
-                    ? \`<img class="creator-avatar" src="\${playlist.createdBy.spotifyAvatar}" alt="">\`
+                    ? \`<img class="creator-avatar" src="\${escapeHtml(playlist.createdBy.spotifyAvatar)}" alt="">\`
                     : ''}
                   \${escapeHtml(playlist.createdBy.spotifyName)}
                 </span>
@@ -5831,7 +5831,7 @@
           <div class="listening-list-item animate-in ${specialClass}" style="animation-delay: ${delay}ms" title="${escapeHtml(track.name || '')} by ${escapeHtml(track.artists || '')}">
             <div class="listening-user">
               ${listener.spotifyAvatar
-                ? `<img class="user-avatar" src="${listener.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">`
+                ? `<img class="user-avatar" src="${escapeHtml(listener.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">`
                 : '<div class="user-avatar-placeholder">👤</div>'}
               <span class="user-name">${escapeHtml(listener.spotifyName)}</span>
             </div>
@@ -5972,7 +5972,7 @@
               <div class="scoreboard-entry \${top3Class}">
                 <span class="rank \${rankClass}">\${medalEmoji || '#' + entry.rank}</span>
                 \${entry.spotifyAvatar
-                  ? \`<img class="entry-avatar" src="\${entry.spotifyAvatar}" alt="" onerror="this.style.display='none'">\`
+                  ? \`<img class="entry-avatar" src="\${escapeHtml(entry.spotifyAvatar)}" alt="" onerror="this.style.display='none'">\`
                   : '<div class="entry-avatar" style="background:var(--surface-2);display:flex;align-items:center;justify-content:center">👤</div>'}
                 <div class="entry-info">
                   <div class="entry-name">\${escapeHtml(entry.spotifyName)}</div>

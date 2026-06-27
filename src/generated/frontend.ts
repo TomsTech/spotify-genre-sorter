@@ -9439,7 +9439,7 @@ export function getHtml(nonce: string): string {
               <div class="admin-user-row" data-spotify-id="\${user.spotifyId}" data-name="\${user.spotifyName.toLowerCase()}">
                 <div class="admin-user-avatar">
                   \${user.spotifyAvatar
-                    ? \`<img src="\${user.spotifyAvatar}" alt="" />\`
+                    ? \`<img src="\${escapeHtml(user.spotifyAvatar)}" alt="" />\`
                     : '<span class="avatar-placeholder">👤</span>'}
                 </div>
                 <div class="admin-user-info">
@@ -10064,7 +10064,7 @@ export function getHtml(nonce: string): string {
         content.innerHTML = \`
           <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
             <span><strong>\${data.count}</strong> errors logged (last 100)</span>
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('admin-tab-content').scrollTop = 0">↑ Top</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('admin-tab-content').scrollTop = 0" aria-label="Scroll to top">↑ Top</button>
           </div>
           <div class="admin-errors-list">
             \${data.errors.slice(0, 50).map((error, idx) => \`
@@ -10399,7 +10399,7 @@ export function getHtml(nonce: string): string {
         deployText.textContent = deployment.currentStep || 'Deploying...';
       } else if (deployment?.conclusion === 'success') {
         widget.classList.add('success');
-        statusIcon.innerHTML = \`<img class="avatar" src="\${deployment.author?.avatar || ''}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
+        statusIcon.innerHTML = \`<img class="avatar" src="\${escapeHtml(deployment.author?.avatar || '')}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
         const updatedAt = new Date(deployment.updatedAt);
         const timeAgo = formatTimeAgo(updatedAt);
         // Show version, release hint if available, and time
@@ -11612,7 +11612,7 @@ export function getHtml(nonce: string): string {
           \${lightMode ? '🌙' : '☀️'}
         </button>
         <div class="user-info" data-testid="user-info">
-          \${avatar ? \`<img src="\${avatar}" alt="" class="avatar" data-testid="user-avatar" onerror="this.style.display='none'">\` : ''}
+          \${avatar ? \`<img src="\${escapeHtml(avatar)}" alt="" class="avatar" data-testid="user-avatar" onerror="this.style.display='none'">\` : ''}
           <span data-testid="user-name">\${user || 'User'}</span>
           <a href="/auth/logout" class="btn btn-ghost" data-testid="logout-button" data-i18n="logout">\${t('logout')}</a>
         </div>
@@ -13017,6 +13017,7 @@ export function getHtml(nonce: string): string {
                 value="\${playlistTemplate.replace(/"/g, '&quot;')}"
                 oninput="debouncedUpdatePlaylistTemplate(this.value)"
                 placeholder="{genre} (from Likes)"
+                aria-label="\${swedishMode ? 'Spellistnamn mall' : 'Playlist Name Template'}"
               >
               <button onclick="resetTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ mall' : 'Reset template'}">↺</button>
             </div>
@@ -13033,6 +13034,7 @@ export function getHtml(nonce: string): string {
                 value="\${playlistDescTemplate.replace(/"/g, '&quot;')}"
                 oninput="debouncedUpdateDescTemplate(this.value)"
                 placeholder="{genre} tracks • {count} songs"
+                aria-label="\${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}"
               >
               <button onclick="resetDescTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ beskrivningsmall' : 'Reset description template'}">↺</button>
             </div>
@@ -14300,7 +14302,7 @@ export function getHtml(nonce: string): string {
           return \`
             <div class="user-list-item animate-in owner-item \${specialClass}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
               \${user.spotifyAvatar
-                ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+                ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
                 : '<div class="user-avatar-placeholder">👤</div>'}
               <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
             </div>
@@ -14326,7 +14328,7 @@ export function getHtml(nonce: string): string {
             <div class="user-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
               <span class="position \${posClass}">#\${i + 1}</span>
               \${user.spotifyAvatar
-                ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+                ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
                 : '<div class="user-avatar-placeholder">👤</div>'}
               <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
               \${regalia}
@@ -14355,7 +14357,7 @@ export function getHtml(nonce: string): string {
         return \`
           <div class="user-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms">
             \${user.spotifyAvatar
-              ? \`<img class="user-avatar" src="\${user.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+              ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
               : '<div class="user-avatar-placeholder">👤</div>'}
             <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
             <span class="regalia relative-time" data-timestamp="\${user.registeredAt}">\${formatTimeAgo(new Date(user.registeredAt))}</span>
@@ -14385,7 +14387,7 @@ export function getHtml(nonce: string): string {
               <div class="playlist-meta">
                 <span class="playlist-creator">
                   \${playlist.createdBy.spotifyAvatar
-                    ? \`<img class="creator-avatar" src="\${playlist.createdBy.spotifyAvatar}" alt="">\`
+                    ? \`<img class="creator-avatar" src="\${escapeHtml(playlist.createdBy.spotifyAvatar)}" alt="">\`
                     : ''}
                   \${escapeHtml(playlist.createdBy.spotifyName)}
                 </span>
@@ -14416,7 +14418,7 @@ export function getHtml(nonce: string): string {
           <div class="listening-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms" title="\${escapeHtml(track.name || '')} by \${escapeHtml(track.artists || '')}">
             <div class="listening-user">
               \${listener.spotifyAvatar
-                ? \`<img class="user-avatar" src="\${listener.spotifyAvatar}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+                ? \`<img class="user-avatar" src="\${escapeHtml(listener.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
                 : '<div class="user-avatar-placeholder">👤</div>'}
               <span class="user-name">\${escapeHtml(listener.spotifyName)}</span>
             </div>
@@ -14557,7 +14559,7 @@ export function getHtml(nonce: string): string {
               <div class="scoreboard-entry \${top3Class}">
                 <span class="rank \${rankClass}">\${medalEmoji || '#' + entry.rank}</span>
                 \${entry.spotifyAvatar
-                  ? \`<img class="entry-avatar" src="\${entry.spotifyAvatar}" alt="" onerror="this.style.display='none'">\`
+                  ? \`<img class="entry-avatar" src="\${escapeHtml(entry.spotifyAvatar)}" alt="" onerror="this.style.display='none'">\`
                   : '<div class="entry-avatar" style="background:var(--surface-2);display:flex;align-items:center;justify-content:center">👤</div>'}
                 <div class="entry-info">
                   <div class="entry-name">\${escapeHtml(entry.spotifyName)}</div>
