@@ -26,3 +26,6 @@
 ## 2024-05-18 - Use waitUntil for background tasks
 **Learning:** In Cloudflare Workers / Hono, non-essential background tasks (like analytics tracking or updating user stats) in middleware or route handlers should be wrapped in `c.executionCtx.waitUntil(...)` to return the HTTP response immediately while ensuring the background task completes.
 **Action:** Always wrap non-critical background operations in `c.executionCtx.waitUntil()` when writing route handlers in Cloudflare Workers.
+## 2024-06-27 - [Optimize .find() call on potentially large playlist arrays]
+**Learning:** While Maps/Sets provide O(1) lookups, the overhead of building them entirely inside a hot endpoint loop for a single lookup on arrays up to a few hundred elements often outweighs the benefits compared to a highly optimized standard `for` loop with hoisted target values.
+**Action:** Always benchmark collection conversion vs optimized loops for small-medium arrays when only single lookups occur.
