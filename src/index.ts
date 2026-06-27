@@ -374,10 +374,12 @@ app.get('/stats', async (c) => {
     const count = countStr ? parseInt(countStr, 10) : 0;
 
     // Get hall of fame (first 10 users for display)
+    const numToFetch = Math.min(count, 10);
+    const keys = Array.from({ length: numToFetch }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
+    const results = await Promise.all(keys.map((key) => c.env.SESSIONS.get(key)));
+
     const hallOfFame: { position: number; spotifyName: string; registeredAt: string }[] = [];
-    for (let i = 1; i <= Math.min(count, 10); i++) {
-      const hofKey = `hof:${String(i).padStart(3, '0')}`;
-      const data = await c.env.SESSIONS.get(hofKey);
+    for (const data of results) {
       if (data) {
         const entry = JSON.parse(data) as { position: number; spotifyName: string; registeredAt: string };
         hallOfFame.push({
