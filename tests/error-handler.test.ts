@@ -1,5 +1,85 @@
 import { describe, it, expect } from 'vitest';
-import { determineRecoveryStrategy, ErrorCode, ErrorContext } from '../src/lib/error-handler';
+import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError } from '../src/lib/error-handler';
+
+
+describe('classifyError', () => {
+  it('should return properties of an AppError instance unmodified', () => {
+    const appError = new AppError({
+      code: ErrorCode.VALIDATION_ERROR,
+      message: 'Validation failed',
+      userMessage: 'Please check your input.',
+      userMessageSV: 'Kontrollera din inmatning.',
+      recoverable: true,
+      retryable: false,
+      statusCode: 400,
+      context: { field: 'email' },
+    });
+
+    const classified = classifyError(appError);
+
+    expect(classified.code).toBe(ErrorCode.VALIDATION_ERROR);
+    expect(classified.message).toBe('Validation failed');
+    expect(classified.userMessage).toBe('Please check your input.');
+    expect(classified.userMessageSV).toBe('Kontrollera din inmatning.');
+    expect(classified.recoverable).toBe(true);
+    expect(classified.retryable).toBe(false);
+    expect(classified.statusCode).toBe(400);
+    expect(classified.context).toEqual({ field: 'email' });
+  });
+
+  it('should classify network errors based on keyword', () => {
+    const error = new Error('Failed to fetch data');
+    const classified = classifyError(error);
+
+    expect(classified.code).toBe(ErrorCode.NETWORK_ERROR);
+    expect(classified.statusCode).toBe(503);
+    expect(classified.originalError).toBe(error);
+  });
+
+  it('should classify rate limit errors based on keyword', () => {
+    const error = new Error('API rate limit exceeded');
+    const classified = classifyError(error);
+
+    expect(classified.code).toBe(ErrorCode.RATE_LIMIT_ERROR);
+    expect(classified.statusCode).toBe(429);
+  });
+
+  it('should classify authentication errors based on keyword', () => {
+    const error = new Error('Status 401 Unauthorized');
+    const classified = classifyError(error);
+
+    expect(classified.code).toBe(ErrorCode.AUTH_ERROR);
+    expect(classified.statusCode).toBe(401);
+  });
+
+  it('should classify timeout errors based on keyword', () => {
+    const error = new Error('Connection timed out');
+    const classified = classifyError(error);
+
+    expect(classified.code).toBe(ErrorCode.TIMEOUT_ERROR);
+    expect(classified.statusCode).toBe(504);
+  });
+
+  it('should fallback to UNKNOWN_ERROR for standard errors without matching keywords', () => {
+    const error = new Error('Some bizarre unexpected issue');
+    const classified = classifyError(error);
+
+    expect(classified.code).toBe(ErrorCode.UNKNOWN_ERROR);
+    expect(classified.statusCode).toBe(500);
+    expect(classified.message).toBe('Some bizarre unexpected issue');
+    expect(classified.originalError).toBe(error);
+  });
+
+  it('should classify non-Error primitives as UNKNOWN_ERROR', () => {
+    const errorStr = 'Just a string error';
+    const classified = classifyError(errorStr);
+
+    expect(classified.code).toBe(ErrorCode.UNKNOWN_ERROR);
+    expect(classified.statusCode).toBe(500);
+    expect(classified.message).toBe('Just a string error');
+    expect(classified.originalError).toBeUndefined();
+  });
+});
 
 describe('determineRecoveryStrategy', () => {
   const createMockError = (code: ErrorCode, retryable = false, userMessage = 'Test error'): ErrorContext => ({
