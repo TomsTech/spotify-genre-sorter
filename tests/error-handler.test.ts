@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { determineRecoveryStrategy, ErrorCode, ErrorContext } from '../src/lib/error-handler';
+import { determineRecoveryStrategy, ErrorCode, ErrorContext, processBatch } from '../src/lib/error-handler';
 
 describe('determineRecoveryStrategy', () => {
   const createMockError = (code: ErrorCode, retryable = false, userMessage = 'Test error'): ErrorContext => ({
@@ -114,5 +114,94 @@ describe('determineRecoveryStrategy', () => {
       expect(strategy.action).toBe('abort');
       expect(strategy.message).toBe('An error occurred.');
     });
+  });
+});
+
+describe('processBatch', () => {
+  it('should process all items successfully', async () => {
+    const items = [1, 2, 3, 4, 5];
+    const processor = async (item: number) => item * 2;
+
+    const result = await processBatch(items, processor);
+
+    expect(result.totalCount).toBe(5);
+    expect(result.successCount).toBe(5);
+    expect(result.failureCount).toBe(0);
+    expect(result.successful).toEqual([
+      { item: 1, result: 2 },
+      { item: 2, result: 4 },
+      { item: 3, result: 6 },
+      { item: 4, result: 8 },
+      { item: 5, result: 10 },
+    ]);
+    expect(result.failed).toEqual([]);
+  });
+
+  it('should handle partial failures when continueOnError is true', async () => {
+    const items = [1, 2, 3, 4, 5];
+    const processor = async (item: number) => {
+      if (item % 2 === 0) {
+        throw new Error(`Failed on ${item}`);
+      }
+      return item * 2;
+    };
+
+    const result = await processBatch(items, processor);
+
+    expect(result.totalCount).toBe(5);
+    expect(result.successCount).toBe(3);
+    expect(result.failureCount).toBe(2);
+    expect(result.successful).toEqual([
+      { item: 1, result: 2 },
+      { item: 3, result: 6 },
+      { item: 5, result: 10 },
+    ]);
+    expect(result.failed).toHaveLength(2);
+    expect(result.failed[0].item).toBe(2);
+    expect(result.failed[0].error.message).toBe('Failed on 2');
+    expect(result.failed[1].item).toBe(4);
+    expect(result.failed[1].error.message).toBe('Failed on 4');
+  });
+
+  it('should stop processing early when continueOnError is false', async () => {
+    const items = [1, 2, 3, 4, 5];
+    let processedCount = 0;
+    const processor = async (item: number) => {
+      processedCount++;
+      if (item === 2) {
+        throw new Error('Stop here');
+      }
+      return item * 2;
+    };
+
+    const result = await processBatch(items, processor, { continueOnError: false, maxConcurrent: 2 });
+
+    expect(result.totalCount).toBe(5);
+    expect(result.successCount).toBe(1);
+    expect(result.failureCount).toBe(1);
+    expect(processedCount).toBe(2);
+    expect(result.successful).toEqual([{ item: 1, result: 2 }]);
+    expect(result.failed).toHaveLength(1);
+    expect(result.failed[0].item).toBe(2);
+  });
+
+  it('should process items in chunks based on maxConcurrent', async () => {
+    const items = [1, 2, 3, 4, 5];
+    const activeProcessors = new Set<number>();
+    let maxObservedConcurrent = 0;
+
+    const processor = async (item: number) => {
+      activeProcessors.add(item);
+      maxObservedConcurrent = Math.max(maxObservedConcurrent, activeProcessors.size);
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      activeProcessors.delete(item);
+      return item * 2;
+    };
+
+    await processBatch(items, processor, { maxConcurrent: 2 });
+
+    expect(maxObservedConcurrent).toBe(2);
   });
 });
