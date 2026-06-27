@@ -26,3 +26,7 @@
 ## 2024-05-18 - Use waitUntil for background tasks
 **Learning:** In Cloudflare Workers / Hono, non-essential background tasks (like analytics tracking or updating user stats) in middleware or route handlers should be wrapped in `c.executionCtx.waitUntil(...)` to return the HTTP response immediately while ensuring the background task completes.
 **Action:** Always wrap non-critical background operations in `c.executionCtx.waitUntil()` when writing route handlers in Cloudflare Workers.
+
+## 2024-07-26 - Parallelize KV Gets in Hall of Fame
+**Learning:** Sequential `await` calls in a loop for fetching KV lists introduce N+1 query performance issues.
+**Action:** Use `Promise.all` to fetch multiple KV keys concurrently. This significantly reduces overall latency.
