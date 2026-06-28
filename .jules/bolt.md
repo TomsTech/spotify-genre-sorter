@@ -29,3 +29,6 @@
 ## 2024-06-27 - [Optimize .find() call on potentially large playlist arrays]
 **Learning:** While Maps/Sets provide O(1) lookups, the overhead of building them entirely inside a hot endpoint loop for a single lookup on arrays up to a few hundred elements often outweighs the benefits compared to a highly optimized standard `for` loop with hoisted target values.
 **Action:** Always benchmark collection conversion vs optimized loops for small-medium arrays when only single lookups occur.
+## 2024-06-28 - [Optimize array .find() on KV list results]
+**Learning:** When fetching single items via paginated APIs (e.g., `kv.list({ limit: 1 })`), using `Array.prototype.find()` on the resulting array (which is guaranteed to have at most 1 element) adds unnecessary callback allocation and V8 closure overhead. Direct index access combined with optional chaining (`list.keys[0]?.name === targetName`) is significantly faster and avoids function allocation entirely.
+**Action:** Always use direct index access rather than O(N) array iterator methods like `.find()` when extracting single items from arrays known to have 0 or 1 elements.
