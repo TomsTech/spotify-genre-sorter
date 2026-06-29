@@ -545,21 +545,35 @@ export async function getPlaylistTracks(
   playlistId: string,
   limit = 100
 ): Promise<PlaylistTrack[]> {
-  const allTracks: PlaylistTrack[] = [];
-  let offset = 0;
   const pageLimit = 50;
-  let hasMore = true;
 
-  while (hasMore && allTracks.length < limit) {
-    const response = await spotifyFetch<{
-      items: PlaylistTrack[];
-      total: number;
-      next: string | null;
-    }>(`/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${offset}`, accessToken);
+  // Fetch first page to get total
+  const firstResponse = await spotifyFetch<{
+    items: PlaylistTrack[];
+    total: number;
+    next: string | null;
+  }>(`/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=0`, accessToken);
 
-    allTracks.push(...response.items);
-    offset += pageLimit;
-    hasMore = !!response.next && allTracks.length < limit;
+  const allTracks: PlaylistTrack[] = [...firstResponse.items];
+  const targetTotal = Math.min(limit, firstResponse.total);
+
+  if (targetTotal > pageLimit) {
+    const promises = [];
+    for (let offset = pageLimit; offset < targetTotal; offset += pageLimit) {
+      promises.push(
+        spotifyFetch<{
+          items: PlaylistTrack[];
+          total: number;
+          next: string | null;
+        }>(`/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${offset}`, accessToken)
+      );
+    }
+
+    // PERF-028 FIX: Use Promise.all to fetch remaining playlist tracks in parallel
+    const responses = await Promise.all(promises);
+    for (const response of responses) {
+      allTracks.push(...response.items);
+    }
   }
 
   return allTracks.slice(0, limit);
