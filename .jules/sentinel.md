@@ -56,3 +56,7 @@
 **Vulnerability:** Unescaped avatar URLs injected directly into HTML attributes (e.g., `src="${user.spotifyAvatar}"`).
 **Learning:** Even though avatar URLs are typically controlled by third-party APIs (like Spotify or GitHub), they can potentially be manipulated or replaced by attackers, leading to Stored XSS via attribute injection (e.g., `onload="alert(1)"`).
 **Prevention:** Always escape variables inserted into HTML string templates using an escaping function (like `escapeHtml`), even for URL attributes such as `src` and `href`.
+## 2024-06-28 - [Stability] Stringify objects before HTML escaping
+**Vulnerability:** Directly passing objects (like `error.context`) to custom HTML escaping functions can lead to unhelpful `[object Object]` coercion in the UI, or runtime crashes like `TypeError: text.replace is not a function`.
+**Learning:** Explicitly stringify objects using `JSON.stringify()` before escaping them, ensuring robustness against non-string primitive inputs and better diagnostic information.
+**Prevention:** Always cast or stringify inputs (especially dynamic context objects) before applying string manipulation functions like `.replace()` in custom escape helpers.
