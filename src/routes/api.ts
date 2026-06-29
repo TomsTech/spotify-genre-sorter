@@ -2777,7 +2777,7 @@ api.get('/admin/kv-key/:key', async (c) => {
 
     // Get metadata via list
     const list = await kv.list({ prefix: keyName, limit: 1 });
-    const keyMeta = list.keys.find(k => k.name === keyName);
+    const keyMeta = list.keys[0]?.name === keyName ? list.keys[0] : undefined;
 
     return c.json({
       key: keyName,
