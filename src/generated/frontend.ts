@@ -11758,13 +11758,13 @@ export function getHtml(nonce: string): string {
 
       carousel.innerHTML = [
         '<div class="album-art-item left visible">',
-        '<img src="' + albumArtUrls[leftIdx] + '" alt="" loading="lazy">',
+        '<img src="' + escapeHtml(albumArtUrls[leftIdx]) + '" alt="" loading="lazy">',
         '</div>',
         '<div class="album-art-item center visible">',
-        '<img src="' + albumArtUrls[centerIdx] + '" alt="" loading="lazy">',
+        '<img src="' + escapeHtml(albumArtUrls[centerIdx]) + '" alt="" loading="lazy">',
         '</div>',
         '<div class="album-art-item right visible">',
-        '<img src="' + albumArtUrls[rightIdx] + '" alt="" loading="lazy">',
+        '<img src="' + escapeHtml(albumArtUrls[rightIdx]) + '" alt="" loading="lazy">',
         '</div>'
       ].join('');
     }
@@ -14202,7 +14202,7 @@ export function getHtml(nonce: string): string {
             const tooltip = document.createElement('div');
             tooltip.className = 'now-playing-tooltip';
             tooltip.innerHTML = \`
-              <img class="now-playing-album-art" src="\${data.track.albumArt || ''}" alt="" \${data.track.albumArt ? '' : 'style="display:none"'}>
+              <img class="now-playing-album-art" src="\${escapeHtml(data.track.albumArt || '')}" alt="" \${data.track.albumArt ? '' : 'style="display:none"'}>
               <div class="now-playing-info">
                 <div class="now-playing-label">\${swedishMode ? 'Spelar nu' : 'Now Playing'}</div>
                 <div class="now-playing-track">\${escapeHtml(data.track.name)}</div>
@@ -14424,7 +14424,7 @@ export function getHtml(nonce: string): string {
             </div>
             <div class="listening-track">
               \${track.albumArt
-                ? \`<img class="track-album-art" src="\${track.albumArt}" alt="">\`
+                ? \`<img class="track-album-art" src="\${escapeHtml(track.albumArt)}" alt="">\`
                 : '<div class="track-album-placeholder">🎵</div>'}
               <div class="track-info">
                 <div class="track-name">\${escapeHtml(track.name || 'Unknown Track')}</div>
