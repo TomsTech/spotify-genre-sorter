@@ -139,6 +139,7 @@
 ├── tests
 │   ├── api.test.ts
 │   ├── artist-genre-cache.test.ts
+│   ├── csp-nonce.test.ts
 │   ├── csrf.test.ts
 │   ├── error-handler.test.ts
 │   ├── error-middleware.test.ts
@@ -171,7 +172,6 @@
 ├── openapi.yaml
 ├── package-lock.json
 ├── package.json
-├── plan.md
 ├── playwright.config.ts
 ├── pnpm-lock.yaml
 ├── pr_description.md

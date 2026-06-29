@@ -7,20 +7,20 @@
 
 | Category | Count |
 |----------|-------|
-| JavaScript/TypeScript | 80 |
+| JavaScript/TypeScript | 81 |
 | Python | 0 |
 | PowerShell | 0 |
 | PHP | 0 |
 | Go | 0 |
-| Documentation (MD) | 40 |
-| Test Files | 39 |
+| Documentation (MD) | 39 |
+| Test Files | 40 |
 | GitHub Workflows | 10 |
 
 ## Repository Stats
 
 | Metric | Value |
 |--------|-------|
-| Total Commits | 371 |
+| Total Commits | 377 |
 | Contributors | 0 |
 | First Commit | 2025-11-28 |
 | Last Commit | 2026-06-28 |
