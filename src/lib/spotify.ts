@@ -251,26 +251,40 @@ export async function getAllLikedTracks(
   maxTracks?: number
 ): Promise<LikedTracksResult> {
   const allTracks: LikedTrack[] = [];
-  let offset = 0;
   const limit = 50;
-  let totalInLibrary = 0;
   const trackLimit = maxTracks || MAX_TRACKS_FREE_TIER;
-  let requestCount = 0;
 
-  do {
-    const response = await getLikedTracks(accessToken, limit, offset);
-    allTracks.push(...response.items);
-    totalInLibrary = response.total;
-    offset += limit;
-    requestCount++;
-    onProgress?.(allTracks.length, totalInLibrary);
+  // PERF-FIX: Fetch first page to get total item count, then fetch remaining in parallel
+  const initialResponse = await getLikedTracks(accessToken, limit, 0);
+  allTracks.push(...initialResponse.items);
+  const totalInLibrary = initialResponse.total;
+  onProgress?.(allTracks.length, totalInLibrary);
 
-    // Stop if we've hit our limits to avoid subrequest errors
-    if (requestCount >= MAX_TRACK_REQUESTS || allTracks.length >= trackLimit) {
-      // Note: Truncation info is returned in the response for client-side display
-      break;
+  if (limit < totalInLibrary && allTracks.length < trackLimit && 1 < MAX_TRACK_REQUESTS) {
+    const remainingOffsets: number[] = [];
+    let offset = limit;
+    let requestCount = 1;
+
+    while (offset < totalInLibrary && requestCount < MAX_TRACK_REQUESTS && offset < trackLimit) {
+      remainingOffsets.push(offset);
+      offset += limit;
+      requestCount++;
     }
-  } while (offset < totalInLibrary);
+
+    // Process in chunks of 5 to preserve UI progress callback behavior
+    const CONCURRENCY_LIMIT = 5;
+    for (let i = 0; i < remainingOffsets.length; i += CONCURRENCY_LIMIT) {
+      const chunk = remainingOffsets.slice(i, i + CONCURRENCY_LIMIT);
+      const responses = await Promise.all(
+        chunk.map(off => getLikedTracks(accessToken, limit, off))
+      );
+
+      for (const response of responses) {
+        allTracks.push(...response.items);
+        onProgress?.(allTracks.length, totalInLibrary);
+      }
+    }
+  }
 
   return {
     tracks: allTracks,
