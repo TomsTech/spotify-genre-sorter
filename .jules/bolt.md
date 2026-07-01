@@ -29,3 +29,6 @@
 ## 2024-06-27 - [Optimize .find() call on potentially large playlist arrays]
 **Learning:** While Maps/Sets provide O(1) lookups, the overhead of building them entirely inside a hot endpoint loop for a single lookup on arrays up to a few hundred elements often outweighs the benefits compared to a highly optimized standard `for` loop with hoisted target values.
 **Action:** Always benchmark collection conversion vs optimized loops for small-medium arrays when only single lookups occur.
+## 2025-05-28 - [Parallelizing Spotify API Requests]
+**Learning:** Fetching paginated Spotify API data (e.g., liked tracks) with sequential `while` loops causes N+1 network latency issues, significantly slowing down library scans.
+**Action:** Always fetch the first page to get the total item count, calculate the required remaining offsets, and fetch the remaining pages concurrently using `Promise.all()` (in chunks to preserve UI progress behavior) to minimize network latency.
