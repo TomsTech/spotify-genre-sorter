@@ -10189,7 +10189,7 @@ export function getHtml(nonce: string): string {
           <span class="fika-emoji">☕🍪</span>
           <p>Dags för fika!</p>
           <p style="font-size: 0.9rem; opacity: 0.8;">Time for a coffee break!</p>
-          <button class="btn btn-ghost fika-dismiss-btn">Tack!</button>
+          <button class="btn btn-ghost fika-dismiss-btn" aria-label="\${swedishMode ? 'Tack!' : 'Dismiss'}">Tack!</button>
         </div>
       \`;
       document.body.appendChild(reminder);
@@ -10654,7 +10654,7 @@ export function getHtml(nonce: string): string {
               <a href="\${changelogCache?.repoUrl || 'https://github.com/TomsTech/spotify-genre-sorter'}/releases" target="_blank" class="btn btn-ghost">
                 \${swedishMode ? 'Alla utgåvor' : 'All releases'}
               </a>
-              <button class="btn btn-primary whats-new-gotit">
+              <button class="btn btn-primary whats-new-gotit" aria-label="\${swedishMode ? 'Förstått!' : 'Got it!'}">
                 \${swedishMode ? 'Förstått!' : 'Got it!'}
               </button>
             </div>
@@ -13070,7 +13070,7 @@ export function getHtml(nonce: string): string {
           <div class="actions">
             <button onclick="selectAll()" class="btn btn-secondary" data-i18n="selectAll">\${t('selectAll')}</button>
             <button onclick="selectNone()" class="btn btn-secondary" data-i18n="selectNone">\${t('selectNone')}</button>
-            <button onclick="createSelectedPlaylists()" class="btn btn-primary" id="create-btn" disabled data-i18n="createPlaylists">
+            <button onclick="createSelectedPlaylists()" class="btn btn-primary" id="create-btn" disabled aria-label="\${t('createPlaylists')}" data-i18n="createPlaylists">
               \${t('createPlaylists')}
             </button>
           </div>
@@ -13153,6 +13153,7 @@ export function getHtml(nonce: string): string {
           </button>
           <button
             class="btn btn-ghost genre-create"
+            aria-label="\${t('create')}"
             onclick="event.preventDefault(); createPlaylist('\${genre.name.replace(/'/g, "\\\\'")}')"
             data-i18n="create"
           >
