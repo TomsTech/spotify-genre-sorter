@@ -50,7 +50,7 @@
             <button class="btn btn-primary error-retry-btn" onclick="window.location.reload()">
               \${swedishMode ? '🔄 Försök igen' : '🔄 Try Again'}
             </button>
-            <a href="\${issueUrl}" target="_blank" rel="noopener" class="btn btn-ghost error-report-btn">
+            <a href="\${escapeHtml(issueUrl)}" target="_blank" rel="noopener" class="btn btn-ghost error-report-btn">
               \${swedishMode ? '🐛 Rapportera problem' : '🐛 Report Issue'}
             </a>
           </div>
@@ -3171,13 +3171,13 @@
 
       carousel.innerHTML = [
         '<div class="album-art-item left visible">',
-        '<img src="' + albumArtUrls[leftIdx] + '" alt="" loading="lazy">',
+        '<img src="' + escapeHtml(albumArtUrls[leftIdx]) + '" alt="" loading="lazy">',
         '</div>',
         '<div class="album-art-item center visible">',
-        '<img src="' + albumArtUrls[centerIdx] + '" alt="" loading="lazy">',
+        '<img src="' + escapeHtml(albumArtUrls[centerIdx]) + '" alt="" loading="lazy">',
         '</div>',
         '<div class="album-art-item right visible">',
-        '<img src="' + albumArtUrls[rightIdx] + '" alt="" loading="lazy">',
+        '<img src="' + escapeHtml(albumArtUrls[rightIdx]) + '" alt="" loading="lazy">',
         '</div>'
       ].join('');
     }
@@ -3508,7 +3508,7 @@
                 \${playlists.slice(0, 20).map(p => \`
                   <label class="source-option">
                     <input type="checkbox" data-playlist-id="\${p.id}">
-                    <span class="source-icon">\${p.image ? \`<img src="\${p.image}" alt="">\` : '🎵'}</span>
+                    <span class="source-icon">\${p.image ? \`<img src="\${escapeHtml(p.image)}" alt="">\` : '🎵'}</span>
                     <span class="source-info">
                       <span class="source-name">\${escapeHtml(p.name)}</span>
                       <span class="source-desc">\${p.trackCount} \${swedishMode ? 'låtar' : 'tracks'}</span>
@@ -5265,7 +5265,7 @@
                 <div class="result-item">
                   <span>\${r.genre}</span>
                   \${r.success
-                    ? \`<a href="\${r.url}" target="_blank" class="result-success" data-i18n="openSpotify">\${t('openSpotify')}</a>\`
+                    ? \`<a href="\${escapeHtml(r.url)}" target="_blank" class="result-success" data-i18n="openSpotify">\${t('openSpotify')}</a>\`
                     : r.skipped
                       ? \`<span class="result-skipped">\${swedishMode ? 'Finns redan' : 'Already exists'}</span>\`
                       : \`<span class="result-error">\${r.error}</span>\`
@@ -5615,7 +5615,7 @@
             const tooltip = document.createElement('div');
             tooltip.className = 'now-playing-tooltip';
             tooltip.innerHTML = \`
-              <img class="now-playing-album-art" src="\${data.track.albumArt || ''}" alt="" \${data.track.albumArt ? '' : 'style="display:none"'}>
+              <img class="now-playing-album-art" src="\${escapeHtml(data.track.albumArt || '')}" alt="" \${data.track.albumArt ? '' : 'style="display:none"'}>
               <div class="now-playing-info">
                 <div class="now-playing-label">\${swedishMode ? 'Spelar nu' : 'Now Playing'}</div>
                 <div class="now-playing-track">\${escapeHtml(data.track.name)}</div>
@@ -5793,7 +5793,7 @@
         const delay = i * 50; // Stagger by 50ms
         const genreEmoji = getGenreEmoji(playlist.genre);
         return \`
-          <a href="\${playlist.spotifyUrl}" target="_blank" class="playlist-list-item animate-in" style="animation-delay: \${delay}ms" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
+          <a href="\${escapeHtml(playlist.spotifyUrl)}" target="_blank" class="playlist-list-item animate-in" style="animation-delay: \${delay}ms" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
             <div class="playlist-icon">\${genreEmoji}</div>
             <div class="playlist-info">
               <div class="playlist-name">\${escapeHtml(playlist.playlistName)}</div>
@@ -5837,7 +5837,7 @@
             </div>
             <div class="listening-track">
               ${track.albumArt
-                ? `<img class="track-album-art" src="${track.albumArt}" alt="">`
+                ? `<img class="track-album-art" src="${escapeHtml(track.albumArt)}" alt="">`
                 : '<div class="track-album-placeholder">🎵</div>'}
               <div class="track-info">
                 <div class="track-name">${escapeHtml(track.name || 'Unknown Track')}</div>
@@ -7217,7 +7217,7 @@
         '    <a href="https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(playlistUrl) + '" target="_blank" class="share-social-btn facebook">f</a>',
         '    <a href="whatsapp://send?text=' + encodeURIComponent(playlistName + ' - ' + playlistUrl) + '" target="_blank" class="share-social-btn whatsapp">💬</a>',
         '  </div>',
-        '  <a href="' + playlistUrl + '" target="_blank" class="btn btn-primary share-open-btn">' + (swedishMode ? 'Öppna i Spotify' : 'Open in Spotify') + '</a>',
+        '  <a href="' + escapeHtml(playlistUrl) + '" target="_blank" class="btn btn-primary share-open-btn">' + (swedishMode ? 'Öppna i Spotify' : 'Open in Spotify') + '</a>',
         '</div>'
       ].join('');
 
