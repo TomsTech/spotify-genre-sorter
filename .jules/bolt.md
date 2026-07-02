@@ -29,3 +29,9 @@
 ## 2024-06-27 - [Optimize .find() call on potentially large playlist arrays]
 **Learning:** While Maps/Sets provide O(1) lookups, the overhead of building them entirely inside a hot endpoint loop for a single lookup on arrays up to a few hundred elements often outweighs the benefits compared to a highly optimized standard `for` loop with hoisted target values.
 **Action:** Always benchmark collection conversion vs optimized loops for small-medium arrays when only single lookups occur.
+## 2024-07-02 - [Optimize array find inside loops]
+**Learning:** Calling `Array.prototype.find()` on a large array from within a loop creates an O(N*M) performance bottleneck, causing significant CPU overhead and main thread blocking in frontend UI scripts.
+**Action:** When searching a collection multiple times inside a loop, always pre-compute a `Map` lookup table beforehand to enable O(1) access, reducing the overall complexity to O(N+M).
+## 2024-07-02 - [Parallelize sequential paginated fetching]
+**Learning:** Fetching paginated endpoints (like Spotify API tracks or playlists) using sequential `while` loops forces each request to wait for the previous one to finish, creating massive N+1 latency blocks for large accounts.
+**Action:** Always optimize sequential API pagination by fetching the first page to get the total count, pre-calculating the remaining offsets, and executing the remaining fetches concurrently in batches using `Promise.all()` to drastically reduce wall-clock latency while avoiding rate limits.
