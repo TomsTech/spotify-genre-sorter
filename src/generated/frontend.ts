@@ -8589,6 +8589,8 @@ export function getHtml(nonce: string): string {
     const headerActions = document.getElementById('header-actions');
 
     let genreData = null;
+    // PERF-035 FIX: Use O(1) Map lookups for genres instead of O(N) Array.find() inside loops
+    let genreMap = new Map();
 
     // === Global Error Boundary ===
     const errorHistory = [];
@@ -8790,7 +8792,7 @@ export function getHtml(nonce: string): string {
       // Collect all track IDs
       const trackIds = new Set();
       for (const genreName of selectedGenres) {
-        const genre = genreData.genres.find(g => g.name === genreName);
+        const genre = genreMap.get(genreName);
         if (genre && genre.trackIds) {
           genre.trackIds.forEach(id => trackIds.add(id));
         }
@@ -8896,7 +8898,7 @@ export function getHtml(nonce: string): string {
       }
 
       const totalTracks = [...genresToMerge].reduce((sum, name) => {
-        const genre = genreData.genres.find(g => g.name === name);
+        const genre = genreMap.get(name);
         return sum + (genre ? genre.count : 0);
       }, 0);
 
@@ -8926,7 +8928,7 @@ export function getHtml(nonce: string): string {
 
       const genreNames = [...genresToMerge];
       const genreItems = genreNames.map(name => {
-        const genre = genreData.genres.find(g => g.name === name);
+        const genre = genreMap.get(name);
         return { name, count: genre ? genre.count : 0 };
       }).sort((a, b) => b.count - a.count);
 
@@ -8975,7 +8977,7 @@ export function getHtml(nonce: string): string {
       // Collect all track IDs from selected genres
       const trackIds = new Set();
       for (const genreName of genresToMerge) {
-        const genre = genreData.genres.find(g => g.name === genreName);
+        const genre = genreMap.get(genreName);
         if (genre && genre.trackIds) {
           genre.trackIds.forEach(id => trackIds.add(id));
         }
@@ -12344,6 +12346,7 @@ export function getHtml(nonce: string): string {
         const fullData = await loadGenresProgressively();
         stopAlbumCarousel(); // Clean up carousel when loading completes
         genreData = fullData;
+        genreMap = new Map(fullData?.genres?.map(g => [g.name, g]) || []);
         window.currentGenres = fullData?.genres || []; // For Genre Wrapped
         triggerFireworks(); // Celebrate completion!
         renderGenres();
@@ -12501,6 +12504,7 @@ export function getHtml(nonce: string): string {
         }
 
         genreData = data;
+        genreMap = new Map(data?.genres?.map(g => [g.name, g]) || []);
         window.currentGenres = data?.genres || []; // For Genre Wrapped
         triggerFireworks(); // Celebrate completion!
         renderGenres();
@@ -12532,6 +12536,7 @@ export function getHtml(nonce: string): string {
         }
 
         genreData = data;
+        genreMap = new Map(data?.genres?.map(g => [g.name, g]) || []);
         renderGenres();
         showNotification(swedishMode ? '✨ Data uppdaterad!' : '✨ Data refreshed!', 'success');
       } catch (error) {
@@ -13326,7 +13331,7 @@ export function getHtml(nonce: string): string {
 
     // Show playlist customisation modal
     function showCustomiseModal(genreName) {
-      const genre = genreData.genres.find(g => g.name === genreName);
+      const genre = genreMap.get(genreName);
       if (!genre) return;
 
       const defaultName = genreName + ' (from Likes)';
@@ -13409,7 +13414,7 @@ export function getHtml(nonce: string): string {
 
     // Create playlist with custom options
     async function createPlaylistWithOptions(genreName, customName, customDescription, force = false) {
-      const genre = genreData.genres.find(g => g.name === genreName);
+      const genre = genreMap.get(genreName);
       if (!genre) return;
 
       try {
@@ -13538,7 +13543,7 @@ export function getHtml(nonce: string): string {
     }
 
     async function createPlaylist(genreName, force = false, customization = null) {
-      const genre = genreData.genres.find(g => g.name === genreName);
+      const genre = genreMap.get(genreName);
       if (!genre) return;
 
       // If no customization provided and not forcing, show customization modal first
