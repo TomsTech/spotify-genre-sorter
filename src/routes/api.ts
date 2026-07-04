@@ -324,8 +324,9 @@ api.get('/user-playlists', async (c) => {
   try {
     // Refresh token if needed
     if (session.spotifyExpiresAt && Date.now() > session.spotifyExpiresAt - 60000) {
+      if (!session.spotifyRefreshToken) return c.json({ error: 'Missing refresh token' }, 401);
       const newTokens = await refreshSpotifyToken(
-        session.spotifyRefreshToken!,
+        session.spotifyRefreshToken,
         c.env.SPOTIFY_CLIENT_ID,
         c.env.SPOTIFY_CLIENT_SECRET
       );

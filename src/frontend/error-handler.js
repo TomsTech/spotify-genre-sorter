@@ -360,7 +360,7 @@ function handlePartialSuccess(results, options = {}) {
     const notification = document.createElement('div');
     notification.className = 'partial-success-notification';
     notification.innerHTML = `
-      <div class="notification-message">${message}</div>
+      <div class="notification-message">${escapeHtml(message)}</div>
       <button class="btn btn-sm" onclick="this.dispatchEvent(new CustomEvent('viewFailures', { bubbles: true }))">
         ${swedish ? 'Visa misslyckade' : 'View Failures'}
       </button>

@@ -56,3 +56,7 @@
 **Vulnerability:** Unescaped avatar URLs injected directly into HTML attributes (e.g., `src="${user.spotifyAvatar}"`).
 **Learning:** Even though avatar URLs are typically controlled by third-party APIs (like Spotify or GitHub), they can potentially be manipulated or replaced by attackers, leading to Stored XSS via attribute injection (e.g., `onload="alert(1)"`).
 **Prevention:** Always escape variables inserted into HTML string templates using an escaping function (like `escapeHtml`), even for URL attributes such as `src` and `href`.
+## 2024-07-04 - [XSS] DOM-based Cross-Site Scripting in Error Handlers
+**Vulnerability:** Unescaped error messages (`errorDetail` in `app.js` and `message` in `error-handler.js`) were interpolated directly into DOM elements via `innerHTML`.
+**Learning:** Client-side error messages returned from APIs or catching generic exceptions may contain user-controllable input or API payload data, making them unsafe to render directly without escaping.
+**Prevention:** Always wrap dynamically generated strings or error properties in an escaping function (like `escapeHtml()`) before assigning them to `innerHTML`.

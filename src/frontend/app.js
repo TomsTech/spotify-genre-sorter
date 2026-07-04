@@ -3870,7 +3870,7 @@
           app.innerHTML = \`
             <div class="error">
               <strong>Error \${stepLabels[step] || ''}</strong>
-              <p>\${errorDetail}</p>
+              <p>\${escapeHtml(errorDetail)}</p>
               \${data.tracksFound ? \`<p class="error-detail">Tracks found: \${data.tracksFound}</p>\` : ''}
               \${data.artistsToFetch ? \`<p class="error-detail">Artists to fetch: \${data.artistsToFetch}</p>\` : ''}
             </div>
