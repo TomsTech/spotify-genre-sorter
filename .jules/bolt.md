@@ -29,3 +29,4 @@
 ## 2024-06-27 - [Optimize .find() call on potentially large playlist arrays]
 **Learning:** While Maps/Sets provide O(1) lookups, the overhead of building them entirely inside a hot endpoint loop for a single lookup on arrays up to a few hundred elements often outweighs the benefits compared to a highly optimized standard `for` loop with hoisted target values.
 **Action:** Always benchmark collection conversion vs optimized loops for small-medium arrays when only single lookups occur.
+## 2025-05-18 - [Optimize genre lookups in UI] **Learning:** Array.prototype.find() on large collections (like `genreData.genres`) inside loops causes O(N*M) complexity which noticeably impacts UI performance. **Action:** Pre-compute a `Map` lookup table outside the loop for O(1) access to avoid this performance anti-pattern.
