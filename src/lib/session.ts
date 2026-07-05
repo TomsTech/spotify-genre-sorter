@@ -372,11 +372,11 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
   let cursor: string | undefined = undefined;
 
   do {
-    const list = await kv.list({ prefix: 'user_stats:', cursor });
+    const response: KVNamespaceListResult<unknown, string> = await kv.list({ prefix: 'user_stats:', cursor });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
-    keys = keys.concat(list.keys);
+    keys = keys.concat(response.keys);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    cursor = list.list_complete ? undefined : (list as { cursor?: string }).cursor;
+    cursor = response.list_complete ? undefined : (response as { cursor?: string }).cursor;
   } while (cursor);
 
   // PERF-001 FIX: Use Promise.all for parallel reads instead of sequential
