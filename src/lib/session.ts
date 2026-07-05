@@ -373,7 +373,9 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
 
   do {
     const list = await kv.list({ prefix: 'user_stats:', cursor });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
     keys = keys.concat(list.keys);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     cursor = list.list_complete ? undefined : (list as { cursor?: string }).cursor;
   } while (cursor);
 
