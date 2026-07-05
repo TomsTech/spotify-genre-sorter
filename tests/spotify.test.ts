@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken } from '../src/lib/spotify';
+import { getSpotifyAuthUrl, refreshSpotifyToken, getCurrentPlayback } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
@@ -184,5 +184,65 @@ describe('refreshSpotifyToken', () => {
     const tokens = await refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret');
     expect(tokens.access_token).toBe('new-access-token');
     expect(tokens.refresh_token).toBe('fake-refresh-token'); // It should preserve the refresh token if not returned
+  });
+});
+
+describe('getCurrentPlayback', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should return null when response status is 204', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 204,
+      headers: new Headers()
+    });
+
+    const result = await getCurrentPlayback('fake-token');
+    expect(result).toBeNull();
+  });
+
+  it('should return null when response is not ok', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      headers: new Headers()
+    });
+
+    const result = await getCurrentPlayback('fake-token');
+    expect(result).toBeNull();
+  });
+
+  it('should return current playback data when response is ok', async () => {
+    const mockPlayback = { is_playing: true, item: { name: 'Test Song' } };
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => mockPlayback,
+      headers: new Headers()
+    });
+
+    const result = await getCurrentPlayback('fake-token');
+    expect(result).toEqual(mockPlayback);
+  });
+
+  it('should return null if an exception is thrown', async () => {
+    vi.useFakeTimers();
+
+    global.fetch = vi.fn().mockRejectedValue(new Error('Network Error'));
+
+    // Start the fetch
+    const promise = getCurrentPlayback('fake-token');
+
+    // Advance timers for all retry delays inside fetchWithRetry
+    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(4000);
+
+    const result = await promise;
+    expect(result).toBeNull();
+
+    vi.useRealTimers();
   });
 });
