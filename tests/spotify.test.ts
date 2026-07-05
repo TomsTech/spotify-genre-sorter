@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken } from '../src/lib/spotify';
+import { getSpotifyAuthUrl, refreshSpotifyToken, getCurrentUser } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
@@ -184,5 +184,50 @@ describe('refreshSpotifyToken', () => {
     const tokens = await refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret');
     expect(tokens.access_token).toBe('new-access-token');
     expect(tokens.refresh_token).toBe('fake-refresh-token'); // It should preserve the refresh token if not returned
+  });
+});
+
+describe('getCurrentUser', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should successfully fetch the current user', async () => {
+    const mockUser = {
+      id: 'test-user',
+      display_name: 'Test User',
+      images: [{ url: 'https://example.com/image.jpg' }]
+    };
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => mockUser,
+      headers: new Headers()
+    });
+
+    const user = await getCurrentUser('test-token');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://api.spotify.com/v1/me',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-token',
+        })
+      })
+    );
+
+    expect(user).toEqual(mockUser);
+  });
+
+  it('should throw an error when API request fails', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      text: async () => 'Unauthorized',
+      headers: new Headers()
+    });
+
+    await expect(getCurrentUser('invalid-token')).rejects.toThrow('Spotify API error: 401 Unauthorized');
   });
 });
