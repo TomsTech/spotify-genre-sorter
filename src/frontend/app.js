@@ -1944,10 +1944,10 @@
         const content = document.createElement('div');
         content.className = 'changelog-content';
         content.innerHTML = \`
-          <div class="changelog-version">v\${release.version}</div>
-          <div class="changelog-date">\${release.date}</div>
+          <div class="changelog-version">v\${escapeHtml(String(release.version))}</div>
+          <div class="changelog-date">\${escapeHtml(String(release.date))}</div>
           <ul class="changelog-changes">
-            \${release.changes.map(c => \`<li>\${c}</li>\`).join('')}
+            \${release.changes.map(c => \`<li>\${escapeHtml(String(c))}</li>\`).join('')}
           </ul>
         \`;
 

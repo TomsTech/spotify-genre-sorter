@@ -56,3 +56,7 @@
 **Vulnerability:** Unescaped avatar URLs injected directly into HTML attributes (e.g., `src="${user.spotifyAvatar}"`).
 **Learning:** Even though avatar URLs are typically controlled by third-party APIs (like Spotify or GitHub), they can potentially be manipulated or replaced by attackers, leading to Stored XSS via attribute injection (e.g., `onload="alert(1)"`).
 **Prevention:** Always escape variables inserted into HTML string templates using an escaping function (like `escapeHtml`), even for URL attributes such as `src` and `href`.
+## 2024-05-20 - [Fix XSS Vulnerability in Changelog]
+**Vulnerability:** Unsanitized variables (`release.version`, `release.date`, and `release.changes`) were directly embedded via `innerHTML` in the version history changelog component in `src/frontend/app.js`.
+**Learning:** Even internal API responses (like proxying GitHub releases) should be treated as untrusted and safely escaped before rendering into DOM using `innerHTML`.
+**Prevention:** Always use `escapeHtml()` with explicitly cast strings for dynamic text insertion, or use safe DOM creation methods like `document.createTextNode()` instead of `innerHTML`.
