@@ -56,3 +56,4 @@
 **Vulnerability:** Unescaped avatar URLs injected directly into HTML attributes (e.g., `src="${user.spotifyAvatar}"`).
 **Learning:** Even though avatar URLs are typically controlled by third-party APIs (like Spotify or GitHub), they can potentially be manipulated or replaced by attackers, leading to Stored XSS via attribute injection (e.g., `onload="alert(1)"`).
 **Prevention:** Always escape variables inserted into HTML string templates using an escaping function (like `escapeHtml`), even for URL attributes such as `src` and `href`.
+## 2024-05-14 - [XSS in Whats New Modal] **Vulnerability:** [Unsanitized variables change, version, and latestRelease.date injected into innerHTML] **Learning:** [Dynamic data must be escaped before HTML interpolation to prevent Stored XSS] **Prevention:** [Always wrap dynamic string interpolations in escapeHtml() within template literals]

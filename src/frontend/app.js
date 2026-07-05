@@ -2038,7 +2038,7 @@
 
       const changesHtml = latestRelease.changes.map(change => {
         const { icon } = parseChange(change);
-        return \`<li><span class="change-icon">\${icon}</span> \${change}</li>\`;
+        return \`<li><span class="change-icon">\${icon}</span> \${escapeHtml(change)}</li>\`;
       }).join('');
 
       const overlay = document.createElement('div');
@@ -2051,10 +2051,10 @@
         <div class="whats-new-panel">
           <div class="whats-new-header">
             <div class="whats-new-badge">✨ \${swedishMode ? 'Nytt' : 'New'}</div>
-            <h3>\${swedishMode ? 'Vad är nytt i' : "What's New in"} v\${version}</h3>
+            <h3>\${swedishMode ? 'Vad är nytt i' : "What's New in"} v\${escapeHtml(version)}</h3>
             <button class="whats-new-close" aria-label="Close">&times;</button>
           </div>
-          <div class="whats-new-date">\${latestRelease.date}</div>
+          <div class="whats-new-date">\${escapeHtml(latestRelease.date)}</div>
           <ul class="whats-new-changes">
             \${changesHtml}
           </ul>
