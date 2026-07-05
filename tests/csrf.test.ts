@@ -80,6 +80,38 @@ describe('CSRF Token Management', () => {
       expect(await validateCsrfToken(c, mockSession)).toBe(false);
     });
 
+    it('should gracefully handle synchronous property access errors when parsing the body', async () => {
+      // Create an object that will pass the initial checks but throw when accessing the token
+      const badBody = {
+        get csrf_token() {
+          throw new Error('Sync property error');
+        }
+      };
+
+      const c = {
+        req: {
+          header: vi.fn().mockReturnValue(undefined),
+          json: vi.fn().mockResolvedValue(badBody)
+        }
+      } as unknown as Context;
+
+      // Should catch the synchronous error thrown during token extraction and return false
+      expect(await validateCsrfToken(c, mockSession)).toBe(false);
+    });
+
+    it('should handle sync JSON parsing error (bad JSON payload)', async () => {
+      const c = {
+        req: {
+          header: vi.fn().mockReturnValue(undefined),
+          // Simulate Hono's req.json() throwing a synchronous SyntaxError on a bad payload
+          json: vi.fn().mockImplementation(() => { throw new SyntaxError('Unexpected token < in JSON at position 0'); })
+        }
+      } as unknown as Context;
+
+      // This should hit the outer catch block in validateCsrfToken
+      expect(await validateCsrfToken(c, mockSession)).toBe(false);
+    });
+
     it('should gracefully handle synchronous errors from req.json()', async () => {
       const c = {
         req: {
