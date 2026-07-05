@@ -368,11 +368,18 @@ const AVERAGE_TRACKS_PER_PLAYLIST = 25;
 
 export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
   // List all user_stats keys
-  const list = await kv.list({ prefix: 'user_stats:' });
+  let keys: KVNamespaceListKey<unknown>[] = [];
+  let cursor: string | undefined = undefined;
+
+  do {
+    const list = await kv.list({ prefix: 'user_stats:', cursor });
+    keys = keys.concat(list.keys);
+    cursor = list.list_complete ? undefined : (list as { cursor?: string }).cursor;
+  } while (cursor);
 
   // PERF-001 FIX: Use Promise.all for parallel reads instead of sequential
   // PERF-016 FIX: Interleave JSON.parse with KV fetches
-  const dataPromises = list.keys.map(async key => {
+  const dataPromises = keys.map(async key => {
     const data = await kv.get(key.name);
     if (!data) return null;
 
