@@ -1,6 +1,6 @@
 import { cachedKV } from '../lib/kv-cache';
 import { Hono } from 'hono';
-import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
+import { deleteCookie, getSignedCookie, setSignedCookie } from 'hono/cookie';
 import type { CookieOptions } from 'hono/utils/cookie';
 import {
   getGitHubAuthUrl,
@@ -154,7 +154,7 @@ auth.get('/github', async (c) => {
   await storeState(c.env.SESSIONS, state, stateData);
 
   // Also store in cookie as backup for KV eventual consistency
-  setCookie(c, OAUTH_STATE_COOKIE, encodeStateForCookie(state, stateData), OAUTH_COOKIE_OPTIONS);
+  await setSignedCookie(c, OAUTH_STATE_COOKIE, encodeStateForCookie(state, stateData), c.env.SPOTIFY_CLIENT_SECRET, OAUTH_COOKIE_OPTIONS);
 
   const redirectUri = new URL('/auth/github/callback', c.req.url).toString();
   const clientId = c.env.GITHUB_CLIENT_ID;
@@ -194,7 +194,7 @@ auth.get('/github/callback', async (c) => {
 
   // If KV lookup failed, try the cookie backup
   if (!stateData) {
-    const cookieValue = getCookie(c, OAUTH_STATE_COOKIE);
+    const cookieValue = await getSignedCookie(c, c.env.SPOTIFY_CLIENT_SECRET, OAUTH_STATE_COOKIE);
     if (cookieValue) {
       const cookieData = decodeStateFromCookie(cookieValue);
       if (cookieData && cookieData.state === state && Date.now() - cookieData.ts < 600000) {
@@ -269,7 +269,7 @@ auth.get('/spotify', async (c) => {
 
   // Also store in cookie as backup for KV eventual consistency across edge locations
   // Cookie travels with the user's browser, ensuring state is always available
-  setCookie(c, OAUTH_STATE_COOKIE, encodeStateForCookie(state, stateData), OAUTH_COOKIE_OPTIONS);
+  await setSignedCookie(c, OAUTH_STATE_COOKIE, encodeStateForCookie(state, stateData), c.env.SPOTIFY_CLIENT_SECRET, OAUTH_COOKIE_OPTIONS);
 
   const redirectUri = new URL('/auth/spotify/callback', c.req.url).toString();
   const url = getSpotifyAuthUrl(c.env.SPOTIFY_CLIENT_ID, redirectUri, state, codeChallenge);
@@ -301,7 +301,7 @@ auth.get('/spotify/callback', async (c) => {
 
   // If KV lookup failed, try the cookie backup
   if (!stateData) {
-    const cookieValue = getCookie(c, OAUTH_STATE_COOKIE);
+    const cookieValue = await getSignedCookie(c, c.env.SPOTIFY_CLIENT_SECRET, OAUTH_STATE_COOKIE);
     if (cookieValue) {
       const cookieData = decodeStateFromCookie(cookieValue);
       // Verify the state matches and cookie isn't too old (10 min max)

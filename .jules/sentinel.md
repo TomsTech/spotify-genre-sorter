@@ -56,3 +56,7 @@
 **Vulnerability:** Unescaped avatar URLs injected directly into HTML attributes (e.g., `src="${user.spotifyAvatar}"`).
 **Learning:** Even though avatar URLs are typically controlled by third-party APIs (like Spotify or GitHub), they can potentially be manipulated or replaced by attackers, leading to Stored XSS via attribute injection (e.g., `onload="alert(1)"`).
 **Prevention:** Always escape variables inserted into HTML string templates using an escaping function (like `escapeHtml`), even for URL attributes such as `src` and `href`.
+## 2026-07-05 - Insecure OAuth State Cookie Fallback
+**Vulnerability:** OAuth state information was stored in an insecure cookie (just base64 encoded without any signature) as a fallback mechanism for KV eventual consistency issues. An attacker could forge this cookie to bypass CSRF validation.
+**Learning:** Even fallback mechanisms need to employ robust security measures. Unsigned cookies holding critical state or session information are vulnerable to tampering and forging.
+**Prevention:** Always cryptographically sign or encrypt cookies that contain security-sensitive data (like OAuth state), using built-in mechanisms like Hono's `setSignedCookie` and `getSignedCookie`.
