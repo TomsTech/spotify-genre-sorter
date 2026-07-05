@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken } from '../src/lib/spotify';
+import { getSpotifyAuthUrl, refreshSpotifyToken, createPlaylist } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
@@ -184,5 +184,67 @@ describe('refreshSpotifyToken', () => {
     const tokens = await refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret');
     expect(tokens.access_token).toBe('new-access-token');
     expect(tokens.refresh_token).toBe('fake-refresh-token'); // It should preserve the refresh token if not returned
+  });
+});
+
+
+describe('createPlaylist', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should call fetch with the correct arguments and return the playlist data', async () => {
+    const mockResponse = {
+      id: 'playlist_123',
+      external_urls: { spotify: 'https://open.spotify.com/playlist/playlist_123' }
+    };
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => mockResponse,
+      headers: new Headers()
+    });
+
+    const result = await createPlaylist('fake-access-token', 'user_123', 'My Playlist', 'A cool playlist', true);
+
+    expect(result).toEqual(mockResponse);
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const fetchArgs = vi.mocked(global.fetch).mock.calls[0];
+    expect(fetchArgs[0]).toBe('https://api.spotify.com/v1/users/user_123/playlists');
+
+    const fetchOptions = fetchArgs[1];
+    expect(fetchOptions.method).toBe('POST');
+    expect(fetchOptions.headers).toHaveProperty('Authorization', 'Bearer fake-access-token');
+    expect(fetchOptions.headers).toHaveProperty('Content-Type', 'application/json');
+
+    const body = JSON.parse(fetchOptions.body);
+    expect(body).toEqual({
+      name: 'My Playlist',
+      description: 'A cool playlist',
+      public: true
+    });
+  });
+
+  it('should default isPublic to false if not provided', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ id: 'playlist_456', external_urls: { spotify: '' } }),
+      headers: new Headers()
+    });
+
+    await createPlaylist('fake-access-token', 'user_123', 'Private Playlist', 'Private desc');
+
+    const fetchArgs = vi.mocked(global.fetch).mock.calls[0];
+    const fetchOptions = fetchArgs[1];
+    const body = JSON.parse(fetchOptions.body);
+
+    expect(body).toEqual({
+      name: 'Private Playlist',
+      description: 'Private desc',
+      public: false
+    });
   });
 });
