@@ -21,6 +21,33 @@ describe('logger', () => {
   });
 
   describe('sendLog', () => {
+    it('should fallback to console.error when token is missing and level is error', () => {
+      const entry = { level: 'error' as LogLevel, message: 'Test error', timestamp: '2023-01-01', service: 'test', error: 'Error detail', stack: 'Stack trace' };
+      sendLog(mockCtx, undefined, entry);
+
+      expect(console.error).toHaveBeenCalledWith('[ERROR] Test error', '\nError detail', '\nStack trace');
+      expect(mockCtx.waitUntil).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('should fallback to console.error when token is missing and level is error', () => {
+      const entry = { level: 'error' as LogLevel, message: 'Test error', timestamp: '2023-01-01', service: 'test', error: 'Error detail', stack: 'Stack trace' };
+      sendLog(mockCtx, undefined, entry);
+
+      expect(console.error).toHaveBeenCalledWith('[ERROR] Test error', '\nError detail', '\nStack trace');
+      expect(mockCtx.waitUntil).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('should fallback to console.error when token is missing and level is error', () => {
+      const entry = { level: 'error' as LogLevel, message: 'Test error', timestamp: '2023-01-01', service: 'test', error: 'Error detail', stack: 'Stack trace' };
+      sendLog(mockCtx, undefined, entry);
+
+      expect(console.error).toHaveBeenCalledWith('[ERROR] Test error', '\nError detail', '\nStack trace');
+      expect(mockCtx.waitUntil).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
     it('should fallback to console.log when token is missing', () => {
       const entry = { level: 'info' as LogLevel, message: 'Test message', timestamp: '2023-01-01', service: 'test' };
       sendLog(mockCtx, undefined, entry);
