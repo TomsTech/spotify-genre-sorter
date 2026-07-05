@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken } from '../src/lib/spotify';
+import { getSpotifyAuthUrl, refreshSpotifyToken, createPlaylist } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
@@ -184,5 +184,65 @@ describe('refreshSpotifyToken', () => {
     const tokens = await refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret');
     expect(tokens.access_token).toBe('new-access-token');
     expect(tokens.refresh_token).toBe('fake-refresh-token'); // It should preserve the refresh token if not returned
+  });
+});
+
+
+describe('createPlaylist', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should create a private playlist successfully', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: 'new-playlist-id', external_urls: { spotify: 'url' } }),
+      headers: new Headers()
+    });
+
+    const result = await createPlaylist('fake-token', 'user-id', 'My Playlist', 'Description');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/users/user-id/playlists'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer fake-token',
+          'Content-Type': 'application/json'
+        }),
+        body: JSON.stringify({ name: 'My Playlist', description: 'Description', public: false })
+      })
+    );
+    expect(result.id).toBe('new-playlist-id');
+  });
+
+  it('should create a public playlist successfully', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: 'new-playlist-id', external_urls: { spotify: 'url' } }),
+      headers: new Headers()
+    });
+
+    await createPlaylist('fake-token', 'user-id', 'My Playlist', 'Description', true);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        body: JSON.stringify({ name: 'My Playlist', description: 'Description', public: true })
+      })
+    );
+  });
+
+  it('should handle errors when creating a playlist fails', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      text: async () => 'Forbidden',
+      headers: new Headers()
+    });
+
+    await expect(createPlaylist('fake-token', 'user-id', 'My Playlist', 'Desc')).rejects.toThrow('Spotify API error: 403 Forbidden');
   });
 });
