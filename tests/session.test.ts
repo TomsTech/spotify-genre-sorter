@@ -1,7 +1,63 @@
-import { describe, it, expect } from 'vitest';
-import { generateState } from '../src/lib/session';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { generateState, createSession, Session, cachedKV } from '../src/lib/session';
+import { Context } from 'hono';
+import * as cookie from 'hono/cookie';
+
+vi.mock('hono/cookie', () => ({
+  setCookie: vi.fn(),
+  getCookie: vi.fn(),
+  deleteCookie: vi.fn(),
+}));
 
 describe('Session Management', () => {
+
+  describe('createSession', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('should create a session, save to kv and set cookie', async () => {
+      const originalPut = cachedKV.put;
+      cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+      const mockEnv = { SESSIONS: {} as any };
+      const mockContext = { env: mockEnv } as any as Context<{ Bindings: Env }, any, any>;
+      const mockSession: Session = { spotifyUser: 'test' };
+
+      const sessionId = await createSession(mockContext, mockSession);
+
+      expect(sessionId).toBeDefined();
+      expect(typeof sessionId).toBe('string');
+
+      expect(cachedKV.put).toHaveBeenCalledWith(
+        mockEnv.SESSIONS,
+        `session:${sessionId}`,
+        expect.any(String),
+        { expirationTtl: 60 * 60 * 24 * 7, immediate: true }
+      );
+
+      const putCallArg = (cachedKV.put as any).mock.calls[0][2];
+      const parsedSession = JSON.parse(putCallArg);
+      expect(parsedSession.spotifyUser).toBe('test');
+      expect(parsedSession.csrfToken).toBeDefined();
+
+      expect(cookie.setCookie).toHaveBeenCalledWith(
+        mockContext,
+        'session_id',
+        sessionId,
+        {
+          httpOnly: true,
+          secure: true,
+          sameSite: 'Lax',
+          maxAge: 60 * 60 * 24 * 7,
+          path: '/',
+        }
+      );
+
+      cachedKV.put = originalPut;
+    });
+  });
+
   describe('generateState', () => {
     it('should generate a valid UUID', () => {
       const state = generateState();
@@ -59,8 +115,7 @@ describe('Token Refresh Logic', () => {
   });
 });
 
-import { vi } from 'vitest';
-import { getScoreboard, cachedKV } from '../src/lib/session';
+import { getScoreboard } from '../src/lib/session';
 
 describe('getScoreboard', () => {
   it('should return empty scoreboard on error', async () => {
