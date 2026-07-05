@@ -552,12 +552,16 @@ async function getDailyAnalytics(kv: KVNamespace): Promise<AnalyticsData> {
   const existing = await kv.get(key);
 
   if (existing) {
-    const data = JSON.parse(existing) as AnalyticsData;
-    // Ensure new fields exist (backwards compatibility)
-    data.kvReads = data.kvReads || 0;
-    data.kvWrites = data.kvWrites || 0;
-    data.kvDeletes = data.kvDeletes || 0;
-    return data;
+    try {
+      const data = JSON.parse(existing) as AnalyticsData;
+      // Ensure new fields exist (backwards compatibility)
+      data.kvReads = data.kvReads || 0;
+      data.kvWrites = data.kvWrites || 0;
+      data.kvDeletes = data.kvDeletes || 0;
+      return data;
+    } catch {
+      // Fall through to return fresh analytics object
+    }
   }
 
   return {

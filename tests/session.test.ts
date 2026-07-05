@@ -84,3 +84,33 @@ describe('getScoreboard', () => {
     cachedKV.get = originalGet;
   });
 });
+
+
+
+
+
+
+
+
+import { trackAnalyticsEvent } from '../src/lib/session';
+
+describe('trackAnalyticsEvent with cachedKV', () => {
+  it('should handle invalid JSON from KV and initialize fresh analytics', async () => {
+    const mockKv = {
+      get: vi.fn().mockResolvedValue('invalid-json'),
+    };
+
+    const putSpy = vi.spyOn(cachedKV, 'put').mockResolvedValue(undefined);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await trackAnalyticsEvent(mockKv as any, 'error', { message: 'test error 2' });
+
+    expect(putSpy).toHaveBeenCalled();
+    const savedData = JSON.parse(putSpy.mock.calls[0][2]);
+    expect(savedData.errors).toHaveLength(1);
+    expect(savedData.errors[0].message).toBe('test error 2');
+
+    putSpy.mockRestore();
+    consoleSpy.mockRestore();
+  });
+});
