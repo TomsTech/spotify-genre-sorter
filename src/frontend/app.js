@@ -3869,10 +3869,10 @@
 
           app.innerHTML = \`
             <div class="error">
-              <strong>Error \${stepLabels[step] || ''}</strong>
-              <p>\${errorDetail}</p>
-              \${data.tracksFound ? \`<p class="error-detail">Tracks found: \${data.tracksFound}</p>\` : ''}
-              \${data.artistsToFetch ? \`<p class="error-detail">Artists to fetch: \${data.artistsToFetch}</p>\` : ''}
+              <strong>Error \${escapeHtml(stepLabels[step] || '')}</strong>
+              <p>\${escapeHtml(errorDetail)}</p>
+              \${data.tracksFound ? \`<p class="error-detail">Tracks found: \${escapeHtml(data.tracksFound)}</p>\` : ''}
+              \${data.artistsToFetch ? \`<p class="error-detail">Artists to fetch: \${escapeHtml(data.artistsToFetch)}</p>\` : ''}
             </div>
             <button onclick="loadGenres()" class="btn btn-secondary">Try Again</button>
             <button onclick="location.href='/auth/logout'" class="btn btn-secondary">Reconnect Spotify</button>

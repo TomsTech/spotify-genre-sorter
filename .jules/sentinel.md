@@ -56,3 +56,7 @@
 **Vulnerability:** Unescaped avatar URLs injected directly into HTML attributes (e.g., `src="${user.spotifyAvatar}"`).
 **Learning:** Even though avatar URLs are typically controlled by third-party APIs (like Spotify or GitHub), they can potentially be manipulated or replaced by attackers, leading to Stored XSS via attribute injection (e.g., `onload="alert(1)"`).
 **Prevention:** Always escape variables inserted into HTML string templates using an escaping function (like `escapeHtml`), even for URL attributes such as `src` and `href`.
+## 2024-07-05 - Fix XSS in API Error Display
+**Vulnerability:** Cross-Site Scripting (XSS) vulnerability found in `src/frontend/app.js` where API error responses (`errorDetail`, `stepLabels[step]`, `data.tracksFound`, `data.artistsToFetch`) were interpolated directly into the DOM via `app.innerHTML` without sanitization.
+**Learning:** Using template literals to inject dynamic data directly into `innerHTML` is dangerous as any unescaped string from user or API input can execute malicious scripts.
+**Prevention:** Always use the built-in `escapeHtml()` function (or equivalent sanitization method) when interpolating any dynamic or external variables into HTML strings that are assigned to properties like `innerHTML`.
