@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
+  errorHandler,
   validationError,
   authError,
   rateLimitError,
@@ -7,6 +8,81 @@ import {
   kvError,
 } from '../src/lib/error-middleware';
 import { ErrorCode, AppError } from '../src/lib/error-handler';
+import { Context } from 'hono';
+
+describe('errorHandler middleware', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should call next and not catch if no error', async () => {
+    const c = {
+      set: vi.fn(),
+      env: {},
+      get: vi.fn(),
+      req: { url: 'http://localhost/test', method: 'GET', header: vi.fn() },
+      executionCtx: {},
+    } as unknown as Context;
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    const result = await errorHandler(c, next);
+    expect(next).toHaveBeenCalled();
+    expect(c.set).toHaveBeenCalledWith('requestId', expect.any(String));
+    expect(result).toBeUndefined();
+  });
+
+  it('should catch generic error, log and return response', async () => {
+    const c = {
+      set: vi.fn(),
+      env: { ENVIRONMENT: 'development' },
+      get: vi.fn(),
+      req: { url: 'http://localhost/test', method: 'GET', header: vi.fn() },
+      executionCtx: {},
+    } as unknown as Context;
+    const next = vi.fn().mockRejectedValue(new Error('Test error'));
+
+    const result = await errorHandler(c, next);
+    expect(next).toHaveBeenCalled();
+    expect(result).toBeInstanceOf(Response);
+    if (result instanceof Response) {
+      expect(result.status).toBe(500);
+      expect(result.headers.get('X-Request-ID')).toBeTruthy();
+      expect(result.headers.get('X-Error-Code')).toBe('UNKNOWN_ERROR');
+    }
+  });
+
+  it('should handle AppError properly', async () => {
+    const c = {
+      set: vi.fn(),
+      env: { ENVIRONMENT: 'production' },
+      get: vi.fn(),
+      req: { url: 'http://localhost/test', method: 'GET', header: vi.fn() },
+      executionCtx: {},
+    } as unknown as Context;
+
+    const authError = new AppError({
+        code: ErrorCode.AUTH_ERROR,
+        message: 'Auth fail',
+        userMessage: 'Please log in',
+        statusCode: 401
+    });
+
+    const next = vi.fn().mockRejectedValue(authError);
+
+    const result = await errorHandler(c, next);
+    expect(next).toHaveBeenCalled();
+    expect(result).toBeInstanceOf(Response);
+    if (result instanceof Response) {
+      expect(result.status).toBe(401);
+      expect(result.headers.get('X-Request-ID')).toBeTruthy();
+      expect(result.headers.get('X-Error-Code')).toBe(ErrorCode.AUTH_ERROR);
+    }
+  });
+});
+
 
 describe('Error Helpers', () => {
   describe('validationError', () => {
