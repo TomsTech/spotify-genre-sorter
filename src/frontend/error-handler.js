@@ -163,7 +163,7 @@ function showErrorNotification(error, options = {}) {
   }
 
   actions.push(
-    `<button class="btn btn-sm btn-ghost" onclick="this.closest('.error-notification').remove()">
+    `<button class="btn btn-sm btn-ghost" onclick="this.closest('.error-notification').remove()" aria-label="${swedish ? 'Stäng felmeddelande' : 'Dismiss error notification'}" title="${swedish ? 'Stäng' : 'Dismiss'}">
       ${swedish ? 'Stäng' : 'Dismiss'}
     </button>`
   );
