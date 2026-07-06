@@ -80,6 +80,20 @@ describe('CSRF Token Management', () => {
       expect(await validateCsrfToken(c, mockSession)).toBe(false);
     });
 
+    it('should handle csrfToken sync JSON error with a bad JSON payload', async () => {
+      const c = {
+        req: {
+          header: vi.fn().mockReturnValue(undefined),
+          json: vi.fn().mockImplementation(() => {
+            // Simulate synchronous error from bad JSON payload
+            JSON.parse('{ bad json payload }');
+          })
+        }
+      } as unknown as Context;
+
+      expect(await validateCsrfToken(c, mockSession)).toBe(false);
+    });
+
     it('should gracefully handle synchronous errors from req.json()', async () => {
       const c = {
         req: {
