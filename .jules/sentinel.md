@@ -56,3 +56,7 @@
 **Vulnerability:** Unescaped avatar URLs injected directly into HTML attributes (e.g., `src="${user.spotifyAvatar}"`).
 **Learning:** Even though avatar URLs are typically controlled by third-party APIs (like Spotify or GitHub), they can potentially be manipulated or replaced by attackers, leading to Stored XSS via attribute injection (e.g., `onload="alert(1)"`).
 **Prevention:** Always escape variables inserted into HTML string templates using an escaping function (like `escapeHtml`), even for URL attributes such as `src` and `href`.
+## 2025-02-28 - [XSS] DOM-based Cross-Site Scripting via URL attributes
+**Vulnerability:** Several URLs used directly as attributes in the application such as album art, external playlist links, GitHub issue URL were unescaped.
+**Learning:** Any URLs sourced from a third party should be properly escaped before being concatenated to create string-based DOM content because malicious payloads can be injected via unescaped string boundaries or quotes.
+**Prevention:** Apply `escapeHtml` or properly sanitize all external URL fields before appending them to HTML templates.
