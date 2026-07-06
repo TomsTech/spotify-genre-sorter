@@ -368,11 +368,20 @@ const AVERAGE_TRACKS_PER_PLAYLIST = 25;
 
 export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
   // List all user_stats keys
-  const list = await kv.list({ prefix: 'user_stats:' });
+  let keys: KVNamespaceListKey<unknown>[] = [];
+  let cursor: string | undefined = undefined;
+
+  do {
+    const response: KVNamespaceListResult<unknown, string> = await kv.list({ prefix: 'user_stats:', cursor });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+    keys = keys.concat(response.keys);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    cursor = response.list_complete ? undefined : (response as { cursor?: string }).cursor;
+  } while (cursor);
 
   // PERF-001 FIX: Use Promise.all for parallel reads instead of sequential
   // PERF-016 FIX: Interleave JSON.parse with KV fetches
-  const dataPromises = list.keys.map(async key => {
+  const dataPromises = keys.map(async key => {
     const data = await kv.get(key.name);
     if (!data) return null;
 

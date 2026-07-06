@@ -62,6 +62,45 @@ describe('Token Refresh Logic', () => {
 import { vi } from 'vitest';
 import { getScoreboard, cachedKV } from '../src/lib/session';
 
+import { buildScoreboard } from '../src/lib/session';
+
+describe('buildScoreboard', () => {
+  it('should paginate through user_stats using cursor when list_complete is false', async () => {
+    const mockKv = {
+      list: vi.fn(),
+      get: vi.fn().mockResolvedValue(JSON.stringify({
+        totalGenresDiscovered: 1,
+        totalArtistsDiscovered: 1,
+        totalTracksAnalysed: 1,
+        playlistsCreated: 1,
+        totalTracksInPlaylists: 1,
+        spotifyId: '1',
+        spotifyName: 'A',
+        spotifyAvatar: 'A'
+      })),
+      put: vi.fn().mockResolvedValue(undefined)
+    };
+
+    mockKv.list
+      .mockResolvedValueOnce({
+        keys: [{ name: 'user_stats:1' }],
+        list_complete: false,
+        cursor: 'cursor-1'
+      })
+      .mockResolvedValueOnce({
+        keys: [{ name: 'user_stats:2' }],
+        list_complete: true,
+      });
+
+    const scoreboard = await buildScoreboard(mockKv as any);
+
+    expect(mockKv.list).toHaveBeenCalledTimes(2);
+    expect(mockKv.list).toHaveBeenNthCalledWith(1, { prefix: 'user_stats:', cursor: undefined });
+    expect(mockKv.list).toHaveBeenNthCalledWith(2, { prefix: 'user_stats:', cursor: 'cursor-1' });
+    expect(scoreboard.totalUsers).toBe(2);
+  });
+});
+
 describe('getScoreboard', () => {
   it('should return empty scoreboard on error', async () => {
     // mock cachedKV.get to throw error
