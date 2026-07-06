@@ -30,6 +30,27 @@ describe('logger', () => {
       expect(fetch).not.toHaveBeenCalled();
     });
 
+
+    it('should fallback to console.error when token is missing and level is error', () => {
+      const entry = { level: 'error' as LogLevel, message: 'Test error message', timestamp: '2023-01-01', service: 'test', error: 'Something went wrong', stack: 'Error stack' };
+      sendLog(mockCtx, undefined, entry);
+
+      expect(console.error).toHaveBeenCalledWith('[ERROR] Test error message', '\nSomething went wrong', '\nError stack');
+      expect(console.log).not.toHaveBeenCalled();
+      expect(mockCtx.waitUntil).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('should fallback to console.error when token is missing and level is error but no extra error info', () => {
+      const entry = { level: 'error' as LogLevel, message: 'Test error message', timestamp: '2023-01-01', service: 'test' };
+      sendLog(mockCtx, undefined, entry);
+
+      expect(console.error).toHaveBeenCalledWith('[ERROR] Test error message', '', '');
+      expect(console.log).not.toHaveBeenCalled();
+      expect(mockCtx.waitUntil).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
     it('should send log to BetterStack via fetch and waitUntil when token is provided', () => {
       const entry = { level: 'info' as LogLevel, message: 'Test message', timestamp: '2023-01-01', service: 'test' };
       sendLog(mockCtx, 'test-token', entry);
