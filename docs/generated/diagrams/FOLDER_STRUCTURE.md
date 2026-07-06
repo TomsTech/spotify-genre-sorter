@@ -13,9 +13,11 @@
 │   │   ├── ISSUE-003-low-public-endpoint-ratelimit.md
 │   │   ├── ISSUE-004-info-security-documentation.md
 │   │   ├── ISSUE-005-medium-embedded-assets.md
-│   │   └── ISSUE-006-low-bundle-size.md
+│   │   ├── ISSUE-006-low-bundle-size.md
+│   │   └── README.md
 │   ├── IMPLEMENTATION-GUIDE.md
-│   └── PROGRESS.md
+│   ├── PROGRESS.md
+│   └── README.md
 ├── .github
 │   ├── workflows
 │   │   ├── api-security.yml
@@ -29,8 +31,10 @@
 │   │   ├── security-scan.yml
 │   │   └── security.yml
 │   ├── AGENTS.md
+│   ├── README.md
 │   └── renovate.json
 ├── .jules
+│   ├── README.md
 │   ├── bolt.md
 │   ├── palette.md
 │   └── sentinel.md
@@ -39,6 +43,7 @@
 │   │   ├── diagrams
 │   │   ├── .gitkeep
 │   │   ├── INDEX.md
+│   │   ├── README.md
 │   │   └── STATISTICS.md
 │   ├── BACKLOG.md
 │   ├── BETTERUPTIME_SETUP.html
@@ -47,6 +52,7 @@
 │   ├── E2E-PRODUCTION-PARITY.md
 │   ├── INDEX.md
 │   ├── PRE-DEPLOY-CHECKLIST.md
+│   ├── README.md
 │   ├── api.md
 │   ├── api.pdf
 │   ├── backlog-dashboard.html
@@ -167,6 +173,7 @@
 ├── PLAN.md
 ├── README.md
 ├── SECURITY.md
+├── SUMMARY.md
 ├── cliff.toml
 ├── docflow.config.json
 ├── openapi.yaml
@@ -180,7 +187,7 @@
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-31 directories, 143 files
+31 directories, 150 files
 ```
 
 ## Key Directories
