@@ -559,21 +559,32 @@ export async function getPlaylistTracks(
   playlistId: string,
   limit = 100
 ): Promise<PlaylistTrack[]> {
-  const allTracks: PlaylistTrack[] = [];
-  let offset = 0;
   const pageLimit = 50;
-  let hasMore = true;
 
-  while (hasMore && allTracks.length < limit) {
-    const response = await spotifyFetch<{
-      items: PlaylistTrack[];
-      total: number;
-      next: string | null;
-    }>(`/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${offset}`, accessToken);
+  // PERF-027 FIX: Parallelize playlist track fetching to eliminate sequential N+1 network latency
+  const firstResponse = await spotifyFetch<{
+    items: PlaylistTrack[];
+    total: number;
+    next: string | null;
+  }>(`/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=0`, accessToken);
 
-    allTracks.push(...response.items);
-    offset += pageLimit;
-    hasMore = !!response.next && allTracks.length < limit;
+  const allTracks = [...firstResponse.items];
+  const totalToFetch = Math.min(firstResponse.total, limit);
+
+  if (firstResponse.next && totalToFetch > pageLimit) {
+    const fetchPromises = [];
+    for (let offset = pageLimit; offset < totalToFetch; offset += pageLimit) {
+      fetchPromises.push(
+        spotifyFetch<{
+          items: PlaylistTrack[];
+        }>(`/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${offset}`, accessToken)
+      );
+    }
+
+    const responses = await Promise.all(fetchPromises);
+    for (const response of responses) {
+      allTracks.push(...response.items);
+    }
   }
 
   return allTracks.slice(0, limit);
