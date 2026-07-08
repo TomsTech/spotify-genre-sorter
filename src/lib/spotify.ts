@@ -525,21 +525,37 @@ export interface SpotifyPlaylist {
 export async function getUserPlaylists(
   accessToken: string
 ): Promise<SpotifyPlaylist[]> {
-  const allPlaylists: SpotifyPlaylist[] = [];
-  let offset = 0;
   const limit = 50;
-  let hasMore = true;
+  const maxPlaylists = 200;
 
-  while (hasMore && offset < 200) {
-    const response = await spotifyFetch<{
-      items: SpotifyPlaylist[];
-      total: number;
-      next: string | null;
-    }>(`/me/playlists?limit=${limit}&offset=${offset}`, accessToken);
+  // Fetch first page
+  const initial = await spotifyFetch<{
+    items: SpotifyPlaylist[];
+    total: number;
+    next: string | null;
+  }>(`/me/playlists?limit=${limit}&offset=0`, accessToken);
 
-    allPlaylists.push(...response.items);
-    offset += limit;
-    hasMore = !!response.next;
+  const allPlaylists = [...initial.items];
+
+  if (initial.next && allPlaylists.length < maxPlaylists) {
+    const remainingOffsets: number[] = [];
+    for (let offset = limit; offset < initial.total && offset < maxPlaylists; offset += limit) {
+      remainingOffsets.push(offset);
+    }
+
+    if (remainingOffsets.length > 0) {
+      const responses = await Promise.all(
+        remainingOffsets.map(off =>
+          spotifyFetch<{ items: SpotifyPlaylist[] }>(
+            `/me/playlists?limit=${limit}&offset=${off}`,
+            accessToken
+          )
+        )
+      );
+      for (const res of responses) {
+        allPlaylists.push(...res.items);
+      }
+    }
   }
 
   return allPlaylists;
@@ -559,21 +575,37 @@ export async function getPlaylistTracks(
   playlistId: string,
   limit = 100
 ): Promise<PlaylistTrack[]> {
-  const allTracks: PlaylistTrack[] = [];
-  let offset = 0;
   const pageLimit = 50;
-  let hasMore = true;
 
-  while (hasMore && allTracks.length < limit) {
-    const response = await spotifyFetch<{
-      items: PlaylistTrack[];
-      total: number;
-      next: string | null;
-    }>(`/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${offset}`, accessToken);
+  // Fetch first page to determine total tracks
+  const initial = await spotifyFetch<{
+    items: PlaylistTrack[];
+    total: number;
+    next: string | null;
+  }>(`/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=0`, accessToken);
 
-    allTracks.push(...response.items);
-    offset += pageLimit;
-    hasMore = !!response.next && allTracks.length < limit;
+  const allTracks = [...initial.items];
+
+  if (initial.next && allTracks.length < limit) {
+    const remainingOffsets: number[] = [];
+    for (let offset = pageLimit; offset < initial.total && offset < limit; offset += pageLimit) {
+      remainingOffsets.push(offset);
+    }
+
+    // Fetch remaining pages concurrently
+    if (remainingOffsets.length > 0) {
+      const responses = await Promise.all(
+        remainingOffsets.map(off =>
+          spotifyFetch<{ items: PlaylistTrack[] }>(
+            `/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${off}`,
+            accessToken
+          )
+        )
+      );
+      for (const res of responses) {
+        allTracks.push(...res.items);
+      }
+    }
   }
 
   return allTracks.slice(0, limit);
