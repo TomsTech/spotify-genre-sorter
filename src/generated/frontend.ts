@@ -8771,6 +8771,8 @@ export function getHtml(nonce: string): string {
 
     // Create merged playlist from selected genres
     async function createMergedFromSelection() {
+      // PERF: Pre-compute map to avoid O(N*M) lookup inside the loop
+      const genreMap = new Map(genreData.genres.map(g => [g.name, g]));
       if (selectedGenres.size < 2) {
         showNotification(swedishMode ? 'Välj minst 2 genrer' : 'Select at least 2 genres', 'error');
         return;
@@ -8790,7 +8792,7 @@ export function getHtml(nonce: string): string {
       // Collect all track IDs
       const trackIds = new Set();
       for (const genreName of selectedGenres) {
-        const genre = genreData.genres.find(g => g.name === genreName);
+        const genre = genreMap.get(genreName);
         if (genre && genre.trackIds) {
           genre.trackIds.forEach(id => trackIds.add(id));
         }
@@ -8878,6 +8880,8 @@ export function getHtml(nonce: string): string {
     }
 
     function updateMergeToolbar() {
+      // PERF: Pre-compute map to avoid O(N*M) lookup inside the loop
+      const genreMap = new Map(genreData.genres.map(g => [g.name, g]));
       let toolbar = document.getElementById('merge-toolbar');
 
       if (genresToMerge.size === 0) {
@@ -8896,7 +8900,7 @@ export function getHtml(nonce: string): string {
       }
 
       const totalTracks = [...genresToMerge].reduce((sum, name) => {
-        const genre = genreData.genres.find(g => g.name === name);
+        const genre = genreMap.get(name);
         return sum + (genre ? genre.count : 0);
       }, 0);
 
@@ -8919,6 +8923,8 @@ export function getHtml(nonce: string): string {
     }
 
     function showMergeModal() {
+      // PERF: Pre-compute map to avoid O(N*M) lookup inside the loop
+      const genreMap = new Map(genreData.genres.map(g => [g.name, g]));
       if (genresToMerge.size < 2) {
         showNotification(swedishMode ? 'Välj minst 2 genrer' : 'Select at least 2 genres', 'error');
         return;
@@ -8926,7 +8932,7 @@ export function getHtml(nonce: string): string {
 
       const genreNames = [...genresToMerge];
       const genreItems = genreNames.map(name => {
-        const genre = genreData.genres.find(g => g.name === name);
+        const genre = genreMap.get(name);
         return { name, count: genre ? genre.count : 0 };
       }).sort((a, b) => b.count - a.count);
 
@@ -8964,6 +8970,8 @@ export function getHtml(nonce: string): string {
     }
 
     async function createMergedPlaylist() {
+      // PERF: Pre-compute map to avoid O(N*M) lookup inside the loop
+      const genreMap = new Map(genreData.genres.map(g => [g.name, g]));
       const nameInput = document.getElementById('merge-playlist-name');
       const playlistName = nameInput ? nameInput.value.trim() : 'Merged Playlist';
 
@@ -8975,7 +8983,7 @@ export function getHtml(nonce: string): string {
       // Collect all track IDs from selected genres
       const trackIds = new Set();
       for (const genreName of genresToMerge) {
-        const genre = genreData.genres.find(g => g.name === genreName);
+        const genre = genreMap.get(genreName);
         if (genre && genre.trackIds) {
           genre.trackIds.forEach(id => trackIds.add(id));
         }
