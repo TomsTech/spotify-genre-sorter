@@ -32,3 +32,6 @@
 ## 2025-05-28 - [Parallelizing Spotify API Requests]
 **Learning:** Fetching paginated Spotify API data (e.g., liked tracks) with sequential `while` loops causes N+1 network latency issues, significantly slowing down library scans.
 **Action:** Always fetch the first page to get the total item count, calculate the required remaining offsets, and fetch the remaining pages concurrently using `Promise.all()` (in chunks to preserve UI progress behavior) to minimize network latency.
+## 2024-07-10 - [Parallelizing Spotify API Requests for Playlists]
+**Learning:** Fetching paginated Spotify API data for playlists and playlist tracks with sequential `while` loops causes N+1 network latency issues, significantly slowing down playlist processing.
+**Action:** Always fetch the first page to get the total item count, calculate the required remaining offsets, and fetch the remaining pages concurrently using `Promise.all()` to minimize network latency.
