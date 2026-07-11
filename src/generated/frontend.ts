@@ -8590,6 +8590,29 @@ export function getHtml(nonce: string): string {
 
     let genreData = null;
 
+    // Performance optimization: Memoize genre lookups
+    // Creating a map once instead of using .find() on arrays with thousands of elements
+    // makes repeated lookups O(1) instead of O(N)
+    let _genreMapCache = null;
+    let _lastGenreDataRef = null;
+
+    function getGenreByName(name) {
+      if (!genreData || !genreData.genres) return undefined;
+
+      // Rebuild map if genreData reference changed (e.g., after library load/refresh)
+      if (_lastGenreDataRef !== genreData) {
+        _genreMapCache = new Map();
+        for (let i = 0; i < genreData.genres.length; i++) {
+          const g = genreData.genres[i];
+          _genreMapCache.set(g.name, g);
+        }
+        _lastGenreDataRef = genreData;
+      }
+
+      return _genreMapCache.get(name);
+    }
+
+
     // === Global Error Boundary ===
     const errorHistory = [];
     const MAX_ERROR_HISTORY = 10;
@@ -8790,7 +8813,7 @@ export function getHtml(nonce: string): string {
       // Collect all track IDs
       const trackIds = new Set();
       for (const genreName of selectedGenres) {
-        const genre = genreData.genres.find(g => g.name === genreName);
+        const genre = getGenreByName(genreName);
         if (genre && genre.trackIds) {
           genre.trackIds.forEach(id => trackIds.add(id));
         }
@@ -8896,7 +8919,7 @@ export function getHtml(nonce: string): string {
       }
 
       const totalTracks = [...genresToMerge].reduce((sum, name) => {
-        const genre = genreData.genres.find(g => g.name === name);
+        const genre = getGenreByName(name);
         return sum + (genre ? genre.count : 0);
       }, 0);
 
@@ -8926,7 +8949,7 @@ export function getHtml(nonce: string): string {
 
       const genreNames = [...genresToMerge];
       const genreItems = genreNames.map(name => {
-        const genre = genreData.genres.find(g => g.name === name);
+        const genre = getGenreByName(name);
         return { name, count: genre ? genre.count : 0 };
       }).sort((a, b) => b.count - a.count);
 
@@ -8975,7 +8998,7 @@ export function getHtml(nonce: string): string {
       // Collect all track IDs from selected genres
       const trackIds = new Set();
       for (const genreName of genresToMerge) {
-        const genre = genreData.genres.find(g => g.name === genreName);
+        const genre = getGenreByName(genreName);
         if (genre && genre.trackIds) {
           genre.trackIds.forEach(id => trackIds.add(id));
         }
@@ -13326,7 +13349,7 @@ export function getHtml(nonce: string): string {
 
     // Show playlist customisation modal
     function showCustomiseModal(genreName) {
-      const genre = genreData.genres.find(g => g.name === genreName);
+      const genre = getGenreByName(genreName);
       if (!genre) return;
 
       const defaultName = genreName + ' (from Likes)';
@@ -13409,7 +13432,7 @@ export function getHtml(nonce: string): string {
 
     // Create playlist with custom options
     async function createPlaylistWithOptions(genreName, customName, customDescription, force = false) {
-      const genre = genreData.genres.find(g => g.name === genreName);
+      const genre = getGenreByName(genreName);
       if (!genre) return;
 
       try {
@@ -13538,7 +13561,7 @@ export function getHtml(nonce: string): string {
     }
 
     async function createPlaylist(genreName, force = false, customization = null) {
-      const genre = genreData.genres.find(g => g.name === genreName);
+      const genre = getGenreByName(genreName);
       if (!genre) return;
 
       // If no customization provided and not forcing, show customization modal first
@@ -13682,7 +13705,7 @@ export function getHtml(nonce: string): string {
       const defaultArt = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="#282828" width="100" height="100"/><circle cx="50" cy="50" r="40" fill="#1DB954"/><circle cx="50" cy="50" r="15" fill="#282828"/></svg>');
 
       // If we have track album art in genreData, use it
-      const genre = genreData?.genres?.find(g => g.name === genreName);
+      const genre = getGenreByName(genreName);
       if (genre?.albumArts && genre.albumArts.length > 0) {
         // Get up to 5 random album arts
         const shuffled = [...genre.albumArts].sort(() => 0.5 - Math.random());
@@ -16019,7 +16042,7 @@ export function getHtml(nonce: string): string {
     // ====================================
 
     function showArtistBreakdown(genreName) {
-      const genre = genreData?.genres?.find(g => g.name === genreName);
+      const genre = getGenreByName(genreName);
       if (!genre) return;
 
       // Collect artist data from genre tracks
