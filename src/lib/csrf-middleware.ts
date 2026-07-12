@@ -1,6 +1,7 @@
 import { Context, Next } from 'hono';
 import { getSession } from './session';
 import { validateCsrfToken } from './csrf';
+import type { Env } from '../types';
 
 /**
  * CSRF Protection Middleware

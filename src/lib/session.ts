@@ -2,6 +2,7 @@ import { Context } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { cachedKV, CACHE_TTL } from './kv-cache';
 import { generateCsrfToken } from './csrf';
+import type { Env } from '../types';
 
 // Re-export metrics and cachedKV for API access
 export { getKVMetrics, cachedKV } from './kv-cache';
