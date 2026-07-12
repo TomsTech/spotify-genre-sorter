@@ -42,14 +42,14 @@ const OAUTH_COOKIE_OPTIONS: CookieOptions = {
 };
 
 // Helper to encode state data for cookie (base64url encoding)
-function encodeStateForCookie(state: string, data: Record<string, string>): string {
+export function encodeStateForCookie(state: string, data: Record<string, string>): string {
   const payload = JSON.stringify({ state, data, ts: Date.now() });
   // Use base64url encoding to avoid cookie special chars
   return btoa(payload).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
 // Helper to decode state data from cookie
-function decodeStateFromCookie(cookieValue: string): { state: string; data: Record<string, string>; ts: number } | null {
+export function decodeStateFromCookie(cookieValue: string): { state: string; data: Record<string, string>; ts: number } | null {
   try {
     // Restore base64 padding and decode
     const base64 = cookieValue.replace(/-/g, '+').replace(/_/g, '/');

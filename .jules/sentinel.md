@@ -60,3 +60,6 @@
 **Vulnerability:** Several URLs used directly as attributes in the application such as album art, external playlist links, GitHub issue URL were unescaped.
 **Learning:** Any URLs sourced from a third party should be properly escaped before being concatenated to create string-based DOM content because malicious payloads can be injected via unescaped string boundaries or quotes.
 **Prevention:** Apply `escapeHtml` or properly sanitize all external URL fields before appending them to HTML templates.
+## 2026-06-11 - Testing Edge Cases
+**Learning:** Testing decoding logic requires tests to cover both expected structures and unexpected failures like invalid base64 or JSON parsing errors. Exporting internal helpers conditionally or replacing unexported uses allows unit tests to execute specific edge cases easily.
+**Action:** Always create explicitly targeted test suites for parsing and decoding operations.
