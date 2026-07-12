@@ -149,7 +149,9 @@ export async function deleteSession(
 }
 
 export function generateState(): string {
-  return crypto.randomUUID();
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 export async function storeState(

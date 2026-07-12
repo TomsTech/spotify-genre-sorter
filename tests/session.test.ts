@@ -1,12 +1,17 @@
-import { describe, it, expect } from 'vitest';
-import { generateState } from '../src/lib/session';
+import { describe, it, expect, vi } from 'vitest';
+import { generateState, getScoreboard, cachedKV, buildScoreboard } from '../src/lib/session';
 
 describe('Session Management', () => {
   describe('generateState', () => {
-    it('should generate a valid UUID', () => {
+    it('should generate a string of length 32', () => {
       const state = generateState();
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      expect(state).toMatch(uuidRegex);
+      expect(state).toHaveLength(32);
+    });
+
+    it('should only contain valid hex characters', () => {
+      const state = generateState();
+      const hexRegex = /^[0-9a-f]+$/i;
+      expect(state).toMatch(hexRegex);
     });
 
     it('should generate unique states on each call', () => {
@@ -58,11 +63,6 @@ describe('Token Refresh Logic', () => {
     expect(needsRefresh).toBe(false);
   });
 });
-
-import { vi } from 'vitest';
-import { getScoreboard, cachedKV } from '../src/lib/session';
-
-import { buildScoreboard } from '../src/lib/session';
 
 describe('buildScoreboard', () => {
   it('should paginate through user_stats using cursor when list_complete is false', async () => {
