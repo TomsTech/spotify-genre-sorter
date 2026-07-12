@@ -1,4 +1,24 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import api from '../src/routes/api';
+import * as session from '../src/lib/session';
+import * as spotify from '../src/lib/spotify';
+
+vi.mock('../src/lib/session', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getSession: vi.fn(),
+  };
+});
+
+vi.mock('../src/lib/spotify', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getLikedTracks: vi.fn(),
+  };
+});
+
 
 describe('API Response Formats', () => {
   describe('GET /api/genres', () => {
@@ -157,5 +177,25 @@ describe('Health & Setup Endpoints', () => {
 
     expect(isSpotifyOnly1).toBe(true);
     expect(isSpotifyOnly2).toBe(false);
+  });
+});
+
+
+describe('GET /api/library-size', () => {
+  it('should return 500 when getLikedTracks throws', async () => {
+    vi.mocked(session.getSession).mockResolvedValue({ spotifyAccessToken: 'valid-token' });
+    vi.mocked(spotify.getLikedTracks).mockRejectedValue(new Error('Spotify API Error'));
+
+    const req = new Request('http://localhost/library-size');
+    const res = await api.request(req, {}, {
+      SESSIONS: {
+        get: vi.fn(),
+        put: vi.fn(),
+      }
+    });
+
+    expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toBe('Failed to fetch library size');
   });
 });
