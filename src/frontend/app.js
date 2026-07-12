@@ -2,6 +2,7 @@
     const headerActions = document.getElementById('header-actions');
 
     let genreData = null;
+    let genreMap = new Map();
 
     // === Global Error Boundary ===
     const errorHistory = [];
@@ -203,7 +204,7 @@
       // Collect all track IDs
       const trackIds = new Set();
       for (const genreName of selectedGenres) {
-        const genre = genreData.genres.find(g => g.name === genreName);
+        const genre = genreMap.get(genreName);
         if (genre && genre.trackIds) {
           genre.trackIds.forEach(id => trackIds.add(id));
         }
@@ -309,7 +310,7 @@
       }
 
       const totalTracks = [...genresToMerge].reduce((sum, name) => {
-        const genre = genreData.genres.find(g => g.name === name);
+        const genre = genreMap.get(name);
         return sum + (genre ? genre.count : 0);
       }, 0);
 
@@ -339,7 +340,7 @@
 
       const genreNames = [...genresToMerge];
       const genreItems = genreNames.map(name => {
-        const genre = genreData.genres.find(g => g.name === name);
+        const genre = genreMap.get(name);
         return { name, count: genre ? genre.count : 0 };
       }).sort((a, b) => b.count - a.count);
 
@@ -388,7 +389,7 @@
       // Collect all track IDs from selected genres
       const trackIds = new Set();
       for (const genreName of genresToMerge) {
-        const genre = genreData.genres.find(g => g.name === genreName);
+        const genre = genreMap.get(genreName);
         if (genre && genre.trackIds) {
           genre.trackIds.forEach(id => trackIds.add(id));
         }
@@ -3757,6 +3758,7 @@
         const fullData = await loadGenresProgressively();
         stopAlbumCarousel(); // Clean up carousel when loading completes
         genreData = fullData;
+        genreMap = new Map(fullData.genres.map(g => [g.name, g]));
         window.currentGenres = fullData?.genres || []; // For Genre Wrapped
         triggerFireworks(); // Celebrate completion!
         renderGenres();
@@ -3914,6 +3916,7 @@
         }
 
         genreData = data;
+        genreMap = new Map(data.genres.map(g => [g.name, g]));
         window.currentGenres = data?.genres || []; // For Genre Wrapped
         triggerFireworks(); // Celebrate completion!
         renderGenres();
@@ -3945,6 +3948,7 @@
         }
 
         genreData = data;
+        genreMap = new Map(data.genres.map(g => [g.name, g]));
         renderGenres();
         showNotification(swedishMode ? '✨ Data uppdaterad!' : '✨ Data refreshed!', 'success');
       } catch (error) {
@@ -4739,7 +4743,7 @@
 
     // Show playlist customisation modal
     function showCustomiseModal(genreName) {
-      const genre = genreData.genres.find(g => g.name === genreName);
+      const genre = genreMap.get(genreName);
       if (!genre) return;
 
       const defaultName = genreName + ' (from Likes)';
@@ -4822,7 +4826,7 @@
 
     // Create playlist with custom options
     async function createPlaylistWithOptions(genreName, customName, customDescription, force = false) {
-      const genre = genreData.genres.find(g => g.name === genreName);
+      const genre = genreMap.get(genreName);
       if (!genre) return;
 
       try {
@@ -4951,7 +4955,7 @@
     }
 
     async function createPlaylist(genreName, force = false, customization = null) {
-      const genre = genreData.genres.find(g => g.name === genreName);
+      const genre = genreMap.get(genreName);
       if (!genre) return;
 
       // If no customization provided and not forcing, show customization modal first
@@ -5095,7 +5099,7 @@
       const defaultArt = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="#282828" width="100" height="100"/><circle cx="50" cy="50" r="40" fill="#1DB954"/><circle cx="50" cy="50" r="15" fill="#282828"/></svg>');
 
       // If we have track album art in genreData, use it
-      const genre = genreData?.genres?.find(g => g.name === genreName);
+      const genre = genreMap.get(genreName);
       if (genre?.albumArts && genre.albumArts.length > 0) {
         // Get up to 5 random album arts
         const shuffled = [...genre.albumArts].sort(() => 0.5 - Math.random());
@@ -7432,7 +7436,7 @@
     // ====================================
 
     function showArtistBreakdown(genreName) {
-      const genre = genreData?.genres?.find(g => g.name === genreName);
+      const genre = genreMap.get(genreName);
       if (!genre) return;
 
       // Collect artist data from genre tracks
