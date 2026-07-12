@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken } from '../src/lib/spotify';
+import { generateCodeVerifier, getSpotifyAuthUrl, refreshSpotifyToken } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
@@ -184,5 +184,26 @@ describe('refreshSpotifyToken', () => {
     const tokens = await refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret');
     expect(tokens.access_token).toBe('new-access-token');
     expect(tokens.refresh_token).toBe('fake-refresh-token'); // It should preserve the refresh token if not returned
+  });
+});
+
+
+describe('generateCodeVerifier', () => {
+  it('should generate a string of length 43 (base64url of 32 bytes)', () => {
+    const verifier = generateCodeVerifier();
+    expect(typeof verifier).toBe('string');
+    expect(verifier.length).toBe(43);
+  });
+
+  it('should only contain base64url valid characters', () => {
+    const verifier = generateCodeVerifier();
+    // base64url characters: A-Z, a-z, 0-9, -, _
+    expect(/^[A-Za-z0-9_-]+$/.test(verifier)).toBe(true);
+  });
+
+  it('should generate reasonably unique values', () => {
+    const v1 = generateCodeVerifier();
+    const v2 = generateCodeVerifier();
+    expect(v1).not.toBe(v2);
   });
 });
