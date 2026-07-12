@@ -13,12 +13,3 @@ interface Env {
   ADMIN_USERS?: string; // Comma-separated list of admin usernames (GitHub or Spotify)
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface UserRegistration {
-  spotifyId: string;
-  spotifyName: string;
-  spotifyAvatar?: string;
-  githubUser?: string;
-  registeredAt: string;
-  lastSeenAt: string;
-}
