@@ -1032,7 +1032,7 @@ type ValidationError = { valid: false; error: string };
 type ValidationResult<T> = ValidationSuccess<T> | ValidationError;
 
 // Helper to validate track IDs
-function validateTrackIds(trackIds: unknown): ValidationResult<string[]> {
+export function validateTrackIds(trackIds: unknown): ValidationResult<string[]> {
   if (!Array.isArray(trackIds)) {
     return { valid: false, error: 'trackIds must be an array' };
   }
