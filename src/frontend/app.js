@@ -6495,7 +6495,7 @@
           checkAndShowTutorial();
         }
       } catch (err) {
-        console.log('Could not load preferences, using defaults');
+        console.warn('Could not load preferences, using defaults:', err);
       }
     }
 

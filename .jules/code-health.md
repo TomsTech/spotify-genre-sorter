@@ -1,0 +1,3 @@
+## 2024-05-18 - Improve preference load error logging
+**Learning:** Found that `console.log` was inappropriately used to report an error/warning scenario where the preference loading failed. Changing it to `console.warn` along with passing the actual `err` object improves tracking of issues and gives developers clear signal instead of conflating error conditions with standard informational logs.
+**Action:** When catching errors during HTTP fetching (such as API routes) that don't fail the application completely, prefer `console.warn` over `console.log` and include the caught error object for context.
