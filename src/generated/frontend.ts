@@ -8895,8 +8895,10 @@ export function getHtml(nonce: string): string {
         }
       }
 
+      // Create a map for O(1) lookups to avoid O(N*M) complexity
+      const genreMap = new Map(genreData.genres.map(g => [g.name, g]));
       const totalTracks = [...genresToMerge].reduce((sum, name) => {
-        const genre = genreData.genres.find(g => g.name === name);
+        const genre = genreMap.get(name);
         return sum + (genre ? genre.count : 0);
       }, 0);
 
