@@ -8,11 +8,14 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   getCachedArtistGenres,
+  getCachedArtistGenresBatch,
+  cacheArtistGenresBatch,
   cacheArtistGenres,
   getArtistGenreCacheStats,
   updateArtistGenreCacheStats,
   getCachedArtistCount,
   clearAllArtistGenreCache,
+  invalidateArtistGenreCache,
   cleanupOldArtistGenreCache
 } from '../src/lib/artist-genre-cache';
 import { cachedKV } from '../src/lib/kv-cache';
@@ -162,6 +165,44 @@ describe('Artist Genre Cache - Error Handling', () => {
     vi.restoreAllMocks();
   });
 
+  it('getCachedArtistGenresBatch handles cache misses and successes gracefully', async () => {
+    const mockKv = {} as any;
+    const artistIds = ['artist1', 'artist2', 'artist3'];
+
+    vi.spyOn(cachedKV, 'get')
+      .mockResolvedValueOnce({ genres: ['rock'] })
+      .mockRejectedValueOnce(new Error('KV error'))
+      .mockResolvedValueOnce({ genres: ['pop'] });
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await getCachedArtistGenresBatch(mockKv, artistIds);
+
+    expect(result.size).toBe(2);
+    expect(result.get('artist1')).toEqual(['rock']);
+    expect(result.get('artist3')).toEqual(['pop']);
+    expect(consoleSpy).toHaveBeenCalledWith(`Error fetching cached genres for artist artist2:`, expect.any(Error));
+
+    consoleSpy.mockRestore();
+    vi.restoreAllMocks();
+  });
+
+  it('cacheArtistGenresBatch handles multiple artists gracefully', async () => {
+    const mockKv = {} as any;
+    const map = new Map([
+      ['artist1', ['rock']],
+      ['artist2', ['pop']]
+    ]);
+
+    const putSpy = vi.spyOn(cachedKV, 'put').mockResolvedValue(undefined);
+
+    await cacheArtistGenresBatch(mockKv, map);
+
+    expect(putSpy).toHaveBeenCalledTimes(2);
+
+    vi.restoreAllMocks();
+  });
+
   it('cacheArtistGenres handles KV cache errors gracefully', async () => {
     const mockKv = {} as any;
     const artistId = 'error-artist-id';
@@ -226,6 +267,32 @@ describe('Artist Genre Cache - Error Handling', () => {
     vi.restoreAllMocks();
   });
 
+  it('clearAllArtistGenreCache works successfully', async () => {
+    const mockKv = {
+      list: vi.fn()
+        .mockResolvedValueOnce({ keys: [{ name: 'key1' }], list_complete: false, cursor: 'cursor1' })
+        .mockResolvedValueOnce({ keys: [{ name: 'key2' }], list_complete: true })
+    } as any;
+
+    vi.spyOn(cachedKV, 'delete').mockResolvedValue();
+
+    const result = await clearAllArtistGenreCache(mockKv);
+
+    expect(result).toBe(2);
+    vi.restoreAllMocks();
+  });
+
+  it('invalidateArtistGenreCache handles errors gracefully', async () => {
+    const mockKv = {} as any;
+    vi.spyOn(cachedKV, 'delete').mockRejectedValueOnce(new Error('delete failed'));
+
+    // Since invalidateArtistGenreCache uses Promise.all over map, an error in one delete should reject the whole call.
+    // Actually wait, let's see implementation.
+    // const deletePromises = artistIds.map(async (artistId) => { await cachedKV.delete(kv, cacheKey); deletedCount++; });
+    // await Promise.all(deletePromises);
+    await expect(invalidateArtistGenreCache(mockKv, ['artist1'])).rejects.toThrow('delete failed');
+  });
+
   it('clearAllArtistGenreCache handles errors gracefully', async () => {
     const mockKv = { list: vi.fn().mockRejectedValueOnce(new Error('KV list failed')) } as any;
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -236,6 +303,25 @@ describe('Artist Genre Cache - Error Handling', () => {
     expect(consoleSpy).toHaveBeenCalledWith('Error clearing artist genre cache:', expect.any(Error));
 
     consoleSpy.mockRestore();
+    vi.restoreAllMocks();
+  });
+
+  it('cleanupOldArtistGenreCache works successfully', async () => {
+    const mockKv = {
+      list: vi.fn()
+        .mockResolvedValueOnce({ keys: [{ name: 'key1' }], list_complete: false, cursor: 'cursor1' })
+        .mockResolvedValueOnce({ keys: [{ name: 'key2' }], list_complete: true })
+    } as any;
+
+    vi.spyOn(cachedKV, 'get')
+      .mockResolvedValueOnce({ cachedAt: Date.now() - 100 * 24 * 60 * 60 * 1000 }) // Old
+      .mockResolvedValueOnce({ cachedAt: Date.now() }); // New
+
+    vi.spyOn(cachedKV, 'delete').mockResolvedValue();
+
+    const result = await cleanupOldArtistGenreCache(mockKv, 60);
+
+    expect(result).toBe(1);
     vi.restoreAllMocks();
   });
 
