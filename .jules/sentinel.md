@@ -60,3 +60,6 @@
 **Vulnerability:** Several URLs used directly as attributes in the application such as album art, external playlist links, GitHub issue URL were unescaped.
 **Learning:** Any URLs sourced from a third party should be properly escaped before being concatenated to create string-based DOM content because malicious payloads can be injected via unescaped string boundaries or quotes.
 **Prevention:** Apply `escapeHtml` or properly sanitize all external URL fields before appending them to HTML templates.
+## 2025-02-27 - 🧪 Add comprehensive tests to artist-genre-cache.ts
+**Learning:** Testing Cloudflare KV error paths (like failed connections or list paginations) is often missed but crucial for stable app behavior.
+**Action:** Always ensure that when implementing Cloudflare KV wrappers or cache fallbacks, the tests mock both successful multi-key resolutions (e.g. loops testing `list_complete` and `cursor`) and failure paths `mockRejectedValueOnce` to reach 100% test coverage.

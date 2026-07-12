@@ -13,7 +13,10 @@ import {
   updateArtistGenreCacheStats,
   getCachedArtistCount,
   clearAllArtistGenreCache,
-  cleanupOldArtistGenreCache
+  cleanupOldArtistGenreCache,
+  getCachedArtistGenresBatch,
+  cacheArtistGenresBatch,
+  invalidateArtistGenreCache
 } from '../src/lib/artist-genre-cache';
 import { cachedKV } from '../src/lib/kv-cache';
 
@@ -226,6 +229,163 @@ describe('Artist Genre Cache - Error Handling', () => {
     vi.restoreAllMocks();
   });
 
+  it('getCachedArtistGenresBatch handles partial nulls', async () => {
+    const mockKv = {} as any;
+
+    vi.spyOn(cachedKV, 'get')
+      .mockResolvedValueOnce({ genres: null }) // Returns null
+      .mockResolvedValueOnce({ genres: ['rock'] });
+
+    const result = await getCachedArtistGenresBatch(mockKv, ['artist1', 'artist2']);
+
+    expect(result.size).toBe(1);
+    expect(result.get('artist2')).toEqual(['rock']);
+
+    vi.restoreAllMocks();
+  });
+
+  it('getCachedArtistGenresBatch handles errors gracefully (returns map with hits)', async () => {
+    const mockKv = {} as any;
+
+    vi.spyOn(cachedKV, 'get')
+      .mockResolvedValueOnce({ genres: ['pop'] }) // First resolves
+      .mockRejectedValueOnce(new Error('KV connection failed')); // Second fails
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await getCachedArtistGenresBatch(mockKv, ['artist1', 'artist2']);
+
+    expect(result.size).toBe(1);
+    expect(result.get('artist1')).toEqual(['pop']);
+    expect(consoleSpy).toHaveBeenCalledWith(`Error fetching cached genres for artist artist2:`, expect.any(Error));
+
+    consoleSpy.mockRestore();
+    vi.restoreAllMocks();
+  });
+
+  it('cacheArtistGenresBatch handles errors gracefully', async () => {
+    const mockKv = {} as any;
+
+    vi.spyOn(cachedKV, 'put')
+      .mockResolvedValueOnce(undefined) // First resolves
+      .mockRejectedValueOnce(new Error('KV put failed')); // Second fails
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const map = new Map();
+    map.set('artist1', ['pop']);
+    map.set('artist2', ['rock']);
+
+    await cacheArtistGenresBatch(mockKv, map);
+
+    expect(consoleSpy).toHaveBeenCalledWith(`Error caching genres for artist artist2:`, expect.any(Error));
+
+    consoleSpy.mockRestore();
+    vi.restoreAllMocks();
+  });
+
+  it('invalidateArtistGenreCache propagates errors', async () => {
+    const mockKv = {} as any;
+
+    vi.spyOn(cachedKV, 'delete').mockRejectedValueOnce(new Error('KV delete failed'));
+
+    await expect(invalidateArtistGenreCache(mockKv, ['artist1'])).rejects.toThrow('KV delete failed');
+
+    vi.restoreAllMocks();
+  });
+
+  it('clearAllArtistGenreCache processes entries correctly', async () => {
+    const mockKv = {
+      list: vi.fn()
+        .mockResolvedValueOnce({
+          keys: [{ name: 'key1' }, { name: 'key2' }],
+          list_complete: false,
+          cursor: 'cursor1'
+        })
+        .mockResolvedValueOnce({
+          keys: [{ name: 'key3' }],
+          list_complete: true
+        })
+    } as any;
+
+    vi.spyOn(cachedKV, 'delete').mockResolvedValue(undefined);
+
+    const result = await clearAllArtistGenreCache(mockKv);
+
+    expect(result).toBe(3);
+    expect(mockKv.list).toHaveBeenCalledTimes(2);
+    expect(cachedKV.delete).toHaveBeenCalledWith(mockKv, 'key1');
+    expect(cachedKV.delete).toHaveBeenCalledWith(mockKv, 'key2');
+    expect(cachedKV.delete).toHaveBeenCalledWith(mockKv, 'key3');
+    expect(cachedKV.delete).toHaveBeenCalledWith(mockKv, 'artist_genre_cache_stats');
+
+    vi.restoreAllMocks();
+  });
+
+  it('getCachedArtistCount processes successful list', async () => {
+    const mockKv = { list: vi.fn().mockResolvedValueOnce({ keys: [{ name: 'key1' }] }) } as any;
+
+    const result = await getCachedArtistCount(mockKv);
+
+    expect(result).toBe(1);
+
+    vi.restoreAllMocks();
+  });
+
+  it('invalidateArtistGenreCache processes entries correctly', async () => {
+    const mockKv = {} as any;
+
+    vi.spyOn(cachedKV, 'delete').mockResolvedValue(undefined);
+
+    const result = await invalidateArtistGenreCache(mockKv, ['artist1', 'artist2']);
+
+    expect(result).toBe(2);
+    expect(cachedKV.delete).toHaveBeenCalledTimes(2);
+
+    vi.restoreAllMocks();
+  });
+
+  it('getArtistGenreCacheStats returns cached stats', async () => {
+    const mockKv = {} as any;
+
+    vi.spyOn(cachedKV, 'get').mockResolvedValueOnce({
+      totalCached: 10,
+      cacheHits: 5,
+      cacheMisses: 2,
+      apiCallsSaved: 1,
+      lastUpdated: '2023-01-01T00:00:00.000Z'
+    });
+
+    const result = await getArtistGenreCacheStats(mockKv);
+
+    expect(result.totalCached).toBe(10);
+    vi.restoreAllMocks();
+  });
+
+  it('updateArtistGenreCacheStats updates successfully with misses and totalCached', async () => {
+    const mockKv = {} as any;
+
+    vi.spyOn(cachedKV, 'get').mockResolvedValueOnce(null);
+    vi.spyOn(cachedKV, 'put').mockResolvedValue(undefined);
+
+    await updateArtistGenreCacheStats(mockKv, { cacheMisses: 2, totalCached: 50 });
+
+    expect(cachedKV.put).toHaveBeenCalledWith(
+      mockKv,
+      'artist_genre_cache_stats',
+      expect.stringContaining('"cacheMisses":2'),
+      expect.any(Object)
+    );
+    expect(cachedKV.put).toHaveBeenCalledWith(
+      mockKv,
+      'artist_genre_cache_stats',
+      expect.stringContaining('"totalCached":50'),
+      expect.any(Object)
+    );
+
+    vi.restoreAllMocks();
+  });
+
   it('clearAllArtistGenreCache handles errors gracefully', async () => {
     const mockKv = { list: vi.fn().mockRejectedValueOnce(new Error('KV list failed')) } as any;
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -236,6 +396,40 @@ describe('Artist Genre Cache - Error Handling', () => {
     expect(consoleSpy).toHaveBeenCalledWith('Error clearing artist genre cache:', expect.any(Error));
 
     consoleSpy.mockRestore();
+    vi.restoreAllMocks();
+  });
+
+  it('cleanupOldArtistGenreCache processes entries correctly', async () => {
+    const mockKv = {
+      list: vi.fn()
+        .mockResolvedValueOnce({
+          keys: [{ name: 'old_key' }, { name: 'new_key' }],
+          list_complete: false,
+          cursor: 'cursor1'
+        })
+        .mockResolvedValueOnce({
+          keys: [{ name: 'another_old_key' }],
+          list_complete: true
+        })
+    } as any;
+
+    const cutoffTime = Date.now() - (60 * 24 * 60 * 60 * 1000);
+
+    vi.spyOn(cachedKV, 'get')
+      .mockResolvedValueOnce({ cachedAt: cutoffTime - 1000 } as any) // old_key
+      .mockResolvedValueOnce({ cachedAt: cutoffTime + 1000 } as any) // new_key
+      .mockResolvedValueOnce({ cachedAt: cutoffTime - 1000 } as any); // another_old_key
+
+    vi.spyOn(cachedKV, 'delete').mockResolvedValue(undefined);
+
+    const result = await cleanupOldArtistGenreCache(mockKv);
+
+    expect(result).toBe(2); // old_key and another_old_key
+    expect(mockKv.list).toHaveBeenCalledTimes(2);
+    expect(cachedKV.delete).toHaveBeenCalledWith(mockKv, 'old_key');
+    expect(cachedKV.delete).not.toHaveBeenCalledWith(mockKv, 'new_key');
+    expect(cachedKV.delete).toHaveBeenCalledWith(mockKv, 'another_old_key');
+
     vi.restoreAllMocks();
   });
 
