@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError } from '../src/lib/error-handler';
+import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError, createErrorResponse } from '../src/lib/error-handler';
 
 
 describe('classifyError', () => {
@@ -194,5 +194,68 @@ describe('determineRecoveryStrategy', () => {
       expect(strategy.action).toBe('abort');
       expect(strategy.message).toBe('An error occurred.');
     });
+  });
+});
+
+describe('createErrorResponse', () => {
+  it('should create a response from an Error with default options', async () => {
+    const error = new Error('Test error message');
+    const response = createErrorResponse(error);
+
+    expect(response.status).toBe(500);
+    expect(response.headers.get('Content-Type')).toBe('application/json');
+
+    const body = await response.json() as Record<string, unknown>;
+    expect(body.error).toBe('An unexpected error occurred. Please try again.');
+    expect(body.code).toBe(ErrorCode.UNKNOWN_ERROR);
+    expect(body.recoverable).toBe(true);
+    expect(body.retryable).toBe(true);
+    expect(body.stack).toBeUndefined();
+
+    // Default strategy for UNKNOWN_ERROR with retryable=true
+    expect(body.suggestion).toBe('An error occurred. Retrying...');
+    expect(body.action).toBe('retry');
+  });
+
+  it('should create a response from an AppError with swedish option', async () => {
+    const appError = new AppError({
+      code: ErrorCode.VALIDATION_ERROR,
+      message: 'Validation failed',
+      userMessage: 'English message',
+      userMessageSV: 'Svenska meddelande',
+      recoverable: true,
+      retryable: false,
+      statusCode: 400,
+    });
+    const response = createErrorResponse(appError, { swedish: true });
+
+    expect(response.status).toBe(400);
+
+    const body = await response.json() as Record<string, unknown>;
+    expect(body.error).toBe('Svenska meddelande');
+    expect(body.code).toBe(ErrorCode.VALIDATION_ERROR);
+    expect(body.recoverable).toBe(true);
+    expect(body.retryable).toBe(false);
+    expect(body.stack).toBeUndefined();
+
+    expect(body.suggestion).toBe('English message');
+    expect(body.action).toBe('abort');
+  });
+
+  it('should include stack trace when includeStack is true and stack exists', async () => {
+    const error = new Error('Test with stack');
+    const response = createErrorResponse(error, { includeStack: true });
+
+    const body = await response.json() as Record<string, unknown>;
+    expect(body.stack).toBeDefined();
+    expect(body.stack).toContain('Error: Test with stack');
+  });
+
+  it('should omit stack trace when includeStack is false', async () => {
+    const error = new Error('Test without stack');
+    const response = createErrorResponse(error, { includeStack: false });
+
+    const body = await response.json() as Record<string, unknown>;
+    expect(body.stack).toBeUndefined();
   });
 });
