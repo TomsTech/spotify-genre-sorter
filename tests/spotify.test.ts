@@ -23,6 +23,25 @@ describe('Spotify Library', () => {
       expect(url).toContain('user-library-read');
       expect(url).toContain('playlist-modify-public');
       expect(url).toContain('playlist-modify-private');
+      expect(url).toContain('user-read-private');
+      expect(url).toContain('user-read-currently-playing');
+      expect(url).toContain('user-read-playback-state');
+    });
+
+    it('should include PKCE parameters when codeChallenge is provided', () => {
+      const url = getSpotifyAuthUrl('client', 'redirect', 'state', 'test-challenge-xyz');
+
+      const parsedUrl = new URL(url);
+      expect(parsedUrl.searchParams.get('code_challenge_method')).toBe('S256');
+      expect(parsedUrl.searchParams.get('code_challenge')).toBe('test-challenge-xyz');
+    });
+
+    it('should not include PKCE parameters when codeChallenge is omitted', () => {
+      const url = getSpotifyAuthUrl('client', 'redirect', 'state');
+
+      const parsedUrl = new URL(url);
+      expect(parsedUrl.searchParams.has('code_challenge_method')).toBe(false);
+      expect(parsedUrl.searchParams.has('code_challenge')).toBe(false);
     });
   });
 });
