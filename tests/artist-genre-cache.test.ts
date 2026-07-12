@@ -13,7 +13,8 @@ import {
   updateArtistGenreCacheStats,
   getCachedArtistCount,
   clearAllArtistGenreCache,
-  cleanupOldArtistGenreCache
+  cleanupOldArtistGenreCache,
+  invalidateArtistGenreCache
 } from '../src/lib/artist-genre-cache';
 import { cachedKV } from '../src/lib/kv-cache';
 
@@ -250,5 +251,35 @@ describe('Artist Genre Cache - Error Handling', () => {
 
     consoleSpy.mockRestore();
     vi.restoreAllMocks();
+  });
+
+  it('invalidateArtistGenreCache should invalidate specific artist caches and return count', async () => {
+    const mockKv = {} as any;
+    const artistIds = ['artist1', 'artist2', 'artist3'];
+
+    vi.spyOn(cachedKV, 'delete').mockResolvedValue(undefined);
+
+    const count = await invalidateArtistGenreCache(mockKv, artistIds);
+
+    expect(count).toBe(3);
+    expect(cachedKV.delete).toHaveBeenCalledTimes(3);
+    expect(cachedKV.delete).toHaveBeenCalledWith(mockKv, 'artist_genre:artist1');
+    expect(cachedKV.delete).toHaveBeenCalledWith(mockKv, 'artist_genre:artist2');
+    expect(cachedKV.delete).toHaveBeenCalledWith(mockKv, 'artist_genre:artist3');
+  });
+
+  it('invalidateArtistGenreCache should correctly reflect deleted count even if artist list is empty', async () => {
+    const mockKv = {} as any;
+    const count = await invalidateArtistGenreCache(mockKv, []);
+    expect(count).toBe(0);
+  });
+
+  it('invalidateArtistGenreCache handles errors gracefully or throws', async () => {
+    const mockKv = {} as any;
+    const artistIds = ['artist1'];
+
+    vi.spyOn(cachedKV, 'delete').mockRejectedValueOnce(new Error('KV delete failed'));
+
+    await expect(invalidateArtistGenreCache(mockKv, artistIds)).rejects.toThrow('KV delete failed');
   });
 });
