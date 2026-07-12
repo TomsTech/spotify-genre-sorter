@@ -1,4 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import app from '../src/index';
+
 
 describe('API Response Formats', () => {
   describe('GET /api/genres', () => {
@@ -157,5 +159,56 @@ describe('Health & Setup Endpoints', () => {
 
     expect(isSpotifyOnly1).toBe(true);
     expect(isSpotifyOnly2).toBe(false);
+  });
+});
+
+
+
+
+describe('Token Refresh logic in Auth Middleware', () => {
+  it('should return 401 when token refresh fails', async () => {
+    const req = new Request('http://localhost/api/me', {
+      headers: {
+        'cf-connecting-ip': '127.0.0.1',
+        'Cookie': 'session_id=test-session-id'
+      }
+    });
+
+    const mockEnv = {
+      SESSIONS: {
+        get: vi.fn().mockResolvedValue(JSON.stringify({
+          spotifyAccessToken: 'old-token',
+          spotifyRefreshToken: 'refresh-token',
+          spotifyExpiresAt: Date.now() - 1000,
+        })),
+        put: vi.fn(),
+      },
+      E2E_TEST_MODE: 'false',
+      ENVIRONMENT: 'test',
+      SPOTIFY_CLIENT_ID: 'client-id',
+      SPOTIFY_CLIENT_SECRET: 'client-secret',
+      BETTERSTACK_LOG_TOKEN: 'mock-token',
+    };
+
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockRejectedValue(new Error('Network error during refresh'));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.useFakeTimers();
+
+    const fetchPromise = app.fetch(req, mockEnv, {
+      waitUntil: vi.fn(),
+      passThroughOnException: vi.fn(),
+    });
+
+    await vi.advanceTimersByTimeAsync(10000);
+
+    const res = await fetchPromise;
+
+    expect(res.status).toBe(401);
+    const data = await res.json();
+    expect(data.error).toBe('Failed to refresh Spotify token');
+
+    global.fetch = originalFetch;
+    vi.useRealTimers();
   });
 });
