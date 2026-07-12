@@ -202,8 +202,12 @@
 
       // Collect all track IDs
       const trackIds = new Set();
+      const genreMap4 = new Map();
+      for (const g of genreData.genres) {
+        genreMap4.set(g.name, g);
+      }
       for (const genreName of selectedGenres) {
-        const genre = genreData.genres.find(g => g.name === genreName);
+        const genre = genreMap4.get(genreName);
         if (genre && genre.trackIds) {
           genre.trackIds.forEach(id => trackIds.add(id));
         }
@@ -308,8 +312,12 @@
         }
       }
 
+      const genreMap2 = new Map();
+      for (const g of genreData.genres) {
+        genreMap2.set(g.name, g);
+      }
       const totalTracks = [...genresToMerge].reduce((sum, name) => {
-        const genre = genreData.genres.find(g => g.name === name);
+        const genre = genreMap2.get(name);
         return sum + (genre ? genre.count : 0);
       }, 0);
 
@@ -338,8 +346,13 @@
       }
 
       const genreNames = [...genresToMerge];
+      const genreMap = new Map();
+      for (const g of genreData.genres) {
+        genreMap.set(g.name, g);
+      }
+
       const genreItems = genreNames.map(name => {
-        const genre = genreData.genres.find(g => g.name === name);
+        const genre = genreMap.get(name);
         return { name, count: genre ? genre.count : 0 };
       }).sort((a, b) => b.count - a.count);
 
@@ -387,8 +400,12 @@
 
       // Collect all track IDs from selected genres
       const trackIds = new Set();
+      const genreMap3 = new Map();
+      for (const g of genreData.genres) {
+        genreMap3.set(g.name, g);
+      }
       for (const genreName of genresToMerge) {
-        const genre = genreData.genres.find(g => g.name === genreName);
+        const genre = genreMap3.get(genreName);
         if (genre && genre.trackIds) {
           genre.trackIds.forEach(id => trackIds.add(id));
         }
