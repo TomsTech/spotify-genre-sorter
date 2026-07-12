@@ -32,3 +32,5 @@
 ## 2025-05-28 - [Parallelizing Spotify API Requests]
 **Learning:** Fetching paginated Spotify API data (e.g., liked tracks) with sequential `while` loops causes N+1 network latency issues, significantly slowing down library scans.
 **Action:** Always fetch the first page to get the total item count, calculate the required remaining offsets, and fetch the remaining pages concurrently using `Promise.all()` (in chunks to preserve UI progress behavior) to minimize network latency.
+
+## $(date +%Y-%m-%d) - O(N*M) Array Find in genresToMerge loop **Learning:** When iterating through a set to find items in a large array using `Array.prototype.find()`, it results in an O(N*M) time complexity. This can cause significant slowdowns, especially if both the set and array are large. **Action:** Pre-compute a lookup `Map` from the array before the loop. By iterating over the array once to build the map, subsequent lookups inside the loop take O(1) time, reducing the overall time complexity to O(N+M) and noticeably improving performance.

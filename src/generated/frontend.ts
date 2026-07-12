@@ -8974,8 +8974,12 @@ export function getHtml(nonce: string): string {
 
       // Collect all track IDs from selected genres
       const trackIds = new Set();
+      const genreMap = new Map();
+      for (const g of genreData.genres) {
+        genreMap.set(g.name, g);
+      }
       for (const genreName of genresToMerge) {
-        const genre = genreData.genres.find(g => g.name === genreName);
+        const genre = genreMap.get(genreName);
         if (genre && genre.trackIds) {
           genre.trackIds.forEach(id => trackIds.add(id));
         }
