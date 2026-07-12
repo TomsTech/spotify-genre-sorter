@@ -12392,7 +12392,7 @@ export function getHtml(nonce: string): string {
             }
           }
         } catch (e) {
-          console.log('Could not check scan status:', e);
+          console.warn('Could not check scan status:', e);
         }
 
         // First, fetch library size to show user what to expect (#75)
