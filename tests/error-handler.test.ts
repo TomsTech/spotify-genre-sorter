@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError } from '../src/lib/error-handler';
+import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError, logError } from '../src/lib/error-handler';
+import * as loggerModule from '../src/lib/logger';
+import { vi, beforeEach, afterEach } from 'vitest';
 
 
 describe('classifyError', () => {
@@ -194,5 +196,142 @@ describe('determineRecoveryStrategy', () => {
       expect(strategy.action).toBe('abort');
       expect(strategy.message).toBe('An error occurred.');
     });
+  });
+});
+
+
+
+describe('logError', () => {
+  let consoleErrorSpy: any;
+  let createLoggerSpy: any;
+  let mockLogger: any;
+  let mockExecutionContext: any;
+
+  beforeEach(() => {
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    mockLogger = {
+      error: vi.fn(),
+      logError: vi.fn(),
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      logRequest: vi.fn(),
+    };
+
+    createLoggerSpy = vi.spyOn(loggerModule, 'createLogger').mockReturnValue(mockLogger);
+
+    mockExecutionContext = {
+      waitUntil: vi.fn()
+    };
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should fallback to console.error when executionContext is not provided', () => {
+    const error = new Error('Test error');
+    logError(error);
+
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    expect(createLoggerSpy).not.toHaveBeenCalled();
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[ERROR]',
+      expect.objectContaining({
+        code: ErrorCode.UNKNOWN_ERROR,
+        message: 'Test error',
+        statusCode: 500,
+      })
+    );
+  });
+
+  it('should use custom logger when executionContext is provided', () => {
+    const error = new Error('Test error');
+
+    const requestContext = {
+      path: '/api/test',
+      method: 'GET',
+      userId: 'user123'
+    };
+
+    logError(error, {
+      executionContext: mockExecutionContext,
+      requestContext
+    });
+
+    expect(createLoggerSpy).toHaveBeenCalledWith(
+      mockExecutionContext,
+      undefined,
+      requestContext
+    );
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      '[ERROR]',
+      expect.objectContaining({
+        code: ErrorCode.UNKNOWN_ERROR,
+        message: 'Test error',
+        statusCode: 500,
+        path: '/api/test',
+      })
+    );
+
+    expect(mockLogger.logError).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it('should call BetterStack-specific logging when betterStackToken is provided', () => {
+    const appError = new AppError({
+      code: ErrorCode.NETWORK_ERROR,
+      message: 'Network failed',
+      statusCode: 503,
+      recoverable: true,
+      retryable: true,
+      context: { host: 'api.spotify.com' },
+    });
+
+    const token = 'fake-betterstack-token';
+
+    logError(appError, {
+      executionContext: mockExecutionContext,
+      betterStackToken: token
+    });
+
+    expect(createLoggerSpy).toHaveBeenCalledWith(
+      mockExecutionContext,
+      token,
+      undefined
+    );
+
+    expect(mockLogger.error).toHaveBeenCalled();
+
+    expect(mockLogger.logError).toHaveBeenCalledWith(
+      'Network failed',
+      expect.any(Error),
+      expect.objectContaining({
+        errorCode: ErrorCode.NETWORK_ERROR,
+        statusCode: 503,
+        recoverable: true,
+        retryable: true,
+        host: 'api.spotify.com'
+      })
+    );
+  });
+
+  it('should fallback to console.error when creating the custom logger throws an error', () => {
+    const error = new Error('Test error');
+
+    const loggerError = new Error('Failed to create logger');
+    createLoggerSpy.mockImplementationOnce(() => {
+      throw loggerError;
+    });
+
+    logError(error, { executionContext: mockExecutionContext });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to send error to logger:',
+      loggerError
+    );
   });
 });
