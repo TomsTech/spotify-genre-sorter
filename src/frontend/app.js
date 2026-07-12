@@ -3882,7 +3882,6 @@
 
         // Handle large library redirect to progressive loading
         if (data.requiresProgressiveLoad) {
-          console.log('Large library detected (' + data.totalInLibrary + ' tracks), switching to progressive loading');
           showNotification(
             swedishMode ? '📚 Stort bibliotek (' + data.totalInLibrary + ' låtar) - laddar progressivt...' : '📚 Large library (' + data.totalInLibrary + ' tracks) - loading progressively...',
             'info'
@@ -3903,7 +3902,6 @@
 
         // Auto-switch to progressive loading for large/truncated libraries
         if (data.truncated && data.totalInLibrary > data.totalTracks) {
-          console.log('Large library detected, switching to progressive loading');
           showNotification(
             swedishMode ? '📚 Stort bibliotek - laddar alla låtar...' : '📚 Large library - loading all tracks...',
             'info'
