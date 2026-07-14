@@ -2,6 +2,7 @@ import { cachedKV } from '../lib/kv-cache';
 import { Hono } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import type { CookieOptions } from 'hono/utils/cookie';
+import type { Env } from '../types';
 import {
   getGitHubAuthUrl,
   exchangeGitHubCode,

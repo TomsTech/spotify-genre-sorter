@@ -7,6 +7,7 @@ import { getSession, trackAnalyticsEvent, getAnalytics, getKVMetrics, cachedKV }
 import { getHtml } from './generated/frontend';
 import { createLogger, generateRequestId } from './lib/logger';
 import { generateNonce } from './lib/csp-nonce';
+import type { Env } from './types';
 
 // App version - increment on each deployment
 const APP_VERSION = '3.7.0'; // v3.7.0 - Production guard, enhanced monitoring & DR docs

@@ -1,5 +1,6 @@
 import { Context } from 'hono';
 import { Session } from './session';
+import type { Env } from '../types';
 
 /**
  * CSRF Token Management

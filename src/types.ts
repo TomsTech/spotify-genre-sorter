@@ -1,5 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface Env {
+export interface Env {
   SESSIONS: KVNamespace;
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
@@ -13,12 +12,3 @@ interface Env {
   ADMIN_USERS?: string; // Comma-separated list of admin usernames (GitHub or Spotify)
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface UserRegistration {
-  spotifyId: string;
-  spotifyName: string;
-  spotifyAvatar?: string;
-  githubUser?: string;
-  registeredAt: string;
-  lastSeenAt: string;
-}
