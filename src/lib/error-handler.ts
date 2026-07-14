@@ -251,10 +251,7 @@ export async function withRetry<T>(
       const jitter = delay * 0.2 * (Math.random() * 2 - 1);
       const finalDelay = Math.max(0, delay + jitter);
 
-      console.warn(`Retry attempt ${attempt + 1}/${finalConfig.maxRetries} after ${finalDelay}ms`, {
-        error: classified.code,
-        message: classified.message,
-      });
+
 
       await sleep(finalDelay);
     }
