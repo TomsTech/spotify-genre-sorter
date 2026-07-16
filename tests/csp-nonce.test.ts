@@ -1,7 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { generateNonce } from '../src/lib/csp-nonce';
 
 describe('CSP Nonce Generator', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   describe('generateNonce', () => {
     it('should return a 24-character string', () => {
       const nonce = generateNonce();
@@ -36,6 +40,25 @@ describe('CSP Nonce Generator', () => {
         nonces.add(generateNonce());
       }
       expect(nonces.size).toBe(100);
+    });
+
+    it('should use crypto.getRandomValues for deterministic check', () => {
+      const getRandomValuesSpy = vi.spyOn(crypto, 'getRandomValues').mockImplementation((arr: any) => {
+        for (let i = 0; i < arr.length; i++) {
+          arr[i] = i; // Inject values 0-15
+        }
+        return arr;
+      });
+
+      const nonce = generateNonce();
+
+      expect(getRandomValuesSpy).toHaveBeenCalledTimes(1);
+      const passedArray = getRandomValuesSpy.mock.calls[0][0];
+      expect(passedArray).toBeInstanceOf(Uint8Array);
+      expect(passedArray.length).toBe(16);
+
+      // Values 0-15 converted to base64
+      expect(nonce).toBe('AAECAwQFBgcICQoLDA0ODw==');
     });
   });
 });
