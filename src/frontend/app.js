@@ -7213,9 +7213,9 @@
         '    <button class="btn btn-secondary share-copy-btn" onclick="copyShareLink(this)">' + (swedishMode ? 'Kopiera' : 'Copy') + '</button>',
         '  </div>',
         '  <div class="share-social-buttons">',
-        '    <a href="https://twitter.com/intent/tweet?url=' + encodeURIComponent(playlistUrl) + '&text=' + encodeURIComponent('Check out my ' + playlistName + ' playlist! 🎵') + '" target="_blank" class="share-social-btn twitter">𝕏</a>',
-        '    <a href="https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(playlistUrl) + '" target="_blank" class="share-social-btn facebook">f</a>',
-        '    <a href="whatsapp://send?text=' + encodeURIComponent(playlistName + ' - ' + playlistUrl) + '" target="_blank" class="share-social-btn whatsapp">💬</a>',
+        '    <a href="https://twitter.com/intent/tweet?url=' + encodeURIComponent(playlistUrl) + '&text=' + encodeURIComponent('Check out my ' + playlistName + ' playlist! 🎵') + '" target="_blank" class="share-social-btn twitter" aria-label="' + (swedishMode ? 'Dela på X (Twitter)' : 'Share on X (Twitter)') + '">𝕏</a>',
+        '    <a href="https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(playlistUrl) + '" target="_blank" class="share-social-btn facebook" aria-label="' + (swedishMode ? 'Dela på Facebook' : 'Share on Facebook') + '">f</a>',
+        '    <a href="whatsapp://send?text=' + encodeURIComponent(playlistName + ' - ' + playlistUrl) + '" target="_blank" class="share-social-btn whatsapp" aria-label="' + (swedishMode ? 'Dela via WhatsApp' : 'Share via WhatsApp') + '">💬</a>',
         '  </div>',
         '  <a href="' + escapeHtml(playlistUrl) + '" target="_blank" class="btn btn-primary share-open-btn">' + (swedishMode ? 'Öppna i Spotify' : 'Open in Spotify') + '</a>',
         '</div>'
