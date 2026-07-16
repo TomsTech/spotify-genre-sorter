@@ -589,7 +589,11 @@ api.get('/genres/scan-status', async (c) => {
       canResume: progress.status === 'in_progress' && progress.offset > 0 && progress.offset < progress.totalInLibrary,
     });
   } catch (err) {
-    console.error('Error checking scan status:', err);
+    const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+      path: c.req.path,
+      method: c.req.method,
+    });
+    log.logError('Error checking scan status', err);
     return c.json({ hasProgress: false });
   }
 });
