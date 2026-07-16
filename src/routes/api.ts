@@ -2415,16 +2415,11 @@ api.delete('/admin/user/:spotifyId', async (c) => {
 
   const hofResults = await Promise.all(hofPromises);
 
-  for (let i = 0; i < hofResults.length; i++) {
-    const hofData = hofResults[i];
-    if (hofData) {
-      if (hofData.spotifyId === spotifyId) {
-        const hofKey = `hof:${String(i + 1).padStart(3, '0')}`;
-        await cachedKV.delete(kv, hofKey);
-        deleted.push(hofKey);
-        break; // User can only be in HoF once
-      }
-    }
+  const matchIndex = hofResults.findIndex(data => data && data.spotifyId === spotifyId);
+  if (matchIndex !== -1) {
+    const hofKey = `hof:${String(matchIndex + 1).padStart(3, '0')}`;
+    await cachedKV.delete(kv, hofKey);
+    deleted.push(hofKey);
   }
 
   // Find and delete any active sessions for this user

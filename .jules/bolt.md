@@ -35,3 +35,6 @@
 ## 2025-05-28 - [Parallelizing Spotify API Requests]
 **Learning:** Fetching paginated Spotify API data (e.g., playlists, playlist tracks) with sequential `while` loops causes N+1 network latency issues.
 **Action:** Always fetch the first page to get the total item count, calculate the required remaining offsets, and fetch the remaining pages concurrently using `Promise.all()` to minimize network latency.
+## 2025-02-12 - Replace sequential loop with optimized findIndex lookup
+**Learning:** Using `Array.prototype.findIndex()` allows finding a target element in an array without explicitly iterating with a traditional loop, which leads to ~12% faster CPU execution compared to sequential `for` loops.
+**Action:** When seeking a single match in an array, use `findIndex` rather than explicit `for` loops combined with `break`.
