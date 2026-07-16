@@ -525,7 +525,13 @@ api.get('/genres', async (c) => {
         totalGenresDiscovered: responseData.totalGenres,
         totalArtistsDiscovered: responseData.totalArtists,
         totalTracksAnalysed: responseData.totalTracks,
-      }).catch(err => console.error('Failed to update user stats:', err))
+      }).catch(err => {
+          const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+            path: c.req.path,
+            method: c.req.method,
+          });
+          log.logError('Failed to update user stats', err);
+        })
     );
     }
 
@@ -699,7 +705,13 @@ api.get('/genres/progressive', async (c) => {
         totalGenresDiscovered: finalData.totalGenres,
         totalArtistsDiscovered: finalData.totalArtists,
         totalTracksAnalysed: finalData.totalTracks,
-      }).catch(err => console.error('Failed to update user stats:', err))
+      }).catch(err => {
+          const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+            path: c.req.path,
+            method: c.req.method,
+          });
+          log.logError('Failed to update user stats', err);
+        })
       );
 
       return c.json({
