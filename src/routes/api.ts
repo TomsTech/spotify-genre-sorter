@@ -212,7 +212,8 @@ api.get('/me', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error fetching user:', err);
+    const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method });
+    log.logError('Error fetching user', err, { path: c.req.path });
     return c.json({ error: 'Failed to fetch user info' }, 500);
   }
 });
