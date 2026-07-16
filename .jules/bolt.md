@@ -35,3 +35,7 @@
 ## 2025-05-28 - [Parallelizing Spotify API Requests]
 **Learning:** Fetching paginated Spotify API data (e.g., playlists, playlist tracks) with sequential `while` loops causes N+1 network latency issues.
 **Action:** Always fetch the first page to get the total item count, calculate the required remaining offsets, and fetch the remaining pages concurrently using `Promise.all()` to minimize network latency.
+
+## 2024-05-18 - Replacing Sequential Pagination Chunking with Unbounded Concurrency
+**Learning:** Artificially throttling API requests into small, sequential chunks (e.g., waiting for one block of 5 requests to resolve before firing the next 5) introduces severe N+1 latency, especially when the total number of subrequests is inherently capped by environmental limits (like Cloudflare's 50 subrequests).
+**Action:** Replace arbitrary `for`-loop chunking with fully concurrent mapped `Promise.all` arrays for independent offsets. Maintain iterative progress callbacks (like UI progress bars) by incrementing a shared `loadedCount` inside the mapped asynchronous functions rather than awaiting entire batches at a time.
