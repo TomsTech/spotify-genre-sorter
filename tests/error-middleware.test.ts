@@ -178,15 +178,18 @@ describe('Error Helpers', () => {
   });
 
   describe('kvError', () => {
-    it('should create a KV error', () => {
+    it('should create a KV error with an Error object', () => {
       const operation = 'get';
       const originalError = new Error('KV connection failed');
       const error = kvError(operation, originalError);
 
       expect(error).toBeInstanceOf(AppError);
       expect(error.code).toBe(ErrorCode.KV_ERROR);
-      expect(error.message).toContain(`KV ${operation} failed`);
-      expect(error.message).toContain(originalError.message);
+      expect(error.message).toBe(`KV ${operation} failed: ${originalError.message}`);
+      expect(error.userMessage).toBe('A storage error occurred. Please try again.');
+      expect(error.userMessageSV).toBe('Ett lagringsfel inträffade. Försök igen.');
+      expect(error.recoverable).toBe(true);
+      expect(error.retryable).toBe(true);
       expect(error.statusCode).toBe(500);
       expect(error.context).toEqual({ operation });
       expect(error.originalError).toBe(originalError);
@@ -194,7 +197,27 @@ describe('Error Helpers', () => {
 
     it('should handle non-error original error objects', () => {
       const error = kvError('set', 'Something went wrong');
-      expect(error.message).toContain('Something went wrong');
+      expect(error.code).toBe(ErrorCode.KV_ERROR);
+      expect(error.message).toBe('KV set failed: Something went wrong');
+      expect(error.userMessage).toBe('A storage error occurred. Please try again.');
+      expect(error.userMessageSV).toBe('Ett lagringsfel inträffade. Försök igen.');
+      expect(error.recoverable).toBe(true);
+      expect(error.retryable).toBe(true);
+      expect(error.statusCode).toBe(500);
+      expect(error.context).toEqual({ operation: 'set' });
+      expect(error.originalError).toBeUndefined();
+    });
+
+    it('should handle undefined original error objects', () => {
+      const error = kvError('delete');
+      expect(error.code).toBe(ErrorCode.KV_ERROR);
+      expect(error.message).toBe('KV delete failed: undefined');
+      expect(error.userMessage).toBe('A storage error occurred. Please try again.');
+      expect(error.userMessageSV).toBe('Ett lagringsfel inträffade. Försök igen.');
+      expect(error.recoverable).toBe(true);
+      expect(error.retryable).toBe(true);
+      expect(error.statusCode).toBe(500);
+      expect(error.context).toEqual({ operation: 'delete' });
       expect(error.originalError).toBeUndefined();
     });
   });
