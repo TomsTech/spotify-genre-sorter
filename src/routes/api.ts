@@ -1125,7 +1125,7 @@ api.post('/playlist', async (c) => {
 
     const user = await getCurrentUser(session.spotifyAccessToken);
     const safeName = genreValidation.value;
-    const safeTrackIds = trackValidation.value;
+    const safeTrackIds = trackValidation.value || [];
 
     // Check for duplicate playlist unless force=true
     if (!force) {
@@ -1255,12 +1255,13 @@ api.post('/playlists/bulk', async (c) => {
         return { genre: String(name), success: false, error: genreValidation.error };
       }
 
+      const safeName = genreValidation.value || String(name);
+
       const trackValidation = validateTrackIds(trackIds);
       if (!trackValidation.valid) {
-        return { genre: genreValidation.value, success: false, error: trackValidation.error };
+        return { genre: safeName, success: false, error: trackValidation.error };
       }
 
-      const safeName = genreValidation.value;
       const playlistName = `${safeName} (from Likes)`;
 
       // Check for duplicate
@@ -1276,10 +1277,10 @@ api.post('/playlists/bulk', async (c) => {
       }
 
       try {
-        const safeTrackIds = trackValidation.value;
+        const safeTrackIds = trackValidation.value || [];
 
         const playlist = await createPlaylist(
-          session.spotifyAccessToken,
+          session.spotifyAccessToken as string,
           user.id,
           playlistName,
           `${safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`,
@@ -1287,7 +1288,7 @@ api.post('/playlists/bulk', async (c) => {
         );
 
         const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
-        await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
+        await addTracksToPlaylist(session.spotifyAccessToken as string, playlist.id, trackUris);
 
         // Update user stats and recent playlists feed in parallel
         const recentPlaylist: RecentPlaylist = {
@@ -1325,11 +1326,11 @@ api.post('/playlists/bulk', async (c) => {
     });
 
     const promiseResults = await Promise.all(genrePromises);
-    const results: { genre: string; success: boolean; url?: string; error?: string; skipped?: boolean }[] = promiseResults;
+    const results: { genre: string; success: boolean; url?: string; error?: string; skipped?: boolean }[] = promiseResults as { genre: string; success: boolean; url?: string; error?: string; skipped?: boolean }[];
 
     // Add to existing names after all promises resolve to avoid race conditions
     promiseResults.forEach(r => {
-      if (r.success) existingNames.add(`${r.genre} (from Likes)`.toLowerCase());
+      if (r.success && r.genre) existingNames.add(`${r.genre} (from Likes)`.toLowerCase());
     });
 
     // Invalidate cache if any playlists were created
