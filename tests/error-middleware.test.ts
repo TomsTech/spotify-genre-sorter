@@ -154,26 +154,33 @@ describe('Error Helpers', () => {
       expect(error).toBeInstanceOf(AppError);
       expect(error.code).toBe(ErrorCode.SPOTIFY_API_ERROR);
       expect(error.message).toBe(`Spotify API error: ${message}`);
+      expect(error.userMessage).toBe('Unable to communicate with Spotify. Please try again.');
+      expect(error.userMessageSV).toBe('Kan inte kommunicera med Spotify. Försök igen.');
+      expect(error.recoverable).toBe(true);
       expect(error.statusCode).toBe(502);
       expect(error.retryable).toBe(true);
+      expect(error.context).toEqual({ spotifyStatus: undefined });
     });
 
     it('should not be retryable for 400 status', () => {
       const error = spotifyError('Bad Request', 400);
       expect(error.statusCode).toBe(400);
       expect(error.retryable).toBe(false);
+      expect(error.context).toEqual({ spotifyStatus: 400 });
     });
 
     it('should not be retryable for 403 status', () => {
       const error = spotifyError('Forbidden', 403);
       expect(error.statusCode).toBe(403);
       expect(error.retryable).toBe(false);
+      expect(error.context).toEqual({ spotifyStatus: 403 });
     });
 
     it('should be retryable for other statuses (e.g., 500)', () => {
       const error = spotifyError('Server Error', 500);
       expect(error.statusCode).toBe(500);
       expect(error.retryable).toBe(true);
+      expect(error.context).toEqual({ spotifyStatus: 500 });
     });
   });
 
