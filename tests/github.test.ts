@@ -33,6 +33,19 @@ describe('isUserAllowed', () => {
   it('handles empty strings in the comma-separated list', () => {
     expect(isUserAllowed('bob', 'alice,,bob,charlie')).toBe(true);
   });
+
+  it('returns false when username is empty or whitespace', () => {
+    expect(isUserAllowed('', 'alice,bob')).toBe(false);
+    expect(isUserAllowed('   ', 'alice,bob')).toBe(false);
+  });
+
+  it('returns false when an empty username tries to match an empty comma segment', () => {
+    expect(isUserAllowed('', 'alice,,bob')).toBe(false);
+  });
+
+  it('returns false when username is undefined', () => {
+    expect(isUserAllowed(undefined as any, 'alice,bob')).toBe(false);
+  });
 });
 
 describe('exchangeGitHubCode', () => {

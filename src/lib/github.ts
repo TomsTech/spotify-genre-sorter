@@ -56,12 +56,21 @@ export async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
   return data;
 }
 
-export function isUserAllowed(username: string, allowedUsers: string): boolean {
+export function isUserAllowed(username: string | undefined | null, allowedUsers: string | undefined | null): boolean {
+  if (!username || username.trim() === '') {
+    return false;
+  }
+
   if (!allowedUsers || allowedUsers.trim() === '') {
     // Security: If no allowlist configured, default to DENY (not allow all)
     // This prevents accidental exposure if ALLOWED_GITHUB_USERS env var is missing
     return false;
   }
-  const allowed = allowedUsers.split(',').map(u => u.trim().toLowerCase());
-  return allowed.includes(username.toLowerCase());
+
+  const allowed = allowedUsers
+    .split(',')
+    .map(u => u.trim().toLowerCase())
+    .filter(u => u.length > 0);
+
+  return allowed.includes(username.trim().toLowerCase());
 }
