@@ -30,6 +30,66 @@ describe('logger', () => {
       expect(fetch).not.toHaveBeenCalled();
     });
 
+    it('should properly format error logs when missing token', () => {
+      const entry = {
+        level: 'error' as LogLevel,
+        message: 'Test message',
+        timestamp: '2023-01-01',
+        service: 'test',
+        error: 'Test error message',
+        stack: 'Test stack trace'
+      };
+      sendLog(mockCtx, undefined, entry);
+
+      expect(console.error).toHaveBeenCalledWith('[ERROR] Test message', '\nTest error message', '\nTest stack trace');
+      expect(mockCtx.waitUntil).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('should format error logs without extra info when missing token', () => {
+      const entry = {
+        level: 'error' as LogLevel,
+        message: 'Test message',
+        timestamp: '2023-01-01',
+        service: 'test'
+      };
+      sendLog(mockCtx, undefined, entry);
+
+      expect(console.error).toHaveBeenCalledWith('[ERROR] Test message', '', '');
+      expect(mockCtx.waitUntil).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('should properly format error logs when missing token', () => {
+      const entry = {
+        level: 'error' as LogLevel,
+        message: 'Test message',
+        timestamp: '2023-01-01',
+        service: 'test',
+        error: 'Test error message',
+        stack: 'Test stack trace'
+      };
+      sendLog(mockCtx, undefined, entry);
+
+      expect(console.error).toHaveBeenCalledWith('[ERROR] Test message', '\nTest error message', '\nTest stack trace');
+      expect(mockCtx.waitUntil).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('should format error logs without extra info when missing token', () => {
+      const entry = {
+        level: 'error' as LogLevel,
+        message: 'Test message',
+        timestamp: '2023-01-01',
+        service: 'test'
+      };
+      sendLog(mockCtx, undefined, entry);
+
+      expect(console.error).toHaveBeenCalledWith('[ERROR] Test message', '', '');
+      expect(mockCtx.waitUntil).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
 
     it('should fallback to console.error when token is missing and level is error', () => {
       const entry = { level: 'error' as LogLevel, message: 'Test error message', timestamp: '2023-01-01', service: 'test', error: 'Something went wrong', stack: 'Error stack' };
