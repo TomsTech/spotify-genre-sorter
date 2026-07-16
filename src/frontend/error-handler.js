@@ -10,6 +10,14 @@
  */
 
 // Error codes matching backend
+
+// Secure alternative to Math.random()
+function getSecureRandom() {
+  const array = new Uint32Array(1);
+  window.crypto.getRandomValues(array);
+  return array[0] / (0xFFFFFFFF + 1);
+}
+
 const ErrorCode = {
   NETWORK_ERROR: 'NETWORK_ERROR',
   SPOTIFY_API_ERROR: 'SPOTIFY_API_ERROR',
@@ -78,7 +86,7 @@ async function fetchWithRetry(url, options = {}, retryConfig = {}) {
 
       // Network errors are retryable
       if (attempt < maxRetries && (error.message.includes('fetch') || error.message.includes('network'))) {
-        const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 500;
+        const delay = baseDelay * Math.pow(2, attempt) + getSecureRandom() * 500;
         if (onRetry) onRetry(attempt + 1, maxRetries, delay);
         await sleep(Math.min(delay, maxDelay));
         continue;
