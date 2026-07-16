@@ -362,15 +362,13 @@ export async function getArtists(
       // Build map of newly fetched artist genres for caching
       const newArtistGenres = new Map<string, string[]>();
 
-      for (const response of responses) {
-        // Filter out null entries (some artists may not have data)
-        const validArtists = response.artists.filter((a): a is SpotifyArtist => a !== null);
-        results.push(...validArtists);
+      const newlyFetchedArtists = responses.flatMap((response) =>
+        response.artists.filter((a): a is SpotifyArtist => a !== null)
+      );
 
-        // Store for caching
-        for (const artist of validArtists) {
-          newArtistGenres.set(artist.id, artist.genres);
-        }
+      for (const artist of newlyFetchedArtists) {
+        results.push(artist);
+        newArtistGenres.set(artist.id, artist.genres);
       }
 
       // Cache newly fetched artist genres (fire and forget)
@@ -401,10 +399,12 @@ export async function getArtists(
 
     const responses = await Promise.all(chunkPromises);
 
-    for (const response of responses) {
-      // Filter out null entries (some artists may not have data)
-      const validArtists = response.artists.filter((a): a is SpotifyArtist => a !== null);
-      results.push(...validArtists);
+    const newlyFetchedArtists = responses.flatMap((response) =>
+      response.artists.filter((a): a is SpotifyArtist => a !== null)
+    );
+
+    for (const artist of newlyFetchedArtists) {
+      results.push(artist);
     }
   }
 
