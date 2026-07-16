@@ -86,6 +86,21 @@ describe('errorHandler middleware', () => {
 
 describe('Error Helpers', () => {
   describe('validationError', () => {
+    it('should create a validation error without context', () => {
+      const message = 'Invalid input';
+      const error = validationError(message);
+
+      expect(error).toBeInstanceOf(AppError);
+      expect(error.code).toBe(ErrorCode.VALIDATION_ERROR);
+      expect(error.message).toBe(message);
+      expect(error.userMessage).toBe(message);
+      expect(error.userMessageSV).toBe(message);
+      expect(error.statusCode).toBe(400);
+      expect(error.recoverable).toBe(false);
+      expect(error.retryable).toBe(false);
+      expect(error.context).toBeUndefined();
+    });
+
     it('should create a validation error with correct properties', () => {
       const message = 'Invalid input';
       const context = { field: 'email' };
