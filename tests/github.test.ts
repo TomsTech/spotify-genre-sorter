@@ -33,6 +33,28 @@ describe('isUserAllowed', () => {
   it('handles empty strings in the comma-separated list', () => {
     expect(isUserAllowed('bob', 'alice,,bob,charlie')).toBe(true);
   });
+
+  it('returns false when allowedUsers is undefined', () => {
+    expect(isUserAllowed('alice', undefined as unknown as string)).toBe(false);
+  });
+
+  it('returns false when allowedUsers is null', () => {
+    expect(isUserAllowed('alice', null as unknown as string)).toBe(false);
+  });
+
+  it('returns false for partial/substring matches (prevents security bypass)', () => {
+    expect(isUserAllowed('ali', 'alice,bob')).toBe(false);
+    expect(isUserAllowed('alice-admin', 'alice,bob')).toBe(false);
+    expect(isUserAllowed('admin', 'superadmin')).toBe(false);
+  });
+
+  it('returns false for empty username', () => {
+    expect(isUserAllowed('', 'alice,bob')).toBe(false);
+  });
+
+  it('handles spaces in username correctly', () => {
+    expect(isUserAllowed(' alice ', 'alice,bob')).toBe(false);
+  });
 });
 
 describe('exchangeGitHubCode', () => {
