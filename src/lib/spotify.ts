@@ -552,9 +552,7 @@ export async function getUserPlaylists(
           )
         )
       );
-      for (const res of responses) {
-        allPlaylists.push(...res.items);
-      }
+      allPlaylists.push(...responses.map(res => res.items).flat());
     }
   }
 

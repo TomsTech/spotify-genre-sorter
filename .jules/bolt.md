@@ -35,3 +35,6 @@
 ## 2025-05-28 - [Parallelizing Spotify API Requests]
 **Learning:** Fetching paginated Spotify API data (e.g., playlists, playlist tracks) with sequential `while` loops causes N+1 network latency issues.
 **Action:** Always fetch the first page to get the total item count, calculate the required remaining offsets, and fetch the remaining pages concurrently using `Promise.all()` to minimize network latency.
+## 2025-05-28 - [Optimizing Array Growth in Loops]
+**Learning:** Using `.push(...res.items)` inside a `for...of` loop over multiple API responses allocates many call stack frames (via spread) and expands the target array repeatedly. This is suboptimal and can result in `N` re-allocations/spread operations depending on the number of fetched response pages.
+**Action:** Replace `for (const res of responses) array.push(...res.items)` with a single operation combining the inner arrays outside the loop: `array.push(...responses.map(res => res.items).flat())`. This reduces iterative array growth and is significantly faster for medium-to-large dataset aggregations.
