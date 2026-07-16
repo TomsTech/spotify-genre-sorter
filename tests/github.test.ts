@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { isUserAllowed, exchangeGitHubCode } from '../src/lib/github';
+import { isUserAllowed, exchangeGitHubCode, getGitHubAuthUrl } from '../src/lib/github';
 
 describe('isUserAllowed', () => {
   it('returns false when allowedUsers is empty', () => {
@@ -64,5 +64,29 @@ describe('exchangeGitHubCode', () => {
     });
 
     await expect(exchangeGitHubCode('test_code', 'client_id', 'client_secret')).rejects.toThrow('Failed to exchange code');
+  });
+});
+
+
+describe('getGitHubAuthUrl', () => {
+  it('generates a correct GitHub OAuth URL', () => {
+    const url = getGitHubAuthUrl('my-client-id', 'https://example.com/callback', 'random-state');
+    const parsedUrl = new URL(url);
+
+    expect(parsedUrl.origin).toBe('https://github.com');
+    expect(parsedUrl.pathname).toBe('/login/oauth/authorize');
+    expect(parsedUrl.searchParams.get('client_id')).toBe('my-client-id');
+    expect(parsedUrl.searchParams.get('redirect_uri')).toBe('https://example.com/callback');
+    expect(parsedUrl.searchParams.get('scope')).toBe('read:user');
+    expect(parsedUrl.searchParams.get('state')).toBe('random-state');
+  });
+
+  it('URL encodes special characters in parameters', () => {
+    const url = getGitHubAuthUrl('client-id-!@#', 'https://example.com/cb?foo=bar', 'state-with space');
+    const parsedUrl = new URL(url);
+
+    expect(parsedUrl.searchParams.get('client_id')).toBe('client-id-!@#');
+    expect(parsedUrl.searchParams.get('redirect_uri')).toBe('https://example.com/cb?foo=bar');
+    expect(parsedUrl.searchParams.get('state')).toBe('state-with space');
   });
 });
