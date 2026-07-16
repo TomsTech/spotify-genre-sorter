@@ -28,36 +28,44 @@ describe('classifyError', () => {
   });
 
   it('should classify network errors based on keyword', () => {
-    const error = new Error('Failed to fetch data');
-    const classified = classifyError(error);
-
-    expect(classified.code).toBe(ErrorCode.NETWORK_ERROR);
-    expect(classified.statusCode).toBe(503);
-    expect(classified.originalError).toBe(error);
+    const keywords = ['Failed to fetch data', 'network connection lost'];
+    for (const keyword of keywords) {
+      const error = new Error(keyword);
+      const classified = classifyError(error);
+      expect(classified.code).toBe(ErrorCode.NETWORK_ERROR);
+      expect(classified.statusCode).toBe(503);
+      expect(classified.originalError).toBe(error);
+    }
   });
 
   it('should classify rate limit errors based on keyword', () => {
-    const error = new Error('API rate limit exceeded');
-    const classified = classifyError(error);
-
-    expect(classified.code).toBe(ErrorCode.RATE_LIMIT_ERROR);
-    expect(classified.statusCode).toBe(429);
+    const keywords = ['API rate limit exceeded', 'Status 429 Too Many Requests'];
+    for (const keyword of keywords) {
+      const error = new Error(keyword);
+      const classified = classifyError(error);
+      expect(classified.code).toBe(ErrorCode.RATE_LIMIT_ERROR);
+      expect(classified.statusCode).toBe(429);
+    }
   });
 
   it('should classify authentication errors based on keyword', () => {
-    const error = new Error('Status 401 Unauthorized');
-    const classified = classifyError(error);
-
-    expect(classified.code).toBe(ErrorCode.AUTH_ERROR);
-    expect(classified.statusCode).toBe(401);
+    const keywords = ['Status 401 Unauthorized', 'Auth failed', 'Invalid token provided'];
+    for (const keyword of keywords) {
+      const error = new Error(keyword);
+      const classified = classifyError(error);
+      expect(classified.code).toBe(ErrorCode.AUTH_ERROR);
+      expect(classified.statusCode).toBe(401);
+    }
   });
 
   it('should classify timeout errors based on keyword', () => {
-    const error = new Error('Connection timed out');
-    const classified = classifyError(error);
-
-    expect(classified.code).toBe(ErrorCode.TIMEOUT_ERROR);
-    expect(classified.statusCode).toBe(504);
+    const keywords = ['Connection timed out', 'Request timeout exceeded'];
+    for (const keyword of keywords) {
+      const error = new Error(keyword);
+      const classified = classifyError(error);
+      expect(classified.code).toBe(ErrorCode.TIMEOUT_ERROR);
+      expect(classified.statusCode).toBe(504);
+    }
   });
 
   it('should fallback to UNKNOWN_ERROR for standard errors without matching keywords', () => {
