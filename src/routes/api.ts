@@ -1247,20 +1247,17 @@ api.post('/playlists/bulk', async (c) => {
         .map(p => p.name.toLowerCase())
     );
 
-    const results: { genre: string; success: boolean; url?: string; error?: string; skipped?: boolean }[] = [];
-
-    for (const { name, trackIds } of genres) {
+    // Process genres in parallel for better performance
+    const genrePromises = genres.map(async ({ name, trackIds }) => {
       // Validate each genre
       const genreValidation = sanitiseGenreName(name);
       if (!genreValidation.valid) {
-        results.push({ genre: String(name), success: false, error: genreValidation.error });
-        continue;
+        return { genre: String(name), success: false, error: genreValidation.error };
       }
 
       const trackValidation = validateTrackIds(trackIds);
       if (!trackValidation.valid) {
-        results.push({ genre: genreValidation.value, success: false, error: trackValidation.error });
-        continue;
+        return { genre: genreValidation.value, success: false, error: trackValidation.error };
       }
 
       const safeName = genreValidation.value;
@@ -1269,13 +1266,12 @@ api.post('/playlists/bulk', async (c) => {
       // Check for duplicate
       if (existingNames.has(playlistName.toLowerCase())) {
         if (skipDuplicates) {
-          results.push({
+          return {
             genre: safeName,
             success: false,
             skipped: true,
             error: 'Playlist already exists',
-          });
-          continue;
+          };
         }
       }
 
@@ -1293,13 +1289,7 @@ api.post('/playlists/bulk', async (c) => {
         const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
         await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
 
-        // Add to existing names to prevent duplicates within same batch
-        existingNames.add(playlistName.toLowerCase());
-
-        // Update user stats
-        await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length);
-
-        // Add to recent playlists feed
+        // Update user stats and recent playlists feed in parallel
         const recentPlaylist: RecentPlaylist = {
           playlistId: playlist.id,
           playlistName: playlistName,
@@ -1313,22 +1303,34 @@ api.post('/playlists/bulk', async (c) => {
           createdAt: new Date().toISOString(),
           spotifyUrl: playlist.external_urls.spotify,
         };
-        await addRecentPlaylist(c.env.SESSIONS, recentPlaylist);
 
-        results.push({
+        await Promise.all([
+          addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length),
+          addRecentPlaylist(c.env.SESSIONS, recentPlaylist)
+        ]);
+
+        return {
           genre: safeName,
           success: true,
           url: playlist.external_urls.spotify,
-        });
+        };
       } catch {
         // Don't expose internal error details
-        results.push({
+        return {
           genre: safeName,
           success: false,
           error: 'Failed to create playlist',
-        });
+        };
       }
-    }
+    });
+
+    const promiseResults = await Promise.all(genrePromises);
+    const results: { genre: string; success: boolean; url?: string; error?: string; skipped?: boolean }[] = promiseResults;
+
+    // Add to existing names after all promises resolve to avoid race conditions
+    promiseResults.forEach(r => {
+      if (r.success) existingNames.add(`${r.genre} (from Likes)`.toLowerCase());
+    });
 
     // Invalidate cache if any playlists were created
     const successCount = results.filter(r => r.success).length;
