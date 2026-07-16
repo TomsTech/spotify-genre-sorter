@@ -533,14 +533,17 @@ api.get('/genres', async (c) => {
     const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
       path: c.req.path,
       method: c.req.method,
-      user_id: session.spotifyUserId,
+      userId: session.spotifyUserId,
     });
 
     c.executionCtx.waitUntil(
       trackAnalyticsEvent(c.env.SESSIONS, 'libraryScan', {
       tracksCount: responseData.totalTracks,
       visitorId: session.spotifyUserId,
-    }).catch(err => log.error('Failed to track analytics', err instanceof Error ? err : new Error(String(err))))
+    }).catch(err => {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        log.error('Failed to track analytics', { error: errorMessage });
+      })
     );
 
     return c.json({
