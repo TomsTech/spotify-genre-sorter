@@ -24,6 +24,19 @@ describe('Spotify Library', () => {
       expect(url).toContain('playlist-modify-public');
       expect(url).toContain('playlist-modify-private');
     });
+
+    it('should include PKCE parameters if code_challenge is provided', () => {
+      const url = getSpotifyAuthUrl(
+        'client',
+        'redirect',
+        'state',
+        'test-challenge-123'
+      );
+
+      expect(url).toContain('code_challenge_method=S256');
+      expect(url).toContain('code_challenge=test-challenge-123');
+    });
+
   });
 });
 
