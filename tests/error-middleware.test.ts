@@ -34,6 +34,26 @@ describe('errorHandler middleware', () => {
     expect(result).toBeUndefined();
   });
 
+  it('should handle non-Error throwables', async () => {
+    const c = {
+      set: vi.fn(),
+      env: { ENVIRONMENT: 'development' },
+      get: vi.fn(),
+      req: { url: 'http://localhost/test', method: 'GET', header: vi.fn() },
+      executionCtx: {},
+    } as unknown as Context;
+    const next = vi.fn().mockRejectedValue('String error');
+
+    const result = await errorHandler(c, next);
+    expect(next).toHaveBeenCalled();
+    expect(result).toBeInstanceOf(Response);
+    if (result instanceof Response) {
+      expect(result.status).toBe(500);
+      expect(result.headers.get('X-Request-ID')).toBeTruthy();
+      expect(result.headers.get('X-Error-Code')).toBe('UNKNOWN_ERROR');
+    }
+  });
+
   it('should catch generic error, log and return response', async () => {
     const c = {
       set: vi.fn(),
@@ -130,8 +150,10 @@ describe('Error Helpers', () => {
 
       expect(error).toBeInstanceOf(AppError);
       expect(error.code).toBe(ErrorCode.RATE_LIMIT_ERROR);
-      expect(error.statusCode).toBe(429);
+      expect(error.message).toBe('Rate limit exceeded');
       expect(error.userMessage).toBe('Too many requests. Please try again later.');
+      expect(error.userMessageSV).toBe('För många förfrågningar. Försök igen senare.');
+      expect(error.statusCode).toBe(429);
       expect(error.recoverable).toBe(true);
       expect(error.retryable).toBe(true);
       expect(error.context).toBeUndefined();
@@ -141,7 +163,14 @@ describe('Error Helpers', () => {
       const retryAfter = 60;
       const error = rateLimitError(retryAfter);
 
+      expect(error).toBeInstanceOf(AppError);
+      expect(error.code).toBe(ErrorCode.RATE_LIMIT_ERROR);
+      expect(error.message).toBe('Rate limit exceeded');
       expect(error.userMessage).toContain(`Please try again in ${retryAfter} seconds.`);
+      expect(error.userMessageSV).toContain(`Försök igen om ${retryAfter} sekunder.`);
+      expect(error.statusCode).toBe(429);
+      expect(error.recoverable).toBe(true);
+      expect(error.retryable).toBe(true);
       expect(error.context).toEqual({ retryAfter });
     });
   });
