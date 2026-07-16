@@ -2392,7 +2392,7 @@
 
           // Update album art
           if (data.track.albumArt) {
-            artEl.src = data.track.albumArt;
+            artEl.src = data.track.albumArt; // DOM property expects raw string, DO NOT use escapeHtml
             artEl.alt = data.track.album;
           }
 
@@ -5151,7 +5151,7 @@
       modal.id = 'loading-modal';
       modal.innerHTML = \`
         <div class="album-carousel">
-          \${shuffled.map(art => \`<img class="album-art" src="\${art}" alt="" onerror="this.style.background='var(--surface-2)'">\`).join('')}
+          \${shuffled.map(art => \`<img class="album-art" src="\${escapeHtml(art)}" alt="" onerror="this.style.background='var(--surface-2)'">\`).join('')}
         </div>
         <div class="loading-text" id="loading-text">\${swedishMode ? 'Skapar spellistor...' : 'Creating playlists...'}</div>
         <div class="loading-progress">
@@ -5605,7 +5605,7 @@
             existingTooltip.querySelector('.now-playing-artists').textContent = data.track.artists;
             const img = existingTooltip.querySelector('.now-playing-album-art');
             if (data.track.albumArt) {
-              img.src = data.track.albumArt;
+              img.src = data.track.albumArt; // DOM property expects raw string, DO NOT use escapeHtml
               img.style.display = '';
             } else {
               img.style.display = 'none';
