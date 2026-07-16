@@ -1557,8 +1557,9 @@ api.get('/listening', async (c) => {
 
     // PERF-013 FIX: Use Promise.all for parallel reads instead of sequential loop
     // PERF-018 FIX: Interleave JSON.parse with KV fetches
-    const dataPromises = list.keys.map(async key => {
-      const data = await kv.get(key.name);
+    const dataPromises = list.keys.map(key => kv.get(key.name));
+    const rawDataResults = await Promise.all(dataPromises);
+    const dataResults = rawDataResults.map(data => {
       if (data) {
         try {
           return JSON.parse(data) as ListeningEntry;
@@ -1566,8 +1567,6 @@ api.get('/listening', async (c) => {
       }
       return null;
     });
-
-    const dataResults = await Promise.all(dataPromises);
     const listeners: ListeningEntry[] = dataResults.filter((entry): entry is ListeningEntry => entry !== null);
 
     return c.json({
