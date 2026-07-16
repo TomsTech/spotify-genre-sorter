@@ -159,7 +159,7 @@ function showErrorNotification(error, options = {}) {
   }
 
   if (error.suggestion) {
-    actions.push(`<span class="error-suggestion">${error.suggestion}</span>`);
+    actions.push(`<span class="error-suggestion">${escapeHtml(error.suggestion)}</span>`);
   }
 
   actions.push(

@@ -60,3 +60,8 @@
 **Vulnerability:** Several URLs used directly as attributes in the application such as album art, external playlist links, GitHub issue URL were unescaped.
 **Learning:** Any URLs sourced from a third party should be properly escaped before being concatenated to create string-based DOM content because malicious payloads can be injected via unescaped string boundaries or quotes.
 **Prevention:** Apply `escapeHtml` or properly sanitize all external URL fields before appending them to HTML templates.
+
+## 2023-10-24 - Fix DOM XSS in error handler
+**Vulnerability:** Unescaped `error.suggestion` data was concatenated into an array and directly injected into the DOM via `innerHTML` in the `showErrorNotification` function.
+**Learning:** Even if the main message is escaped, any supplemental data (like suggestions or actions) rendered into the DOM must also be strictly escaped before being joined and injected into `innerHTML`.
+**Prevention:** Always consistently use `escapeHtml()` on all dynamic values derived from errors or user input before DOM interpolation.
