@@ -352,7 +352,11 @@ api.get('/user-playlists', async (c) => {
       })),
     });
   } catch (err) {
-    console.error('Error fetching playlists:', err);
+    const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+      path: c.req.path,
+      method: c.req.method,
+    });
+    log.logError('Error fetching playlists', err);
     return c.json({ error: 'Failed to fetch playlists' }, 500);
   }
 });
