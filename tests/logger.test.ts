@@ -221,5 +221,16 @@ describe('logger', () => {
       const id2 = generateRequestId();
       expect(id).not.toBe(id2);
     });
+
+    it('should extract the first 8 characters of a UUID', () => {
+      const spy = vi.spyOn(crypto, 'randomUUID').mockReturnValue('11223344-5566-7788-9900-aabbccddeeff');
+      try {
+        const id = generateRequestId();
+        expect(id).toBe('11223344');
+        expect(spy).toHaveBeenCalledOnce();
+      } finally {
+        spy.mockRestore();
+      }
+    });
   });
 });
