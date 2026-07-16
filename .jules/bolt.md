@@ -35,3 +35,6 @@
 ## 2025-05-28 - [Parallelizing Spotify API Requests]
 **Learning:** Fetching paginated Spotify API data (e.g., playlists, playlist tracks) with sequential `while` loops causes N+1 network latency issues.
 **Action:** Always fetch the first page to get the total item count, calculate the required remaining offsets, and fetch the remaining pages concurrently using `Promise.all()` to minimize network latency.
+## 2024-07-16 - Optimize user lookup for HoF users in API route
+**Learning:** Performing `Array.find()` operations on large arrays inside iterations directly causes an O(N^2) complexity that scales poorly.
+**Action:** By indexing array structures in an O(1) collection, like Maps or objects (`Map<string, User>`), you reduce lookups drastically, improving performance in loops from O(N^2) down to O(N).

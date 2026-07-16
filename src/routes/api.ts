@@ -2306,10 +2306,12 @@ api.get('/admin/users', async (c) => {
   });
 
   const dataResults = await Promise.all(dataPromises);
+  const usersMap = new Map<string, typeof users[0]>();
   for (const user of dataResults) {
     if (user) {
       seenIds.add(user.spotifyId);
       users.push(user);
+      usersMap.set(user.spotifyId, user);
     }
   }
 
@@ -2339,7 +2341,7 @@ api.get('/admin/users', async (c) => {
       // Only add if not already in users list
       if (!seenIds.has(hofUser.spotifyId)) {
         seenIds.add(hofUser.spotifyId);
-        users.push({
+        const newUser = {
           spotifyId: hofUser.spotifyId,
           spotifyName: hofUser.spotifyName || 'Unknown',
           spotifyAvatar: hofUser.spotifyAvatar || null,
@@ -2348,10 +2350,12 @@ api.get('/admin/users', async (c) => {
           lastActive: null,
           isPioneer: true,
           hofPosition: i + 1,
-        });
+        };
+        users.push(newUser);
+        usersMap.set(newUser.spotifyId, newUser);
       } else {
         // Mark existing user as pioneer
-        const existingUser = users.find(u => u.spotifyId === hofUser.spotifyId);
+        const existingUser = usersMap.get(hofUser.spotifyId);
         if (existingUser) {
           existingUser.isPioneer = true;
           existingUser.hofPosition = i + 1;
