@@ -310,7 +310,11 @@ api.get('/now-playing', async (c) => {
       device: playback.device?.name || 'Unknown device',
     });
   } catch (err) {
-    console.error('Error fetching playback:', err);
+    const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+      path: c.req.path,
+      method: c.req.method,
+    });
+    log.logError('Error fetching playback', err);
     return c.json({ playing: false, error: 'Failed to fetch playback' });
   }
 });

@@ -20,6 +20,16 @@ describe('Now Playing Route Tests', () => {
           list: vi.fn()
         }
       };
+
+      // Fix for logger context issue
+      const mockExecutionCtx = {
+        waitUntil: vi.fn(),
+        passThroughOnException: vi.fn()
+      };
+      Object.defineProperty(c, 'executionCtx', {
+        get: () => mockExecutionCtx
+      });
+
       await next();
     });
 
