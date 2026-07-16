@@ -167,6 +167,31 @@ describe('determineRecoveryStrategy', () => {
     });
   });
 
+
+  describe('Application and System Errors Fallbacks', () => {
+    it('should retry SPOTIFY_API_ERROR if marked as retryable', () => {
+      const error = createMockError(ErrorCode.SPOTIFY_API_ERROR, true);
+      const strategy = determineRecoveryStrategy(error);
+      expect(strategy.action).toBe('retry');
+      expect(strategy.message).toBe('An error occurred. Retrying...');
+    });
+
+    it('should abort KV_ERROR if marked as non-retryable and show user message', () => {
+      const error = createMockError(ErrorCode.KV_ERROR, false, 'Storage error occurred');
+      const strategy = determineRecoveryStrategy(error);
+      expect(strategy.action).toBe('abort');
+      expect(strategy.message).toBe('Storage error occurred');
+    });
+
+    it('should abort PLAYLIST_CREATE_ERROR if non-retryable and use fallback message if missing userMessage', () => {
+      const error = createMockError(ErrorCode.PLAYLIST_CREATE_ERROR, false);
+      delete error.userMessage;
+      const strategy = determineRecoveryStrategy(error);
+      expect(strategy.action).toBe('abort');
+      expect(strategy.message).toBe('An error occurred.');
+    });
+  });
+
   describe('Default behaviors', () => {
     it('should retry generic errors if they are marked as retryable', () => {
       const error = createMockError(ErrorCode.UNKNOWN_ERROR, true);
