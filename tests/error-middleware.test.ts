@@ -111,6 +111,7 @@ describe('Error Helpers', () => {
       expect(error.code).toBe(ErrorCode.AUTH_ERROR);
       expect(error.message).toBe('Authentication required');
       expect(error.userMessage).toBe('Please log in to continue.');
+      expect(error.userMessageSV).toBe('Logga in för att fortsätta.');
       expect(error.statusCode).toBe(401);
       expect(error.recoverable).toBe(true);
       expect(error.retryable).toBe(false);
