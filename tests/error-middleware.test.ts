@@ -111,6 +111,7 @@ describe('Error Helpers', () => {
       expect(error.code).toBe(ErrorCode.AUTH_ERROR);
       expect(error.message).toBe('Authentication required');
       expect(error.userMessage).toBe('Please log in to continue.');
+      expect(error.userMessageSV).toBe('Logga in för att fortsätta.');
       expect(error.statusCode).toBe(401);
       expect(error.recoverable).toBe(true);
       expect(error.retryable).toBe(false);
@@ -121,6 +122,7 @@ describe('Error Helpers', () => {
       const error = authError(customMessage);
 
       expect(error.message).toBe(customMessage);
+      expect(error.userMessageSV).toBe('Logga in för att fortsätta.');
     });
   });
 
@@ -132,6 +134,7 @@ describe('Error Helpers', () => {
       expect(error.code).toBe(ErrorCode.RATE_LIMIT_ERROR);
       expect(error.statusCode).toBe(429);
       expect(error.userMessage).toBe('Too many requests. Please try again later.');
+      expect(error.userMessageSV).toBe('För många förfrågningar. Försök igen senare.');
       expect(error.recoverable).toBe(true);
       expect(error.retryable).toBe(true);
       expect(error.context).toBeUndefined();
@@ -142,6 +145,7 @@ describe('Error Helpers', () => {
       const error = rateLimitError(retryAfter);
 
       expect(error.userMessage).toContain(`Please try again in ${retryAfter} seconds.`);
+      expect(error.userMessageSV).toContain(`Försök igen om ${retryAfter} sekunder.`);
       expect(error.context).toEqual({ retryAfter });
     });
   });
@@ -154,6 +158,7 @@ describe('Error Helpers', () => {
       expect(error).toBeInstanceOf(AppError);
       expect(error.code).toBe(ErrorCode.SPOTIFY_API_ERROR);
       expect(error.message).toBe(`Spotify API error: ${message}`);
+      expect(error.userMessageSV).toBe('Kan inte kommunicera med Spotify. Försök igen.');
       expect(error.statusCode).toBe(502);
       expect(error.retryable).toBe(true);
     });
@@ -187,6 +192,7 @@ describe('Error Helpers', () => {
       expect(error.code).toBe(ErrorCode.KV_ERROR);
       expect(error.message).toContain(`KV ${operation} failed`);
       expect(error.message).toContain(originalError.message);
+      expect(error.userMessageSV).toBe('Ett lagringsfel inträffade. Försök igen.');
       expect(error.statusCode).toBe(500);
       expect(error.context).toEqual({ operation });
       expect(error.originalError).toBe(originalError);
