@@ -6403,9 +6403,15 @@
       const container = document.getElementById('playlist-list-container');
       if (!container) return;
 
-      const safePlaylistName = escapeHtml(playlistName);
-      const scanningText = swedishMode ? 'Skannar ' + safePlaylistName + '...' : 'Scanning ' + safePlaylistName + '...';
-      container.innerHTML = '<div class="scanning-indicator"><div class="spinner"></div>' + scanningText + '</div>';
+      const scanningText = swedishMode ? 'Skannar ' + playlistName + '...' : 'Scanning ' + playlistName + '...';
+      container.innerHTML = '';
+      const indicator = document.createElement('div');
+      indicator.className = 'scanning-indicator';
+      const spinner = document.createElement('div');
+      spinner.className = 'spinner';
+      indicator.appendChild(spinner);
+      indicator.appendChild(document.createTextNode(scanningText));
+      container.appendChild(indicator);
 
       try {
         const response = await fetch('/api/scan-playlist/' + playlistId);

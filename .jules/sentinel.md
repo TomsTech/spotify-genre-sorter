@@ -60,3 +60,7 @@
 **Vulnerability:** Several URLs used directly as attributes in the application such as album art, external playlist links, GitHub issue URL were unescaped.
 **Learning:** Any URLs sourced from a third party should be properly escaped before being concatenated to create string-based DOM content because malicious payloads can be injected via unescaped string boundaries or quotes.
 **Prevention:** Apply `escapeHtml` or properly sanitize all external URL fields before appending them to HTML templates.
+## 2024-05-27 - DOM XSS via innerHTML string interpolation
+**Vulnerability:** Found a DOM XSS vulnerability where `innerHTML` was used with string concatenation to inject variables into the DOM (e.g., `container.innerHTML = '<div...>' + text`). Even with `escapeHtml()`, this is an anti-pattern.
+**Learning:** `innerHTML` assignments that concatenate strings are fundamentally risky. Context shifts or changes in validation can easily re-introduce vulnerabilities.
+**Prevention:** Always use safe DOM manipulation methods like `document.createElement()` and `document.createTextNode()` to build DOM structures dynamically. `document.createTextNode()` ensures the content is treated strictly as text, inherently preventing script execution.
