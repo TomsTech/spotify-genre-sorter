@@ -2761,7 +2761,12 @@ api.get('/admin/kv-key/:key', async (c) => {
   const kv = c.env.SESSIONS;
 
   try {
-    const value = await kv.get(keyName);
+    // PERF FIX: Use getWithMetadata for O(1) single key metadata retrieval
+    // Note: Cloudflare Workers KV getWithMetadata currently only returns metadata explicitly
+    // passed during put(). System-level expiration might not be returned depending on the
+    // environment, but it's preferred over an inefficient prefix list operation.
+    const { value, metadata } = await kv.getWithMetadata<{ expiration?: number }>(keyName);
+
     if (value === null) {
       return c.json({ error: 'Key not found' }, 404);
     }
@@ -2770,22 +2775,23 @@ api.get('/admin/kv-key/:key', async (c) => {
     let parsedValue: unknown = value;
     let valueType = 'string';
     try {
-      parsedValue = JSON.parse(value);
-      valueType = 'json';
+      if (typeof value === 'string') {
+        parsedValue = JSON.parse(value);
+        valueType = 'json';
+      }
     } catch {
       // Keep as string
     }
 
-    // Get metadata via list
-    const list = await kv.list({ prefix: keyName, limit: 1 });
-    const keyMeta = list.keys.find(k => k.name === keyName);
+    // Use metadata returned directly from the getWithMetadata call
+    const keyMeta = { metadata, expiration: metadata?.expiration };
 
     return c.json({
       key: keyName,
       value: parsedValue,
       valueType,
       rawValue: value,
-      size: value.length,
+      size: typeof value === 'string' ? value.length : JSON.stringify(value).length,
       metadata: keyMeta?.metadata,
       expiration: keyMeta?.expiration,
       expiresAt: keyMeta?.expiration ? new Date(keyMeta.expiration * 1000).toISOString() : null,

@@ -35,3 +35,9 @@
 ## 2025-05-28 - [Parallelizing Spotify API Requests]
 **Learning:** Fetching paginated Spotify API data (e.g., playlists, playlist tracks) with sequential `while` loops causes N+1 network latency issues.
 **Action:** Always fetch the first page to get the total item count, calculate the required remaining offsets, and fetch the remaining pages concurrently using `Promise.all()` to minimize network latency.
+## 2024-05-18 - [Parallelize KV Get and List]
+**Learning:** Cloudflare Workers `getWithMetadata` doesn't natively expose the key expiration (`expiresAt` / `expirationTtl`) outside of explicit metadata, requiring a `list` call if expiration is needed. Sequential `get` and `list` calls cause significant network latency.
+**Action:** When both the value and the exact Cloudflare KV system expiration are needed, use `Promise.all([kv.get(key), kv.list({ prefix: key, limit: 1 })])` to fetch them concurrently instead of sequentially.
+## 2024-05-18 - [Optimized Single Key Fetch with getWithMetadata]
+**Learning:** Listing KV keys just to find the metadata/expiration of a specific single key is O(N) where N is the number of keys sharing the prefix, making it inefficient. Cloudflare KV natively supports `getWithMetadata` to fetch the value and explicit metadata in O(1) time.
+**Action:** When only one key is needed, always use `getWithMetadata<{ expiration?: number }>(key)` instead of `get(key)` followed by `list({ prefix: key })`. Ensure that the caller relies on the directly returned metadata rather than system-level metadata unreliably extracted from a list operation.
