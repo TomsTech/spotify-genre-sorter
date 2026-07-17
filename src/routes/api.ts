@@ -530,11 +530,20 @@ api.get('/genres', async (c) => {
     }
 
     // Track library scan in analytics
+    const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+      path: c.req.path,
+      method: c.req.method,
+      userId: session.spotifyUserId,
+    });
+
     c.executionCtx.waitUntil(
       trackAnalyticsEvent(c.env.SESSIONS, 'libraryScan', {
       tracksCount: responseData.totalTracks,
       visitorId: session.spotifyUserId,
-    }).catch(err => console.error('Failed to track analytics:', err))
+    }).catch(err => {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        log.error('Failed to track analytics', { error: errorMessage });
+      })
     );
 
     return c.json({
