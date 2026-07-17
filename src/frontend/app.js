@@ -3,6 +3,15 @@
 
     let genreData = null;
 
+
+    // === Security Utilities ===
+    // Secure alternative to getSecureRandom()
+    function getSecureRandom() {
+      const array = new Uint32Array(1);
+      window.crypto.getRandomValues(array);
+      return array[0] / (0xFFFFFFFF + 1);
+    }
+
     // === Global Error Boundary ===
     const errorHistory = [];
     const MAX_ERROR_HISTORY = 10;
@@ -560,7 +569,7 @@
     // Initialize donation button with random config
     function initDonationButton() {
       const configs = swedishMode ? DONATION_CONFIGS_SE : DONATION_CONFIGS;
-      currentDonationConfig = configs[Math.floor(Math.random() * configs.length)];
+      currentDonationConfig = configs[Math.floor(getSecureRandom() * configs.length)];
       applyDonationConfig(currentDonationConfig);
     }
 
@@ -1611,11 +1620,11 @@
     }
 
     function getRandomAbbaQuote() {
-      return abbaQuotes[Math.floor(Math.random() * abbaQuotes.length)];
+      return abbaQuotes[Math.floor(getSecureRandom() * abbaQuotes.length)];
     }
 
     function getRandomSwedishFact() {
-      return swedishFacts[Math.floor(Math.random() * swedishFacts.length)];
+      return swedishFacts[Math.floor(getSecureRandom() * swedishFacts.length)];
     }
 
     // ✨ SECRET: Heidi greeting messages
@@ -1628,7 +1637,7 @@
     ];
 
     function showHeidiGreeting() {
-      const greeting = heidiGreetings[Math.floor(Math.random() * heidiGreetings.length)];
+      const greeting = heidiGreetings[Math.floor(getSecureRandom() * heidiGreetings.length)];
 
       const overlay = document.createElement('div');
       overlay.className = 'heidi-greeting-overlay';
@@ -1681,11 +1690,11 @@
       for (let i = 0; i < 50; i++) {
         const heart = document.createElement('span');
         heart.className = 'falling-heart';
-        heart.textContent = hearts[Math.floor(Math.random() * hearts.length)];
-        heart.style.left = Math.random() * 100 + 'vw';
-        heart.style.animationDuration = (2 + Math.random() * 3) + 's';
-        heart.style.animationDelay = (Math.random() * 2) + 's';
-        heart.style.fontSize = (1 + Math.random() * 1.5) + 'rem';
+        heart.textContent = hearts[Math.floor(getSecureRandom() * hearts.length)];
+        heart.style.left = getSecureRandom() * 100 + 'vw';
+        heart.style.animationDuration = (2 + getSecureRandom() * 3) + 's';
+        heart.style.animationDelay = (getSecureRandom() * 2) + 's';
+        heart.style.fontSize = (1 + getSecureRandom() * 1.5) + 'rem';
         heartRain.appendChild(heart);
       }
       document.body.appendChild(heartRain);
@@ -2704,7 +2713,7 @@
             'You just made a fjord cry 🏔️💧',
             'The vikings will remember this betrayal ⚔️',
           ];
-          const joke = normalJokes[Math.floor(Math.random() * normalJokes.length)];
+          const joke = normalJokes[Math.floor(getSecureRandom() * normalJokes.length)];
           showNotification(joke, 'success');
         }
       }
@@ -3151,7 +3160,7 @@
         setTimeout(() => {
           const emojis = ['🎵', '🎶', '🎸', '🎹', '🥁', '🎺', '🎷', '🎻', '🎤'];
           items.forEach(item => {
-            const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+            const randomEmoji = emojis[Math.floor(getSecureRandom() * emojis.length)];
             item.textContent = randomEmoji;
             if (item.style) item.style.animation = '';
           });
@@ -3262,10 +3271,10 @@
     }
 
     function launchFirework(container, colors) {
-      const x = Math.random() * window.innerWidth;
-      const y = Math.random() * (window.innerHeight * 0.6) + (window.innerHeight * 0.1);
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      const particleCount = 20 + Math.floor(Math.random() * 15);
+      const x = getSecureRandom() * window.innerWidth;
+      const y = getSecureRandom() * (window.innerHeight * 0.6) + (window.innerHeight * 0.1);
+      const color = colors[Math.floor(getSecureRandom() * colors.length)];
+      const particleCount = 20 + Math.floor(getSecureRandom() * 15);
 
       for (let i = 0; i < particleCount; i++) {
         const particle = document.createElement('div');
@@ -3275,8 +3284,8 @@
         particle.style.backgroundColor = color;
         particle.style.boxShadow = '0 0 6px ' + color;
 
-        const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
-        const velocity = 50 + Math.random() * 100;
+        const angle = (Math.PI * 2 * i) / particleCount + (getSecureRandom() - 0.5) * 0.5;
+        const velocity = 50 + getSecureRandom() * 100;
         const dx = Math.cos(angle) * velocity;
         const dy = Math.sin(angle) * velocity;
 
@@ -3285,7 +3294,7 @@
           { transform: 'translate(0, 0) scale(1)', opacity: 1 },
           { transform: 'translate(' + dx + 'px, ' + (dy + 30) + 'px) scale(0)', opacity: 0 }
         ], {
-          duration: 1000 + Math.random() * 500,
+          duration: 1000 + getSecureRandom() * 500,
           easing: 'cubic-bezier(0, 0.5, 0.5, 1)'
         });
 
@@ -3386,7 +3395,7 @@
         }
         if (artUrls.length >= 3) {
           // Shuffle and set album art URLs
-          albumArtUrls = artUrls.sort(() => 0.5 - Math.random()).slice(0, 20);
+          albumArtUrls = artUrls.sort(() => 0.5 - getSecureRandom()).slice(0, 20);
           updateAlbumCarousel(); // Update carousel with real images
         }
       }
@@ -4236,7 +4245,7 @@
       else if (score >= 20) quotes = focusedQuotes;
       else quotes = veryFocusedQuotes;
 
-      return quotes[Math.floor(Math.random() * quotes.length)];
+      return quotes[Math.floor(getSecureRandom() * quotes.length)];
     }
 
     // Get a fun personality type based on diversity score
@@ -5076,10 +5085,10 @@
       for (let i = 0; i < 50; i++) {
         const confetti = document.createElement('div');
         confetti.className = 'confetti-piece';
-        confetti.style.left = Math.random() * 100 + '%';
-        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-        confetti.style.animationDelay = Math.random() * 0.5 + 's';
-        confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+        confetti.style.left = getSecureRandom() * 100 + '%';
+        confetti.style.backgroundColor = colors[Math.floor(getSecureRandom() * colors.length)];
+        confetti.style.animationDelay = getSecureRandom() * 0.5 + 's';
+        confetti.style.animationDuration = (getSecureRandom() * 2 + 2) + 's';
         container.appendChild(confetti);
       }
 
@@ -5098,7 +5107,7 @@
       const genre = genreData?.genres?.find(g => g.name === genreName);
       if (genre?.albumArts && genre.albumArts.length > 0) {
         // Get up to 5 random album arts
-        const shuffled = [...genre.albumArts].sort(() => 0.5 - Math.random());
+        const shuffled = [...genre.albumArts].sort(() => 0.5 - getSecureRandom());
         return shuffled.slice(0, 5);
       }
 
@@ -5132,7 +5141,7 @@
 
     function getRandomCompletionMessage() {
       const messages = swedishMode ? completionMessages.sv : completionMessages.en;
-      return messages[Math.floor(Math.random() * messages.length)];
+      return messages[Math.floor(getSecureRandom() * messages.length)];
     }
 
     // Show loading modal with album art animation
@@ -5144,7 +5153,7 @@
         allAlbumArts.push(...arts);
       }
       // Shuffle and take up to 5
-      const shuffled = [...new Set(allAlbumArts)].sort(() => 0.5 - Math.random()).slice(0, 5);
+      const shuffled = [...new Set(allAlbumArts)].sort(() => 0.5 - getSecureRandom()).slice(0, 5);
 
       const modal = document.createElement('div');
       modal.className = 'playlist-loading-modal';
@@ -5203,10 +5212,10 @@
       for (let i = 0; i < 50; i++) {
         const confetti = document.createElement('div');
         confetti.className = 'confetti';
-        confetti.style.left = \`\${Math.random() * 100}%\`;
-        confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
-        confetti.style.animationDelay = \`\${Math.random() * 0.5}s\`;
-        confetti.style.transform = \`rotate(\${Math.random() * 360}deg)\`;
+        confetti.style.left = \`\${getSecureRandom() * 100}%\`;
+        confetti.style.background = colors[Math.floor(getSecureRandom() * colors.length)];
+        confetti.style.animationDelay = \`\${getSecureRandom() * 0.5}s\`;
+        confetti.style.transform = \`rotate(\${getSecureRandom() * 360}deg)\`;
         overlay.appendChild(confetti);
       }
 
@@ -7793,7 +7802,7 @@
 
     function getRandomReading(family, lang) {
       const readings = PERSONALITY_READINGS[family]?.[lang] || PERSONALITY_READINGS.other[lang];
-      return readings[Math.floor(Math.random() * readings.length)];
+      return readings[Math.floor(getSecureRandom() * readings.length)];
     }
 
     const WRAPPED_FACTS = {
@@ -7839,7 +7848,7 @@
 
       // Random fun fact
       const facts = WRAPPED_FACTS[lang];
-      const fact = facts[Math.floor(Math.random() * facts.length)]
+      const fact = facts[Math.floor(getSecureRandom() * facts.length)]
         .replace('{pct}', Math.max(5, 100 - diversityScore))
         .replace('{count}', genres.length)
         .replace('{artists}', uniqueArtists)
