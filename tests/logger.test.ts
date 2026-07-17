@@ -81,14 +81,27 @@ describe('logger', () => {
   });
 
   describe('createLogger', () => {
-    it('should create a logger with expected methods', () => {
+    it('should create a logger with exact expected methods and shape', () => {
       const logger = createLogger(mockCtx, 'test-token');
-      expect(logger).toHaveProperty('debug');
-      expect(logger).toHaveProperty('info');
-      expect(logger).toHaveProperty('warn');
-      expect(logger).toHaveProperty('error');
-      expect(logger).toHaveProperty('logError');
-      expect(logger).toHaveProperty('logRequest');
+      const expectedKeys = ['debug', 'error', 'info', 'logError', 'logRequest', 'warn'];
+      expect(Object.keys(logger).sort()).toEqual(expectedKeys);
+      for (const key of expectedKeys) {
+        expect(typeof logger[key as keyof typeof logger]).toBe('function');
+      }
+    });
+
+    it('should handle undefined requestContext gracefully in logRequest', () => {
+      const logger = createLogger(mockCtx, 'test-token');
+      logger.logRequest(200, 45);
+
+      const callArgs = vi.mocked(fetch).mock.calls[0];
+      const body = JSON.parse(callArgs[1].body as string);
+      expect(body).toMatchObject({
+        level: 'info',
+        message: 'undefined undefined 200',
+        status: 200,
+        duration: 45,
+      });
     });
 
     it('should include request context in logs', () => {
