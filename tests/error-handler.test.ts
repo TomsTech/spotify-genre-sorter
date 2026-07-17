@@ -2,6 +2,51 @@ import { describe, it, expect } from 'vitest';
 import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError, createErrorResponse } from '../src/lib/error-handler';
 
 
+
+describe('AppError', () => {
+  it('should instantiate correctly with all properties provided', () => {
+    const error = new Error('original error');
+    const appError = new AppError({
+      code: ErrorCode.VALIDATION_ERROR,
+      message: 'Base message',
+      userMessage: 'User message',
+      userMessageSV: 'User message SV',
+      recoverable: true,
+      retryable: true,
+      statusCode: 400,
+      context: { key: 'value' },
+      originalError: error
+    });
+
+    expect(appError).toBeInstanceOf(Error);
+    expect(appError.name).toBe('AppError');
+    expect(appError.code).toBe(ErrorCode.VALIDATION_ERROR);
+    expect(appError.message).toBe('Base message');
+    expect(appError.userMessage).toBe('User message');
+    expect(appError.userMessageSV).toBe('User message SV');
+    expect(appError.recoverable).toBe(true);
+    expect(appError.retryable).toBe(true);
+    expect(appError.statusCode).toBe(400);
+    expect(appError.context).toEqual({ key: 'value' });
+    expect(appError.originalError).toBe(error);
+  });
+
+  it('should apply fallback values when optional properties are omitted', () => {
+    const appError = new AppError({
+      code: ErrorCode.UNKNOWN_ERROR,
+      message: 'Fallback message',
+      recoverable: false,
+      retryable: false,
+    });
+
+    expect(appError.userMessage).toBe('Fallback message');
+    expect(appError.userMessageSV).toBe('Fallback message');
+    expect(appError.statusCode).toBe(500);
+    expect(appError.context).toBeUndefined();
+    expect(appError.originalError).toBeUndefined();
+  });
+});
+
 describe('classifyError', () => {
   it('should return properties of an AppError instance unmodified', () => {
     const appError = new AppError({
