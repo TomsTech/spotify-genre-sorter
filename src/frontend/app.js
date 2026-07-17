@@ -695,13 +695,13 @@
             <button class="modal-close" onclick="this.closest('.modal-overlay').remove()" aria-label="Close admin panel">×</button>
           </div>
           <div class="admin-tabs">
-            <button class="admin-tab active" data-tab="stats">📊 Stats</button>
-            <button class="admin-tab" data-tab="kv">🗄️ KV Monitor</button>
-            <button class="admin-tab" data-tab="cache">💾 Cache</button>
-            <button class="admin-tab" data-tab="health">🏥 Health</button>
-            <button class="admin-tab" data-tab="errors">🐛 Errors</button>
-            <button class="admin-tab" data-tab="perf">⚡ Performance</button>
-            <button class="admin-tab" data-tab="users">👥 Users</button>
+            <button class="admin-tab active" data-tab="stats" aria-label="View Stats">📊 Stats</button>
+            <button class="admin-tab" data-tab="kv" aria-label="View KV Monitor">🗄️ KV Monitor</button>
+            <button class="admin-tab" data-tab="cache" aria-label="View Cache">💾 Cache</button>
+            <button class="admin-tab" data-tab="health" aria-label="View Health">🏥 Health</button>
+            <button class="admin-tab" data-tab="errors" aria-label="View Errors">🐛 Errors</button>
+            <button class="admin-tab" data-tab="perf" aria-label="View Performance">⚡ Performance</button>
+            <button class="admin-tab" data-tab="users" aria-label="View Users">👥 Users</button>
           </div>
           <div class="admin-tab-content" id="admin-tab-content">
             <div class="admin-grid">
@@ -1611,7 +1611,7 @@
           <span class="fika-emoji">☕🍪</span>
           <p>Dags för fika!</p>
           <p style="font-size: 0.9rem; opacity: 0.8;">Time for a coffee break!</p>
-          <button class="btn btn-ghost fika-dismiss-btn">Tack!</button>
+          <button class="btn btn-ghost fika-dismiss-btn" aria-label="Dismiss Fika reminder">Tack!</button>
         </div>
       \`;
       document.body.appendChild(reminder);
@@ -4380,7 +4380,7 @@
           ⚠️ \${swedishMode
             ? \`Visar \${genreData.totalTracks.toLocaleString()} av \${genreData.totalInLibrary?.toLocaleString()} låtar\`
             : \`Showing \${genreData.totalTracks.toLocaleString()} of \${genreData.totalInLibrary?.toLocaleString()} tracks\`}
-          <button onclick="loadFullLibrary()" class="btn btn-ghost btn-sm" style="margin-left: 0.5rem;">
+          <button onclick="loadFullLibrary()" class="btn btn-ghost btn-sm" style="margin-left: 0.5rem;" aria-label="\${swedishMode ? 'Ladda hela biblioteket' : 'Load full library'}">
             \${swedishMode ? 'Ladda alla' : 'Load all'}
           </button>
         </div>
@@ -4388,7 +4388,7 @@
 
         <div class="cache-status">
           \${cacheInfo}
-          <button onclick="refreshGenres()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Hämta ny data från Spotify' : 'Fetch fresh data from Spotify'}">
+          <button onclick="refreshGenres()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Hämta ny data från Spotify' : 'Fetch fresh data from Spotify'}" aria-label="\${swedishMode ? 'Uppdatera genrer' : 'Refresh genres'}">
             🔄 \${swedishMode ? 'Uppdatera' : 'Refresh'}
           </button>
         </div>
@@ -4397,16 +4397,16 @@
           <button onclick="showGenreWrapped()" class="btn btn-primary btn-sm wrapped-btn" title="\${swedishMode ? 'Dela din musiksmak!' : 'Share your music taste!'}">
             ✨ \${swedishMode ? 'Dela Din Smak' : 'Share Your Taste'}
           </button>
-          <button onclick="toggleStatsDashboard()" class="btn btn-ghost btn-sm stats-toggle" id="stats-toggle">
+          <button onclick="toggleStatsDashboard()" class="btn btn-ghost btn-sm stats-toggle" id="stats-toggle" aria-label="\${showStatsDashboard ? (swedishMode ? 'Dölj statistik' : 'Hide Stats') : (swedishMode ? 'Visa statistik' : 'Show Stats')}">
             \${showStatsDashboard ? (swedishMode ? '📊 Dölj statistik' : '📊 Hide Stats') : (swedishMode ? '📊 Visa statistik' : '📊 Show Stats')}
           </button>
-          <button onclick="toggleMergeMode()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Välj genrer att slå ihop' : 'Select genres to merge into one playlist'}">
+          <button onclick="toggleMergeMode()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Välj genrer att slå ihop' : 'Select genres to merge into one playlist'}" aria-label="\${swedishMode ? 'Slå ihop genrer' : 'Merge genres'}">
             📦 \${swedishMode ? 'Slå ihop' : 'Merge'}
           </button>
-          <button onclick="exportGenresJSON()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Exportera som JSON' : 'Export as JSON'}">
+          <button onclick="exportGenresJSON()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Exportera som JSON' : 'Export as JSON'}" aria-label="\${swedishMode ? 'Exportera som JSON' : 'Export as JSON'}">
             📥 JSON
           </button>
-          <button onclick="exportGenresCSV()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Exportera som CSV' : 'Export as CSV'}">
+          <button onclick="exportGenresCSV()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Exportera som CSV' : 'Export as CSV'}" aria-label="\${swedishMode ? 'Exportera som CSV' : 'Export as CSV'}">
             📥 CSV
           </button>
         </div>
@@ -4415,13 +4415,13 @@
 
         <div class="hidden-toolbar" id="hidden-toolbar" style="display: \${hiddenGenres.size > 0 ? 'flex' : 'none'}">
           <span>\${swedishMode ? 'Dolda genrer:' : 'Hidden genres:'} <strong id="hidden-count">\${hiddenGenres.size}</strong></span>
-          <button onclick="toggleShowHidden()" class="btn btn-ghost btn-sm">
+          <button onclick="toggleShowHidden()" class="btn btn-ghost btn-sm" aria-label="\${showHidden ? (swedishMode ? 'Dölj gömda genrer' : 'Hide hidden genres') : (swedishMode ? 'Visa gömda genrer' : 'Show hidden genres')}">
             \${showHiddenGenres ? (swedishMode ? '🙈 Dölj dolda' : '🙈 Hide hidden') : (swedishMode ? '👁️ Visa dolda' : '👁️ Show hidden')}
           </button>
-          <button onclick="unhideAllGenres()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Visa alla genrer' : 'Show all genres'}">
+          <button onclick="unhideAllGenres()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Visa alla genrer' : 'Show all genres'}" aria-label="\${swedishMode ? 'Visa alla genrer' : 'Show all genres'}">
             ↺ \${swedishMode ? 'Visa alla' : 'Unhide all'}
           </button>
-          <button onclick="hideSmallGenres(5)" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Dölj genrer med färre än 5 låtar' : 'Hide genres with fewer than 5 tracks'}">
+          <button onclick="hideSmallGenres(5)" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Dölj genrer med färre än 5 låtar' : 'Hide genres with fewer than 5 tracks'}" aria-label="\${swedishMode ? 'Dölj genrer med färre än 5 låtar' : 'Hide genres with fewer than 5 tracks'}">
             \${swedishMode ? 'Dölj små (<5)' : 'Hide small (<5)'}
           </button>
         </div>
@@ -5919,11 +5919,11 @@
             <button class="btn btn-ghost" onclick="closeScoreboard()" aria-label="Close scoreboard">✕</button>
           </div>
           <div class="scoreboard-tabs">
-            <button class="scoreboard-tab active" data-tab="playlists">🎵 \${swedishMode ? 'Spellistor' : 'Playlists'}</button>
-            <button class="scoreboard-tab" data-tab="genres">🎸 \${swedishMode ? 'Genrer' : 'Genres'}</button>
-            <button class="scoreboard-tab" data-tab="artists">🎤 \${swedishMode ? 'Artister' : 'Artists'}</button>
-            <button class="scoreboard-tab" data-tab="tracks">📀 \${swedishMode ? 'Låtar' : 'Tracks'}</button>
-            <button class="scoreboard-tab" data-tab="sorted">📋 \${swedishMode ? 'Sorterade' : 'Sorted'}</button>
+            <button class="scoreboard-tab active" data-tab="playlists" aria-label="\${swedishMode ? 'Visa spellistor' : 'View playlists'}">🎵 \${swedishMode ? 'Spellistor' : 'Playlists'}</button>
+            <button class="scoreboard-tab" data-tab="genres" aria-label="\${swedishMode ? 'Visa genrer' : 'View genres'}">🎸 \${swedishMode ? 'Genrer' : 'Genres'}</button>
+            <button class="scoreboard-tab" data-tab="artists" aria-label="\${swedishMode ? 'Visa artister' : 'View artists'}">🎤 \${swedishMode ? 'Artister' : 'Artists'}</button>
+            <button class="scoreboard-tab" data-tab="tracks" aria-label="\${swedishMode ? 'Visa låtar' : 'View tracks'}">📀 \${swedishMode ? 'Låtar' : 'Tracks'}</button>
+            <button class="scoreboard-tab" data-tab="sorted" aria-label="\${swedishMode ? 'Visa sorterade' : 'View sorted'}">📋 \${swedishMode ? 'Sorterade' : 'Sorted'}</button>
           </div>
           <div class="scoreboard-content" id="scoreboard-content">
             \${renderScoreboardTab('playlists')}
