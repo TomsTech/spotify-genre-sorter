@@ -1,8 +1,28 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken } from '../src/lib/spotify';
+import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
+
+describe('generateCodeVerifier', () => {
+  it('should generate a string of length 43', () => {
+    const verifier = generateCodeVerifier();
+    expect(verifier.length).toBe(43);
+  });
+
+  it('should generate a URL-safe base64 string', () => {
+    const verifier = generateCodeVerifier();
+    // URL-safe base64 characters: A-Z, a-z, 0-9, -, _
+    expect(verifier).toMatch(/^[A-Za-z0-9_-]+$/);
+  });
+
+  it('should be cryptographically random (different each time)', () => {
+    const verifier1 = generateCodeVerifier();
+    const verifier2 = generateCodeVerifier();
+    expect(verifier1).not.toBe(verifier2);
+  });
+});
+
   describe('getSpotifyAuthUrl', () => {
     it('should generate a valid Spotify auth URL', () => {
       const url = getSpotifyAuthUrl(
