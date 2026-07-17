@@ -60,6 +60,66 @@ describe('Token Refresh Logic', () => {
 });
 
 import { vi } from 'vitest';
+
+import { storeState, verifyState } from '../src/lib/session';
+
+describe('State Management', () => {
+  describe('storeState', () => {
+    it('should store state in KV with correct TTL', async () => {
+      const originalPut = cachedKV.put;
+      cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+      const mockKv = {} as any;
+      const data = { token: '123' };
+
+      await storeState(mockKv, 'test-id', data);
+
+      expect(cachedKV.put).toHaveBeenCalledWith(
+        mockKv,
+        'state:test-id',
+        JSON.stringify(data),
+        { expirationTtl: 600, immediate: true }
+      );
+
+      cachedKV.put = originalPut;
+    });
+  });
+
+  describe('verifyState', () => {
+    it('should return null if state not found', async () => {
+      const originalGetString = cachedKV.getString;
+      cachedKV.getString = vi.fn().mockResolvedValue(null);
+
+      const mockKv = {} as any;
+      const result = await verifyState(mockKv, 'missing-id');
+
+      expect(result).toBeNull();
+      expect(cachedKV.getString).toHaveBeenCalledWith(mockKv, 'state:missing-id');
+
+      cachedKV.getString = originalGetString;
+    });
+
+    it('should return parsed state and delete it from KV', async () => {
+      const originalGetString = cachedKV.getString;
+      const originalDelete = cachedKV.delete;
+
+      const mockData = { token: '123' };
+      cachedKV.getString = vi.fn().mockResolvedValue(JSON.stringify(mockData));
+      cachedKV.delete = vi.fn().mockResolvedValue(undefined);
+
+      const mockKv = {} as any;
+      const result = await verifyState(mockKv, 'valid-id');
+
+      expect(result).toEqual(mockData);
+      expect(cachedKV.getString).toHaveBeenCalledWith(mockKv, 'state:valid-id');
+      expect(cachedKV.delete).toHaveBeenCalledWith(mockKv, 'state:valid-id');
+
+      cachedKV.getString = originalGetString;
+      cachedKV.delete = originalDelete;
+    });
+  });
+});
+
 import { getScoreboard, cachedKV } from '../src/lib/session';
 
 import { buildScoreboard } from '../src/lib/session';
