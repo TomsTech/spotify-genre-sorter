@@ -271,18 +271,19 @@ export async function getAllLikedTracks(
       requestCount++;
     }
 
-    // Process in chunks of 5 to preserve UI progress callback behavior
-    const CONCURRENCY_LIMIT = 5;
-    for (let i = 0; i < remainingOffsets.length; i += CONCURRENCY_LIMIT) {
-      const chunk = remainingOffsets.slice(i, i + CONCURRENCY_LIMIT);
-      const responses = await Promise.all(
-        chunk.map(off => getLikedTracks(accessToken, limit, off))
-      );
+    // Fetch all remaining pages concurrently while preserving order and progress updates
+    let loadedCount = allTracks.length;
+    const responses = await Promise.all(
+      remainingOffsets.map(async (off) => {
+        const response = await getLikedTracks(accessToken, limit, off);
+        loadedCount += response.items.length;
+        onProgress?.(loadedCount, totalInLibrary);
+        return response;
+      })
+    );
 
-      for (const response of responses) {
-        allTracks.push(...response.items);
-        onProgress?.(allTracks.length, totalInLibrary);
-      }
+    for (const response of responses) {
+      allTracks.push(...response.items);
     }
   }
 
