@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 describe('API Response Formats', () => {
 
@@ -131,20 +131,113 @@ describe('API Response Formats', () => {
   });
 });
 
-describe('Authentication Middleware', () => {
-  it('should return 401 for unauthenticated requests', () => {
-    const session = null;
-    const errorResponse = session ? null : { error: 'Not authenticated', status: 401 };
+vi.mock('../src/lib/session', () => ({
+  getSession: vi.fn(),
+  updateSession: vi.fn(),
+}));
 
-    expect(errorResponse).not.toBeNull();
-    expect(errorResponse?.status).toBe(401);
+vi.mock('../src/lib/spotify', () => ({
+  refreshSpotifyToken: vi.fn(),
+}));
+
+vi.mock('../src/lib/logger', () => ({
+  createLogger: vi.fn().mockReturnValue({
+    logError: vi.fn(),
+    logInfo: vi.fn(),
+    logPerf: vi.fn(),
+  })
+}));
+
+import api from '../src/routes/api';
+
+describe('Authentication Middleware (Integration)', () => {
+  it('should return 401 when Spotify session is expired and no refresh token exists', async () => {
+    const { getSession } = await import('../src/lib/session');
+
+    vi.mocked(getSession).mockResolvedValue({
+      spotifyAccessToken: 'expired-token',
+      spotifyExpiresAt: Date.now() - 1000,
+    } as any);
+
+    const req = new Request('http://localhost/api/me');
+    const res = await api.fetch(req, {
+      SPOTIFY_CLIENT_ID: 'client-id',
+      SPOTIFY_CLIENT_SECRET: 'client-secret'
+    }, {} as any);
+
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body).toEqual({ error: 'Spotify session expired' });
   });
 
-  it('should return 401 when Spotify not connected', () => {
-    const session = { githubUser: 'user' }; // No spotify token
-    const hasSpotify = !!session.spotifyAccessToken;
+  it('should refresh token successfully and proceed', async () => {
+    const { getSession, updateSession } = await import('../src/lib/session');
+    const { refreshSpotifyToken } = await import('../src/lib/spotify');
 
-    expect(hasSpotify).toBe(false);
+    vi.mocked(getSession).mockResolvedValue({
+      spotifyAccessToken: 'expired-token',
+      spotifyRefreshToken: 'refresh-token',
+      spotifyExpiresAt: Date.now() - 1000,
+    } as any);
+
+    vi.mocked(refreshSpotifyToken).mockResolvedValue({
+      access_token: 'new-token',
+      refresh_token: 'new-refresh-token',
+      expires_in: 3600
+    } as any);
+
+    const req = new Request('http://localhost/api/me');
+    // Using a fake env to trigger the api path but since no endpoint handler actually works, we just ensure it gets past auth.
+    // Actually /api/me requires github auth as well, but wait, if token refreshed it should pass the middleware block.
+    // If it passes middleware, the actual endpoint might throw 500, but that means middleware succeeded.
+    const res = await api.fetch(req, {
+      SPOTIFY_CLIENT_ID: 'client-id',
+      SPOTIFY_CLIENT_SECRET: 'client-secret'
+    }, {
+      waitUntil: vi.fn(),
+      passThroughOnException: vi.fn()
+    });
+
+    expect(refreshSpotifyToken).toHaveBeenCalledWith('refresh-token', 'client-id', 'client-secret');
+    expect(updateSession).toHaveBeenCalled();
+  });
+
+  it('should return 401 when token refresh fails', async () => {
+    const { getSession } = await import('../src/lib/session');
+    const { refreshSpotifyToken } = await import('../src/lib/spotify');
+    const { createLogger } = await import('../src/lib/logger');
+
+    vi.mocked(getSession).mockResolvedValue({
+      spotifyAccessToken: 'expired-token',
+      spotifyRefreshToken: 'refresh-token',
+      spotifyExpiresAt: Date.now() - 1000,
+    } as any);
+
+    const error = new Error('Refresh failed');
+    vi.mocked(refreshSpotifyToken).mockRejectedValue(error);
+
+    const mockExecutionContext = {
+      waitUntil: vi.fn(),
+      passThroughOnException: vi.fn()
+    };
+
+    const req = new Request('http://localhost/api/me');
+    const res = await api.fetch(req, {
+      SPOTIFY_CLIENT_ID: 'client-id',
+      SPOTIFY_CLIENT_SECRET: 'client-secret'
+    }, mockExecutionContext);
+
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body).toEqual({ error: 'Failed to refresh Spotify token' });
+
+    const loggerMock = vi.mocked(createLogger).mock.results[0].value;
+    expect(loggerMock.logError).toHaveBeenCalledWith('Token refresh failed', error);
+
+    expect(createLogger).toHaveBeenCalledWith(mockExecutionContext, undefined, {
+      path: '/api/me',
+      method: 'GET'
+    });
   });
 });
 
