@@ -16,6 +16,47 @@ describe('CSRF Token Management', () => {
       const token2 = generateCsrfToken();
       expect(token1).not.toBe(token2);
     });
+
+    it('should properly zero-pad single-digit hex values', () => {
+      // Mock crypto to return specific bytes
+      const originalCrypto = global.crypto;
+      const mockGetRandomValues = vi.fn().mockImplementation((buffer: Uint8Array) => {
+        // Fill first 4 bytes with specific values to test padding
+        buffer[0] = 0;   // hex '00'
+        buffer[1] = 15;  // hex '0f'
+        buffer[2] = 16;  // hex '10'
+        buffer[3] = 255; // hex 'ff'
+        // Rest can be zeros
+        for (let i = 4; i < buffer.length; i++) {
+          buffer[i] = 0;
+        }
+        return buffer;
+      });
+
+      vi.stubGlobal('crypto', { getRandomValues: mockGetRandomValues });
+
+      try {
+        const token = generateCsrfToken();
+
+        // Verify mock was called correctly
+        expect(mockGetRandomValues).toHaveBeenCalledTimes(1);
+
+        // Verify the resulting hex string has correct zero padding
+        // 0 -> '00'
+        // 15 -> '0f'
+        // 16 -> '10'
+        // 255 -> 'ff'
+        expect(token.startsWith('000f10ff')).toBe(true);
+        expect(token).toHaveLength(64); // 32 bytes * 2 hex chars
+      } finally {
+        // Restore original crypto
+        if (originalCrypto) {
+          vi.stubGlobal('crypto', originalCrypto);
+        } else {
+          vi.unstubAllGlobals();
+        }
+      }
+    });
   });
 
   describe('getCsrfToken', () => {
