@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, Context } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import auth from './routes/auth';
@@ -16,7 +16,7 @@ const GITHUB_REPO = 'TomsTech/spotify-genre-sorter';
 const app = new Hono<{ Bindings: Env }>();
 
 // Global error handler with analytics tracking and BetterStack logging
-app.onError(async (err, c) => {
+export const errorHandler = async (err: Error, c: Context<{ Bindings: Env }>) => {
   // Send to BetterStack
   const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
     path: c.req.path,
@@ -35,7 +35,12 @@ app.onError(async (err, c) => {
     // Don't fail on analytics error
   }
   return c.json({ error: err.message || 'Internal error' }, 500);
-});
+};
+
+// Global error handler with analytics tracking and BetterStack logging
+app.onError(errorHandler);
+
+
 
 // Security headers middleware with CSP nonce - fixes Google Safe Browsing warnings
 // Store nonce in a WeakMap keyed by request to avoid Hono Variables typing issues
