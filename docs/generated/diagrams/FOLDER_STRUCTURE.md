@@ -37,7 +37,8 @@
 │   ├── README.md
 │   ├── bolt.md
 │   ├── palette.md
-│   └── sentinel.md
+│   ├── sentinel.md
+│   └── testing.md
 ├── docs
 │   ├── generated
 │   │   ├── diagrams
@@ -145,15 +146,20 @@
 ├── tests
 │   ├── api.test.ts
 │   ├── artist-genre-cache.test.ts
+│   ├── auth-routes.test.ts
+│   ├── auth.test.ts
 │   ├── csp-nonce.test.ts
+│   ├── csrf-middleware.test.ts
 │   ├── csrf.test.ts
 │   ├── error-handler.test.ts
 │   ├── error-middleware.test.ts
 │   ├── frontend.test.ts
 │   ├── github.test.ts
+│   ├── index.test.ts
 │   ├── kv-cache.test.ts
 │   ├── kv-monitor.test.ts
 │   ├── logger.test.ts
+│   ├── now-playing.test.ts
 │   ├── retry.test.ts
 │   ├── session.test.ts
 │   ├── spotify.test.ts
@@ -175,6 +181,7 @@
 ├── SECURITY.md
 ├── SUMMARY.md
 ├── cliff.toml
+├── commit_message.txt
 ├── docflow.config.json
 ├── openapi.yaml
 ├── package-lock.json
@@ -187,7 +194,7 @@
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-31 directories, 150 files
+31 directories, 157 files
 ```
 
 ## Key Directories
