@@ -5229,7 +5229,13 @@
       if (selectedGenres.size === 0) return;
 
       const btn = document.getElementById('create-btn');
+      const originalText = btn.innerHTML;
       btn.disabled = true;
+      btn.innerHTML = '<span class="spinner" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 8px;"></span>' + (swedishMode ? 'Skapar...' : 'Creating...');
+
+      // Store original text globally or pass it down so it can be restored on error if needed
+      btn.dataset.originalText = originalText;
+
 
       const genres = genreData.genres
         .filter(g => selectedGenres.has(g.name))
@@ -8144,7 +8150,7 @@
 
       const submitBtn = document.querySelector('.request-submit-btn');
       const originalText = submitBtn.textContent;
-      submitBtn.textContent = swedishMode ? 'Skickar...' : 'Submitting...';
+      submitBtn.innerHTML = '<span class="spinner" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 8px;"></span>' + (swedishMode ? 'Skickar...' : 'Submitting...');
       submitBtn.disabled = true;
 
       try {

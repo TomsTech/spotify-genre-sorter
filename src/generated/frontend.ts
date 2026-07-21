@@ -8430,6 +8430,8 @@ export function getHtml(nonce: string): string {
       }
     }
 
+.admin-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
   </style>
 </head>
 <body>
@@ -10988,7 +10990,7 @@ export function getHtml(nonce: string): string {
 
           // Update album art
           if (data.track.albumArt) {
-            artEl.src = data.track.albumArt;
+            artEl.src = data.track.albumArt; // DOM property expects raw string, DO NOT use escapeHtml
             artEl.alt = data.track.album;
           }
 
@@ -13747,7 +13749,7 @@ export function getHtml(nonce: string): string {
       modal.id = 'loading-modal';
       modal.innerHTML = \`
         <div class="album-carousel">
-          \${shuffled.map(art => \`<img class="album-art" src="\${art}" alt="" onerror="this.style.background='var(--surface-2)'">\`).join('')}
+          \${shuffled.map(art => \`<img class="album-art" src="\${escapeHtml(art)}" alt="" onerror="this.style.background='var(--surface-2)'">\`).join('')}
         </div>
         <div class="loading-text" id="loading-text">\${swedishMode ? 'Skapar spellistor...' : 'Creating playlists...'}</div>
         <div class="loading-progress">
@@ -13816,7 +13818,13 @@ export function getHtml(nonce: string): string {
       if (selectedGenres.size === 0) return;
 
       const btn = document.getElementById('create-btn');
+      const originalText = btn.innerHTML;
       btn.disabled = true;
+      btn.innerHTML = '<span class="spinner" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 8px;"></span>' + (swedishMode ? 'Skapar...' : 'Creating...');
+
+      // Store original text globally or pass it down so it can be restored on error if needed
+      btn.dataset.originalText = originalText;
+
 
       const genres = genreData.genres
         .filter(g => selectedGenres.has(g.name))
@@ -14201,7 +14209,7 @@ export function getHtml(nonce: string): string {
             existingTooltip.querySelector('.now-playing-artists').textContent = data.track.artists;
             const img = existingTooltip.querySelector('.now-playing-album-art');
             if (data.track.albumArt) {
-              img.src = data.track.albumArt;
+              img.src = data.track.albumArt; // DOM property expects raw string, DO NOT use escapeHtml
               img.style.display = '';
             } else {
               img.style.display = 'none';
@@ -16731,7 +16739,7 @@ export function getHtml(nonce: string): string {
 
       const submitBtn = document.querySelector('.request-submit-btn');
       const originalText = submitBtn.textContent;
-      submitBtn.textContent = swedishMode ? 'Skickar...' : 'Submitting...';
+      submitBtn.innerHTML = '<span class="spinner" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 8px;"></span>' + (swedishMode ? 'Skickar...' : 'Submitting...');
       submitBtn.disabled = true;
 
       try {
