@@ -39,3 +39,6 @@
 ## 2024-05-18 - Replacing Sequential Pagination Chunking with Unbounded Concurrency
 **Learning:** Artificially throttling API requests into small, sequential chunks (e.g., waiting for one block of 5 requests to resolve before firing the next 5) introduces severe N+1 latency, especially when the total number of subrequests is inherently capped by environmental limits (like Cloudflare's 50 subrequests).
 **Action:** Replace arbitrary `for`-loop chunking with fully concurrent mapped `Promise.all` arrays for independent offsets. Maintain iterative progress callbacks (like UI progress bars) by incrementing a shared `loadedCount` inside the mapped asynchronous functions rather than awaiting entire batches at a time.
+## 2025-05-28 - [Eliminating Intermediate Collections]
+**Learning:** Chaining array methods like `.filter()` and `.map()` before passing to a `Set` creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure in hot endpoints.
+**Action:** Replace functional `.filter().map()` chains with a single `for` loop that iteratively populates the destination collection (e.g. `Set`) in one pass to achieve better throughput and reduced memory pressure.
