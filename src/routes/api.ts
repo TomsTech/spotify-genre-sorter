@@ -1250,11 +1250,14 @@ api.post('/playlists/bulk', async (c) => {
 
     // Fetch existing playlists once for duplicate checking
     const existingPlaylists = await getUserPlaylists(session.spotifyAccessToken);
-    const existingNames = new Set(
-      existingPlaylists
-        .filter(p => p.owner.id === user.id)
-        .map(p => p.name.toLowerCase())
-    );
+    // ⚡ BOLT OPTIMIZATION: Avoid intermediate array creations in filter + map by doing a single pass
+    const existingNames = new Set<string>();
+    for (let i = 0; i < existingPlaylists.length; i++) {
+      const p = existingPlaylists[i];
+      if (p.owner.id === user.id) {
+        existingNames.add(p.name.toLowerCase());
+      }
+    }
 
     const results: { genre: string; success: boolean; url?: string; error?: string; skipped?: boolean }[] = [];
 
