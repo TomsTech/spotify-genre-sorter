@@ -10988,7 +10988,7 @@ export function getHtml(nonce: string): string {
 
           // Update album art
           if (data.track.albumArt) {
-            artEl.src = data.track.albumArt;
+            artEl.src = data.track.albumArt; // DOM property expects raw string, DO NOT use escapeHtml
             artEl.alt = data.track.album;
           }
 
@@ -13139,6 +13139,30 @@ export function getHtml(nonce: string): string {
 
     function renderGenreList(genres) {
       const list = document.getElementById('genre-list');
+
+      if (genres.length === 0) {
+        const searchQuery = document.querySelector('.search-input')?.value;
+        if (searchQuery) {
+          list.innerHTML = \`
+            <div class="empty-state" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+              <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
+              <h3>\${swedishMode ? 'Inga genrer hittades' : 'No genres found'}</h3>
+              <p style="margin-bottom: 1.5rem;">\${swedishMode ? 'Vi kunde inte hitta några genrer som matchar "' + escapeForHtml(searchQuery) + '".' : 'We couldn\\'t find any genres matching "' + escapeForHtml(searchQuery) + '".'}</p>
+              <button class="btn btn-secondary" onclick="document.querySelector('.search-input').value=''; filterAndRenderGenres(''); document.querySelector('.search-input').focus();">\${swedishMode ? 'Rensa sökning' : 'Clear search'}</button>
+            </div>
+          \`;
+        } else {
+          list.innerHTML = \`
+            <div class="empty-state" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+              <div style="font-size: 3rem; margin-bottom: 1rem;">🎸</div>
+              <h3>\${swedishMode ? 'Inga genrer' : 'No genres'}</h3>
+              <p>\${swedishMode ? 'Ditt bibliotek är tomt eller så är alla genrer dolda.' : 'Your library is empty or all genres are hidden.'}</p>
+            </div>
+          \`;
+        }
+        return;
+      }
+
       list.innerHTML = genres.map(genre => {
         const isHidden = hiddenGenres.has(genre.name);
         return \`
@@ -13747,7 +13771,7 @@ export function getHtml(nonce: string): string {
       modal.id = 'loading-modal';
       modal.innerHTML = \`
         <div class="album-carousel">
-          \${shuffled.map(art => \`<img class="album-art" src="\${art}" alt="" onerror="this.style.background='var(--surface-2)'">\`).join('')}
+          \${shuffled.map(art => \`<img class="album-art" src="\${escapeHtml(art)}" alt="" onerror="this.style.background='var(--surface-2)'">\`).join('')}
         </div>
         <div class="loading-text" id="loading-text">\${swedishMode ? 'Skapar spellistor...' : 'Creating playlists...'}</div>
         <div class="loading-progress">
@@ -14201,7 +14225,7 @@ export function getHtml(nonce: string): string {
             existingTooltip.querySelector('.now-playing-artists').textContent = data.track.artists;
             const img = existingTooltip.querySelector('.now-playing-album-art');
             if (data.track.albumArt) {
-              img.src = data.track.albumArt;
+              img.src = data.track.albumArt; // DOM property expects raw string, DO NOT use escapeHtml
               img.style.display = '';
             } else {
               img.style.display = 'none';
