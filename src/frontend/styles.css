@@ -6372,6 +6372,9 @@
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     }
 
+    /* Ensure disabled buttons with tooltips can still show hover events */
+    [disabled][data-tooltip] { pointer-events: auto; }
+
     [data-tooltip]:hover::before {
       opacity: 1;
       visibility: visible;

@@ -6395,6 +6395,9 @@ export function getHtml(nonce: string): string {
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     }
 
+    /* Ensure disabled buttons with tooltips can still show hover events */
+    [disabled][data-tooltip] { pointer-events: auto; }
+
     [data-tooltip]:hover::before {
       opacity: 1;
       visibility: visible;
@@ -10988,7 +10991,7 @@ export function getHtml(nonce: string): string {
 
           // Update album art
           if (data.track.albumArt) {
-            artEl.src = data.track.albumArt;
+            artEl.src = data.track.albumArt; // DOM property expects raw string, DO NOT use escapeHtml
             artEl.alt = data.track.album;
           }
 
@@ -13079,7 +13082,7 @@ export function getHtml(nonce: string): string {
           <div class="actions">
             <button onclick="selectAll()" class="btn btn-secondary" data-i18n="selectAll">\${t('selectAll')}</button>
             <button onclick="selectNone()" class="btn btn-secondary" data-i18n="selectNone">\${t('selectNone')}</button>
-            <button onclick="createSelectedPlaylists()" class="btn btn-primary" id="create-btn" disabled data-i18n="createPlaylists">
+            <button onclick="createSelectedPlaylists()" class="btn btn-primary" id="create-btn" disabled data-i18n="createPlaylists" data-tooltip="Select genres to create playlists">
               \${t('createPlaylists')}
             </button>
           </div>
@@ -13185,7 +13188,14 @@ export function getHtml(nonce: string): string {
       const createBtn = document.getElementById('create-btn');
       // Guard against elements not existing (e.g., in admin panel)
       if (countEl) countEl.textContent = selectedGenres.size;
-      if (createBtn) createBtn.disabled = selectedGenres.size === 0;
+      if (createBtn) {
+        createBtn.disabled = selectedGenres.size === 0;
+        if (selectedGenres.size === 0) {
+          createBtn.setAttribute('data-tooltip', swedishMode ? 'Välj genrer för att skapa spellistor' : 'Select genres to create playlists');
+        } else {
+          createBtn.removeAttribute('data-tooltip');
+        }
+      }
 
       // Update select-all checkbox state
       updateSelectAllCheckbox();
@@ -13747,7 +13757,7 @@ export function getHtml(nonce: string): string {
       modal.id = 'loading-modal';
       modal.innerHTML = \`
         <div class="album-carousel">
-          \${shuffled.map(art => \`<img class="album-art" src="\${art}" alt="" onerror="this.style.background='var(--surface-2)'">\`).join('')}
+          \${shuffled.map(art => \`<img class="album-art" src="\${escapeHtml(art)}" alt="" onerror="this.style.background='var(--surface-2)'">\`).join('')}
         </div>
         <div class="loading-text" id="loading-text">\${swedishMode ? 'Skapar spellistor...' : 'Creating playlists...'}</div>
         <div class="loading-progress">
@@ -14201,7 +14211,7 @@ export function getHtml(nonce: string): string {
             existingTooltip.querySelector('.now-playing-artists').textContent = data.track.artists;
             const img = existingTooltip.querySelector('.now-playing-album-art');
             if (data.track.albumArt) {
-              img.src = data.track.albumArt;
+              img.src = data.track.albumArt; // DOM property expects raw string, DO NOT use escapeHtml
               img.style.display = '';
             } else {
               img.style.display = 'none';
