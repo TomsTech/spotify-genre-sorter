@@ -56,7 +56,7 @@
           <h2 id="error-title">\${swedishMode ? 'Oj då!' : 'Oops!'}</h2>
           <p id="error-desc" class="error-boundary-message">\${friendlyMessage}</p>
           <div class="error-boundary-actions">
-            <button class="btn btn-primary error-retry-btn" onclick="window.location.reload()">
+            <button class="btn btn-primary error-retry-btn" onclick="window.location.reload()" aria-label="${swedishMode ? 'Försök igen' : 'Try Again'}">
               \${swedishMode ? '🔄 Försök igen' : '🔄 Try Again'}
             </button>
             <a href="\${escapeHtml(issueUrl)}" target="_blank" rel="noopener" class="btn btn-ghost error-report-btn">
@@ -67,7 +67,7 @@
             <summary>\${swedishMode ? 'Tekniska detaljer' : 'Technical details'}</summary>
             <pre class="error-boundary-stack">\${escapeForHtml(errorInfo.message)}\\n\\n\${escapeForHtml(errorInfo.stack || 'No stack trace')}</pre>
           </details>
-          <button class="btn btn-ghost error-dismiss-btn" onclick="this.closest('.error-boundary-overlay').remove()">
+          <button class="btn btn-ghost error-dismiss-btn" onclick="this.closest('.error-boundary-overlay').remove()" aria-label="${swedishMode ? 'Avfärda' : 'Dismiss'}">
             \${swedishMode ? 'Avfärda' : 'Dismiss'}
           </button>
         </div>
@@ -128,8 +128,8 @@
           '<p class="prompt-message">' + message + '</p>',
           '<input type="text" class="prompt-input" id="prompt-input" value="' + escapeForHtml(defaultValue) + '" maxlength="100" aria-label="' + (swedishMode ? 'Ange namn' : 'Enter name') + '">',
           '<div class="prompt-buttons">',
-          '  <button class="btn btn-ghost" id="prompt-cancel">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
-          '  <button class="btn btn-primary" id="prompt-confirm">' + (swedishMode ? 'OK' : 'OK') + '</button>',
+          '  <button class="btn btn-ghost" id="prompt-cancel" aria-label="${swedishMode ? 'Avbryt' : 'Cancel'}">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
+          '  <button class="btn btn-primary" id="prompt-confirm" aria-label="${swedishMode ? 'OK' : 'OK'}">' + (swedishMode ? 'OK' : 'OK') + '</button>',
           '</div>',
         ].join('\\n');
 
@@ -325,8 +325,8 @@
       toolbar.innerHTML = [
         '<span class="merge-count">' + genresToMerge.size + (swedishMode ? ' genrer valda' : ' genres selected') + '</span>',
         '<span>(' + totalTracks + (swedishMode ? ' låtar totalt)' : ' tracks total)') + '</span>',
-        '<button class="btn btn-ghost btn-sm" onclick="cancelMerge()">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
-        '<button class="btn btn-primary btn-sm" onclick="showMergeModal()">' + (swedishMode ? '📦 Slå ihop' : '📦 Merge') + '</button>',
+        '<button class="btn btn-ghost btn-sm" onclick="cancelMerge()" aria-label="${swedishMode ? 'Avbryt' : 'Cancel'}">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
+        '<button class="btn btn-primary btn-sm" onclick="showMergeModal()" aria-label="${swedishMode ? 'Slå ihop' : 'Merge'}">' + (swedishMode ? '📦 Slå ihop' : '📦 Merge') + '</button>',
       ].join('');
     }
 
@@ -376,7 +376,7 @@
         '  </div>',
         '  <div class="modal-actions">',
         '    <button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
-        '    <button class="btn btn-primary" onclick="createMergedPlaylist()">' + (swedishMode ? '🎵 Skapa spellista' : '🎵 Create Playlist') + '</button>',
+        '    <button class="btn btn-primary" onclick="createMergedPlaylist()" aria-label="${swedishMode ? 'Skapa spellista' : 'Create Playlist'}">' + (swedishMode ? '🎵 Skapa spellista' : '🎵 Create Playlist') + '</button>',
         '  </div>',
         '</div>',
       ].join('');
@@ -623,6 +623,8 @@
         adminBtn.id = 'admin-btn';
         adminBtn.className = 'btn btn-ghost btn-sm admin-btn';
         adminBtn.innerHTML = '⚙️';
+        adminBtn.setAttribute('aria-label', 'Open admin panel');
+        adminBtn.setAttribute('aria-label', 'Open admin panel');
         adminBtn.onclick = showAdminPanel;
         adminBtn.title = 'Debug panel - reuses cached data';
         adminBtn.setAttribute('aria-label', 'Open admin panel');
@@ -695,13 +697,13 @@
             <button class="modal-close" onclick="this.closest('.modal-overlay').remove()" aria-label="Close admin panel">×</button>
           </div>
           <div class="admin-tabs">
-            <button class="admin-tab active" data-tab="stats">📊 Stats</button>
-            <button class="admin-tab" data-tab="kv">🗄️ KV Monitor</button>
-            <button class="admin-tab" data-tab="cache">💾 Cache</button>
-            <button class="admin-tab" data-tab="health">🏥 Health</button>
-            <button class="admin-tab" data-tab="errors">🐛 Errors</button>
-            <button class="admin-tab" data-tab="perf">⚡ Performance</button>
-            <button class="admin-tab" data-tab="users">👥 Users</button>
+            <button class="admin-tab active" data-tab="stats" aria-label="Stats">📊 Stats</button>
+            <button class="admin-tab" data-tab="kv" aria-label="KV Monitor">🗄️ KV Monitor</button>
+            <button class="admin-tab" data-tab="cache" aria-label="Cache">💾 Cache</button>
+            <button class="admin-tab" data-tab="health" aria-label="Health">🏥 Health</button>
+            <button class="admin-tab" data-tab="errors" aria-label="Errors">🐛 Errors</button>
+            <button class="admin-tab" data-tab="perf" aria-label="Performance">⚡ Performance</button>
+            <button class="admin-tab" data-tab="users" aria-label="Users">👥 Users</button>
           </div>
           <div class="admin-tab-content" id="admin-tab-content">
             <div class="admin-grid">
@@ -4760,7 +4762,7 @@
         '<div class="customise-panel">',
         '  <div class="customise-header">',
         '    <h3>' + (swedishMode ? '✏️ Anpassa spellista' : '✏️ Customise Playlist') + '</h3>',
-        '    <button class="customise-close" onclick="this.closest(\\'.customise-modal\\').remove()" aria-label="Close">&times;</button>',
+        '    <button class="customise-close" onclick="this.closest(\'.customise-modal\').remove()" aria-label="Close">&times;</button>',
         '  </div>',
         '  <div class="customise-body">',
         '    <div class="customise-field">',
