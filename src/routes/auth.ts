@@ -1,5 +1,5 @@
 import { cachedKV } from '../lib/kv-cache';
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import type { CookieOptions } from 'hono/utils/cookie';
 import type { Env } from '../types';
@@ -60,6 +60,35 @@ function decodeStateFromCookie(cookieValue: string): { state: string; data: Reco
   } catch {
     return null;
   }
+}
+
+
+// Helper to resolve OAuth state (KV first, then cookie fallback)
+async function resolveOAuthState(
+  c: Context<{ Bindings: Env }>,
+  state: string,
+  log: ReturnType<typeof createLogger>
+): Promise<Record<string, string> | null> {
+  // Try KV first, then fall back to cookie for eventual consistency issues
+  let stateData = await verifyState(c.env.SESSIONS, state);
+
+  // If KV lookup failed, try the cookie backup
+  if (!stateData) {
+    const cookieValue = getCookie(c, OAUTH_STATE_COOKIE);
+    if (cookieValue) {
+      const cookieData = decodeStateFromCookie(cookieValue);
+      // Verify the state matches and cookie isn't too old (10 min max)
+      if (cookieData && cookieData.state === state && Date.now() - cookieData.ts < 600000) {
+        stateData = cookieData.data;
+        log.info('OAuth state recovered from cookie (KV eventual consistency fallback)');
+      }
+    }
+  }
+
+  // Always clean up the cookie
+  deleteCookie(c, OAUTH_STATE_COOKIE, OAUTH_COOKIE_OPTIONS);
+
+  return stateData;
 }
 
 const auth = new Hono<{ Bindings: Env }>();
@@ -190,23 +219,7 @@ auth.get('/github/callback', async (c) => {
     return c.redirect('/?error=invalid_request');
   }
 
-  // Try KV first, then fall back to cookie for eventual consistency issues
-  let stateData = await verifyState(c.env.SESSIONS, state);
-
-  // If KV lookup failed, try the cookie backup
-  if (!stateData) {
-    const cookieValue = getCookie(c, OAUTH_STATE_COOKIE);
-    if (cookieValue) {
-      const cookieData = decodeStateFromCookie(cookieValue);
-      if (cookieData && cookieData.state === state && Date.now() - cookieData.ts < 600000) {
-        stateData = cookieData.data;
-        log.info('OAuth state recovered from cookie (KV eventual consistency fallback)');
-      }
-    }
-  }
-
-  // Always clean up the cookie
-  deleteCookie(c, OAUTH_STATE_COOKIE, OAUTH_COOKIE_OPTIONS);
+  const stateData = await resolveOAuthState(c, state, log);
 
   if (!stateData || stateData.provider !== 'github') {
     await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: 'Invalid OAuth state' });
@@ -297,24 +310,7 @@ auth.get('/spotify/callback', async (c) => {
     return c.redirect('/?error=invalid_request');
   }
 
-  // Try KV first, then fall back to cookie for eventual consistency issues
-  let stateData = await verifyState(c.env.SESSIONS, state);
-
-  // If KV lookup failed, try the cookie backup
-  if (!stateData) {
-    const cookieValue = getCookie(c, OAUTH_STATE_COOKIE);
-    if (cookieValue) {
-      const cookieData = decodeStateFromCookie(cookieValue);
-      // Verify the state matches and cookie isn't too old (10 min max)
-      if (cookieData && cookieData.state === state && Date.now() - cookieData.ts < 600000) {
-        stateData = cookieData.data;
-        log.info('OAuth state recovered from cookie (KV eventual consistency fallback)');
-      }
-    }
-  }
-
-  // Always clean up the cookie
-  deleteCookie(c, OAUTH_STATE_COOKIE, OAUTH_COOKIE_OPTIONS);
+  const stateData = await resolveOAuthState(c, state, log);
 
   if (!stateData || stateData.provider !== 'spotify') {
     await trackAnalyticsEvent(c.env.SESSIONS, 'authFailure', { message: 'Invalid Spotify OAuth state' });
