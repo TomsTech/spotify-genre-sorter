@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError, createErrorResponse } from '../src/lib/error-handler';
+import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError, createErrorResponse, processBatch } from '../src/lib/error-handler';
 
 
 
@@ -302,5 +302,58 @@ describe('createErrorResponse', () => {
 
     const body = await response.json() as Record<string, unknown>;
     expect(body.stack).toBeUndefined();
+  });
+});
+
+describe('processBatch', () => {
+  it('should process all items successfully', async () => {
+    const items = [1, 2, 3];
+    const processor = async (item: number) => item * 2;
+    const result = await processBatch(items, processor);
+    expect(result.successful).toEqual([{ item: 1, result: 2 }, { item: 2, result: 4 }, { item: 3, result: 6 }]);
+    expect(result.failed).toEqual([]);
+    expect(result.totalCount).toBe(3);
+    expect(result.successCount).toBe(3);
+    expect(result.failureCount).toBe(0);
+  });
+
+  it('should handle partial failures and continue on error by default', async () => {
+    const items = [1, 2, 3];
+    const processor = async (item: number) => {
+      if (item === 2) throw new Error('Test error');
+      return item * 2;
+    };
+    const result = await processBatch(items, processor);
+    expect(result.successful).toEqual([{ item: 1, result: 2 }, { item: 3, result: 6 }]);
+    expect(result.failed).toHaveLength(1);
+    expect(result.failed[0].item).toBe(2);
+    expect(result.failed[0].error.code).toBe(ErrorCode.UNKNOWN_ERROR);
+    expect(result.totalCount).toBe(3);
+    expect(result.successCount).toBe(2);
+    expect(result.failureCount).toBe(1);
+  });
+
+  it('should stop processing if continueOnError is false', async () => {
+    const items = [1, 2, 3, 4, 5];
+    const processor = async (item: number) => {
+      if (item === 2) throw new Error('Test error');
+      return item * 2;
+    };
+    const result = await processBatch(items, processor, { continueOnError: false, maxConcurrent: 2 });
+    expect(result.successful).toEqual([{ item: 1, result: 2 }]);
+    expect(result.failed).toHaveLength(1);
+    expect(result.failed[0].item).toBe(2);
+    expect(result.totalCount).toBe(5);
+    expect(result.successCount).toBe(1);
+    expect(result.failureCount).toBe(1);
+  });
+
+  it('should handle empty arrays correctly', async () => {
+    const result = await processBatch([], async (item) => item);
+    expect(result.successful).toEqual([]);
+    expect(result.failed).toEqual([]);
+    expect(result.totalCount).toBe(0);
+    expect(result.successCount).toBe(0);
+    expect(result.failureCount).toBe(0);
   });
 });
