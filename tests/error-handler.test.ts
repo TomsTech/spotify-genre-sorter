@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError, createErrorResponse } from '../src/lib/error-handler';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError, createErrorResponse, withRetry } from '../src/lib/error-handler';
 
 
 
@@ -302,5 +302,78 @@ describe('createErrorResponse', () => {
 
     const body = await response.json() as Record<string, unknown>;
     expect(body.stack).toBeUndefined();
+  });
+});
+
+describe('withRetry', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('should resolve immediately if function succeeds', async () => {
+    const fn = vi.fn().mockResolvedValue('success');
+    const result = await withRetry(fn);
+    expect(result).toBe('success');
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it('should retry on retryable errors and succeed', async () => {
+    const fn = vi.fn()
+      .mockRejectedValueOnce(new Error('timeout'))
+      .mockResolvedValueOnce('success');
+
+    const promise = withRetry(fn, { baseDelay: 100, maxRetries: 2 });
+
+    // Fast-forward through delays
+    await vi.runAllTimersAsync();
+
+    const result = await promise;
+    expect(result).toBe('success');
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('should exhaust maxRetries and throw last error', async () => {
+    const error = new Error('timeout');
+    const fn = vi.fn().mockRejectedValue(error);
+
+    const promise = withRetry(fn, { baseDelay: 100, maxRetries: 2 });
+
+    // We expect the promise to reject, so we handle it gracefully here
+    promise.catch(() => {});
+
+    await vi.runAllTimersAsync();
+
+    await expect(promise).rejects.toThrow(AppError);
+    expect(fn).toHaveBeenCalledTimes(3); // 1 initial + 2 retries
+  });
+
+  it('should fail immediately on non-retryable errors', async () => {
+    const error = new Error('auth failed'); // Classified as AUTH_ERROR, retryable: false
+    const fn = vi.fn().mockRejectedValue(error);
+
+    const promise = withRetry(fn, { maxRetries: 2 });
+    promise.catch(() => {});
+
+    await expect(promise).rejects.toThrow(AppError);
+    expect(fn).toHaveBeenCalledTimes(1); // No retries
+  });
+
+  it('should respect the retryableErrors allowlist', async () => {
+    // If retryableErrors is explicitly set, it should only retry on those errors.
+    const fn = vi.fn().mockRejectedValue(new Error('timeout')); // TIMEOUT_ERROR
+
+    const promise = withRetry(fn, {
+      retryableErrors: [ErrorCode.NETWORK_ERROR], // Does not include TIMEOUT_ERROR
+      maxRetries: 2
+    });
+    promise.catch(() => {});
+
+    await expect(promise).rejects.toThrow(AppError);
+    expect(fn).toHaveBeenCalledTimes(1); // No retries because it's not in the allowlist
   });
 });
