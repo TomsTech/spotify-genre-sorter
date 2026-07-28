@@ -39,3 +39,6 @@
 ## 2024-05-18 - Replacing Sequential Pagination Chunking with Unbounded Concurrency
 **Learning:** Artificially throttling API requests into small, sequential chunks (e.g., waiting for one block of 5 requests to resolve before firing the next 5) introduces severe N+1 latency, especially when the total number of subrequests is inherently capped by environmental limits (like Cloudflare's 50 subrequests).
 **Action:** Replace arbitrary `for`-loop chunking with fully concurrent mapped `Promise.all` arrays for independent offsets. Maintain iterative progress callbacks (like UI progress bars) by incrementing a shared `loadedCount` inside the mapped asynchronous functions rather than awaiting entire batches at a time.
+## 2025-05-28 - [Parallelizing KV Read Operations]
+**Learning:** Sequential `await c.env.SESSIONS.get(hofKey)` operations inside `for` loops cause massive N+1 slowdowns in Cloudflare Workers, significantly increasing wall-clock time for API routes like `/stats`.
+**Action:** Always wrap concurrent `kv` get operations in `Promise.all()` to execute them in parallel, effectively binding total latency to the slowest single operation instead of the sum of all operations. And interleave JSON.parse with KV fetches implicitly by doing it on resolved values.

@@ -380,19 +380,26 @@ app.get('/stats', async (c) => {
     const count = countStr ? parseInt(countStr, 10) : 0;
 
     // Get hall of fame (first 10 users for display)
-    const hallOfFame: { position: number; spotifyName: string; registeredAt: string }[] = [];
-    for (let i = 1; i <= Math.min(count, 10); i++) {
+    const limit = Math.min(count, 10);
+    const hofPromises = [];
+    for (let i = 1; i <= limit; i++) {
       const hofKey = `hof:${String(i).padStart(3, '0')}`;
-      const data = await c.env.SESSIONS.get(hofKey);
-      if (data) {
+      hofPromises.push(c.env.SESSIONS.get(hofKey));
+    }
+
+    // PERF-FIX: Use Promise.all for parallel KV reads instead of sequential loop
+    // PERF-FIX: Interleave JSON.parse with KV fetches implicitly by doing it on resolved values
+    const hofResults = await Promise.all(hofPromises);
+    const hallOfFame = hofResults
+      .filter((data): data is string => data !== null)
+      .map(data => {
         const entry = JSON.parse(data) as { position: number; spotifyName: string; registeredAt: string };
-        hallOfFame.push({
+        return {
           position: entry.position,
           spotifyName: entry.spotifyName,
           registeredAt: entry.registeredAt,
-        });
-      }
-    }
+        };
+      });
 
     return c.json({
       userCount: count,
