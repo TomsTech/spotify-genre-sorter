@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Env } from '../types';
 import {
+  type AnalyticsData,
   getSession,
   updateSession,
   createOrUpdateUserStats,
@@ -2016,46 +2017,95 @@ api.get('/analytics', async (c) => {
   }
 });
 
+// KV Usage Helper Functions
+
+type AnalyticsSummary = {
+  today: AnalyticsData;
+  last7Days: {
+    pageViews: number;
+    uniqueVisitors: number;
+    signIns: number;
+    authFailures: number;
+    errors: number;
+    libraryScans: number;
+    playlistsCreated: number;
+  };
+};
+
+type KVBreakdown = {
+  sessions: { reads: number; writes: number };
+  caches: { reads: number; writes: number };
+  userStats: { reads: number; writes: number };
+  recentPlaylists: { reads: number; writes: number };
+  auth: { reads: number; writes: number };
+};
+
+export function calculateKVBreakdown(today: AnalyticsData): KVBreakdown {
+  return {
+    sessions: {
+      reads: Math.round(today.libraryScans * 2 + today.playlistsCreated * 2),
+      writes: today.signIns * 2, // create + update
+    },
+    caches: {
+      reads: Math.round(today.pageViews * 0.5), // Most are cache hits
+      writes: Math.round(today.pageViews * 0.02), // Rare cache rebuilds
+    },
+    userStats: {
+      reads: today.playlistsCreated,
+      writes: today.playlistsCreated,
+    },
+    recentPlaylists: {
+      reads: Math.round(today.pageViews * 0.3), // Polling (now 3min interval)
+      writes: today.playlistsCreated,
+    },
+    auth: {
+      reads: today.signIns * 3,
+      writes: today.signIns * 2,
+    },
+  };
+}
+
+export function determineKVStatus(writeUsagePercent: number, readUsagePercent: number): 'ok' | 'warning' | 'critical' {
+  if (writeUsagePercent > 90 || readUsagePercent > 90) return 'critical';
+  if (writeUsagePercent > 80 || readUsagePercent > 80) return 'warning';
+  return 'ok';
+}
+
+export function generateKVRecommendations(breakdown: KVBreakdown, estimatedReads: number, today: AnalyticsData): string[] {
+  const recommendations: string[] = [];
+  if (breakdown.recentPlaylists.reads > estimatedReads * 0.4) {
+    recommendations.push('Consider increasing polling interval for recent playlists');
+  }
+  if (breakdown.userStats.writes > 50) {
+    recommendations.push('High playlist creation activity - stats writes elevated');
+  }
+  if (today.authFailures > 10) {
+    recommendations.push('Elevated auth failures detected - possible attack or misconfiguration');
+  }
+  return recommendations;
+}
+
+export function calculateKVTrend(estimatedWrites: number, last7Days: AnalyticsSummary['last7Days']): { avgDailyWrites: number, direction: 'increasing' | 'decreasing' | 'stable' } {
+  const avgDailyWrites = Math.round(
+    (last7Days.signIns * 2 + last7Days.libraryScans + last7Days.playlistsCreated * 2) / 7
+  );
+  const direction = estimatedWrites > avgDailyWrites * 1.5 ? 'increasing' :
+                estimatedWrites < avgDailyWrites * 0.5 ? 'decreasing' : 'stable';
+  return { avgDailyWrites, direction };
+}
+
 // KV usage estimation endpoint for status page monitoring
 // Cloudflare Workers free tier: 100k reads/day, 1k writes/day
 api.get('/kv-usage', async (c) => {
   try {
     const analytics = await getAnalytics(c.env.SESSIONS);
     const today = analytics.today;
+    const last7Days = analytics.last7Days;
 
     // Get real-time metrics from the kv-cache layer
     const realtimeMetrics = getKVMetrics();
-    const last7Days = analytics.last7Days;
 
-    // Estimate KV operations by category (after optimizations)
-    // Sessions: 1 read per authenticated request
-    // Caches: leaderboard (5min), scoreboard (1h), genre (1-24h)
-    // User stats: 1 read + 1 write per playlist
-    // Recent playlists: 1 read per poll, 1 read + 1 write per add
-
-    const breakdown = {
-      sessions: {
-        reads: Math.round(today.libraryScans * 2 + today.playlistsCreated * 2),
-        writes: today.signIns * 2, // create + update
-      },
-      caches: {
-        reads: Math.round(today.pageViews * 0.5), // Most are cache hits
-        writes: Math.round(today.pageViews * 0.02), // Rare cache rebuilds
-      },
-      userStats: {
-        reads: today.playlistsCreated,
-        writes: today.playlistsCreated,
-      },
-      recentPlaylists: {
-        reads: Math.round(today.pageViews * 0.3), // Polling (now 3min interval)
-        writes: today.playlistsCreated,
-      },
-      auth: {
-        reads: today.signIns * 3,
-        writes: today.signIns * 2,
-      },
-    };
-
+    const breakdown = calculateKVBreakdown(today);
     const estimatedReads = Object.values(breakdown).reduce((sum, cat) => sum + cat.reads, 0);
     const estimatedWrites = Object.values(breakdown).reduce((sum, cat) => sum + cat.writes, 0);
 
@@ -2066,33 +2116,9 @@ api.get('/kv-usage', async (c) => {
     const readUsagePercent = Math.round((estimatedReads / READ_LIMIT) * 100);
     const writeUsagePercent = Math.round((estimatedWrites / WRITE_LIMIT) * 100);
 
-    // Determine status and any recommendations
-    let status: 'ok' | 'warning' | 'critical' = 'ok';
-    const recommendations: string[] = [];
-
-    if (writeUsagePercent > 90 || readUsagePercent > 90) {
-      status = 'critical';
-    } else if (writeUsagePercent > 80 || readUsagePercent > 80) {
-      status = 'warning';
-    }
-
-    // Smart recommendations based on usage patterns
-    if (breakdown.recentPlaylists.reads > estimatedReads * 0.4) {
-      recommendations.push('Consider increasing polling interval for recent playlists');
-    }
-    if (breakdown.userStats.writes > 50) {
-      recommendations.push('High playlist creation activity - stats writes elevated');
-    }
-    if (today.authFailures > 10) {
-      recommendations.push('Elevated auth failures detected - possible attack or misconfiguration');
-    }
-
-    // Calculate 7-day trend
-    const avgDailyWrites = Math.round(
-      (last7Days.signIns * 2 + last7Days.libraryScans + last7Days.playlistsCreated * 2) / 7
-    );
-    const trend = estimatedWrites > avgDailyWrites * 1.5 ? 'increasing' :
-                  estimatedWrites < avgDailyWrites * 0.5 ? 'decreasing' : 'stable';
+    const status = determineKVStatus(writeUsagePercent, readUsagePercent);
+    const recommendations = generateKVRecommendations(breakdown, estimatedReads, today);
+    const { avgDailyWrites, direction: trend } = calculateKVTrend(estimatedWrites, last7Days);
 
     return c.json({
       date: today.date,
