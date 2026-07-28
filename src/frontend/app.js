@@ -4351,157 +4351,225 @@
       \`;
     }
 
-    function renderGenres() {
-      const filteredGenres = filterGenres('');
-      const cacheInfo = genreData.cachedAt
-        ? \`<span class="cache-info" title="\${genreData.fromCache ? (swedishMode ? 'Från cache' : 'From cache') : (swedishMode ? 'Nyss hämtad' : 'Just fetched')}">
-            \${genreData.fromCache ? '⚡' : '✨'} \${formatCacheTime(genreData.cachedAt)}
-          </span>\`
-        : '';
-
-      app.innerHTML = \`
+        function renderGenreStats() {
+      return `
         <div class="stats">
           <div class="stat">
-            <div class="stat-value">\${genreData.totalTracks.toLocaleString()}</div>
-            <div class="stat-label" data-i18n="likedSongs">\${t('likedSongs')}</div>
+            <div class="stat-value">${genreData.totalTracks.toLocaleString()}</div>
+            <div class="stat-label" data-i18n="likedSongs">${t('likedSongs')}</div>
           </div>
           <div class="stat">
-            <div class="stat-value">\${genreData.totalGenres.toLocaleString()}</div>
-            <div class="stat-label" data-i18n="genresFound">\${t('genresFound')}</div>
+            <div class="stat-value">${genreData.totalGenres.toLocaleString()}</div>
+            <div class="stat-label" data-i18n="genresFound">${t('genresFound')}</div>
           </div>
           <div class="stat">
             <div class="stat-value" id="selected-count">0</div>
-            <div class="stat-label" data-i18n="selected">\${t('selected')}</div>
+            <div class="stat-label" data-i18n="selected">${t('selected')}</div>
           </div>
         </div>
+      `;
+    }
 
-        \${genreData.truncated ? \`
+    function renderTruncationWarning() {
+      if (!genreData.truncated) return '';
+      return `
         <div class="truncation-warning">
-          ⚠️ \${swedishMode
-            ? \`Visar \${genreData.totalTracks.toLocaleString()} av \${genreData.totalInLibrary?.toLocaleString()} låtar\`
-            : \`Showing \${genreData.totalTracks.toLocaleString()} of \${genreData.totalInLibrary?.toLocaleString()} tracks\`}
-          <button onclick="loadFullLibrary()" class="btn btn-ghost btn-sm" style="margin-left: 0.5rem;">
-            \${swedishMode ? 'Ladda alla' : 'Load all'}
+          ⚠️ ${swedishMode
+            ? \`Visar ${genreData.totalTracks.toLocaleString()} av ${genreData.totalInLibrary?.toLocaleString()} låtar\`
+            : \`Showing ${genreData.totalTracks.toLocaleString()} of ${genreData.totalInLibrary?.toLocaleString()} tracks\`}
+          <button class="btn btn-ghost btn-sm btn-load-full-library" style="margin-left: 0.5rem;">
+            ${swedishMode ? 'Ladda alla' : 'Load all'}
           </button>
         </div>
-        \` : ''}
+      `;
+    }
 
+    function renderCacheStatus() {
+      const cacheInfo = genreData.cachedAt
+        ? `<span class="cache-info" title="${genreData.fromCache ? (swedishMode ? 'Från cache' : 'From cache') : (swedishMode ? 'Nyss hämtad' : 'Just fetched')}">
+            ${genreData.fromCache ? '⚡' : '✨'} ${formatCacheTime(genreData.cachedAt)}
+          </span>`
+        : '';
+
+      return `
         <div class="cache-status">
-          \${cacheInfo}
-          <button onclick="refreshGenres()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Hämta ny data från Spotify' : 'Fetch fresh data from Spotify'}">
-            🔄 \${swedishMode ? 'Uppdatera' : 'Refresh'}
+          ${cacheInfo}
+          <button class="btn btn-ghost btn-sm btn-refresh-genres" title="${swedishMode ? 'Hämta ny data från Spotify' : 'Fetch fresh data from Spotify'}">
+            🔄 ${swedishMode ? 'Uppdatera' : 'Refresh'}
           </button>
         </div>
+      `;
+    }
 
+    function renderToolbar() {
+      return `
         <div class="toolbar-row">
-          <button onclick="showGenreWrapped()" class="btn btn-primary btn-sm wrapped-btn" title="\${swedishMode ? 'Dela din musiksmak!' : 'Share your music taste!'}">
-            ✨ \${swedishMode ? 'Dela Din Smak' : 'Share Your Taste'}
+          <button class="btn btn-primary btn-sm wrapped-btn btn-show-genre-wrapped" title="${swedishMode ? 'Dela din musiksmak!' : 'Share your music taste!'}">
+            ✨ ${swedishMode ? 'Dela Din Smak' : 'Share Your Taste'}
           </button>
-          <button onclick="toggleStatsDashboard()" class="btn btn-ghost btn-sm stats-toggle" id="stats-toggle">
-            \${showStatsDashboard ? (swedishMode ? '📊 Dölj statistik' : '📊 Hide Stats') : (swedishMode ? '📊 Visa statistik' : '📊 Show Stats')}
+          <button class="btn btn-ghost btn-sm stats-toggle btn-toggle-stats-dashboard" id="stats-toggle">
+            ${showStatsDashboard ? (swedishMode ? '📊 Dölj statistik' : '📊 Hide Stats') : (swedishMode ? '📊 Visa statistik' : '📊 Show Stats')}
           </button>
-          <button onclick="toggleMergeMode()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Välj genrer att slå ihop' : 'Select genres to merge into one playlist'}">
-            📦 \${swedishMode ? 'Slå ihop' : 'Merge'}
+          <button class="btn btn-ghost btn-sm btn-toggle-merge-mode" title="${swedishMode ? 'Välj genrer att slå ihop' : 'Select genres to merge into one playlist'}">
+            📦 ${swedishMode ? 'Slå ihop' : 'Merge'}
           </button>
-          <button onclick="exportGenresJSON()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Exportera som JSON' : 'Export as JSON'}">
+          <button class="btn btn-ghost btn-sm btn-export-genres-json" title="${swedishMode ? 'Exportera som JSON' : 'Export as JSON'}">
             📥 JSON
           </button>
-          <button onclick="exportGenresCSV()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Exportera som CSV' : 'Export as CSV'}">
+          <button class="btn btn-ghost btn-sm btn-export-genres-csv" title="${swedishMode ? 'Exportera som CSV' : 'Export as CSV'}">
             📥 CSV
           </button>
         </div>
+      `;
+    }
 
-        \${renderStatsDashboard()}
-
-        <div class="hidden-toolbar" id="hidden-toolbar" style="display: \${hiddenGenres.size > 0 ? 'flex' : 'none'}">
-          <span>\${swedishMode ? 'Dolda genrer:' : 'Hidden genres:'} <strong id="hidden-count">\${hiddenGenres.size}</strong></span>
-          <button onclick="toggleShowHidden()" class="btn btn-ghost btn-sm">
-            \${showHiddenGenres ? (swedishMode ? '🙈 Dölj dolda' : '🙈 Hide hidden') : (swedishMode ? '👁️ Visa dolda' : '👁️ Show hidden')}
+    function renderHiddenToolbar() {
+      return `
+        <div class="hidden-toolbar" id="hidden-toolbar" style="display: ${hiddenGenres.size > 0 ? 'flex' : 'none'}">
+          <span>${swedishMode ? 'Dolda genrer:' : 'Hidden genres:'} <strong id="hidden-count">${hiddenGenres.size}</strong></span>
+          <button class="btn btn-ghost btn-sm btn-toggle-show-hidden">
+            ${showHiddenGenres ? (swedishMode ? '🙈 Dölj dolda' : '🙈 Hide hidden') : (swedishMode ? '👁️ Visa dolda' : '👁️ Show hidden')}
           </button>
-          <button onclick="unhideAllGenres()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Visa alla genrer' : 'Show all genres'}">
-            ↺ \${swedishMode ? 'Visa alla' : 'Unhide all'}
+          <button class="btn btn-ghost btn-sm btn-unhide-all-genres" title="${swedishMode ? 'Visa alla genrer' : 'Show all genres'}">
+            ↺ ${swedishMode ? 'Visa alla' : 'Unhide all'}
           </button>
-          <button onclick="hideSmallGenres(5)" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Dölj genrer med färre än 5 låtar' : 'Hide genres with fewer than 5 tracks'}">
-            \${swedishMode ? 'Dölj små (<5)' : 'Hide small (<5)'}
+          <button class="btn btn-ghost btn-sm btn-hide-small-genres" title="${swedishMode ? 'Dölj genrer med färre än 5 låtar' : 'Hide genres with fewer than 5 tracks'}">
+            ${swedishMode ? 'Dölj små (<5)' : 'Hide small (<5)'}
           </button>
         </div>
+      `;
+    }
 
-        <div class="card">
-          <h2 class="card-title" data-i18n="yourGenres">\${t('yourGenres')}</h2>
-
+    function renderTemplateSettings() {
+      return `
           <div class="template-settings">
-            <label for="template-input">\${swedishMode ? 'Spellistnamn mall' : 'Playlist Name Template'}</label>
+            <label for="template-input">${swedishMode ? 'Spellistnamn mall' : 'Playlist Name Template'}</label>
             <div class="template-input-row">
               <input
                 type="text"
                 class="search-input"
                 id="template-input"
-                value="\${playlistTemplate.replace(/"/g, '&quot;')}"
-                oninput="debouncedUpdatePlaylistTemplate(this.value)"
+                value="${playlistTemplate.replace(/"/g, '&quot;')}"
                 placeholder="{genre} (from Likes)"
-                aria-label="\${swedishMode ? 'Spellistnamn mall' : 'Playlist Name Template'}"
+                aria-label="${swedishMode ? 'Spellistnamn mall' : 'Playlist Name Template'}"
               >
-              <button onclick="resetTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ mall' : 'Reset template'}">↺</button>
+              <button class="btn btn-ghost btn-sm btn-reset-template" title="${swedishMode ? 'Återställ' : 'Reset'}" aria-label="${swedishMode ? 'Återställ mall' : 'Reset template'}">↺</button>
             </div>
             <div class="template-preview">
-              \${swedishMode ? 'Förhandsvisning:' : 'Preview:'} <span id="template-preview">\${getTemplatePreview()}</span>
+              ${swedishMode ? 'Förhandsvisning:' : 'Preview:'} <span id="template-preview">${getTemplatePreview()}</span>
             </div>
 
-            <label for="desc-template-input" style="margin-top: 1rem;">\${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}</label>
+            <label for="desc-template-input" style="margin-top: 1rem;">${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}</label>
             <div class="template-input-row">
               <input
                 type="text"
                 class="search-input"
                 id="desc-template-input"
-                value="\${playlistDescTemplate.replace(/"/g, '&quot;')}"
-                oninput="debouncedUpdateDescTemplate(this.value)"
+                value="${playlistDescTemplate.replace(/"/g, '&quot;')}"
                 placeholder="{genre} tracks • {count} songs"
-                aria-label="\${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}"
+                aria-label="${swedishMode ? 'Spellistbeskrivning mall' : 'Playlist Description Template'}"
               >
-              <button onclick="resetDescTemplate()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Återställ' : 'Reset'}" aria-label="\${swedishMode ? 'Återställ beskrivningsmall' : 'Reset description template'}">↺</button>
+              <button class="btn btn-ghost btn-sm btn-reset-desc-template" title="${swedishMode ? 'Återställ' : 'Reset'}" aria-label="${swedishMode ? 'Återställ beskrivningsmall' : 'Reset description template'}">↺</button>
             </div>
             <div class="template-preview">
-              \${swedishMode ? 'Förhandsvisning:' : 'Preview:'} <span id="desc-template-preview">\${getDescTemplatePreview()}</span>
+              ${swedishMode ? 'Förhandsvisning:' : 'Preview:'} <span id="desc-template-preview">${getDescTemplatePreview()}</span>
             </div>
             <div class="template-hint" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
-              \${swedishMode ? 'Platshållare: {genre}, {count}, {date}, {username}' : 'Placeholders: {genre}, {count}, {date}, {username}'}
+              ${swedishMode ? 'Platshållare: {genre}, {count}, {date}, {username}' : 'Placeholders: {genre}, {count}, {date}, {username}'}
             </div>
           </div>
+      `;
+    }
+
+    function renderGenres() {
+      const filteredGenres = filterGenres('');
+
+      app.innerHTML = `
+        ${renderGenreStats()}
+        ${renderTruncationWarning()}
+        ${renderCacheStatus()}
+        ${renderToolbar()}
+        ${renderStatsDashboard()}
+        ${renderHiddenToolbar()}
+
+        <div class="card">
+          <h2 class="card-title" data-i18n="yourGenres">${t('yourGenres')}</h2>
+          ${renderTemplateSettings()}
 
           <input
             type="text"
             class="search-input"
-            aria-label="\${t('searchGenres')}"
-            placeholder="\${t('searchGenres')}"
+            aria-label="${t('searchGenres')}"
+            placeholder="${t('searchGenres')}"
             data-i18n-placeholder="searchGenres"
-            oninput="debouncedFilterAndRenderGenres(this.value)"
           >
           <div class="select-all-row">
             <label class="select-all-label">
               <input
                 type="checkbox"
                 id="select-all-checkbox"
-                onchange="toggleSelectAll(this)"
-                aria-label="\${swedishMode ? 'Välj alla genrer' : 'Select all genres'}"
+                aria-label="${swedishMode ? 'Välj alla genrer' : 'Select all genres'}"
               >
-              <span>\${swedishMode ? 'Välj alla' : 'Select all'}</span>
+              <span>${swedishMode ? 'Välj alla' : 'Select all'}</span>
             </label>
             <span class="selection-info" id="selection-info"></span>
           </div>
           <div class="genre-list" id="genre-list"></div>
           <div class="actions">
-            <button onclick="selectAll()" class="btn btn-secondary" data-i18n="selectAll">\${t('selectAll')}</button>
-            <button onclick="selectNone()" class="btn btn-secondary" data-i18n="selectNone">\${t('selectNone')}</button>
-            <button onclick="createSelectedPlaylists()" class="btn btn-primary" id="create-btn" disabled data-i18n="createPlaylists">
-              \${t('createPlaylists')}
+            <button class="btn btn-secondary btn-select-all" data-i18n="selectAll">${t('selectAll')}</button>
+            <button class="btn btn-secondary btn-select-none" data-i18n="selectNone">${t('selectNone')}</button>
+            <button class="btn btn-primary btn-create-selected-playlists" id="create-btn" disabled data-i18n="createPlaylists">
+              ${t('createPlaylists')}
             </button>
           </div>
         </div>
 
         <div id="results"></div>
-      \`;
+      `;
+
+      // Attach event listeners to newly rendered elements
+      attachRenderGenresEvents();
 
       renderGenreList(filteredGenres);
+    }
+
+    function attachRenderGenresEvents() {
+      // Helper function to safely add event listeners
+      const addListener = (selector, event, handler) => {
+        const el = app.querySelector(selector);
+        if (el) el.addEventListener(event, handler);
+      };
+
+      // Truncation Warning
+      addListener('.btn-load-full-library', 'click', loadFullLibrary);
+
+      // Cache Status
+      addListener('.btn-refresh-genres', 'click', refreshGenres);
+
+      // Toolbar Row
+      addListener('.btn-show-genre-wrapped', 'click', showGenreWrapped);
+      addListener('.btn-toggle-stats-dashboard', 'click', toggleStatsDashboard);
+      addListener('.btn-toggle-merge-mode', 'click', toggleMergeMode);
+      addListener('.btn-export-genres-json', 'click', exportGenresJSON);
+      addListener('.btn-export-genres-csv', 'click', exportGenresCSV);
+
+      // Hidden Toolbar
+      addListener('.btn-toggle-show-hidden', 'click', toggleShowHidden);
+      addListener('.btn-unhide-all-genres', 'click', unhideAllGenres);
+      addListener('.btn-hide-small-genres', 'click', () => hideSmallGenres(5));
+
+      // Template Settings
+      addListener('#template-input', 'input', (e) => debouncedUpdatePlaylistTemplate(e.target.value));
+      addListener('.btn-reset-template', 'click', resetTemplate);
+      addListener('#desc-template-input', 'input', (e) => debouncedUpdateDescTemplate(e.target.value));
+      addListener('.btn-reset-desc-template', 'click', resetDescTemplate);
+
+      // Genre Search and Selection
+      addListener('.search-input[data-i18n-placeholder="searchGenres"]', 'input', (e) => debouncedFilterAndRenderGenres(e.target.value));
+      addListener('#select-all-checkbox', 'change', (e) => toggleSelectAll(e.target));
+      addListener('.btn-select-all', 'click', selectAll);
+      addListener('.btn-select-none', 'click', selectNone);
+      addListener('.btn-create-selected-playlists', 'click', createSelectedPlaylists);
     }
 
     function filterGenres(query) {
