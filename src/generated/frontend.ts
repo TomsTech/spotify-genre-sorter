@@ -10988,7 +10988,7 @@ export function getHtml(nonce: string): string {
 
           // Update album art
           if (data.track.albumArt) {
-            artEl.src = data.track.albumArt;
+            artEl.src = data.track.albumArt; // DOM property expects raw string, DO NOT use escapeHtml
             artEl.alt = data.track.album;
           }
 
@@ -12374,81 +12374,90 @@ export function getHtml(nonce: string): string {
       }
     }
 
+    async function checkInterruptedScan() {
+      try {
+        const statusRes = await fetch('/api/genres/scan-status');
+        if (statusRes.ok) {
+          const scanStatus = await statusRes.json();
+          if (scanStatus.hasProgress && scanStatus.canResume) {
+            const timeSince = Math.round((Date.now() - new Date(scanStatus.lastUpdatedAt).getTime()) / 60000);
+            const message = swedishMode
+              ? \`📚 Hittade ofullständig skanning (\${scanStatus.progress}% klar, \${timeSince} minuter sedan). Vill du återuppta?\`
+              : \`📚 Found interrupted scan (\${scanStatus.progress}% complete, \${timeSince} minutes ago). Resume?\`;
+
+            if (confirm(message)) {
+              showNotification(
+                swedishMode ? '▶️ Återupptar skanning...' : '▶️ Resuming scan...',
+                'info'
+              );
+              await loadFullLibrary();
+              return true;
+            } else {
+              // Clear the saved state if user doesn't want to resume
+              clearScanState();
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Could not check scan status:', e);
+      }
+      return false;
+    }
+
+    async function checkLibrarySize() {
+      // First, fetch library size to show user what to expect (#75)
+      renderLoading(
+        swedishMode ? 'Kontrollerar biblioteksstorlek...' : 'Checking library size...',
+        ''
+      );
+
+      let libraryInfo = null;
+      try {
+        const sizeRes = await fetch('/api/library-size');
+        if (sizeRes.ok) {
+          libraryInfo = await sizeRes.json();
+        }
+      } catch (e) {
+        console.log('Could not fetch library size:', e);
+      }
+
+      // Show library size with scan estimate
+      if (libraryInfo) {
+        const trackCount = libraryInfo.total.toLocaleString();
+        const estimate = libraryInfo.estimatedScanTime;
+
+        // Warning for large libraries
+        if (libraryInfo.isLarge) {
+          showNotification(
+            swedishMode
+              ? \`⚠️ Stort bibliotek (\${trackCount} låtar) - skanningen kan ta \${estimate}\`
+              : \`⚠️ Large library (\${trackCount} tracks) - scan may take \${estimate}\`,
+            'info',
+            8000
+          );
+        }
+
+        renderLoading(
+          swedishMode ? 'Hämtar dina låtar...' : 'Fetching your liked songs...',
+          swedishMode
+            ? \`📚 \${trackCount} låtar • Beräknad tid: \${estimate}\`
+            : \`📚 \${trackCount} tracks • Estimated time: \${estimate}\`
+        );
+      } else {
+        renderLoading(
+          swedishMode ? 'Hämtar dina låtar...' : 'Fetching your liked songs...',
+          swedishMode ? 'Detta kan ta en stund för stora bibliotek' : 'This may take a moment for large libraries'
+        );
+      }
+    }
+
     async function loadGenres() {
       try {
         // Check for interrupted scan to resume (#76)
-        try {
-          const statusRes = await fetch('/api/genres/scan-status');
-          if (statusRes.ok) {
-            const scanStatus = await statusRes.json();
-            if (scanStatus.hasProgress && scanStatus.canResume) {
-              const timeSince = Math.round((Date.now() - new Date(scanStatus.lastUpdatedAt).getTime()) / 60000);
-              const message = swedishMode
-                ? \`📚 Hittade ofullständig skanning (\${scanStatus.progress}% klar, \${timeSince} minuter sedan). Vill du återuppta?\`
-                : \`📚 Found interrupted scan (\${scanStatus.progress}% complete, \${timeSince} minutes ago). Resume?\`;
+        if (await checkInterruptedScan()) return;
 
-              if (confirm(message)) {
-                showNotification(
-                  swedishMode ? '▶️ Återupptar skanning...' : '▶️ Resuming scan...',
-                  'info'
-                );
-                await loadFullLibrary();
-                return;
-              } else {
-                // Clear the saved state if user doesn't want to resume
-                clearScanState();
-              }
-            }
-          }
-        } catch (e) {
-          console.warn('Could not check scan status:', e);
-        }
-
-        // First, fetch library size to show user what to expect (#75)
-        renderLoading(
-          swedishMode ? 'Kontrollerar biblioteksstorlek...' : 'Checking library size...',
-          ''
-        );
-
-        let libraryInfo = null;
-        try {
-          const sizeRes = await fetch('/api/library-size');
-          if (sizeRes.ok) {
-            libraryInfo = await sizeRes.json();
-          }
-        } catch (e) {
-          console.log('Could not fetch library size:', e);
-        }
-
-        // Show library size with scan estimate
-        if (libraryInfo) {
-          const trackCount = libraryInfo.total.toLocaleString();
-          const estimate = libraryInfo.estimatedScanTime;
-
-          // Warning for large libraries
-          if (libraryInfo.isLarge) {
-            showNotification(
-              swedishMode
-                ? \`⚠️ Stort bibliotek (\${trackCount} låtar) - skanningen kan ta \${estimate}\`
-                : \`⚠️ Large library (\${trackCount} tracks) - scan may take \${estimate}\`,
-              'info',
-              8000
-            );
-          }
-
-          renderLoading(
-            swedishMode ? 'Hämtar dina låtar...' : 'Fetching your liked songs...',
-            swedishMode
-              ? \`📚 \${trackCount} låtar • Beräknad tid: \${estimate}\`
-              : \`📚 \${trackCount} tracks • Estimated time: \${estimate}\`
-          );
-        } else {
-          renderLoading(
-            swedishMode ? 'Hämtar dina låtar...' : 'Fetching your liked songs...',
-            swedishMode ? 'Detta kan ta en stund för stora bibliotek' : 'This may take a moment for large libraries'
-          );
-        }
-
+        // Fetch library size to show user what to expect (#75)
+        await checkLibrarySize();
         // Now fetch the genres
         const response = await fetch('/api/genres');
         const data = await response.json();
@@ -13747,7 +13756,7 @@ export function getHtml(nonce: string): string {
       modal.id = 'loading-modal';
       modal.innerHTML = \`
         <div class="album-carousel">
-          \${shuffled.map(art => \`<img class="album-art" src="\${art}" alt="" onerror="this.style.background='var(--surface-2)'">\`).join('')}
+          \${shuffled.map(art => \`<img class="album-art" src="\${escapeHtml(art)}" alt="" onerror="this.style.background='var(--surface-2)'">\`).join('')}
         </div>
         <div class="loading-text" id="loading-text">\${swedishMode ? 'Skapar spellistor...' : 'Creating playlists...'}</div>
         <div class="loading-progress">
@@ -14201,7 +14210,7 @@ export function getHtml(nonce: string): string {
             existingTooltip.querySelector('.now-playing-artists').textContent = data.track.artists;
             const img = existingTooltip.querySelector('.now-playing-album-art');
             if (data.track.albumArt) {
-              img.src = data.track.albumArt;
+              img.src = data.track.albumArt; // DOM property expects raw string, DO NOT use escapeHtml
               img.style.display = '';
             } else {
               img.style.display = 'none';
