@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError, createErrorResponse } from '../src/lib/error-handler';
+import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError, createErrorResponse, logError } from '../src/lib/error-handler';
+import * as loggerModule from '../src/lib/logger';
+import { SpyInstance, vi, beforeEach, afterEach } from 'vitest';
 
 
 
@@ -302,5 +304,105 @@ describe('createErrorResponse', () => {
 
     const body = await response.json() as Record<string, unknown>;
     expect(body.stack).toBeUndefined();
+  });
+});
+
+describe('logError', () => {
+  let consoleErrorSpy: SpyInstance;
+  let createLoggerSpy: SpyInstance;
+  let mockLogger: any;
+
+  beforeEach(() => {
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockLogger = {
+      error: vi.fn(),
+      logError: vi.fn(),
+    };
+    createLoggerSpy = vi.spyOn(loggerModule, 'createLogger').mockReturnValue(mockLogger);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should fallback to console.error when no execution context is provided', () => {
+    const error = new Error('Test error');
+    const logEntry = logError(error);
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith('[ERROR]', {
+      code: ErrorCode.UNKNOWN_ERROR,
+      message: 'Test error',
+      statusCode: 500,
+      path: undefined,
+    });
+    expect(createLoggerSpy).not.toHaveBeenCalled();
+
+    expect(logEntry.code).toBe(ErrorCode.UNKNOWN_ERROR);
+    expect(logEntry.message).toBe('Test error');
+    expect(logEntry.statusCode).toBe(500);
+  });
+
+  it('should use createLogger when execution context is provided', () => {
+    const error = new Error('Failed to fetch data'); // classifyError maps this to NETWORK_ERROR
+    const executionContext = {} as any;
+
+    logError(error, { executionContext });
+
+    expect(createLoggerSpy).toHaveBeenCalledWith(executionContext, undefined, undefined);
+    expect(mockLogger.error).toHaveBeenCalledWith('[ERROR]', {
+      code: ErrorCode.NETWORK_ERROR,
+      message: 'Failed to fetch data',
+      statusCode: 503,
+      path: undefined,
+    });
+    expect(mockLogger.logError).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it('should log detailed error when betterStackToken is provided', () => {
+    const error = new AppError({
+      code: ErrorCode.SPOTIFY_API_ERROR,
+      message: 'Spotify API rate limit',
+      statusCode: 429,
+      recoverable: true,
+      retryable: true,
+    });
+    const executionContext = {} as any;
+    const betterStackToken = 'token-123';
+    const requestContext = { path: '/api/test' };
+
+    logError(error, { executionContext, betterStackToken, requestContext });
+
+    expect(createLoggerSpy).toHaveBeenCalledWith(executionContext, betterStackToken, requestContext);
+    expect(mockLogger.error).toHaveBeenCalledWith('[ERROR]', {
+      code: ErrorCode.SPOTIFY_API_ERROR,
+      message: 'Spotify API rate limit',
+      statusCode: 429,
+      path: '/api/test',
+    });
+    expect(mockLogger.logError).toHaveBeenCalledWith(
+      'Spotify API rate limit',
+      expect.any(Error),
+      expect.objectContaining({
+        errorCode: ErrorCode.SPOTIFY_API_ERROR,
+        statusCode: 429,
+        recoverable: true,
+        retryable: true,
+      })
+    );
+  });
+
+  it('should catch logger failures and fallback to console.error', () => {
+    const error = new Error('Test error');
+    const executionContext = {} as any;
+
+    const logErr = new Error('Logger initialization failed');
+    createLoggerSpy.mockImplementation(() => {
+      throw logErr;
+    });
+
+    logError(error, { executionContext });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to send error to logger:', logErr);
   });
 });
