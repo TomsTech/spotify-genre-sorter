@@ -70,4 +70,33 @@ describe('kv-monitor', () => {
     expect(result.namespaces[0].keyCount).toBe(0);
     expect(result.summary.totalKeys).toBe(0);
   });
+
+  it('should handle partial errors in kv.list (e.g. one prefix fails while others succeed)', async () => {
+    const mockKv = {
+      list: vi.fn().mockImplementation((opts) => {
+        if (opts.prefix === 'session:') {
+          return Promise.reject(new Error('KV List Error'));
+        }
+        return Promise.resolve({
+          keys: [
+            { name: opts.prefix + '123', metadata: { size: 100 } }
+          ],
+          list_complete: true,
+        });
+      })
+    } as unknown as KVNamespace;
+
+    const result = await getKVMonitorData(mockKv);
+
+    expect(result.namespaces.length).toBe(KV_PREFIXES.length);
+
+    const sessionNamespace = result.namespaces.find(n => n.prefix === 'session:');
+    expect(sessionNamespace?.error).toBe('Failed to list keys');
+    expect(sessionNamespace?.keyCount).toBe(0);
+
+    const otherNamespace = result.namespaces.find(n => n.prefix !== 'session:');
+    expect(otherNamespace?.error).toBeUndefined();
+    expect(otherNamespace?.keyCount).toBe(1);
+    expect(otherNamespace?.totalSize).toBe(100);
+  });
 });
