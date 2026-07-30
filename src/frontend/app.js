@@ -2507,6 +2507,7 @@
         selectAll: 'Select All',
         selectNone: 'Select None',
         createPlaylists: 'Create Playlists',
+        createPlaylistsDisabledTooltip: 'Select at least one genre to create playlists',
         create: 'Create',
         creating: 'Creating...',
         created: 'Created!',
@@ -4492,9 +4493,9 @@
           <div class="actions">
             <button onclick="selectAll()" class="btn btn-secondary" data-i18n="selectAll">\${t('selectAll')}</button>
             <button onclick="selectNone()" class="btn btn-secondary" data-i18n="selectNone">\${t('selectNone')}</button>
-            <button onclick="createSelectedPlaylists()" class="btn btn-primary" id="create-btn" disabled data-i18n="createPlaylists">
+            <span id="create-btn-wrapper" style="display: inline-block;"><button onclick="createSelectedPlaylists()" class="btn btn-primary" id="create-btn" disabled data-i18n="createPlaylists" style="pointer-events: none;">
               \${t('createPlaylists')}
-            </button>
+            </button></span>
           </div>
         </div>
 
@@ -4598,7 +4599,23 @@
       const createBtn = document.getElementById('create-btn');
       // Guard against elements not existing (e.g., in admin panel)
       if (countEl) countEl.textContent = selectedGenres.size;
-      if (createBtn) createBtn.disabled = selectedGenres.size === 0;
+      if (createBtn) {
+        createBtn.disabled = selectedGenres.size === 0;
+        const wrapper = document.getElementById("create-btn-wrapper");
+        if (wrapper) {
+          if (selectedGenres.size === 0) {
+            wrapper.title = t("createPlaylistsDisabledTooltip");
+            wrapper.style.cursor = "not-allowed";
+            wrapper.setAttribute("tabindex", "0");
+            createBtn.style.pointerEvents = "none";
+          } else {
+            wrapper.title = "";
+            wrapper.style.cursor = "default";
+            wrapper.removeAttribute("tabindex");
+            createBtn.style.pointerEvents = "auto";
+          }
+        }
+      }
 
       // Update select-all checkbox state
       updateSelectAllCheckbox();
