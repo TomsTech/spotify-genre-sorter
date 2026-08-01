@@ -10198,7 +10198,7 @@ export function getHtml(nonce: string): string {
           <span class="fika-emoji">☕🍪</span>
           <p>Dags för fika!</p>
           <p style="font-size: 0.9rem; opacity: 0.8;">Time for a coffee break!</p>
-          <button class="btn btn-ghost fika-dismiss-btn">Tack!</button>
+          <button class="btn btn-ghost fika-dismiss-btn" aria-label="Dismiss fika reminder">Tack!</button>
         </div>
       \`;
       document.body.appendChild(reminder);
@@ -10988,7 +10988,7 @@ export function getHtml(nonce: string): string {
 
           // Update album art
           if (data.track.albumArt) {
-            artEl.src = data.track.albumArt;
+            artEl.src = data.track.albumArt; // DOM property expects raw string, DO NOT use escapeHtml
             artEl.alt = data.track.album;
           }
 
@@ -13747,7 +13747,7 @@ export function getHtml(nonce: string): string {
       modal.id = 'loading-modal';
       modal.innerHTML = \`
         <div class="album-carousel">
-          \${shuffled.map(art => \`<img class="album-art" src="\${art}" alt="" onerror="this.style.background='var(--surface-2)'">\`).join('')}
+          \${shuffled.map(art => \`<img class="album-art" src="\${escapeHtml(art)}" alt="" onerror="this.style.background='var(--surface-2)'">\`).join('')}
         </div>
         <div class="loading-text" id="loading-text">\${swedishMode ? 'Skapar spellistor...' : 'Creating playlists...'}</div>
         <div class="loading-progress">
@@ -14201,7 +14201,7 @@ export function getHtml(nonce: string): string {
             existingTooltip.querySelector('.now-playing-artists').textContent = data.track.artists;
             const img = existingTooltip.querySelector('.now-playing-album-art');
             if (data.track.albumArt) {
-              img.src = data.track.albumArt;
+              img.src = data.track.albumArt; // DOM property expects raw string, DO NOT use escapeHtml
               img.style.display = '';
             } else {
               img.style.display = 'none';
@@ -14985,7 +14985,7 @@ export function getHtml(nonce: string): string {
             '<span class="playlist-item-tracks">' + playlist.trackCount + ' ' + tracksText + '</span>' +
             (playlist.isOwner ? '<span class="playlist-item-owner">' + ownerText + '</span>' : '') +
           '</div>' +
-          '<button class="playlist-scan-btn" onclick="scanPlaylist(\\'' + playlist.id + '\\', \\'' + escapeHtml(playlist.name).replace(/'/g, "\\'") + '\\')">' +
+          '<button class="playlist-scan-btn" aria-label="' + (swedishMode ? 'Skanna spellista ' : 'Scan playlist ') + escapeHtml(playlist.name) + '" onclick="scanPlaylist(\\'' + playlist.id + '\\', \\'' + escapeHtml(playlist.name).replace(/'/g, "\\'") + '\\')">' +
             scanText +
           '</button>' +
         '</div>';
@@ -15013,7 +15013,7 @@ export function getHtml(nonce: string): string {
         console.error('Error scanning playlist:', err);
         const errorText = swedishMode ? 'Kunde inte skanna spellistan' : 'Failed to scan playlist';
         container.innerHTML = '<p style="color: var(--danger)">' + errorText + '</p>' +
-          '<button class="back-to-playlists-btn" onclick="renderPlaylistList()">← Back</button>';
+          '<button class="back-to-playlists-btn" aria-label="Go back to playlists" onclick="renderPlaylistList()">← Back</button>';
       }
     }
 
@@ -15029,7 +15029,7 @@ export function getHtml(nonce: string): string {
 
       let html = '<div class="playlist-genres-result">' +
         '<div class="playlist-genres-header">' +
-          '<button class="back-to-playlists-btn" onclick="renderPlaylistList()">' + backText + '</button>' +
+          '<button class="back-to-playlists-btn" aria-label="' + backText + '" onclick="renderPlaylistList()">' + backText + '</button>' +
           '<div class="playlist-genres-stats">' +
             '<span>' + data.totalGenres + ' ' + genresText + '</span>' +
             '<span>' + data.totalTracks + ' ' + tracksText + '</span>' +
@@ -15069,6 +15069,7 @@ export function getHtml(nonce: string): string {
       btn.id = 'playlist-scanner-btn';
       btn.className = 'playlist-scanner-btn';
       btn.innerHTML = swedishMode ? '📋 Skanna Spellista' : '📋 Scan Playlist';
+      btn.setAttribute('aria-label', swedishMode ? 'Skanna en befintlig spellista' : 'Scan an existing playlist');
       btn.onclick = showPlaylistScanner;
 
       // Insert at the beginning of toolbar
