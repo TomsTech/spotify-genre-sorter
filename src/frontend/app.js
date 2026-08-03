@@ -4492,9 +4492,11 @@
           <div class="actions">
             <button onclick="selectAll()" class="btn btn-secondary" data-i18n="selectAll">\${t('selectAll')}</button>
             <button onclick="selectNone()" class="btn btn-secondary" data-i18n="selectNone">\${t('selectNone')}</button>
-            <button onclick="createSelectedPlaylists()" class="btn btn-primary" id="create-btn" disabled data-i18n="createPlaylists">
-              \${t('createPlaylists')}
-            </button>
+            <span class="tooltip-wrapper" tabindex="0" data-tooltip="\${swedishMode ? 'Välj minst en genre först' : 'Select at least one genre first'}" style="display: inline-block;">
+              <button onclick="createSelectedPlaylists()" class="btn btn-primary" id="create-btn" disabled data-i18n="createPlaylists">
+                \${t('createPlaylists')}
+              </button>
+            </span>
           </div>
         </div>
 
@@ -4598,7 +4600,19 @@
       const createBtn = document.getElementById('create-btn');
       // Guard against elements not existing (e.g., in admin panel)
       if (countEl) countEl.textContent = selectedGenres.size;
-      if (createBtn) createBtn.disabled = selectedGenres.size === 0;
+      if (createBtn) {
+        createBtn.disabled = selectedGenres.size === 0;
+        const wrapper = createBtn.closest('.tooltip-wrapper');
+        if (wrapper) {
+          if (createBtn.disabled) {
+            wrapper.setAttribute('data-tooltip', swedishMode ? 'Välj minst en genre först' : 'Select at least one genre first');
+            wrapper.setAttribute('tabindex', '0');
+          } else {
+            wrapper.removeAttribute('data-tooltip');
+            wrapper.removeAttribute('tabindex');
+          }
+        }
+      }
 
       // Update select-all checkbox state
       updateSelectAllCheckbox();
