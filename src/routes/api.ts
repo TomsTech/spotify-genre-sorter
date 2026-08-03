@@ -1802,6 +1802,10 @@ api.post('/invite-request', async (c) => {
       return c.json({ error: 'Invalid email/name' }, 400);
     }
 
+    if (note && note.length > 1000) {
+      return c.json({ error: 'Note exceeds maximum length of 1000 characters' }, 400);
+    }
+
     // Store the request
     interface InviteRequest {
       email: string;
@@ -2619,8 +2623,16 @@ api.post('/request-access', async (c) => {
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(email) || email.length > 100) {
       return c.json({ error: 'Invalid email format' }, 400);
+    }
+
+    if (github && github.length > 100) {
+      return c.json({ error: 'GitHub username exceeds maximum length of 100 characters' }, 400);
+    }
+
+    if (message && message.length > 1000) {
+      return c.json({ error: 'Message exceeds maximum length of 1000 characters' }, 400);
     }
 
     const kv = c.env.SESSIONS;
