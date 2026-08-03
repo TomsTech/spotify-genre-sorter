@@ -1611,7 +1611,7 @@
           <span class="fika-emoji">☕🍪</span>
           <p>Dags för fika!</p>
           <p style="font-size: 0.9rem; opacity: 0.8;">Time for a coffee break!</p>
-          <button class="btn btn-ghost fika-dismiss-btn">Tack!</button>
+          <button class="btn btn-ghost fika-dismiss-btn" aria-label="Dismiss fika reminder">Tack!</button>
         </div>
       \`;
       document.body.appendChild(reminder);
@@ -6412,7 +6412,7 @@
             '<span class="playlist-item-tracks">' + playlist.trackCount + ' ' + tracksText + '</span>' +
             (playlist.isOwner ? '<span class="playlist-item-owner">' + ownerText + '</span>' : '') +
           '</div>' +
-          '<button class="playlist-scan-btn" onclick="scanPlaylist(\'' + playlist.id + '\', \'' + escapeHtml(playlist.name).replace(/'/g, "\\'") + '\')">' +
+          '<button class="playlist-scan-btn" aria-label="' + (swedishMode ? 'Skanna spellista ' : 'Scan playlist ') + escapeHtml(playlist.name) + '" onclick="scanPlaylist(\'' + playlist.id + '\', \'' + escapeHtml(playlist.name).replace(/'/g, "\\'") + '\')">' +
             scanText +
           '</button>' +
         '</div>';
@@ -6440,7 +6440,7 @@
         console.error('Error scanning playlist:', err);
         const errorText = swedishMode ? 'Kunde inte skanna spellistan' : 'Failed to scan playlist';
         container.innerHTML = '<p style="color: var(--danger)">' + errorText + '</p>' +
-          '<button class="back-to-playlists-btn" onclick="renderPlaylistList()">← Back</button>';
+          '<button class="back-to-playlists-btn" aria-label="Go back to playlists" onclick="renderPlaylistList()">← Back</button>';
       }
     }
 
@@ -6456,7 +6456,7 @@
 
       let html = '<div class="playlist-genres-result">' +
         '<div class="playlist-genres-header">' +
-          '<button class="back-to-playlists-btn" onclick="renderPlaylistList()">' + backText + '</button>' +
+          '<button class="back-to-playlists-btn" aria-label="' + backText + '" onclick="renderPlaylistList()">' + backText + '</button>' +
           '<div class="playlist-genres-stats">' +
             '<span>' + data.totalGenres + ' ' + genresText + '</span>' +
             '<span>' + data.totalTracks + ' ' + tracksText + '</span>' +
@@ -6496,6 +6496,7 @@
       btn.id = 'playlist-scanner-btn';
       btn.className = 'playlist-scanner-btn';
       btn.innerHTML = swedishMode ? '📋 Skanna Spellista' : '📋 Scan Playlist';
+      btn.setAttribute('aria-label', swedishMode ? 'Skanna en befintlig spellista' : 'Scan an existing playlist');
       btn.onclick = showPlaylistScanner;
 
       // Insert at the beginning of toolbar
