@@ -42,3 +42,6 @@
 ## 2025-05-28 - [Eliminating Intermediate Collections]
 **Learning:** Chaining array methods like `.filter()` and `.map()` before passing to a `Set` creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure in hot endpoints.
 **Action:** Replace functional `.filter().map()` chains with a single `for` loop that iteratively populates the destination collection (e.g. `Set`) in one pass to achieve better throughput and reduced memory pressure.
+## 2025-05-28 - [Eliminating Intermediate Collections in Routes]
+**Learning:** Chaining array methods like `.flatMap()`, `.map()`, and `.forEach()` in hot endpoint loops (like progressive scanning or playlist analysis) creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure.
+**Action:** Replace functional array method chains with standard `for` loops that iteratively populate the destination collection (e.g. `Set` or `Array`) in one pass to achieve better throughput and reduced memory pressure.

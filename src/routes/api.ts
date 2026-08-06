@@ -771,9 +771,15 @@ api.get('/genres/progressive', async (c) => {
       trackIds: data.trackIds,
     }));
     progress.partialTrackCount += allChunkTracks.length;
-    progress.partialArtistCount = new Set([
-      ...progress.partialGenres.flatMap(g => g.trackIds),
-    ]).size; // Approximate
+    // PERF-FIX: Eliminate intermediate arrays created by flatMap and spread syntax
+    // By iterating manually and adding to a Set, we reduce memory allocations and GC pressure.
+    const uniqueTrackIds = new Set<string>();
+    for (const g of progress.partialGenres) {
+      for (let i = 0; i < g.trackIds.length; i++) {
+        uniqueTrackIds.add(g.trackIds[i]);
+      }
+    }
+    progress.partialArtistCount = uniqueTrackIds.size; // Approximate
     progress.offset = currentOffset;
     progress.lastUpdatedAt = new Date().toISOString();
 
@@ -1683,8 +1689,14 @@ api.get('/scan-playlist/:playlistId', async (c) => {
 
     for (const item of tracks) {
       if (item.track && item.track.id) {
-        const artistIdsForTrack = item.track.artists.map(a => a.id);
-        artistIdsForTrack.forEach(id => artistIds.add(id));
+        // PERF-FIX: Eliminate intermediate arrays created by .map() and .forEach()
+        // Iterating in a single loop avoids unnecessary allocations and improves performance.
+        const artistIdsForTrack: string[] = [];
+        for (let i = 0; i < item.track.artists.length; i++) {
+          const id = item.track.artists[i].id;
+          artistIdsForTrack.push(id);
+          artistIds.add(id);
+        }
         trackData.push({
           id: item.track.id,
           name: item.track.name,
