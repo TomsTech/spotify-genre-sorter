@@ -1303,8 +1303,10 @@ api.post('/playlists/bulk', async (c) => {
     // ⚡ BOLT OPTIMIZATION: Process valid playlist creations concurrently
     const createPromises = validTasks.map(async (task) => {
       try {
+        const token = session.spotifyAccessToken;
+        if (!token) throw new Error('No access token');
         const playlist = await createPlaylist(
-          session.spotifyAccessToken,
+          token,
           user.id,
           task.playlistName,
           `${task.safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`,
@@ -1312,6 +1314,7 @@ api.post('/playlists/bulk', async (c) => {
         );
 
         const trackUris = task.safeTrackIds.map(id => `spotify:track:${id}`);
+        if (!session.spotifyAccessToken) throw new Error('No access token');
         await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
 
         // Update user stats
