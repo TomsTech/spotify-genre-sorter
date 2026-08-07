@@ -42,3 +42,6 @@
 ## 2025-05-28 - [Eliminating Intermediate Collections]
 **Learning:** Chaining array methods like `.filter()` and `.map()` before passing to a `Set` creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure in hot endpoints.
 **Action:** Replace functional `.filter().map()` chains with a single `for` loop that iteratively populates the destination collection (e.g. `Set`) in one pass to achieve better throughput and reduced memory pressure.
+## 2025-06-05 - [Parallelizing Spotify Bulk Playlist Creation]
+**Learning:** Sequential `createPlaylist` and `addTracksToPlaylist` inside a `for...of` loop in the `/playlists/bulk` route creates a huge N+1 latency bottleneck.
+**Action:** Always pre-process data for duplicates and validity sequentially if maintaining an ordered set is required, but execute independent external API calls (e.g., Spotify playlist creations) concurrently using `Promise.all()` to dramatically reduce overall request time.

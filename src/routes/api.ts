@@ -1261,7 +1261,9 @@ api.post('/playlists/bulk', async (c) => {
     }
 
     const results: { genre: string; success: boolean; url?: string; error?: string; skipped?: boolean }[] = [];
+    const validTasks: { safeName: string; playlistName: string; safeTrackIds: string[] }[] = [];
 
+    // Pre-process and validate sequentially to maintain determinism for existingNames
     for (const { name, trackIds } of genres) {
       // Validate each genre
       const genreValidation = sanitiseGenreName(name);
@@ -1292,32 +1294,35 @@ api.post('/playlists/bulk', async (c) => {
         }
       }
 
-      try {
-        const safeTrackIds = trackValidation.value;
+      // Add to existing names to prevent duplicates within same batch during pre-processing
+      existingNames.add(playlistName.toLowerCase());
 
+      validTasks.push({ safeName, playlistName, safeTrackIds: trackValidation.value });
+    }
+
+    // ⚡ BOLT OPTIMIZATION: Process valid playlist creations concurrently
+    const createPromises = validTasks.map(async (task) => {
+      try {
         const playlist = await createPlaylist(
           session.spotifyAccessToken,
           user.id,
-          playlistName,
-          `${safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`,
+          task.playlistName,
+          `${task.safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`,
           false
         );
 
-        const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
+        const trackUris = task.safeTrackIds.map(id => `spotify:track:${id}`);
         await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
 
-        // Add to existing names to prevent duplicates within same batch
-        existingNames.add(playlistName.toLowerCase());
-
         // Update user stats
-        await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length);
+        await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, task.safeTrackIds.length);
 
         // Add to recent playlists feed
         const recentPlaylist: RecentPlaylist = {
           playlistId: playlist.id,
-          playlistName: playlistName,
-          genre: safeName,
-          trackCount: safeTrackIds.length,
+          playlistName: task.playlistName,
+          genre: task.safeName,
+          trackCount: task.safeTrackIds.length,
           createdBy: {
             spotifyId: user.id,
             spotifyName: user.display_name,
@@ -1328,20 +1333,22 @@ api.post('/playlists/bulk', async (c) => {
         };
         await addRecentPlaylist(c.env.SESSIONS, recentPlaylist);
 
-        results.push({
-          genre: safeName,
+        return {
+          genre: task.safeName,
           success: true,
           url: playlist.external_urls.spotify,
-        });
+        };
       } catch {
-        // Don't expose internal error details
-        results.push({
-          genre: safeName,
+        return {
+          genre: task.safeName,
           success: false,
           error: 'Failed to create playlist',
-        });
+        };
       }
-    }
+    });
+
+    const asyncResults = await Promise.all(createPromises);
+    results.push(...asyncResults);
 
     // Invalidate cache if any playlists were created
     const successCount = results.filter(r => r.success).length;
