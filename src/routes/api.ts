@@ -1727,9 +1727,11 @@ api.get('/scan-playlist/:playlistId', async (c) => {
     }
 
     // Convert to sorted array
-    const genres = Array.from(genreCounts.entries())
-      .map(([name, data]) => ({ name, count: data.count, trackIds: data.trackIds }))
-      .sort((a, b) => b.count - a.count);
+    const genres = [];
+    for (const [name, data] of genreCounts.entries()) {
+      genres.push({ name, count: data.count, trackIds: data.trackIds });
+    }
+    genres.sort((a, b) => b.count - a.count);
 
     return c.json({
       totalTracks: trackData.length,

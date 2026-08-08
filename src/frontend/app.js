@@ -4516,17 +4516,23 @@
     }
 
     function filterGenres(query) {
-      let filtered = genreData.genres;
+      const filtered = [];
+      const lower = query ? query.toLowerCase() : '';
 
-      // Filter by search query
-      if (query) {
-        const lower = query.toLowerCase();
-        filtered = filtered.filter(g => g.name.toLowerCase().includes(lower));
-      }
+      for (let i = 0; i < genreData.genres.length; i++) {
+        const g = genreData.genres[i];
 
-      // Filter hidden genres (unless showing hidden)
-      if (!showHiddenGenres) {
-        filtered = filtered.filter(g => !hiddenGenres.has(g.name));
+        // Filter by search query
+        if (lower && !g.name.toLowerCase().includes(lower)) {
+          continue;
+        }
+
+        // Filter hidden genres (unless showing hidden)
+        if (!showHiddenGenres && hiddenGenres.has(g.name)) {
+          continue;
+        }
+
+        filtered.push(g);
       }
 
       return filtered;
