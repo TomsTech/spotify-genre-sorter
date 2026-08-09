@@ -1305,7 +1305,7 @@ api.post('/playlists/bulk', async (c) => {
           const safeTrackIds = trackValidation.value;
 
           const playlist = await createPlaylist(
-            session.spotifyAccessToken,
+            session.spotifyAccessToken!,
             user.id,
             playlistName,
             `${safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`,
@@ -1313,7 +1313,7 @@ api.post('/playlists/bulk', async (c) => {
           );
 
           const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
-          await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
+          await addTracksToPlaylist(session.spotifyAccessToken!, playlist.id, trackUris);
 
           // Update user stats
           await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length);

@@ -1,0 +1,36 @@
+              error: 'Playlist already exists',
+            };
+          }
+        }
+
+        // Add to existing names to prevent duplicates within same batch - do this synchronously
+        // before awaited operations to prevent race conditions within the chunk
+        existingNames.add(playlistName.toLowerCase());
+
+        try {
+          const safeTrackIds = trackValidation.value;
+
+          const playlist = await createPlaylist(
+            session.spotifyAccessToken,
+            user.id,
+            playlistName,
+            `${safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`,
+            false
+          );
+
+          const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
+          await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
+
+          // Update user stats
+          await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length);
+
+          // Add to recent playlists feed
+          const recentPlaylist: RecentPlaylist = {
+            playlistId: playlist.id,
+            playlistName: playlistName,
+            genre: safeName,
+            trackCount: safeTrackIds.length,
+            createdBy: {
+              spotifyId: user.id,
+              spotifyName: user.display_name,
+              spotifyAvatar: user.images?.[0]?.url,
