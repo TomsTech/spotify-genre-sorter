@@ -42,3 +42,6 @@
 ## 2025-05-28 - [Eliminating Intermediate Collections]
 **Learning:** Chaining array methods like `.filter()` and `.map()` before passing to a `Set` creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure in hot endpoints.
 **Action:** Replace functional `.filter().map()` chains with a single `for` loop that iteratively populates the destination collection (e.g. `Set`) in one pass to achieve better throughput and reduced memory pressure.
+## 2025-05-28 - [Parallelizing Bulk Playlist Creation]
+**Learning:** Processing the creation of multiple Spotify playlists sequentially in a `for` loop causes severe N+1 latency, waiting for each multi-step creation (create + add tracks) to finish before starting the next.
+**Action:** Chunk the array of genres (e.g. 5 at a time) and process each chunk concurrently using `Promise.all()` to drastically speed up execution time while respecting Cloudflare Worker's 50 subrequest limit. Furthermore, synchronously add the newly generated playlist name to the deduplication Set before the first `await` within the `.map()` to prevent race conditions during parallel processing.

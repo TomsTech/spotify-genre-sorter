@@ -1260,87 +1260,97 @@ api.post('/playlists/bulk', async (c) => {
       }
     }
 
+    // ⚡ BOLT OPTIMIZATION: Process genres in parallel to minimize total wait time, taking care not to hit the 50 subrequests limit
+    // We chunk genres into blocks to limit concurrent Spotify API requests per iteration.
     const results: { genre: string; success: boolean; url?: string; error?: string; skipped?: boolean }[] = [];
 
-    for (const { name, trackIds } of genres) {
-      // Validate each genre
-      const genreValidation = sanitiseGenreName(name);
-      if (!genreValidation.valid) {
-        results.push({ genre: String(name), success: false, error: genreValidation.error });
-        continue;
-      }
+    // Process in smaller chunks to avoid Cloudflare Workers 50 subrequest limit
+    // Each playlist creation might take up to 2-3 requests (create + add tracks)
+    const chunkSize = 5;
+    for (let i = 0; i < genres.length; i += chunkSize) {
+      const chunk = genres.slice(i, i + chunkSize);
 
-      const trackValidation = validateTrackIds(trackIds);
-      if (!trackValidation.valid) {
-        results.push({ genre: genreValidation.value, success: false, error: trackValidation.error });
-        continue;
-      }
-
-      const safeName = genreValidation.value;
-      const playlistName = `${safeName} (from Likes)`;
-
-      // Check for duplicate
-      if (existingNames.has(playlistName.toLowerCase())) {
-        if (skipDuplicates) {
-          results.push({
-            genre: safeName,
-            success: false,
-            skipped: true,
-            error: 'Playlist already exists',
-          });
-          continue;
+      const chunkPromises = chunk.map(async ({ name, trackIds }) => {
+        // Validate each genre
+        const genreValidation = sanitiseGenreName(name);
+        if (!genreValidation.valid) {
+          return { genre: String(name), success: false, error: genreValidation.error };
         }
-      }
 
-      try {
-        const safeTrackIds = trackValidation.value;
+        const trackValidation = validateTrackIds(trackIds);
+        if (!trackValidation.valid) {
+          return { genre: genreValidation.value, success: false, error: trackValidation.error };
+        }
 
-        const playlist = await createPlaylist(
-          session.spotifyAccessToken,
-          user.id,
-          playlistName,
-          `${safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`,
-          false
-        );
+        const safeName = genreValidation.value;
+        const playlistName = `${safeName} (from Likes)`;
 
-        const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
-        await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
+        // Check for duplicate
+        if (existingNames.has(playlistName.toLowerCase())) {
+          if (skipDuplicates) {
+            return {
+              genre: safeName,
+              success: false,
+              skipped: true,
+              error: 'Playlist already exists',
+            };
+          }
+        }
 
-        // Add to existing names to prevent duplicates within same batch
+        // Add to existing names to prevent duplicates within same batch - do this synchronously
+        // before awaited operations to prevent race conditions within the chunk
         existingNames.add(playlistName.toLowerCase());
 
-        // Update user stats
-        await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length);
+        try {
+          const safeTrackIds = trackValidation.value;
 
-        // Add to recent playlists feed
-        const recentPlaylist: RecentPlaylist = {
-          playlistId: playlist.id,
-          playlistName: playlistName,
-          genre: safeName,
-          trackCount: safeTrackIds.length,
-          createdBy: {
-            spotifyId: user.id,
-            spotifyName: user.display_name,
-            spotifyAvatar: user.images?.[0]?.url,
-          },
-          createdAt: new Date().toISOString(),
-          spotifyUrl: playlist.external_urls.spotify,
-        };
-        await addRecentPlaylist(c.env.SESSIONS, recentPlaylist);
+          const playlist = await createPlaylist(
+            session.spotifyAccessToken,
+            user.id,
+            playlistName,
+            `${safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`,
+            false
+          );
 
-        results.push({
-          genre: safeName,
-          success: true,
-          url: playlist.external_urls.spotify,
-        });
-      } catch {
-        // Don't expose internal error details
-        results.push({
-          genre: safeName,
-          success: false,
-          error: 'Failed to create playlist',
-        });
-      }
+          const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
+          await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
+
+          // Update user stats
+          await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length);
+
+          // Add to recent playlists feed
+          const recentPlaylist: RecentPlaylist = {
+            playlistId: playlist.id,
+            playlistName: playlistName,
+            genre: safeName,
+            trackCount: safeTrackIds.length,
+            createdBy: {
+              spotifyId: user.id,
+              spotifyName: user.display_name,
+              spotifyAvatar: user.images?.[0]?.url,
+            },
+            createdAt: new Date().toISOString(),
+            spotifyUrl: playlist.external_urls.spotify,
+          };
+          await addRecentPlaylist(c.env.SESSIONS, recentPlaylist);
+
+          return {
+            genre: safeName,
+            success: true,
+            url: playlist.external_urls.spotify,
+          };
+        } catch {
+          // Don't expose internal error details
+          return {
+            genre: safeName,
+            success: false,
+            error: 'Failed to create playlist',
+          };
+        }
+      });
+
+      const chunkResults = await Promise.all(chunkPromises);
+      results.push(...chunkResults);
     }
 
     // Invalidate cache if any playlists were created
