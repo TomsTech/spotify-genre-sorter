@@ -818,6 +818,11 @@ api.get('/genres/chunk', async (c) => {
     return c.json({ error: 'Not authenticated' }, 401);
   }
 
+  const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+    path: c.req.path,
+    method: c.req.method,
+  });
+
   const offsetStr = c.req.query('offset') || '0';
   const limitStr = c.req.query('limit') || String(CHUNK_SIZE);
   const offset = parseInt(offsetStr, 10);
@@ -1038,7 +1043,7 @@ api.get('/genres/chunk', async (c) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('Error fetching genre chunk:', err);
+    log.logError('Error fetching genre chunk:', err);
     return c.json({
       error: 'Failed to fetch genre chunk',
       details: message,
