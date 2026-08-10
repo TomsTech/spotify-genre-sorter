@@ -60,3 +60,6 @@
 ## 2024-08-10 - Bounding Concurrent External API/KV Requests
 **Learning:** Using an unbounded `Promise.all` on an array of external requests (like Cloudflare KV deletes) can quickly exhaust concurrent request limits (e.g., Cloudflare Workers' 50 subrequest limit per invocation), leading to failed requests and high peak memory usage.
 **Action:** When batching operations that perform external or asynchronous resource-intensive requests, always implement a chunking mechanism (using a `for` loop over slices of the array combined with `Promise.all` for each chunk) to limit maximum concurrency to a safe, documented threshold (e.g., 40 for CF Workers).
+## 2026-08-03 - Chunk KV deletes to avoid Cloudflare Workers subrequest limits
+**Learning:** Cloudflare Workers have a limit of 50 subrequests per worker invocation, which can be easily exceeded when iterating and calling `kv.delete()` on a large list of keys. Additionally, `kv.list()` returns a paginated list of keys.
+**Action:** When performing parallel operations like `kv.delete()` on a list of keys in Cloudflare Workers, split the array into smaller chunks (e.g., 45) and iterate over the chunks with `Promise.all()` to respect subrequest limits. Always use cursor pagination for `kv.list()` when checking for a potentially large number of keys.
