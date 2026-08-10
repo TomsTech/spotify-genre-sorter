@@ -271,16 +271,26 @@ export async function getAllLikedTracks(
       requestCount++;
     }
 
-    // Fetch all remaining pages concurrently while preserving order and progress updates
+    // PERF-FIX: Batch parallel requests to prevent Cloudflare Worker 50 subrequest limit errors
+    // while preserving order and progress updates
     let loadedCount = allTracks.length;
-    const responses = await Promise.all(
-      remainingOffsets.map(async (off) => {
-        const response = await getLikedTracks(accessToken, limit, off);
+    const responses = [];
+    const BATCH_SIZE = 5;
+    for (let i = 0; i < remainingOffsets.length; i += BATCH_SIZE) {
+      const batchOffsets = remainingOffsets.slice(i, i + BATCH_SIZE);
+      const batchResponses = await Promise.all(
+        batchOffsets.map(async (off) => {
+          const response = await getLikedTracks(accessToken, limit, off);
+          return response;
+        })
+      );
+
+      for (const response of batchResponses) {
         loadedCount += response.items.length;
         onProgress?.(loadedCount, totalInLibrary);
-        return response;
-      })
-    );
+        responses.push(response);
+      }
+    }
 
     for (const response of responses) {
       allTracks.push(...response.items);
@@ -544,17 +554,22 @@ export async function getUserPlaylists(
       remainingOffsets.push(offset);
     }
 
+    // PERF-FIX: Batch parallel requests to prevent Cloudflare Worker 50 subrequest limit errors
     if (remainingOffsets.length > 0) {
-      const responses = await Promise.all(
-        remainingOffsets.map(off =>
-          spotifyFetch<{ items: SpotifyPlaylist[] }>(
-            `/me/playlists?limit=${limit}&offset=${off}`,
-            accessToken
+      const BATCH_SIZE = 5;
+      for (let i = 0; i < remainingOffsets.length; i += BATCH_SIZE) {
+        const batchOffsets = remainingOffsets.slice(i, i + BATCH_SIZE);
+        const responses = await Promise.all(
+          batchOffsets.map(off =>
+            spotifyFetch<{ items: SpotifyPlaylist[] }>(
+              `/me/playlists?limit=${limit}&offset=${off}`,
+              accessToken
+            )
           )
-        )
-      );
-      for (const res of responses) {
-        allPlaylists.push(...res.items);
+        );
+        for (const res of responses) {
+          allPlaylists.push(...res.items);
+        }
       }
     }
   }
@@ -594,17 +609,22 @@ export async function getPlaylistTracks(
     }
 
     // Fetch remaining pages concurrently
+    // PERF-FIX: Batch parallel requests to prevent Cloudflare Worker 50 subrequest limit errors
     if (remainingOffsets.length > 0) {
-      const responses = await Promise.all(
-        remainingOffsets.map(off =>
-          spotifyFetch<{ items: PlaylistTrack[] }>(
-            `/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${off}`,
-            accessToken
+      const BATCH_SIZE = 5;
+      for (let i = 0; i < remainingOffsets.length; i += BATCH_SIZE) {
+        const batchOffsets = remainingOffsets.slice(i, i + BATCH_SIZE);
+        const responses = await Promise.all(
+          batchOffsets.map(off =>
+            spotifyFetch<{ items: PlaylistTrack[] }>(
+              `/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${off}`,
+              accessToken
+            )
           )
-        )
-      );
-      for (const res of responses) {
-        allTracks.push(...res.items);
+        );
+        for (const res of responses) {
+          allTracks.push(...res.items);
+        }
       }
     }
   }
