@@ -73,8 +73,9 @@ describe('logger', () => {
 
       sendLog(mockCtx, 'test-token', entry);
 
-      // Wait for the catch block to execute
-      await Promise.resolve();
+      expect(mockCtx.waitUntil).toHaveBeenCalled();
+      const waitUntilPromise = vi.mocked(mockCtx.waitUntil).mock.calls[0][0];
+      await waitUntilPromise;
 
       expect(console.error).toHaveBeenCalledWith('Failed to send log to BetterStack:', error);
     });
