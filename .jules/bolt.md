@@ -42,3 +42,4 @@
 ## 2025-05-28 - [Eliminating Intermediate Collections]
 **Learning:** Chaining array methods like `.filter()` and `.map()` before passing to a `Set` creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure in hot endpoints.
 **Action:** Replace functional `.filter().map()` chains with a single `for` loop that iteratively populates the destination collection (e.g. `Set`) in one pass to achieve better throughput and reduced memory pressure.
+## 2023-10-27 - [Fix Missing Cursor Pagination in Session Cleanup] **Learning:** [KV list operations without cursor pagination limit results and lead to incomplete data processing (e.g. orphan records after deletion).] **Action:** [Always implement `while` loops with `cursor` handling when fetching lists from KV that can exceed pagination limits, processing each batch incrementally.]
