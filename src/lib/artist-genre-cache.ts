@@ -234,14 +234,17 @@ export async function invalidateArtistGenreCache(
 ): Promise<number> {
   let deletedCount = 0;
 
-  // Delete all specified artist caches in parallel
-  const deletePromises = artistIds.map(async (artistId) => {
-    const cacheKey = `${ARTIST_GENRE_CACHE_PREFIX}${artistId}`;
-    await cachedKV.delete(kv, cacheKey);
-    deletedCount++;
-  });
-
-  await Promise.all(deletePromises);
+  // Delete specified artist caches in chunks to respect Cloudflare limits
+  const CHUNK_SIZE = 40;
+  for (let i = 0; i < artistIds.length; i += CHUNK_SIZE) {
+    const chunk = artistIds.slice(i, i + CHUNK_SIZE);
+    const deletePromises = chunk.map(async (artistId) => {
+      const cacheKey = `${ARTIST_GENRE_CACHE_PREFIX}${artistId}`;
+      await cachedKV.delete(kv, cacheKey);
+      deletedCount++;
+    });
+    await Promise.all(deletePromises);
+  }
 
   return deletedCount;
 }
