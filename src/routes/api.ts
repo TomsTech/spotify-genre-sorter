@@ -1131,6 +1131,34 @@ function sanitiseGenreName(genre: unknown): ValidationResult<string> {
   return { valid: true, value: trimmed };
 }
 
+
+// Helper function to extract duplicated playlist creation logic
+async function createPlaylistForGenre(
+  spotifyAccessToken: string,
+  userId: string,
+  playlistName: string,
+  safeName: string,
+  safeTrackIds: string[],
+  customDescription?: string
+) {
+  const description = customDescription && customDescription.trim()
+    ? customDescription.trim().slice(0, 300) // Spotify has 300 char limit
+    : `${safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`;
+
+  const playlist = await createPlaylist(
+    spotifyAccessToken,
+    userId,
+    playlistName,
+    description,
+    false
+  );
+
+  const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
+  await addTracksToPlaylist(spotifyAccessToken, playlist.id, trackUris);
+
+  return playlist;
+}
+
 // Create a playlist for a specific genre
 api.post('/playlist', async (c) => {
   const session = await getSession(c);
@@ -1204,21 +1232,14 @@ api.post('/playlist', async (c) => {
       }
     }
 
-    // Use custom description or default
-    const description = customDescription && customDescription.trim()
-      ? customDescription.trim().slice(0, 300) // Spotify has 300 char limit
-      : `${safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`;
-
-    const playlist = await createPlaylist(
+    const playlist = await createPlaylistForGenre(
       session.spotifyAccessToken,
       user.id,
       playlistName,
-      description,
-      false
+      safeName,
+      safeTrackIds,
+      customDescription
     );
-
-    const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
-    await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
 
     // Create recent playlist object before the background tasks
     const recentPlaylist: RecentPlaylist = {
@@ -1334,16 +1355,13 @@ api.post('/playlists/bulk', async (c) => {
       try {
         const safeTrackIds = trackValidation.value;
 
-        const playlist = await createPlaylist(
+        const playlist = await createPlaylistForGenre(
           session.spotifyAccessToken,
           user.id,
           playlistName,
-          `${safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`,
-          false
+          safeName,
+          safeTrackIds
         );
-
-        const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
-        await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
 
         // Add to existing names to prevent duplicates within same batch
         existingNames.add(playlistName.toLowerCase());
