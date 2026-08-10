@@ -42,3 +42,6 @@
 ## 2025-05-28 - [Eliminating Intermediate Collections]
 **Learning:** Chaining array methods like `.filter()` and `.map()` before passing to a `Set` creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure in hot endpoints.
 **Action:** Replace functional `.filter().map()` chains with a single `for` loop that iteratively populates the destination collection (e.g. `Set`) in one pass to achieve better throughput and reduced memory pressure.
+## 2025-05-29 - [Chunking Promise.all for Cloudflare Subrequests]
+**Learning:** Using `Promise.all` for a dynamically sized array of Cloudflare KV fetches can exceed the Cloudflare Worker 50 subrequest limit if the array size grows, resulting in runtime errors.
+**Action:** When mapping over an unbounded list of keys to fetch from KV, chunk the fetches into groups of less than 50 (e.g., 40) using a `for` loop and `Promise.all` for each chunk to safely stay within limits while still parallelizing reads.

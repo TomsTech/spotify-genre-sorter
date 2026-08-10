@@ -2718,18 +2718,26 @@ api.get('/admin/access-requests', async (c) => {
 
   // PERF-015 FIX: Use Promise.all for parallel reads instead of sequential loop
   // PERF-020 FIX: Interleave JSON.parse with KV fetches
+  // PERF-030 FIX: Chunk Promise.all for fetching all access requests to avoid Cloudflare subrequest limits
   const requestKeys = emails.map(email => `access_request_${email}`);
-  const dataPromises = requestKeys.map(async key => {
-    const data = await kv.get(key);
-    if (data) {
-      try {
-        return JSON.parse(data) as AccessRequest;
-      } catch { /* skip malformed entries */ }
-    }
-    return null;
-  });
+  const CHUNK_SIZE = 40; // Safely under the 50 limit
+  const dataResults: (AccessRequest | null)[] = [];
 
-  const dataResults = await Promise.all(dataPromises);
+  for (let i = 0; i < requestKeys.length; i += CHUNK_SIZE) {
+    const chunk = requestKeys.slice(i, i + CHUNK_SIZE);
+    const dataPromises = chunk.map(async key => {
+      const data = await kv.get(key);
+      if (data) {
+        try {
+          return JSON.parse(data) as AccessRequest;
+        } catch { /* skip malformed entries */ }
+      }
+      return null;
+    });
+
+    const chunkResults = await Promise.all(dataPromises);
+    dataResults.push(...chunkResults);
+  }
   const requests: AccessRequest[] = dataResults.filter((req): req is AccessRequest => req !== null);
 
   // Sort by most recent first
