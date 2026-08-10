@@ -20,6 +20,13 @@ describe('Now Playing Route Tests', () => {
           list: vi.fn()
         }
       };
+      // Mock executionCtx for createLogger
+      Object.defineProperty(c, 'executionCtx', {
+        value: {
+          waitUntil: vi.fn(),
+          passThroughOnException: vi.fn()
+        }
+      });
       await next();
     });
 
