@@ -303,17 +303,25 @@ export async function cleanupOldArtistGenreCache(
         cursor,
       });
 
-      // Check each entry's age in parallel
-      const checkPromises = list.keys.map(async (key) => {
-        const entry = await cachedKV.get<ArtistGenreCacheEntry>(kv, key.name);
-        if (entry && entry.cachedAt < cutoffTime) {
-          await cachedKV.delete(kv, key.name);
-          return 1;
-        }
-        return 0;
-      });
+      // Check each entry's age in chunks to avoid Cloudflare Workers subrequest limits
+      // The limit is 50 subrequests, so we chunk by 25 to be safe
+      const results: number[] = [];
+      const CHUNK_SIZE = 25;
 
-      const results = await Promise.all(checkPromises);
+      for (let i = 0; i < list.keys.length; i += CHUNK_SIZE) {
+        const chunk = list.keys.slice(i, i + CHUNK_SIZE);
+        const checkPromises = chunk.map(async (key) => {
+          const entry = await cachedKV.get<ArtistGenreCacheEntry>(kv, key.name);
+          if (entry && entry.cachedAt < cutoffTime) {
+            await cachedKV.delete(kv, key.name);
+            return 1;
+          }
+          return 0;
+        });
+
+        const chunkResults = await Promise.all(checkPromises);
+        results.push(...chunkResults);
+      }
       deletedCount += results.reduce<number>((sum, count) => sum + count, 0);
 
       hasMore = !list.list_complete;
