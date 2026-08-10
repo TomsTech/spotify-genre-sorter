@@ -2357,23 +2357,29 @@ api.get('/admin/users', async (c) => {
 
   // Also fetch HoF users (pioneers) who might not have user_stats entries
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
-  // PERF-029 FIX: Interleave JSON.parse with KV fetches
-  const hofPromises = hofKeys.map(async key => {
-    const hofJson = await kv.get(key);
-    if (hofJson) {
-      try {
-        return JSON.parse(hofJson) as {
-          spotifyId: string;
-          spotifyName: string;
-          spotifyAvatar?: string;
-          registeredAt?: string;
-        };
-      } catch { /* skip malformed entries */ }
-    }
-    return null;
-  });
-
-  const hofResults = await Promise.all(hofPromises);
+  // PERF-029 FIX: Interleave JSON.parse with KV fetches, chunked to respect Cloudflare limits
+  type HofData = {
+    spotifyId: string;
+    spotifyName: string;
+    spotifyAvatar?: string;
+    registeredAt?: string;
+  } | null;
+  const hofResults: HofData[] = [];
+  const chunkSize = 5;
+  for (let i = 0; i < hofKeys.length; i += chunkSize) {
+    const chunk = hofKeys.slice(i, i + chunkSize);
+    const chunkPromises = chunk.map(async key => {
+      const hofJson = await kv.get(key);
+      if (hofJson) {
+        try {
+          return JSON.parse(hofJson) as HofData;
+        } catch { /* skip malformed entries */ }
+      }
+      return null;
+    });
+    const chunkResults = await Promise.all(chunkPromises);
+    hofResults.push(...chunkResults);
+  }
 
   for (let i = 0; i < hofResults.length; i++) {
     const hofUser = hofResults[i];
@@ -2444,18 +2450,24 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   // Find and delete HoF entry by scanning for matching spotifyId
   // HoF keys are formatted as hof:001, hof:002, etc.
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
-  // PERF-030 FIX: Interleave JSON.parse with KV fetches
-  const hofPromises = hofKeys.map(async key => {
-    const hofJson = await kv.get(key);
-    if (hofJson) {
-      try {
-        return JSON.parse(hofJson) as { spotifyId?: string };
-      } catch { /* skip malformed entries */ }
-    }
-    return null;
-  });
-
-  const hofResults = await Promise.all(hofPromises);
+  // PERF-030 FIX: Interleave JSON.parse with KV fetches, chunked
+  type HofDeleteData = { spotifyId?: string } | null;
+  const hofResults: HofDeleteData[] = [];
+  const chunkSize = 5;
+  for (let i = 0; i < hofKeys.length; i += chunkSize) {
+    const chunk = hofKeys.slice(i, i + chunkSize);
+    const chunkPromises = chunk.map(async key => {
+      const hofJson = await kv.get(key);
+      if (hofJson) {
+        try {
+          return JSON.parse(hofJson) as HofDeleteData;
+        } catch { /* skip malformed entries */ }
+      }
+      return null;
+    });
+    const chunkResults = await Promise.all(chunkPromises);
+    hofResults.push(...chunkResults);
+  }
 
   for (let i = 0; i < hofResults.length; i++) {
     const hofData = hofResults[i];

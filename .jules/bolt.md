@@ -42,3 +42,6 @@
 ## 2025-05-28 - [Eliminating Intermediate Collections]
 **Learning:** Chaining array methods like `.filter()` and `.map()` before passing to a `Set` creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure in hot endpoints.
 **Action:** Replace functional `.filter().map()` chains with a single `for` loop that iteratively populates the destination collection (e.g. `Set`) in one pass to achieve better throughput and reduced memory pressure.
+## 2024-05-18 - Chunk Promise.all in Edge Runtimes
+**Learning:** Cloudflare Workers have strict limits (e.g., 50 subrequests per invocation on the free plan). Even if you don't hit the hard limit, firing a burst of concurrent external I/O requests (like KV `get` operations via `Promise.all` for an entire unbounded array) creates a high concurrency spike and memory pressure.
+**Action:** When executing batch I/O operations from an edge worker, slice the large request array into smaller, static batches (e.g., chunks of 5). Await `Promise.all` on these chunks sequentially in a `for` loop. This approach respects subrequest constraints and optimizes execution performance by spreading out event loop blocks.
