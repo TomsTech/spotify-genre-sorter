@@ -1,3 +1,14 @@
+vi.mock('../src/lib/logger', () => ({
+  createLogger: () => ({
+    logError: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    logRequest: vi.fn()
+  }),
+  generateRequestId: vi.fn(() => 'test-id')
+}));
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Hono } from 'hono';
 import * as spotifyLib from '../src/lib/spotify';
@@ -12,6 +23,7 @@ describe('Now Playing Route Tests', () => {
 
     // Setup env mock
     app.use('*', async (c, next) => {
+      Object.defineProperty(c, 'executionCtx', { get: () => ({ waitUntil: () => {}, passThroughOnException: () => {} }) });
       c.env = {
         SESSIONS: {
           put: vi.fn(),

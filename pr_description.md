@@ -1,16 +1,10 @@
-🧪 Add comprehensive tests for determineRecoveryStrategy
+🎯 **What:** Replaced all hardcoded `console.error` calls across `src/routes/api.ts` with a new `logError` helper function that leverages the application's built-in BetterStack logger utility.
 
-🎯 **What:**
-The `determineRecoveryStrategy` function in `src/lib/error-handler.ts` was lacking dedicated unit tests. Given it is a pure function that relies heavily on branch conditions based on `ErrorContext` inputs, testing it explicitly guarantees predictable error recovery flows.
+💡 **Why:** Using `console.error` bypasses the centralized logging setup, meaning critical production errors would only appear in transient server logs rather than the observability platform. Replacing it ensures all API errors capture structured context (`path`, `method`, execution context) and are correctly routed to BetterStack, significantly improving observability, readability, and maintainability.
 
-📊 **Coverage:**
-The added test suite comprehensively checks all specific mapped conditional branches and default fallback behaviors for the function:
-*   Authentication errors (`AUTH_ERROR`, `TOKEN_EXPIRED`) map to `abort` and login prompt.
-*   Rate limiting (`RATE_LIMIT_ERROR`) maps to `retry` and rate-limit specific backoff messaging.
-*   Network/Timeout errors (`NETWORK_ERROR`, `TIMEOUT_ERROR`) map to `retry` and connection lost message.
-*   Validation errors (`VALIDATION_ERROR`, `INVALID_INPUT`) map to `abort` using the `userMessage` embedded in the error object.
-*   Cache errors (`CACHE_ERROR`) map to `fallback` and direct storage message.
-*   Default fallback behaviours check that errors marked as `retryable` will trigger `retry`, and errors that are not `retryable` will trigger `abort`.
+✅ **Verification:**
+- Formatted and linted the code successfully using `pnpm run lint`.
+- Executed the full unit test suite via `pnpm run test` (293/293 passing), ensuring no regressions and that context-related errors were resolved by mocking execution context where appropriate.
+- Code review passed after refactoring to use a centralized helper function instead of duplicated inline instantiations.
 
-✨ **Result:**
-The test coverage for error-handler components has significantly improved, ensuring the error response mapping logic remains robust against regressions and refactoring.
+✨ **Result:** A cleaner `api.ts` file with consistent error handling and reliable structured logging across all route handlers.

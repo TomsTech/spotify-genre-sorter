@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import type { Env } from '../types';
 import {
   type AnalyticsData,
@@ -37,6 +38,12 @@ import {
 import { getKVMonitorData } from '../lib/kv-monitor';
 import { optionalCsrfProtection } from '../lib/csrf-middleware';
 import { createLogger } from '../lib/logger';
+
+
+const logError = (c: Context<{ Bindings: Env }>, msg: string, err?: unknown) => {
+  const logger = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method });
+  logger.logError(msg, err instanceof Error ? err : new Error(String(err)));
+};
 
 const api = new Hono<{ Bindings: Env }>();
 
@@ -213,7 +220,7 @@ api.get('/me', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error fetching user:', err);
+    logError(c, 'Error fetching user:', err);
     return c.json({ error: 'Failed to fetch user info' }, 500);
   }
 });
@@ -251,7 +258,7 @@ api.get('/library-size', async (c) => {
       requiresProgressiveLoad: total > PROGRESSIVE_LOAD_THRESHOLD,
     });
   } catch (err) {
-    console.error('Error fetching library size:', err);
+    logError(c, 'Error fetching library size:', err);
     return c.json({ error: 'Failed to fetch library size' }, 500);
   }
 });
@@ -311,7 +318,7 @@ api.get('/now-playing', async (c) => {
       device: playback.device?.name || 'Unknown device',
     });
   } catch (err) {
-    console.error('Error fetching playback:', err);
+    logError(c, 'Error fetching playback:', err);
     return c.json({ playing: false, error: 'Failed to fetch playback' });
   }
 });
@@ -353,7 +360,7 @@ api.get('/user-playlists', async (c) => {
       })),
     });
   } catch (err) {
-    console.error('Error fetching playlists:', err);
+    logError(c, 'Error fetching playlists:', err);
     return c.json({ error: 'Failed to fetch playlists' }, 500);
   }
 });
@@ -406,7 +413,7 @@ api.get('/genres', async (c) => {
       tracksResult = await getAllLikedTracks(session.spotifyAccessToken);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      console.error('Error fetching liked tracks:', message);
+      logError(c, 'Error fetching liked tracks:', message);
       return c.json({
         error: 'Failed to fetch liked tracks from Spotify',
         details: message,
@@ -443,7 +450,7 @@ api.get('/genres', async (c) => {
       artists = artistResult.artists;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      console.error('Error fetching artists:', message);
+      logError(c, 'Error fetching artists:', message);
       return c.json({
         error: 'Failed to fetch artist data from Spotify',
         details: message,
@@ -526,7 +533,7 @@ api.get('/genres', async (c) => {
         totalGenresDiscovered: responseData.totalGenres,
         totalArtistsDiscovered: responseData.totalArtists,
         totalTracksAnalysed: responseData.totalTracks,
-      }).catch(err => console.error('Failed to update user stats:', err))
+      }).catch(err => logError(c, 'Failed to update user stats:', err))
     );
     }
 
@@ -553,7 +560,7 @@ api.get('/genres', async (c) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('Error fetching genres:', err);
+    logError(c, 'Error fetching genres:', err);
     return c.json({
       error: 'Failed to fetch genres',
       details: message,
@@ -599,7 +606,7 @@ api.get('/genres/scan-status', async (c) => {
       canResume: progress.status === 'in_progress' && progress.offset > 0 && progress.offset < progress.totalInLibrary,
     });
   } catch (err) {
-    console.error('Error checking scan status:', err);
+    logError(c, 'Error checking scan status:', err);
     return c.json({ hasProgress: false });
   }
 });
@@ -709,7 +716,7 @@ api.get('/genres/progressive', async (c) => {
         totalGenresDiscovered: finalData.totalGenres,
         totalArtistsDiscovered: finalData.totalArtists,
         totalTracksAnalysed: finalData.totalTracks,
-      }).catch(err => console.error('Failed to update user stats:', err))
+      }).catch(err => logError(c, 'Failed to update user stats:', err))
       );
 
       return c.json({
@@ -793,7 +800,7 @@ api.get('/genres/progressive', async (c) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('Error in progressive scan:', err);
+    logError(c, 'Error in progressive scan:', err);
     return c.json({
       error: 'Progressive scan failed',
       details: message,
@@ -882,7 +889,7 @@ api.get('/genres/chunk', async (c) => {
         try {
           return await getPlaylistTracks(token, playlistId, 500);
         } catch (e) {
-          console.error(`Error fetching playlist ${playlistId}:`, e);
+          logError(c, `Error fetching playlist ${playlistId}:`, e);
           return [];
         }
       });
@@ -1029,7 +1036,7 @@ api.get('/genres/chunk', async (c) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('Error fetching genre chunk:', err);
+    logError(c, 'Error fetching genre chunk:', err);
     return c.json({
       error: 'Failed to fetch genre chunk',
       details: message,
@@ -1207,7 +1214,7 @@ api.post('/playlist', async (c) => {
         addRecentPlaylist(c.env.SESSIONS, recentPlaylist),
         // Track playlist creation in analytics
         trackAnalyticsEvent(c.env.SESSIONS, 'playlistCreated', { visitorId: user.id })
-      ]).catch(err => console.error('Failed to execute background tasks:', err))
+      ]).catch(err => logError(c, 'Failed to execute background tasks:', err))
     );
 
     return c.json({
@@ -1220,7 +1227,7 @@ api.post('/playlist', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error creating playlist:', err);
+    logError(c, 'Error creating playlist:', err);
     return c.json({ error: 'Failed to create playlist' }, 500);
   }
 });
@@ -1352,7 +1359,7 @@ api.post('/playlists/bulk', async (c) => {
           invalidateGenreCache(c.env.SESSIONS, user.id),
           // Track bulk playlist creation in analytics (single KV write instead of N writes)
       trackAnalyticsEvent(c.env.SESSIONS, 'playlistCreated', { visitorId: user.id, count: successCount })
-        ]).catch(err => console.error('Failed to execute bulk background tasks:', err))
+        ]).catch(err => logError(c, 'Failed to execute bulk background tasks:', err))
       );
     }
 
@@ -1363,7 +1370,7 @@ api.post('/playlists/bulk', async (c) => {
       results,
     });
   } catch (err) {
-    console.error('Error creating playlists:', err);
+    logError(c, 'Error creating playlists:', err);
     return c.json({ error: 'Failed to process request' }, 500);
   }
 });
@@ -1455,7 +1462,7 @@ api.get('/changelog', async (c) => {
 
     return c.json(result);
   } catch (error) {
-    console.error('Failed to fetch GitHub releases:', error);
+    logError(c, 'Failed to fetch GitHub releases:', error);
 
     // If we have stale cache, return it
     if (changelogCache) {
@@ -1508,7 +1515,7 @@ api.get('/scoreboard', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error fetching scoreboard:', err);
+    logError(c, 'Error fetching scoreboard:', err);
     return c.json({ error: 'Failed to fetch scoreboard' }, 500);
   }
 });
@@ -1543,7 +1550,7 @@ api.get('/leaderboard', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error fetching leaderboard:', err);
+    logError(c, 'Error fetching leaderboard:', err);
     return c.json({ error: 'Failed to fetch leaderboard' }, 500);
   }
 });
@@ -1588,7 +1595,7 @@ api.get('/listening', async (c) => {
       count: listeners.length,
     });
   } catch (err) {
-    console.error('Error fetching listening data:', err);
+    logError(c, 'Error fetching listening data:', err);
     return c.json({ listeners: [], count: 0 });
   }
 });
@@ -1599,7 +1606,7 @@ api.get('/recent-playlists', async (c) => {
     const playlists = await getRecentPlaylists(c.env.SESSIONS);
     return c.json({ playlists });
   } catch (err) {
-    console.error('Error fetching recent playlists:', err);
+    logError(c, 'Error fetching recent playlists:', err);
     return c.json({ error: 'Failed to fetch recent playlists' }, 500);
   }
 });
@@ -1641,7 +1648,7 @@ api.get('/my-playlists', async (c) => {
       }))
     });
   } catch (err) {
-    console.error('Error fetching playlists:', err);
+    logError(c, 'Error fetching playlists:', err);
     return c.json({ error: 'Failed to fetch playlists' }, 500);
   }
 });
@@ -1739,7 +1746,7 @@ api.get('/scan-playlist/:playlistId', async (c) => {
       truncated: tracks.length >= 500
     });
   } catch (err) {
-    console.error('Error scanning playlist:', err);
+    logError(c, 'Error scanning playlist:', err);
     return c.json({ error: 'Failed to scan playlist' }, 500);
   }
 });
@@ -1757,7 +1764,7 @@ api.get('/preferences', async (c) => {
     const prefs = await getUserPreferences(c.env.SESSIONS, session.spotifyUserId);
     return c.json({ preferences: prefs });
   } catch (err) {
-    console.error('Error fetching preferences:', err);
+    logError(c, 'Error fetching preferences:', err);
     return c.json({ error: 'Failed to fetch preferences' }, 500);
   }
 });
@@ -1785,7 +1792,7 @@ api.post('/preferences', async (c) => {
     const prefs = await updateUserPreferences(c.env.SESSIONS, session.spotifyUserId, updates);
     return c.json({ preferences: prefs });
   } catch (err) {
-    console.error('Error updating preferences:', err);
+    logError(c, 'Error updating preferences:', err);
     return c.json({ error: 'Failed to update preferences' }, 500);
   }
 });
@@ -1849,7 +1856,7 @@ api.post('/invite-request', async (c) => {
       trackingUrl: null // Could add tracking later
     });
   } catch (err) {
-    console.error('Error submitting invite request:', err);
+    logError(c, 'Error submitting invite request:', err);
     return c.json({ error: 'Failed to submit request' }, 500);
   }
 });
@@ -1866,7 +1873,7 @@ api.get('/admin/invites', async (c) => {
     const requests = await cachedKV.get<unknown[]>(c.env.SESSIONS, INVITE_REQUESTS_KEY) || [];
     return c.json({ requests });
   } catch (err) {
-    console.error('Error fetching invites:', err);
+    logError(c, 'Error fetching invites:', err);
     return c.json({ error: 'Failed to fetch invites' }, 500);
   }
 });
@@ -1910,11 +1917,11 @@ api.post('/log-error', async (c) => {
     });
 
     // Log to console for immediate visibility
-    console.error('[CLIENT ERROR]', JSON.stringify(newErrors[0]));
+    logError(c, '[CLIENT ERROR]', new Error(JSON.stringify(newErrors[0])));
 
     return c.json({ ok: true, logged: newErrors.length });
   } catch (err) {
-    console.error('Error logging client errors:', err);
+    logError(c, 'Error logging client errors:', err);
     return c.json({ error: 'Failed to log' }, 500);
   }
 });
@@ -1954,7 +1961,7 @@ api.post('/log-perf', async (c) => {
 
     return c.json({ ok: true });
   } catch (err) {
-    console.error('Error logging perf:', err);
+    logError(c, 'Error logging perf:', err);
     return c.json({ error: 'Failed to log' }, 500);
   }
 });
@@ -2019,7 +2026,7 @@ api.get('/analytics', async (c) => {
     const analytics = await getAnalytics(c.env.SESSIONS);
     return c.json(analytics);
   } catch (err) {
-    console.error('Error fetching analytics:', err);
+    logError(c, 'Error fetching analytics:', err);
     return c.json({ error: 'Failed to fetch analytics' }, 500);
   }
 });
@@ -2178,7 +2185,7 @@ api.get('/kv-usage', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error fetching KV usage:', err);
+    logError(c, 'Error fetching KV usage:', err);
     return c.json({ error: 'Failed to fetch KV usage' }, 500);
   }
 });
@@ -2548,7 +2555,7 @@ api.get('/cache/artist-genres/stats', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error fetching cache stats:', err);
+    logError(c, 'Error fetching cache stats:', err);
     return c.json({ error: 'Failed to fetch cache statistics' }, 500);
   }
 });
@@ -2568,7 +2575,7 @@ api.post('/admin/cache/artist-genres/clear', async (c) => {
       message: `Cleared ${deletedCount} cached artist entries`,
     });
   } catch (err) {
-    console.error('Error clearing artist genre cache:', err);
+    logError(c, 'Error clearing artist genre cache:', err);
     return c.json({ error: 'Failed to clear cache' }, 500);
   }
 });
@@ -2592,7 +2599,7 @@ api.post('/admin/cache/artist-genres/cleanup', async (c) => {
       message: `Cleaned up ${deletedCount} cache entries older than ${maxAgeDays} days`,
     });
   } catch (err) {
-    console.error('Error cleaning up cache:', err);
+    logError(c, 'Error cleaning up cache:', err);
     return c.json({ error: 'Failed to cleanup cache' }, 500);
   }
 });
@@ -2619,7 +2626,7 @@ api.post('/admin/cache/artist-genres/invalidate', async (c) => {
       message: `Invalidated ${deletedCount} artist cache entries`,
     });
   } catch (err) {
-    console.error('Error invalidating cache:', err);
+    logError(c, 'Error invalidating cache:', err);
     return c.json({ error: 'Failed to invalidate cache' }, 500);
   }
 });
@@ -2701,7 +2708,7 @@ api.post('/request-access', async (c) => {
 
     return c.json({ success: true, message: 'Request submitted successfully' });
   } catch (err) {
-    console.error('Request access error:', err);
+    logError(c, 'Request access error:', err);
     return c.json({ error: 'Failed to submit request' }, 500);
   }
 });
@@ -2752,7 +2759,7 @@ api.get('/admin/kv-monitor', async (c) => {
     const data = await getKVMonitorData(c.env.SESSIONS);
     return c.json(data);
   } catch (err) {
-    console.error('Error getting KV monitor data:', err);
+    logError(c, 'Error getting KV monitor data:', err);
     return c.json({ error: 'Failed to fetch KV monitoring data' }, 500);
   }
 });
@@ -2791,7 +2798,7 @@ api.get('/admin/kv-keys', async (c) => {
     });
   } catch (err) {
     // err is unknown type from catch
-    console.error('Error listing keys:', err);
+    logError(c, 'Error listing keys:', err);
     return c.json({ error: 'Failed to list keys' }, 500);
   }
 });
@@ -2841,7 +2848,7 @@ api.get('/admin/kv-key/:key', async (c) => {
       expiresAt: keyMeta?.expiration ? new Date(keyMeta.expiration * 1000).toISOString() : null,
     });
   } catch (err) {
-    console.error('Error getting key:', err);
+    logError(c, 'Error getting key:', err);
     return c.json({ error: 'Failed to get key value' }, 500);
   }
 });
@@ -2863,7 +2870,7 @@ api.delete('/admin/kv-key/:key', async (c) => {
     await kv.delete(keyName);
     return c.json({ success: true, key: keyName, deletedAt: new Date().toISOString() });
   } catch (err) {
-    console.error('Error deleting key:', err);
+    logError(c, 'Error deleting key:', err);
     return c.json({ error: 'Failed to delete key' }, 500);
   }
 });
