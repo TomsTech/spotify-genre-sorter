@@ -804,6 +804,7 @@ api.get('/genres/progressive', async (c) => {
 // Progressive loading: Get genres for a chunk of tracks
 // This endpoint stays under 50 subrequests by limiting track fetching per call
 api.get('/genres/chunk', async (c) => {
+  const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method });
   const session = await getSession(c);
   if (!session?.spotifyAccessToken) {
     return c.json({ error: 'Not authenticated' }, 401);
@@ -882,7 +883,7 @@ api.get('/genres/chunk', async (c) => {
         try {
           return await getPlaylistTracks(token, playlistId, 500);
         } catch (e) {
-          console.error(`Error fetching playlist ${playlistId}:`, e);
+          log.error(`Error fetching playlist ${playlistId}:`, { error: e instanceof Error ? e.message : String(e) });
           return [];
         }
       });
