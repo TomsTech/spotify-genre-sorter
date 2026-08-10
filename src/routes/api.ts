@@ -287,13 +287,17 @@ api.get('/now-playing', async (c) => {
         updatedAt: new Date().toISOString(),
       };
       // CRITICAL FIX: Use cachedKV for listening status writes
-      await cachedKV.put(kv, `listening:${session.spotifyUserId}`, JSON.stringify(listeningData), {
-        expirationTtl: 90, // 90 seconds - auto-expires if user stops polling
-        immediate: false // Can be batched - not critical if delayed by a few seconds
-      });
+      c.executionCtx.waitUntil(
+        cachedKV.put(kv, `listening:${session.spotifyUserId}`, JSON.stringify(listeningData), {
+          expirationTtl: 90, // 90 seconds - auto-expires if user stops polling
+          immediate: false // Can be batched - not critical if delayed by a few seconds
+        })
+      );
     } else if (session.spotifyUserId) {
       // User not playing - delete their listening entry
-      await cachedKV.delete(kv, `listening:${session.spotifyUserId}`);
+      c.executionCtx.waitUntil(
+        cachedKV.delete(kv, `listening:${session.spotifyUserId}`)
+      );
     }
 
     if (!playback || !playback.item) {
