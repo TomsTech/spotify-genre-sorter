@@ -248,7 +248,10 @@ export async function withRetry<T>(
       );
 
       // Add jitter (±20%) to prevent thundering herd
-      const jitter = delay * 0.2 * (Math.random() * 2 - 1);
+      const randomArray = new Uint32Array(1);
+      crypto.getRandomValues(randomArray);
+      const secureRandom = randomArray[0] / (0xFFFFFFFF + 1);
+      const jitter = delay * 0.2 * (secureRandom * 2 - 1);
       const finalDelay = Math.max(0, delay + jitter);
 
 
