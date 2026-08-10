@@ -2474,9 +2474,9 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   let cursor: string | undefined = undefined;
 
   while (!listComplete) {
-    const sessionsList = await kv.list({ prefix: 'session:', limit: 1000, cursor });
+    const sessionsList = await kv.list({ prefix: 'session:', limit: 1000, cursor }) as { keys: { name: string }[], list_complete: boolean, cursor?: string };
     listComplete = sessionsList.list_complete;
-    cursor = (sessionsList as { cursor?: string }).cursor;
+    cursor = sessionsList.cursor;
 
     // PERF-021 FIX: Use Promise.all for parallel reads instead of sequential loop
     // PERF-022 FIX: Interleave JSON.parse with KV fetches
