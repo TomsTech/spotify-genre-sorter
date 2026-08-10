@@ -2279,8 +2279,12 @@ api.post('/admin/clear-cache', async (c) => {
     case 'scoreboard': await kv.delete('scoreboard_cache'); cleared = 1; break;
     case 'all_genre_caches': {
       const list = await kv.list({ prefix: 'genre_cache_' });
-      // PERF-024 FIX: Use Promise.all for parallel KV deletes
-      await Promise.all(list.keys.map(key => kv.delete(key.name)));
+      // PERF-024 FIX: Use batched KV deletes to avoid subrequest limits
+      const BATCH_SIZE = 25; // Safe subrequest batch size
+      for (let i = 0; i < list.keys.length; i += BATCH_SIZE) {
+        const batch = list.keys.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(key => kv.delete(key.name)));
+      }
       cleared = list.keys.length;
       break;
     }
