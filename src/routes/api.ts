@@ -1946,7 +1946,7 @@ api.post('/log-perf', async (c) => {
 
     const combined = [sample, ...existing].slice(0, 1000);
 
-    // CRITICAL FIX: Use cachedKV with batching for perf logs (non-critical, can be delayed)
+    // Use cachedKV with batching for perf logs (non-critical, can be delayed)
     await cachedKV.put(c.env.SESSIONS, PERF_LOG_KEY, JSON.stringify(combined), {
       expirationTtl: 86400 * 30, // 30 days
       immediate: false // Batch perf logs to reduce KV writes
