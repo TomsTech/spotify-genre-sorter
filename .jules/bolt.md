@@ -42,3 +42,6 @@
 ## 2025-05-28 - [Eliminating Intermediate Collections]
 **Learning:** Chaining array methods like `.filter()` and `.map()` before passing to a `Set` creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure in hot endpoints.
 **Action:** Replace functional `.filter().map()` chains with a single `for` loop that iteratively populates the destination collection (e.g. `Set`) in one pass to achieve better throughput and reduced memory pressure.
+## 2024-08-10 - Bounding Concurrent External API/KV Requests
+**Learning:** Using an unbounded `Promise.all` on an array of external requests (like Cloudflare KV deletes) can quickly exhaust concurrent request limits (e.g., Cloudflare Workers' 50 subrequest limit per invocation), leading to failed requests and high peak memory usage.
+**Action:** When batching operations that perform external or asynchronous resource-intensive requests, always implement a chunking mechanism (using a `for` loop over slices of the array combined with `Promise.all` for each chunk) to limit maximum concurrency to a safe, documented threshold (e.g., 40 for CF Workers).
