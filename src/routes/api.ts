@@ -2280,7 +2280,7 @@ api.post('/admin/clear-cache', async (c) => {
     case 'all_genre_caches': {
       let cursor: string | undefined = undefined;
       do {
-        const list = await kv.list({ prefix: 'genre_cache_', cursor });
+        const list = await kv.list({ prefix: 'genre_cache_', cursor }) as { keys: { name: string }[], list_complete: boolean, cursor?: string };
         // PERF-024 FIX: Use Promise.all for parallel KV deletes
 
         // Chunk the keys to avoid exceeding the 50 subrequest limit in Cloudflare Workers
@@ -2294,7 +2294,7 @@ api.post('/admin/clear-cache', async (c) => {
         }
 
         cleared += list.keys.length;
-        cursor = list.list_complete ? undefined : (list as any).cursor;
+        cursor = list.list_complete ? undefined : list.cursor;
       } while (cursor);
       break;
     }
