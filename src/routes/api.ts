@@ -1570,18 +1570,24 @@ api.get('/listening', async (c) => {
 
     // PERF-013 FIX: Use Promise.all for parallel reads instead of sequential loop
     // PERF-018 FIX: Interleave JSON.parse with KV fetches
-    const dataPromises = list.keys.map(async key => {
-      const data = await kv.get(key.name);
-      if (data) {
-        try {
-          return JSON.parse(data) as ListeningEntry;
-        } catch { /* skip malformed entries */ }
-      }
-      return null;
-    });
+    // PERF-020 FIX: Chunk parallel KV reads to avoid Cloudflare 50 subrequest limit
+    const listeners: ListeningEntry[] = [];
+    const chunkSize = 10; // Well below the 50 limit
 
-    const dataResults = await Promise.all(dataPromises);
-    const listeners: ListeningEntry[] = dataResults.filter((entry): entry is ListeningEntry => entry !== null);
+    for (let i = 0; i < list.keys.length; i += chunkSize) {
+      const chunk = list.keys.slice(i, i + chunkSize);
+      const fetchPromises = chunk.map(key => kv.get(key.name));
+      const dataResults = await Promise.all(fetchPromises);
+
+      for (let j = 0; j < dataResults.length; j++) {
+        const data = dataResults[j];
+        if (data) {
+          try {
+            listeners.push(JSON.parse(data) as ListeningEntry);
+          } catch { /* skip malformed entries */ }
+        }
+      }
+    }
 
     return c.json({
       listeners,
