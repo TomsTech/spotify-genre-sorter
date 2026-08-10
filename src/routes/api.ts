@@ -251,7 +251,11 @@ api.get('/library-size', async (c) => {
       requiresProgressiveLoad: total > PROGRESSIVE_LOAD_THRESHOLD,
     });
   } catch (err) {
-    console.error('Error fetching library size:', err);
+    const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+      path: c.req.path,
+      method: c.req.method,
+    });
+    log.logError('Error fetching library size:', err);
     return c.json({ error: 'Failed to fetch library size' }, 500);
   }
 });
@@ -353,7 +357,12 @@ api.get('/user-playlists', async (c) => {
       })),
     });
   } catch (err) {
-    console.error('Error fetching playlists:', err);
+    const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+      path: c.req.path,
+      method: c.req.method,
+      userId: session?.spotifyUserId,
+    });
+    log.logError('Error fetching playlists:', err);
     return c.json({ error: 'Failed to fetch playlists' }, 500);
   }
 });
@@ -406,7 +415,12 @@ api.get('/genres', async (c) => {
       tracksResult = await getAllLikedTracks(session.spotifyAccessToken);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      console.error('Error fetching liked tracks:', message);
+
+      const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+        path: c.req.path,
+        method: c.req.method,
+      });
+      log.logError('Error fetching liked tracks', err instanceof Error ? err : new Error(String(err)));
       return c.json({
         error: 'Failed to fetch liked tracks from Spotify',
         details: message,
@@ -516,7 +530,7 @@ api.get('/genres', async (c) => {
     // CRITICAL FIX: Use cachedKV for genre cache writes to leverage batching
     await cachedKV.put(c.env.SESSIONS, cacheKey, JSON.stringify(responseData), {
       expirationTtl: cacheTtl,
-      immediate: true // Genre cache is important - write immediately
+      immediate: false // Genre cache can be batched
     });
 
     // Update user stats with analysis results
@@ -599,7 +613,8 @@ api.get('/genres/scan-status', async (c) => {
       canResume: progress.status === 'in_progress' && progress.offset > 0 && progress.offset < progress.totalInLibrary,
     });
   } catch (err) {
-    console.error('Error checking scan status:', err);
+    const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method });
+    log.logError('Error checking scan status:', err);
     return c.json({ hasProgress: false });
   }
 });
@@ -700,7 +715,7 @@ api.get('/genres/progressive', async (c) => {
       // CRITICAL FIX: Use cachedKV for progressive scan final cache
       await cachedKV.put(c.env.SESSIONS, cacheKey, JSON.stringify(finalData), {
         expirationTtl: GENRE_CACHE_TTL_LARGE,
-        immediate: true
+        immediate: false
       });
 
       // Update user stats
@@ -793,7 +808,11 @@ api.get('/genres/progressive', async (c) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('Error in progressive scan:', err);
+    const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+      path: c.req.path,
+      method: c.req.method,
+    });
+    log.logError('Error in progressive scan:', err instanceof Error ? err : new Error(String(err)));
     return c.json({
       error: 'Progressive scan failed',
       details: message,
@@ -808,6 +827,11 @@ api.get('/genres/chunk', async (c) => {
   if (!session?.spotifyAccessToken) {
     return c.json({ error: 'Not authenticated' }, 401);
   }
+
+  const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+    path: c.req.path,
+    method: c.req.method,
+  });
 
   const offsetStr = c.req.query('offset') || '0';
   const limitStr = c.req.query('limit') || String(CHUNK_SIZE);
@@ -1029,7 +1053,7 @@ api.get('/genres/chunk', async (c) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('Error fetching genre chunk:', err);
+    log.logError('Error fetching genre chunk:', err);
     return c.json({
       error: 'Failed to fetch genre chunk',
       details: message,
@@ -1569,7 +1593,6 @@ api.get('/listening', async (c) => {
     }
 
     // PERF-013 FIX: Use Promise.all for parallel reads instead of sequential loop
-    // PERF-018 FIX: Interleave JSON.parse with KV fetches
     const dataPromises = list.keys.map(async key => {
       const data = await kv.get(key.name);
       if (data) {
@@ -1946,7 +1969,7 @@ api.post('/log-perf', async (c) => {
 
     const combined = [sample, ...existing].slice(0, 1000);
 
-    // CRITICAL FIX: Use cachedKV with batching for perf logs (non-critical, can be delayed)
+    // Use cachedKV with batching for perf logs (non-critical, can be delayed)
     await cachedKV.put(c.env.SESSIONS, PERF_LOG_KEY, JSON.stringify(combined), {
       expirationTtl: 86400 * 30, // 30 days
       immediate: false // Batch perf logs to reduce KV writes
@@ -2246,9 +2269,9 @@ api.get('/admin', async (c) => {
   // PERF-023 FIX: Use Promise.all for parallel KV listing
   // PERF-031 FIX: Parallelize getAnalytics and KV listing
   const prefixes = ['session:', 'user:', 'user_stats:', 'hof:', 'genre_cache_', 'scan_progress:'];
-  const [analytics, listResults] = await Promise.all([
+  const [analytics, ...listResults] = await Promise.all([
     getAnalytics(kv),
-    Promise.all(prefixes.map(prefix => kv.list({ prefix, limit: 1000 })))
+    ...prefixes.map(prefix => kv.list({ prefix, limit: 1000 }))
   ]);
 
   const keyCounts: Record<string, number> = {};
@@ -2321,7 +2344,6 @@ api.get('/admin/users', async (c) => {
   const seenIds = new Set<string>();
 
   // PERF-014 FIX: Use Promise.all for parallel reads instead of sequential loop
-  // PERF-019 FIX: Interleave JSON.parse with KV fetches
   const dataPromises = userStatsList.keys.map(async key => {
     const statsJson = await kv.get(key.name);
     if (statsJson) {
@@ -2357,7 +2379,6 @@ api.get('/admin/users', async (c) => {
 
   // Also fetch HoF users (pioneers) who might not have user_stats entries
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
-  // PERF-029 FIX: Interleave JSON.parse with KV fetches
   const hofPromises = hofKeys.map(async key => {
     const hofJson = await kv.get(key);
     if (hofJson) {
@@ -2435,16 +2456,16 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   ];
 
   // Delete all standard keys without checking existence (delete is idempotent)
-  // PERF-025 FIX: Use Promise.all for parallel KV deletes instead of sequential loop
-  await Promise.all(keysToDelete.map(async (key) => {
+  const deletePromises = keysToDelete.map(async (key) => {
     await cachedKV.delete(kv, key);
-    deleted.push(key);
-  }));
+    return key;
+  });
+  const deletedKeys = await Promise.all(deletePromises);
+  deleted.push(...deletedKeys);
 
   // Find and delete HoF entry by scanning for matching spotifyId
   // HoF keys are formatted as hof:001, hof:002, etc.
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
-  // PERF-030 FIX: Interleave JSON.parse with KV fetches
   const hofPromises = hofKeys.map(async key => {
     const hofJson = await kv.get(key);
     if (hofJson) {
@@ -2472,7 +2493,6 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   // Find and delete any active sessions for this user
   const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
   // PERF-021 FIX: Use Promise.all for parallel reads instead of sequential loop
-  // PERF-022 FIX: Interleave JSON.parse with KV fetches
   const sessionPromises = sessionsList.keys.map(async key => {
     try {
       const sessionJson = await kv.get(key.name);
@@ -2717,7 +2737,6 @@ api.get('/admin/access-requests', async (c) => {
   const emails: string[] = existingList ? JSON.parse(existingList) as string[] : [];
 
   // PERF-015 FIX: Use Promise.all for parallel reads instead of sequential loop
-  // PERF-020 FIX: Interleave JSON.parse with KV fetches
   const requestKeys = emails.map(email => `access_request_${email}`);
   const dataPromises = requestKeys.map(async key => {
     const data = await kv.get(key);
