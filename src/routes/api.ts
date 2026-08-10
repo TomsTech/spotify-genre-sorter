@@ -2320,38 +2320,42 @@ api.get('/admin/users', async (c) => {
   // Track which Spotify IDs we've seen
   const seenIds = new Set<string>();
 
-  // PERF-014 FIX: Use Promise.all for parallel reads instead of sequential loop
+  // PERF-014 FIX: Use chunked Promise.all for parallel reads to avoid subrequest limits
   // PERF-019 FIX: Interleave JSON.parse with KV fetches
-  const dataPromises = userStatsList.keys.map(async key => {
-    const statsJson = await kv.get(key.name);
-    if (statsJson) {
-      try {
-        const stats = JSON.parse(statsJson) as {
-          spotifyId: string;
-          spotifyName: string;
-          spotifyAvatar?: string;
-          playlistsCreated?: number;
-          firstSeen?: string;
-          lastActive?: string;
-        };
-        return {
-          spotifyId: stats.spotifyId,
-          spotifyName: stats.spotifyName || 'Unknown',
-          spotifyAvatar: stats.spotifyAvatar || null,
-          playlistCount: stats.playlistsCreated || 0,
-          registeredAt: stats.firstSeen || 'Unknown',
-          lastActive: stats.lastActive || null,
-        };
-      } catch { /* skip malformed entries */ }
-    }
-    return null;
-  });
+  const CHUNK_SIZE = 50;
+  for (let i = 0; i < userStatsList.keys.length; i += CHUNK_SIZE) {
+    const chunk = userStatsList.keys.slice(i, i + CHUNK_SIZE);
+    const dataPromises = chunk.map(async key => {
+      const statsJson = await kv.get(key.name);
+      if (statsJson) {
+        try {
+          const stats = JSON.parse(statsJson) as {
+            spotifyId: string;
+            spotifyName: string;
+            spotifyAvatar?: string;
+            playlistsCreated?: number;
+            firstSeen?: string;
+            lastActive?: string;
+          };
+          return {
+            spotifyId: stats.spotifyId,
+            spotifyName: stats.spotifyName || 'Unknown',
+            spotifyAvatar: stats.spotifyAvatar || null,
+            playlistCount: stats.playlistsCreated || 0,
+            registeredAt: stats.firstSeen || 'Unknown',
+            lastActive: stats.lastActive || null,
+          };
+        } catch { /* skip malformed entries */ }
+      }
+      return null;
+    });
 
-  const dataResults = await Promise.all(dataPromises);
-  for (const user of dataResults) {
-    if (user) {
-      seenIds.add(user.spotifyId);
-      users.push(user);
+    const dataResults = await Promise.all(dataPromises);
+    for (const user of dataResults) {
+      if (user) {
+        seenIds.add(user.spotifyId);
+        users.push(user);
+      }
     }
   }
 
