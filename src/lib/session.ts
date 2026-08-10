@@ -382,20 +382,27 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
 
   // PERF-001 FIX: Use Promise.all for parallel reads instead of sequential
   // PERF-016 FIX: Interleave JSON.parse with KV fetches
-  const dataPromises = keys.map(async key => {
-    const data = await kv.get(key.name);
-    if (!data) return null;
+  // PERF-CHUNK FIX: Chunk Promise.all to avoid Cloudflare 50 subrequest limit
+  const CHUNK_SIZE = 50;
+  const parsedResults: (UserStats | null)[] = [];
 
-    const stats = JSON.parse(data) as UserStats;
-    // Backfill estimation: if totalTracksInPlaylists is 0 but user has playlists,
-    // estimate based on average tracks per playlist
-    if ((!stats.totalTracksInPlaylists || stats.totalTracksInPlaylists === 0) && stats.playlistsCreated > 0) {
-      stats.totalTracksInPlaylists = stats.playlistsCreated * AVERAGE_TRACKS_PER_PLAYLIST;
-    }
-    return stats;
-  });
+  for (let i = 0; i < keys.length; i += CHUNK_SIZE) {
+    const chunk = keys.slice(i, i + CHUNK_SIZE);
+    const chunkPromises = chunk.map(async key => {
+      const data = await kv.get(key.name);
+      if (!data) return null;
 
-  const parsedResults = await Promise.all(dataPromises);
+      const stats = JSON.parse(data) as UserStats;
+      // Backfill estimation: if totalTracksInPlaylists is 0 but user has playlists,
+      // estimate based on average tracks per playlist
+      if ((!stats.totalTracksInPlaylists || stats.totalTracksInPlaylists === 0) && stats.playlistsCreated > 0) {
+        stats.totalTracksInPlaylists = stats.playlistsCreated * AVERAGE_TRACKS_PER_PLAYLIST;
+      }
+      return stats;
+    });
+    const chunkResults = await Promise.all(chunkPromises);
+    parsedResults.push(...chunkResults);
+  }
   const allStats: UserStats[] = parsedResults.filter((stats): stats is UserStats => stats !== null);
 
   // Sort and rank for each category
