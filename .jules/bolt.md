@@ -54,3 +54,6 @@
 ## 2023-10-27 - Optimize Promise.all Concurrency in KV cache writes
 **Learning:** Using an unbounded `Promise.all` on operations that trigger network requests (like Cloudflare KV puts) can quickly exceed hard subrequest limits (e.g., Cloudflare Worker's 50 subrequests).
 **Action:** When firing concurrent I/O operations from an unbounded array or Map, slice the collection into chunks and process each chunk sequentially, awaiting a batched `Promise.all` for each slice. This bounds concurrency and prevents catastrophic limit exceptions.
+## 2026-08-03 - Avoid async wrappers in loops for pure Promise arrays
+**Learning:** Wrapping promise-returning functions (like API calls) in `async` mappings just to use `await` sequentially or unnecessarily creates extra overhead and can be flagged as sub-optimal when the array of Promises is already meant for `Promise.all`.
+**Action:** Push directly to a promise array using a synchronous loop, chaining `.catch` for error handling, then resolve the array collectively with `Promise.all()`.
