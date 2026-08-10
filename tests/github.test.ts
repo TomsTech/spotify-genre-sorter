@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { isUserAllowed, exchangeGitHubCode, getGitHubAuthUrl } from '../src/lib/github';
+import { isUserAllowed, exchangeGitHubCode, getGitHubAuthUrl, getGitHubUser } from '../src/lib/github';
 
 describe('isUserAllowed', () => {
   it('returns false when allowedUsers is empty', () => {
@@ -41,9 +41,9 @@ describe('exchangeGitHubCode', () => {
   });
 
   it('should successfully exchange code for an access token', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+    vi.spyOn(global, 'fetch').mockResolvedValue({
       json: async () => ({ access_token: 'valid_token' }),
-    });
+    } as any);
 
     const token = await exchangeGitHubCode('test_code', 'client_id', 'client_secret');
     expect(token).toBe('valid_token');
@@ -51,17 +51,17 @@ describe('exchangeGitHubCode', () => {
   });
 
   it('should throw an error if the response contains an error field', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+    vi.spyOn(global, 'fetch').mockResolvedValue({
       json: async () => ({ error: 'bad_verification_code' }),
-    });
+    } as any);
 
     await expect(exchangeGitHubCode('bad_code', 'client_id', 'client_secret')).rejects.toThrow('bad_verification_code');
   });
 
   it('should throw an error if the response lacks both access_token and error fields', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+    vi.spyOn(global, 'fetch').mockResolvedValue({
       json: async () => ({}),
-    });
+    } as any);
 
     await expect(exchangeGitHubCode('test_code', 'client_id', 'client_secret')).rejects.toThrow('Failed to exchange code');
   });
@@ -88,5 +88,44 @@ describe('getGitHubAuthUrl', () => {
     expect(parsedUrl.searchParams.get('client_id')).toBe('client-id-!@#');
     expect(parsedUrl.searchParams.get('redirect_uri')).toBe('https://example.com/cb?foo=bar');
     expect(parsedUrl.searchParams.get('state')).toBe('state-with space');
+  });
+});
+
+describe('getGitHubUser', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should successfully get GitHub user', async () => {
+    const mockUser = { login: 'octocat', avatar_url: 'https://github.com/images/error/octocat_happy.gif', name: 'monalisa octocat' };
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => mockUser,
+    } as any);
+
+    const user = await getGitHubUser('valid_token');
+    expect(user).toEqual(mockUser);
+    expect(global.fetch).toHaveBeenCalledWith('https://api.github.com/user', {
+      headers: {
+        Authorization: 'Bearer valid_token',
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'Spotify-Genre-Organizer',
+      },
+    });
+  });
+
+  it('should throw an error if the response is not ok', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: false,
+    } as any);
+
+    await expect(getGitHubUser('invalid_token')).rejects.toThrow('Failed to get GitHub user');
+    expect(global.fetch).toHaveBeenCalledWith('https://api.github.com/user', {
+      headers: {
+        Authorization: 'Bearer invalid_token',
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'Spotify-Genre-Organizer',
+      },
+    });
   });
 });
