@@ -410,7 +410,12 @@ api.get('/genres', async (c) => {
       tracksResult = await getAllLikedTracks(session.spotifyAccessToken);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      console.error('Error fetching liked tracks:', message);
+
+      const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+        path: c.req.path,
+        method: c.req.method,
+      });
+      log.logError('Error fetching liked tracks', err instanceof Error ? err : new Error(String(err)));
       return c.json({
         error: 'Failed to fetch liked tracks from Spotify',
         details: message,
