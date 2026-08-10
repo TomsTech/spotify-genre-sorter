@@ -545,16 +545,21 @@ export async function getUserPlaylists(
     }
 
     if (remainingOffsets.length > 0) {
-      const responses = await Promise.all(
-        remainingOffsets.map(off =>
-          spotifyFetch<{ items: SpotifyPlaylist[] }>(
-            `/me/playlists?limit=${limit}&offset=${off}`,
-            accessToken
+      // PERF-FIX: Batch requests to prevent Cloudflare Worker 50 subrequest limit errors
+      const CONCURRENCY_LIMIT = 10;
+      for (let i = 0; i < remainingOffsets.length; i += CONCURRENCY_LIMIT) {
+        const batch = remainingOffsets.slice(i, i + CONCURRENCY_LIMIT);
+        const responses = await Promise.all(
+          batch.map(off =>
+            spotifyFetch<{ items: SpotifyPlaylist[] }>(
+              `/me/playlists?limit=${limit}&offset=${off}`,
+              accessToken
+            )
           )
-        )
-      );
-      for (const res of responses) {
-        allPlaylists.push(...res.items);
+        );
+        for (const res of responses) {
+          allPlaylists.push(...res.items);
+        }
       }
     }
   }
@@ -593,18 +598,23 @@ export async function getPlaylistTracks(
       remainingOffsets.push(offset);
     }
 
-    // Fetch remaining pages concurrently
+    // Fetch remaining pages concurrently in batches
     if (remainingOffsets.length > 0) {
-      const responses = await Promise.all(
-        remainingOffsets.map(off =>
-          spotifyFetch<{ items: PlaylistTrack[] }>(
-            `/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${off}`,
-            accessToken
+      // PERF-FIX: Batch requests to prevent Cloudflare Worker 50 subrequest limit errors
+      const CONCURRENCY_LIMIT = 10;
+      for (let i = 0; i < remainingOffsets.length; i += CONCURRENCY_LIMIT) {
+        const batch = remainingOffsets.slice(i, i + CONCURRENCY_LIMIT);
+        const responses = await Promise.all(
+          batch.map(off =>
+            spotifyFetch<{ items: PlaylistTrack[] }>(
+              `/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${off}`,
+              accessToken
+            )
           )
-        )
-      );
-      for (const res of responses) {
-        allTracks.push(...res.items);
+        );
+        for (const res of responses) {
+          allTracks.push(...res.items);
+        }
       }
     }
   }
