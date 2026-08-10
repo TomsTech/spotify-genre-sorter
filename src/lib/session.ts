@@ -771,3 +771,93 @@ export async function updateUserPreferences(
   await cachedKV.put(kv, `user_prefs:${spotifyId}`, JSON.stringify(updated), { immediate: true });
   return updated;
 }
+
+export async function deleteUserData(kv: KVNamespace, spotifyId: string): Promise<string[]> {
+  const deleted: string[] = [];
+
+  // Standard keys to delete (by Spotify ID)
+  const keysToDelete = [
+    `user_stats:${spotifyId}`,
+    `user:${spotifyId}`,
+    `genre_cache_${spotifyId}`,
+    `scan_progress:${spotifyId}`,
+    `user_prefs:${spotifyId}`,
+    `listening:${spotifyId}` // Also delete listening status
+  ];
+
+  // Delete all standard keys without checking existence (delete is idempotent)
+  // PERF-025 FIX: Use Promise.all for parallel KV deletes instead of sequential loop
+  await Promise.all(keysToDelete.map(async (key) => {
+    await cachedKV.delete(kv, key);
+    deleted.push(key);
+  }));
+
+  // Find and delete HoF entry by scanning for matching spotifyId
+  // HoF keys are formatted as hof:001, hof:002, etc.
+  const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
+  // PERF-030 FIX: Interleave JSON.parse with KV fetches
+  const hofPromises = hofKeys.map(async key => {
+    const hofJson = await kv.get(key);
+    if (hofJson) {
+      try {
+        return JSON.parse(hofJson) as { spotifyId?: string };
+      } catch { /* skip malformed entries */ }
+    }
+    return null;
+  });
+
+  const hofResults = await Promise.all(hofPromises);
+
+  for (let i = 0; i < hofResults.length; i++) {
+    const hofData = hofResults[i];
+    if (hofData) {
+      if (hofData.spotifyId === spotifyId) {
+        const hofKey = `hof:${String(i + 1).padStart(3, '0')}`;
+        await cachedKV.delete(kv, hofKey);
+        deleted.push(hofKey);
+        break; // User can only be in HoF once
+      }
+    }
+  }
+
+  // Find and delete any active sessions for this user
+  const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
+  // PERF-021 FIX: Use Promise.all for parallel reads instead of sequential loop
+  // PERF-022 FIX: Interleave JSON.parse with KV fetches
+  const sessionPromises = sessionsList.keys.map(async key => {
+    try {
+      const sessionJson = await kv.get(key.name);
+      if (sessionJson) {
+        const sessionData = JSON.parse(sessionJson) as { spotifyUserId?: string };
+        if (sessionData.spotifyUserId === spotifyId) {
+          await cachedKV.delete(kv, key.name);
+          return key.name;
+        }
+      }
+    } catch { /* skip malformed sessions */ }
+    return null;
+  });
+
+  const sessionResults = await Promise.all(sessionPromises);
+  for (const keyName of sessionResults) {
+    if (keyName) deleted.push(keyName);
+  }
+
+  // Decrement user count if we deleted a user_stats entry
+  if (deleted.includes(`user_stats:${spotifyId}`)) {
+    try {
+      const countStr = await kv.get('stats:user_count');
+      const count = countStr ? parseInt(countStr, 10) : 0;
+      if (count > 0) {
+        await kv.put('stats:user_count', String(count - 1));
+      }
+    } catch { /* ignore count errors */ }
+  }
+
+  // Clear leaderboard and scoreboard caches so they rebuild without this user
+  // Use cachedKV to also clear in-memory cache
+  await cachedKV.delete(kv, 'leaderboard_cache');
+  await cachedKV.delete(kv, 'scoreboard_cache');
+
+  return deleted;
+}
