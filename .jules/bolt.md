@@ -42,3 +42,7 @@
 ## 2025-05-28 - [Eliminating Intermediate Collections]
 **Learning:** Chaining array methods like `.filter()` and `.map()` before passing to a `Set` creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure in hot endpoints.
 **Action:** Replace functional `.filter().map()` chains with a single `for` loop that iteratively populates the destination collection (e.g. `Set`) in one pass to achieve better throughput and reduced memory pressure.
+## 2024-05-15 - [Batch Parallel Requests to Fix Subrequest Limits] **Learning:** When making parallel requests in Cloudflare Workers using `Promise.all` with a large number of promises, it can hit the 50 subrequests limit and crash. **Action:** Group the parallel requests into chunks (batches) and sequentially await `Promise.all` for each batch (e.g., `batchSize = 5`) to stay within limit but still benefit from parallelism.
+## 2024-05-15 - [Batching Parallel Promises for Environment Limits]
+**Learning:** When deploying in restricted environments (like Cloudflare Workers, which has a 50 subrequest limit), using `Promise.all()` over an unbounded or large array of external API fetches can lead to sudden crashes.
+**Action:** Instead of fetching all items at once, use sequential chunking (e.g. `batchSize = 5`) inside a `for` loop, awaiting `Promise.all(chunk)` iteratively. This keeps concurrency safe without sacrificing the speed benefits of parallel execution. Ensure to clean up any temporary workspace files used during script creation and testing.
