@@ -59,7 +59,7 @@
             <button class="btn btn-primary error-retry-btn" onclick="window.location.reload()">
               \${swedishMode ? '🔄 Försök igen' : '🔄 Try Again'}
             </button>
-            <a href="\${escapeHtml(issueUrl)}" target="_blank" rel="noopener" class="btn btn-ghost error-report-btn">
+            <a href="\${escapeHtml(issueUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost error-report-btn">
               \${swedishMode ? '🐛 Rapportera problem' : '🐛 Report Issue'}
             </a>
           </div>
@@ -1967,7 +1967,7 @@
 
       const footer = document.createElement('div');
       footer.className = 'changelog-footer';
-      footer.innerHTML = \`<a href="\${changelogCache.repoUrl}/releases" target="_blank">\${swedishMode ? 'Visa alla utgåvor' : 'View all releases'} →</a>\`;
+      footer.innerHTML = \`<a href="\${changelogCache.repoUrl}/releases" target="_blank" rel="noopener noreferrer">\${swedishMode ? 'Visa alla utgåvor' : 'View all releases'} →</a>\`;
 
       panel.appendChild(header);
       panel.appendChild(timeline);
@@ -2073,7 +2073,7 @@
               <span>\${swedishMode ? 'Visa inte igen' : "Don't show again"}</span>
             </label>
             <div class="whats-new-actions">
-              <a href="\${changelogCache?.repoUrl || 'https://github.com/TomsTech/spotify-genre-sorter'}/releases" target="_blank" class="btn btn-ghost">
+              <a href="\${changelogCache?.repoUrl || 'https://github.com/TomsTech/spotify-genre-sorter'}/releases" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">
                 \${swedishMode ? 'Alla utgåvor' : 'All releases'}
               </a>
               <button class="btn btn-primary whats-new-gotit">
@@ -2988,7 +2988,7 @@
               </div>
             </div>
           </div>
-          <a href="https://github.com/TomsTech/spotify-genre-sorter/blob/main/docs/security.md" target="_blank" class="privacy-docs-link">
+          <a href="https://github.com/TomsTech/spotify-genre-sorter/blob/main/docs/security.md" target="_blank" rel="noopener noreferrer" class="privacy-docs-link">
             📄 \${t('privacyReviewDocs')}
           </a>
         </details>
@@ -3003,10 +3003,10 @@
           \${privacyExplainer}
           \${loginButton}
           <div class="footer-badges">
-            <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank" class="github-star-badge" title="\${swedishMode ? 'Gillar du det? Stjärnmärk oss! ⭐' : 'Love this? Star us! ⭐'}">
+            <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank" rel="noopener noreferrer" class="github-star-badge" title="\${swedishMode ? 'Gillar du det? Stjärnmärk oss! ⭐' : 'Love this? Star us! ⭐'}">
               <img src="https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=for-the-badge&logo=github&logoColor=white&label=Star&color=1DB954&labelColor=191414" alt="Star on GitHub" loading="lazy" onerror="this.style.display='none'">
             </a>
-            <a href="https://spotify.houstons.tech" target="_blank" class="uptime-badge" title="\${swedishMode ? 'Tjänststatus' : 'Service Status'}">
+            <a href="https://spotify.houstons.tech" target="_blank" rel="noopener noreferrer" class="uptime-badge" title="\${swedishMode ? 'Tjänststatus' : 'Service Status'}">
               <img src="https://img.shields.io/website?url=https%3A%2F%2Fspotify.houstons.tech&style=for-the-badge&logo=spotify&logoColor=white&label=Status&up_color=1DB954&down_color=e74c3c&labelColor=191414" alt="Service Status" loading="lazy" onerror="this.style.display='none'">
             </a>
           </div>
@@ -5297,7 +5297,7 @@
                 <div class="result-item">
                   <span>\${r.genre}</span>
                   \${r.success
-                    ? \`<a href="\${escapeHtml(r.url)}" target="_blank" class="result-success" data-i18n="openSpotify">\${t('openSpotify')}</a>\`
+                    ? \`<a href="\${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer" class="result-success" data-i18n="openSpotify">\${t('openSpotify')}</a>\`
                     : r.skipped
                       ? \`<span class="result-skipped">\${swedishMode ? 'Finns redan' : 'Already exists'}</span>\`
                       : \`<span class="result-error">\${r.error}</span>\`
@@ -5825,7 +5825,7 @@
         const delay = i * 50; // Stagger by 50ms
         const genreEmoji = getGenreEmoji(playlist.genre);
         return \`
-          <a href="\${escapeHtml(playlist.spotifyUrl)}" target="_blank" class="playlist-list-item animate-in" style="animation-delay: \${delay}ms" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
+          <a href="\${escapeHtml(playlist.spotifyUrl)}" target="_blank" rel="noopener noreferrer" class="playlist-list-item animate-in" style="animation-delay: \${delay}ms" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
             <div class="playlist-icon">\${genreEmoji}</div>
             <div class="playlist-info">
               <div class="playlist-name">\${escapeHtml(playlist.playlistName)}</div>
@@ -6874,7 +6874,7 @@
       const msg = swedishMode ? msgSE : msgEN;
 
       banner.innerHTML = '<strong>' + title + '</strong> — ' + msg +
-        ' <a href="https://status.tomstech.dev" target="_blank">' +
+        ' <a href="https://status.tomstech.dev" target="_blank" rel="noopener noreferrer">' +
         (swedishMode ? 'Statussida' : 'Status Page') + '</a>' +
         '<button class="close-btn" onclick="dismissRateLimitBanner()" aria-label="Dismiss banner">&times;</button>';
 
@@ -6961,7 +6961,7 @@
             '<div class="invite-success">' +
               '<h3>' + successTitle + '</h3>' +
               '<p>' + successMsg + '</p>' +
-              (data.trackingUrl ? '<a href="' + data.trackingUrl + '" class="btn btn-secondary" target="_blank">' + trackText + '</a>' : '') +
+              (data.trackingUrl ? '<a href="' + data.trackingUrl + '" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">' + trackText + '</a>' : '') +
             '</div>';
 
           e.target.style.display = 'none';
@@ -7277,11 +7277,11 @@
         '    <button class="btn btn-secondary share-copy-btn" onclick="copyShareLink(this)">' + (swedishMode ? 'Kopiera' : 'Copy') + '</button>',
         '  </div>',
         '  <div class="share-social-buttons">',
-        '    <a href="https://twitter.com/intent/tweet?url=' + encodeURIComponent(playlistUrl) + '&text=' + encodeURIComponent('Check out my ' + playlistName + ' playlist! 🎵') + '" target="_blank" class="share-social-btn twitter" aria-label="' + (swedishMode ? 'Dela på X (Twitter)' : 'Share on X (Twitter)') + '">𝕏</a>',
-        '    <a href="https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(playlistUrl) + '" target="_blank" class="share-social-btn facebook" aria-label="' + (swedishMode ? 'Dela på Facebook' : 'Share on Facebook') + '">f</a>',
-        '    <a href="whatsapp://send?text=' + encodeURIComponent(playlistName + ' - ' + playlistUrl) + '" target="_blank" class="share-social-btn whatsapp" aria-label="' + (swedishMode ? 'Dela via WhatsApp' : 'Share via WhatsApp') + '">💬</a>',
+        '    <a href="https://twitter.com/intent/tweet?url=' + encodeURIComponent(playlistUrl) + '&text=' + encodeURIComponent('Check out my ' + playlistName + ' playlist! 🎵') + '" target="_blank" rel="noopener noreferrer" class="share-social-btn twitter" aria-label="' + (swedishMode ? 'Dela på X (Twitter)' : 'Share on X (Twitter)') + '">𝕏</a>',
+        '    <a href="https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(playlistUrl) + '" target="_blank" rel="noopener noreferrer" class="share-social-btn facebook" aria-label="' + (swedishMode ? 'Dela på Facebook' : 'Share on Facebook') + '">f</a>',
+        '    <a href="whatsapp://send?text=' + encodeURIComponent(playlistName + ' - ' + playlistUrl) + '" target="_blank" rel="noopener noreferrer" class="share-social-btn whatsapp" aria-label="' + (swedishMode ? 'Dela via WhatsApp' : 'Share via WhatsApp') + '">💬</a>',
         '  </div>',
-        '  <a href="' + escapeHtml(playlistUrl) + '" target="_blank" class="btn btn-primary share-open-btn">' + (swedishMode ? 'Öppna i Spotify' : 'Open in Spotify') + '</a>',
+        '  <a href="' + escapeHtml(playlistUrl) + '" target="_blank" rel="noopener noreferrer" class="btn btn-primary share-open-btn">' + (swedishMode ? 'Öppna i Spotify' : 'Open in Spotify') + '</a>',
         '</div>'
       ].join('');
 
