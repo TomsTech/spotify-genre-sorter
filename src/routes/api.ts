@@ -2298,26 +2298,20 @@ api.post('/admin/rebuild-caches', async (c) => {
   return c.json({ success: true, timestamp: new Date().toISOString() });
 });
 
-// List all users for admin management
-api.get('/admin/users', async (c) => {
-  const session = await getSession(c);
-  if (!isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+type AdminUser = {
+  spotifyId: string;
+  spotifyName: string;
+  spotifyAvatar: string | null;
+  playlistCount: number;
+  registeredAt: string;
+  lastActive: string | null;
+  isPioneer?: boolean;
+  hofPosition?: number;
+};
 
-  const kv = c.env.SESSIONS;
+async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
   const userStatsList = await kv.list({ prefix: 'user_stats:', limit: 500 });
-
-  const users: Array<{
-    spotifyId: string;
-    spotifyName: string;
-    spotifyAvatar: string | null;
-    playlistCount: number;
-    registeredAt: string;
-    lastActive: string | null;
-    isPioneer?: boolean;
-    hofPosition?: number;
-  }> = [];
-
-  // Track which Spotify IDs we've seen
+  const users: AdminUser[] = [];
   const seenIds = new Set<string>();
 
   // PERF-014 FIX: Use Promise.all for parallel reads instead of sequential loop
@@ -2408,6 +2402,17 @@ api.get('/admin/users', async (c) => {
     if (b.registeredAt === 'Unknown') return -1;
     return new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime();
   });
+
+  return users;
+}
+
+// List all users for admin management
+api.get('/admin/users', async (c) => {
+  const session = await getSession(c);
+  if (!isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+
+  const kv = c.env.SESSIONS;
+  const users = await getAdminUsersList(kv);
 
   return c.json({ users, total: users.length });
 });
