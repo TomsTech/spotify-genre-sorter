@@ -6405,7 +6405,10 @@
 
       if (userPlaylists.length === 0) {
         const noPlaylists = swedishMode ? 'Inga spellistor hittades' : 'No playlists found';
-        container.innerHTML = '<p>' + noPlaylists + '</p>';
+        container.textContent = '';
+        const p = document.createElement('p');
+        p.textContent = noPlaylists;
+        container.appendChild(p);
         return;
       }
 
@@ -6413,22 +6416,50 @@
       const ownerText = swedishMode ? 'Din' : 'Yours';
       const tracksText = swedishMode ? 'låtar' : 'tracks';
 
-      let html = '<div class="playlist-list">';
-      for (const playlist of userPlaylists) {
-        html += '<div class="playlist-item">' +
-          '<div class="playlist-item-info">' +
-            '<span class="playlist-item-name">' + escapeHtml(playlist.name) + '</span>' +
-            '<span class="playlist-item-tracks">' + playlist.trackCount + ' ' + tracksText + '</span>' +
-            (playlist.isOwner ? '<span class="playlist-item-owner">' + ownerText + '</span>' : '') +
-          '</div>' +
-          '<button class="playlist-scan-btn" aria-label="' + (swedishMode ? 'Skanna spellista ' : 'Scan playlist ') + escapeHtml(playlist.name) + '" onclick="scanPlaylist(\'' + playlist.id + '\', \'' + escapeHtml(playlist.name).replace(/'/g, "\\'") + '\')">' +
-            scanText +
-          '</button>' +
-        '</div>';
-      }
-      html += '</div>';
+      container.textContent = '';
+      const listDiv = document.createElement('div');
+      listDiv.className = 'playlist-list';
 
-      container.innerHTML = html;
+      for (const playlist of userPlaylists) {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'playlist-item';
+
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'playlist-item-info';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'playlist-item-name';
+        nameSpan.textContent = playlist.name;
+        infoDiv.appendChild(nameSpan);
+
+        const tracksSpan = document.createElement('span');
+        tracksSpan.className = 'playlist-item-tracks';
+        tracksSpan.textContent = playlist.trackCount + ' ' + tracksText;
+        infoDiv.appendChild(tracksSpan);
+
+        if (playlist.isOwner) {
+          const ownerSpan = document.createElement('span');
+          ownerSpan.className = 'playlist-item-owner';
+          ownerSpan.textContent = ownerText;
+          infoDiv.appendChild(ownerSpan);
+        }
+        itemDiv.appendChild(infoDiv);
+
+        const btn = document.createElement('button');
+        btn.className = 'playlist-scan-btn';
+        btn.setAttribute('aria-label', (swedishMode ? 'Skanna spellista ' : 'Scan playlist ') + playlist.name);
+        btn.textContent = scanText;
+
+        const currentPlaylistId = playlist.id;
+        const currentPlaylistName = playlist.name;
+        btn.addEventListener('click', () => scanPlaylist(currentPlaylistId, currentPlaylistName));
+
+        itemDiv.appendChild(btn);
+
+        listDiv.appendChild(itemDiv);
+      }
+
+      container.appendChild(listDiv);
     }
 
     async function scanPlaylist(playlistId, playlistName) {

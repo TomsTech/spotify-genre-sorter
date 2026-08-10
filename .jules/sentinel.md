@@ -67,3 +67,7 @@
 **Vulnerability:** XSS vulnerability in error handler where `error.suggestion` was directly injected into `innerHTML` without HTML escaping.
 **Learning:** Even though the main `error.message` was escaped, supplementary data attached to error objects (`suggestion`) was overlooked when dynamically generating DOM structures via string templates.
 **Prevention:** Always escape *all* untrusted inputs before injecting into `innerHTML`, regardless of whether they represent primary or supplementary error data. Consider using `.textContent` instead of `.innerHTML` when only text is needed.
+## 2025-02-26 - XSS in Playlist Listing via innerHTML
+**Vulnerability:** XSS via concatenation of user-controlled Spotify playlist names and assignment into DOM using `innerHTML`.
+**Learning:** Even though `escapeHtml()` was partially used, combining it directly with HTML string concatenation and `innerHTML` bypasses proper DOM sanitization, making the application vulnerable to subtle escaping bugs or attribute injection.
+**Prevention:** Instead of string formatting and `innerHTML`, strictly use `document.createElement`, `element.textContent`, and `element.appendChild()` for dynamic UI construction to enforce structural separation of data from code.
