@@ -793,7 +793,11 @@ api.get('/genres/progressive', async (c) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('Error in progressive scan:', err);
+    const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+      path: c.req.path,
+      method: c.req.method,
+    });
+    log.logError('Error in progressive scan:', err instanceof Error ? err : new Error(String(err)));
     return c.json({
       error: 'Progressive scan failed',
       details: message,
