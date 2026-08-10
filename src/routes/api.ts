@@ -1360,114 +1360,110 @@ api.post('/playlists/bulk', async (c) => {
   }
 });
 
-// Changelog endpoint - dynamically fetches from GitHub releases with caching
+// Changelog Endpoint Helpers
 const CHANGELOG_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 let changelogCache: { data: unknown; timestamp: number } | null = null;
+const REPO_URL = 'https://github.com/TomsTech/spotify-genre-sorter';
+const API_URL = 'https://api.github.com/repos/TomsTech/spotify-genre-sorter/releases';
 
-api.get('/changelog', async (c) => {
-  const REPO_URL = 'https://github.com/TomsTech/spotify-genre-sorter';
-  const API_URL = 'https://api.github.com/repos/TomsTech/spotify-genre-sorter/releases';
+interface GitHubRelease {
+  tag_name: string;
+  published_at: string;
+  body: string;
+  name: string;
+}
 
-  // Check cache first
+function transformGitHubReleases(releases: GitHubRelease[]) {
+  return releases.slice(0, 10).map((release) => {
+    const version = release.tag_name.replace(/^v/, '');
+    const date = release.published_at.split('T')[0];
+    const bodyLines = (release.body || '').split('\n');
+    const changes: string[] = [];
+
+    for (const line of bodyLines) {
+      const match = line.trim().match(/^[-*]\s+(.+)$/);
+      if (match) {
+        const change = match[1]
+          .replace(/\*\*/g, '')
+          .replace(/`/g, '')
+          .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+        changes.push(change);
+      }
+    }
+
+    if (changes.length === 0) {
+      changes.push(release.name || `Release ${version}`);
+    }
+
+    return {
+      version,
+      date,
+      changes: changes.slice(0, 8),
+    };
+  });
+}
+
+async function fetchAndCacheChangelog() {
   if (changelogCache && Date.now() - changelogCache.timestamp < CHANGELOG_CACHE_TTL) {
-    return c.json(changelogCache.data);
+    return changelogCache.data;
   }
 
-  try {
-    // Fetch releases from GitHub API
-    const response = await fetch(API_URL, {
-      headers: {
-        'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'Genre-Genie-App',
-      },
-    });
+  const response = await fetch(API_URL, {
+    headers: {
+      'Accept': 'application/vnd.github.v3+json',
+      'User-Agent': 'Genre-Genie-App',
+    },
+  });
 
-    if (!response.ok) {
-      throw new Error(`GitHub API returned ${response.status}`);
-    }
+  if (!response.ok) {
+    throw new Error(`GitHub API returned ${response.status}`);
+  }
 
-    const releases: Array<{
-      tag_name: string;
-      published_at: string;
-      body: string;
-      name: string;
-    }> = await response.json();
+  const releases: GitHubRelease[] = await response.json();
+  const changelog = transformGitHubReleases(releases);
 
-    // Transform GitHub releases to our changelog format
-    const changelog = releases.slice(0, 10).map((release) => {
-      // Extract version from tag (e.g., "v3.4.0" -> "3.4.0")
-      const version = release.tag_name.replace(/^v/, '');
+  const result = {
+    changelog,
+    repoUrl: REPO_URL,
+    cached: false,
+    fetchedAt: new Date().toISOString(),
+  };
 
-      // Extract date from published_at
-      const date = release.published_at.split('T')[0];
+  changelogCache = {
+    data: { ...result, cached: true },
+    timestamp: Date.now(),
+  };
 
-      // Parse release body into changes array
-      // Look for markdown list items (- or *)
-      const bodyLines = (release.body || '').split('\n');
-      const changes: string[] = [];
+  return result;
+}
 
-      for (const line of bodyLines) {
-        const trimmed = line.trim();
-        // Match markdown list items: - item or * item
-        const match = trimmed.match(/^[-*]\s+(.+)$/);
-        if (match) {
-          // Clean up the change text (remove markdown formatting)
-          const change = match[1]
-            .replace(/\*\*/g, '')  // Remove bold
-            .replace(/`/g, '')     // Remove code ticks
-            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); // Remove links, keep text
-          changes.push(change);
-        }
-      }
-
-      // If no list items found, use the release name or first line
-      if (changes.length === 0) {
-        changes.push(release.name || `Release ${version}`);
-      }
-
-      return {
-        version,
-        date,
-        changes: changes.slice(0, 8), // Limit to 8 changes per release
-      };
-    });
-
-    const result = {
-      changelog,
-      repoUrl: REPO_URL,
-      cached: false,
-      fetchedAt: new Date().toISOString(),
-    };
-
-    // Cache the result
-    changelogCache = {
-      data: { ...result, cached: true },
-      timestamp: Date.now(),
-    };
-
-    return c.json(result);
-  } catch (error) {
-    console.error('Failed to fetch GitHub releases:', error);
-
-    // If we have stale cache, return it
-    if (changelogCache) {
-      return c.json({ ...changelogCache.data as object, stale: true });
-    }
-
-    // Fallback to static data if GitHub API fails and no cache
-    const fallbackChangelog = [
+function getFallbackChangelog() {
+  return {
+    changelog: [
       {
         version: '3.4.0',
         date: '2025-12-09',
         changes: ['Dynamic changelog from GitHub releases', 'Bug fixes and improvements'],
       },
-    ];
+    ],
+    repoUrl: REPO_URL,
+    error: 'Failed to fetch releases, showing fallback',
+  };
+}
 
-    return c.json({
-      changelog: fallbackChangelog,
-      repoUrl: REPO_URL,
-      error: 'Failed to fetch releases, showing fallback',
-    });
+// Changelog endpoint - dynamically fetches from GitHub releases with caching
+api.get('/changelog', async (c) => {
+  try {
+    const data = await fetchAndCacheChangelog();
+    return c.json(data);
+  } catch (error) {
+    console.error('Failed to fetch GitHub releases:', error);
+
+    if (changelogCache) {
+      return c.json({ ...changelogCache.data as object, stale: true });
+    }
+
+    return c.json(getFallbackChangelog());
   }
 });
 
