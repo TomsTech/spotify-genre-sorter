@@ -42,3 +42,6 @@
 ## 2025-05-28 - [Eliminating Intermediate Collections]
 **Learning:** Chaining array methods like `.filter()` and `.map()` before passing to a `Set` creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure in hot endpoints.
 **Action:** Replace functional `.filter().map()` chains with a single `for` loop that iteratively populates the destination collection (e.g. `Set`) in one pass to achieve better throughput and reduced memory pressure.
+## 2026-08-03 - Chunk KV deletes to avoid Cloudflare Workers subrequest limits
+**Learning:** Cloudflare Workers have a limit of 50 subrequests per worker invocation, which can be easily exceeded when iterating and calling `kv.delete()` on a large list of keys. Additionally, `kv.list()` returns a paginated list of keys.
+**Action:** When performing parallel operations like `kv.delete()` on a list of keys in Cloudflare Workers, split the array into smaller chunks (e.g., 45) and iterate over the chunks with `Promise.all()` to respect subrequest limits. Always use cursor pagination for `kv.list()` when checking for a potentially large number of keys.

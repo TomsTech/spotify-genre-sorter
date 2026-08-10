@@ -2278,10 +2278,24 @@ api.post('/admin/clear-cache', async (c) => {
     case 'leaderboard': await kv.delete('leaderboard_cache'); cleared = 1; break;
     case 'scoreboard': await kv.delete('scoreboard_cache'); cleared = 1; break;
     case 'all_genre_caches': {
-      const list = await kv.list({ prefix: 'genre_cache_' });
-      // PERF-024 FIX: Use Promise.all for parallel KV deletes
-      await Promise.all(list.keys.map(key => kv.delete(key.name)));
-      cleared = list.keys.length;
+      let cursor: string | undefined = undefined;
+      do {
+        const list = await kv.list({ prefix: 'genre_cache_', cursor });
+        // PERF-024 FIX: Use Promise.all for parallel KV deletes
+
+        // Chunk the keys to avoid exceeding the 50 subrequest limit in Cloudflare Workers
+        const chunks = [];
+        for (let i = 0; i < list.keys.length; i += 45) {
+          chunks.push(list.keys.slice(i, i + 45));
+        }
+
+        for (const chunk of chunks) {
+          await Promise.all(chunk.map(key => kv.delete(key.name)));
+        }
+
+        cleared += list.keys.length;
+        cursor = list.list_complete ? undefined : (list as any).cursor;
+      } while (cursor);
       break;
     }
   }
