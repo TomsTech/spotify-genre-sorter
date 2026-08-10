@@ -516,7 +516,7 @@ api.get('/genres', async (c) => {
     // CRITICAL FIX: Use cachedKV for genre cache writes to leverage batching
     await cachedKV.put(c.env.SESSIONS, cacheKey, JSON.stringify(responseData), {
       expirationTtl: cacheTtl,
-      immediate: true // Genre cache is important - write immediately
+      immediate: false // Genre cache can be batched
     });
 
     // Update user stats with analysis results
@@ -701,7 +701,7 @@ api.get('/genres/progressive', async (c) => {
       // CRITICAL FIX: Use cachedKV for progressive scan final cache
       await cachedKV.put(c.env.SESSIONS, cacheKey, JSON.stringify(finalData), {
         expirationTtl: GENRE_CACHE_TTL_LARGE,
-        immediate: true
+        immediate: false
       });
 
       // Update user stats
