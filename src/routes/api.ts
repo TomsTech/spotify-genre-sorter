@@ -251,7 +251,11 @@ api.get('/library-size', async (c) => {
       requiresProgressiveLoad: total > PROGRESSIVE_LOAD_THRESHOLD,
     });
   } catch (err) {
-    console.error('Error fetching library size:', err);
+    const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, {
+      path: c.req.path,
+      method: c.req.method,
+    });
+    log.logError('Error fetching library size:', err);
     return c.json({ error: 'Failed to fetch library size' }, 500);
   }
 });
