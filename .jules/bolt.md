@@ -63,3 +63,6 @@
 ## 2026-08-03 - Chunk KV deletes to avoid Cloudflare Workers subrequest limits
 **Learning:** Cloudflare Workers have a limit of 50 subrequests per worker invocation, which can be easily exceeded when iterating and calling `kv.delete()` on a large list of keys. Additionally, `kv.list()` returns a paginated list of keys.
 **Action:** When performing parallel operations like `kv.delete()` on a list of keys in Cloudflare Workers, split the array into smaller chunks (e.g., 45) and iterate over the chunks with `Promise.all()` to respect subrequest limits. Always use cursor pagination for `kv.list()` when checking for a potentially large number of keys.
+## 2025-05-28 - [Eliminating Intermediate Collections in Routes]
+**Learning:** Chaining array methods like `.flatMap()`, `.map()`, and `.forEach()` in hot endpoint loops (like progressive scanning or playlist analysis) creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure.
+**Action:** Replace functional array method chains with standard `for` loops that iteratively populate the destination collection (e.g. `Set` or `Array`) in one pass to achieve better throughput and reduced memory pressure.
