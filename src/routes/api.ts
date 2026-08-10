@@ -878,14 +878,15 @@ api.get('/genres/chunk', async (c) => {
     if (playlistIds.length > 0 && offset === 0) {
       // PERF-026 FIX: Use Promise.all for parallel API requests instead of sequential loop
       const token = session.spotifyAccessToken;
-      const playlistPromises = playlistIds.slice(0, 5).map(async (playlistId) => {
-        try {
-          return await getPlaylistTracks(token, playlistId, 500);
-        } catch (e) {
-          console.error(`Error fetching playlist ${playlistId}:`, e);
-          return [];
-        }
-      });
+      const playlistPromises = [];
+      for (const playlistId of playlistIds.slice(0, 5)) {
+        playlistPromises.push(
+          getPlaylistTracks(token, playlistId, 500).catch((e) => {
+            console.error(`Error fetching playlist ${playlistId}:`, e);
+            return [];
+          })
+        );
+      }
 
       const playlistResults = await Promise.all(playlistPromises);
       for (const playlistTracks of playlistResults) {

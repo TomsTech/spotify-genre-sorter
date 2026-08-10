@@ -42,3 +42,6 @@
 ## 2025-05-28 - [Eliminating Intermediate Collections]
 **Learning:** Chaining array methods like `.filter()` and `.map()` before passing to a `Set` creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure in hot endpoints.
 **Action:** Replace functional `.filter().map()` chains with a single `for` loop that iteratively populates the destination collection (e.g. `Set`) in one pass to achieve better throughput and reduced memory pressure.
+## 2026-08-03 - Avoid async wrappers in loops for pure Promise arrays
+**Learning:** Wrapping promise-returning functions (like API calls) in `async` mappings just to use `await` sequentially or unnecessarily creates extra overhead and can be flagged as sub-optimal when the array of Promises is already meant for `Promise.all`.
+**Action:** Push directly to a promise array using a synchronous loop, chaining `.catch` for error handling, then resolve the array collectively with `Promise.all()`.
