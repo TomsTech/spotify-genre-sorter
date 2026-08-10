@@ -51,3 +51,6 @@
 ## 2024-05-24 - Chunking Promise.all for Cloudflare KV Deletions
 **Learning:** Cloudflare Workers have a hard limit of 50 concurrent subrequests per invocation. Firing `Promise.all` with more than 50 KV operations (like deletes) will trigger exceptions and fail the worker.
 **Action:** When performing bulk operations against external APIs or KV stores in a Cloudflare Worker, always chunk the promises into arrays of size < 50 and await each chunk sequentially.
+## 2023-10-27 - Optimize Promise.all Concurrency in KV cache writes
+**Learning:** Using an unbounded `Promise.all` on operations that trigger network requests (like Cloudflare KV puts) can quickly exceed hard subrequest limits (e.g., Cloudflare Worker's 50 subrequests).
+**Action:** When firing concurrent I/O operations from an unbounded array or Map, slice the collection into chunks and process each chunk sequentially, awaiting a batched `Promise.all` for each slice. This bounds concurrency and prevents catastrophic limit exceptions.
