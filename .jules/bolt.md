@@ -66,3 +66,4 @@
 ## 2025-05-28 - [Eliminating Intermediate Collections in Routes]
 **Learning:** Chaining array methods like `.flatMap()`, `.map()`, and `.forEach()` in hot endpoint loops (like progressive scanning or playlist analysis) creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure.
 **Action:** Replace functional array method chains with standard `for` loops that iteratively populate the destination collection (e.g. `Set` or `Array`) in one pass to achieve better throughput and reduced memory pressure.
+## 2025-05-25 - Chunk Promise.all in Cloudflare Workers **Learning:** Cloudflare Workers have a 50 subrequests limit per invocation. Naively mapping Promise.all over large arrays can hit this limit and cause silent failures. **Action:** Always batch or chunk concurrent external/KV calls (e.g. using a chunk size of 25) when dealing with arrays larger than 50 elements in Worker contexts.
