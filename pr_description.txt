@@ -1,0 +1,14 @@
+🎯 **What:** The code health issue addressed
+Extracted complex inline logic from the overly long `api.get('/genres/chunk')` endpoint handler into three dedicated helper functions: `parsePlaylistsParam`, `fetchChunkTracks`, and `buildGenresFromTracks`.
+
+💡 **Why:** How this improves maintainability
+The original handler was over 130 lines long and mixed multiple concerns (parameter parsing, paginated API fetching/deduplication, and nested data mapping/aggregation). Breaking these out into single-purpose functions makes the route handler significantly easier to read, follow, and maintain.
+
+✅ **Verification:** How you confirmed the change is safe
+- Visually inspected diff using `git diff` to ensure no logic, caching behavior, or bounds were altered.
+- Executed `npm run typecheck` to confirm strictly typed function signatures.
+- Executed `npm run lint` to ensure code styling compliance.
+- Executed `npm run test` (Vitest), running all 293 tests successfully across 20 files, ensuring no regressions.
+
+✨ **Result:** The improvement achieved
+A clean, modular route handler that clearly delegates to well-named helper functions, improving overall readability and setting up the file for easier future testing of the isolated logic blocks.

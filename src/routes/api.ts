@@ -801,6 +801,135 @@ api.get('/genres/progressive', async (c) => {
   }
 });
 
+
+type ChunkTrack = { track: { id: string; name: string; artists: { id: string; name: string }[] } };
+
+function parsePlaylistsParam(playlistsParam: string | undefined): string[] {
+  if (!playlistsParam) return [];
+  try {
+    const parsed = JSON.parse(playlistsParam) as unknown;
+    if (Array.isArray(parsed) && parsed.every((id) => typeof id === 'string')) {
+      return parsed;
+    }
+  } catch {
+    // Invalid JSON, ignore playlists
+  }
+  return [];
+}
+
+async function fetchChunkTracks(
+  token: string,
+  playlistIds: string[],
+  includeLikedSongs: boolean,
+  offset: number,
+  limit: number
+): Promise<{ tracks: ChunkTrack[], totalInLibrary: number }> {
+  const allChunkTracks: ChunkTrack[] = [];
+  const seenTrackIds = new Set<string>();
+  let totalInLibrary = 0;
+
+  if (playlistIds.length > 0 && offset === 0) {
+    const playlistPromises = playlistIds.slice(0, 5).map(async (playlistId) => {
+      try {
+        return await getPlaylistTracks(token, playlistId, 500);
+      } catch (e) {
+        console.error(`Error fetching playlist ${playlistId}:`, e);
+        return [];
+      }
+    });
+
+    const playlistResults = await Promise.all(playlistPromises);
+    for (const playlistTracks of playlistResults) {
+      for (const pt of playlistTracks) {
+        if (pt.track && pt.track.id && !seenTrackIds.has(pt.track.id)) {
+          seenTrackIds.add(pt.track.id);
+          allChunkTracks.push({ track: pt.track } as ChunkTrack);
+        }
+      }
+    }
+    totalInLibrary += allChunkTracks.length;
+  }
+
+  if (includeLikedSongs) {
+    const pagesToFetch = Math.min(MAX_TRACK_REQUESTS_PER_CHUNK, Math.ceil(limit / 50));
+    const fetchPromises = [];
+    for (let i = 0; i < pagesToFetch; i++) {
+      const pageOffset = offset + (i * 50);
+      const pageLimit = Math.min(50, offset + limit - pageOffset);
+      if (pageLimit > 0) {
+        fetchPromises.push(getLikedTracks(token, pageLimit, pageOffset));
+      }
+    }
+
+    const responses = await Promise.all(fetchPromises);
+
+    for (const response of responses) {
+      for (const item of response.items) {
+        if (!seenTrackIds.has(item.track.id)) {
+          seenTrackIds.add(item.track.id);
+          allChunkTracks.push(item as unknown as ChunkTrack);
+        }
+      }
+      totalInLibrary = response.total + (playlistIds.length > 0 && offset === 0 ? seenTrackIds.size - response.items.length : 0);
+      if (allChunkTracks.length >= response.total - offset) break;
+    }
+  }
+
+  return { tracks: allChunkTracks, totalInLibrary };
+}
+
+async function buildGenresFromTracks(
+  token: string,
+  tracks: ChunkTrack[],
+  kv: KVNamespace
+): Promise<{ name: string; count: number; trackIds: string[] }[]> {
+  const artistIds = new Set<string>();
+  for (const { track } of tracks) {
+    for (const artist of track.artists) {
+      artistIds.add(artist.id);
+    }
+  }
+
+  const artistIdArray = [...artistIds].slice(0, MAX_ARTIST_REQUESTS_PER_CHUNK * 50);
+  const { artists } = await getArtists(token, artistIdArray, undefined, kv);
+
+  const artistGenreMap = new Map<string, string[]>();
+  for (const artist of artists) {
+    artistGenreMap.set(artist.id, artist.genres);
+  }
+
+  const genreData = new Map<string, { count: number; trackIds: string[] }>();
+  const reusableTrackGenresSet = new Set<string>();
+
+  for (const { track } of tracks) {
+    reusableTrackGenresSet.clear();
+    for (const artist of track.artists) {
+      const genres = artistGenreMap.get(artist.id) || [];
+      for (let i = 0; i < genres.length; i++) {
+        reusableTrackGenresSet.add(genres[i]);
+      }
+    }
+
+    for (const genre of reusableTrackGenresSet) {
+      let data = genreData.get(genre);
+      if (!data) {
+        data = { count: 0, trackIds: [] };
+        genreData.set(genre, data);
+      }
+      data.count++;
+      data.trackIds.push(track.id);
+    }
+  }
+
+  return [...genreData.entries()]
+    .map(([name, data]) => ({
+      name,
+      count: data.count,
+      trackIds: data.trackIds,
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
 // Progressive loading: Get genres for a chunk of tracks
 // This endpoint stays under 50 subrequests by limiting track fetching per call
 api.get('/genres/chunk', async (c) => {
@@ -814,19 +943,7 @@ api.get('/genres/chunk', async (c) => {
   const offset = parseInt(offsetStr, 10);
   const limit = Math.min(parseInt(limitStr, 10), CHUNK_SIZE);
   const includeLikedSongs = c.req.query('includeLikedSongs') !== 'false';
-  const playlistsParam = c.req.query('playlists');
-  let playlistIds: string[] = [];
-
-  if (playlistsParam) {
-    try {
-      const parsed = JSON.parse(playlistsParam) as unknown;
-      if (Array.isArray(parsed) && parsed.every((id) => typeof id === 'string')) {
-        playlistIds = parsed;
-      }
-    } catch {
-      // Invalid JSON, ignore playlists
-    }
-  }
+  const playlistIds = parsePlaylistsParam(c.req.query('playlists'));
 
   if (isNaN(offset) || offset < 0) {
     return c.json({ error: 'Invalid offset' }, 400);
@@ -869,63 +986,13 @@ api.get('/genres/chunk', async (c) => {
       }
     }
 
-    // Collect all tracks from selected sources
-    const allChunkTracks: Array<{ track: { id: string; name: string; artists: { id: string; name: string }[] } }> = [];
-    const seenTrackIds = new Set<string>();
-    let totalInLibrary = 0;
-
-    // Fetch from playlists first (only on first chunk to avoid re-fetching)
-    if (playlistIds.length > 0 && offset === 0) {
-      // PERF-026 FIX: Use Promise.all for parallel API requests instead of sequential loop
-      const token = session.spotifyAccessToken;
-      const playlistPromises = playlistIds.slice(0, 5).map(async (playlistId) => {
-        try {
-          return await getPlaylistTracks(token, playlistId, 500);
-        } catch (e) {
-          console.error(`Error fetching playlist ${playlistId}:`, e);
-          return [];
-        }
-      });
-
-      const playlistResults = await Promise.all(playlistPromises);
-      for (const playlistTracks of playlistResults) {
-        for (const pt of playlistTracks) {
-          if (pt.track && pt.track.id && !seenTrackIds.has(pt.track.id)) {
-            seenTrackIds.add(pt.track.id);
-            allChunkTracks.push({ track: pt.track });
-          }
-        }
-      }
-      // Add playlist track count to total
-      totalInLibrary += allChunkTracks.length;
-    }
-
-    // Fetch liked songs if included
-    if (includeLikedSongs) {
-      const pagesToFetch = Math.min(MAX_TRACK_REQUESTS_PER_CHUNK, Math.ceil(limit / 50));
-      const fetchPromises = [];
-      for (let i = 0; i < pagesToFetch; i++) {
-        const pageOffset = offset + (i * 50);
-        const pageLimit = Math.min(50, offset + limit - pageOffset);
-        if (pageLimit > 0) {
-          fetchPromises.push(getLikedTracks(session.spotifyAccessToken, pageLimit, pageOffset));
-        }
-      }
-
-      const responses = await Promise.all(fetchPromises);
-
-      for (const response of responses) {
-        for (const item of response.items) {
-          // Dedupe against playlist tracks
-          if (!seenTrackIds.has(item.track.id)) {
-            seenTrackIds.add(item.track.id);
-            allChunkTracks.push(item);
-          }
-        }
-        totalInLibrary = response.total + (playlistIds.length > 0 && offset === 0 ? seenTrackIds.size - response.items.length : 0);
-        if (allChunkTracks.length >= response.total - offset) break;
-      }
-    }
+    const { tracks: allChunkTracks, totalInLibrary } = await fetchChunkTracks(
+      session.spotifyAccessToken,
+      playlistIds,
+      includeLikedSongs,
+      offset,
+      limit
+    );
 
     if (allChunkTracks.length === 0) {
       // No more tracks at this offset
@@ -948,61 +1015,12 @@ api.get('/genres/chunk', async (c) => {
       });
     }
 
-    // Collect unique artist IDs from this chunk
-    const artistIds = new Set<string>();
-    for (const { track } of allChunkTracks) {
-      for (const artist of track.artists) {
-        artistIds.add(artist.id);
-      }
-    }
-
-    // Fetch artists (stay under subrequest limit)
-    // Pass KV namespace to enable persistent caching (#74)
-    const artistIdArray = [...artistIds].slice(0, MAX_ARTIST_REQUESTS_PER_CHUNK * 50);
-    const { artists } = await getArtists(session.spotifyAccessToken, artistIdArray, undefined, c.env.SESSIONS);
-
-    const artistGenreMap = new Map<string, string[]>();
-    for (const artist of artists) {
-      artistGenreMap.set(artist.id, artist.genres);
-    }
-
-    // Build genre data for this chunk
-    const genreData = new Map<string, { count: number; trackIds: string[] }>();
-
-    const reusableTrackGenresSet = new Set<string>();
-    for (const { track } of allChunkTracks) {
-      reusableTrackGenresSet.clear();
-      for (const artist of track.artists) {
-        const genres = artistGenreMap.get(artist.id) || [];
-        for (let i = 0; i < genres.length; i++) {
-          reusableTrackGenresSet.add(genres[i]);
-        }
-      }
-
-      for (const genre of reusableTrackGenresSet) {
-        let data = genreData.get(genre);
-        if (!data) {
-          data = { count: 0, trackIds: [] };
-          genreData.set(genre, data);
-        }
-        data.count++;
-        data.trackIds.push(track.id);
-      }
-    }
-
-    // Convert to array
-    const genres = [...genreData.entries()]
-      .map(([name, data]) => ({
-        name,
-        count: data.count,
-        trackIds: data.trackIds,
-      }))
-      .sort((a, b) => b.count - a.count);
+    const genres = await buildGenresFromTracks(session.spotifyAccessToken, allChunkTracks, c.env.SESSIONS);
 
     const chunkData: ChunkCacheData = {
       genres,
       trackCount: allChunkTracks.length,
-      artistCount: artistIds.size,
+      artistCount: new Set(allChunkTracks.flatMap(t => t.track.artists.map(a => a.id))).size,
       cachedAt: Date.now(),
     };
 
