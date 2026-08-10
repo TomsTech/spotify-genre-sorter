@@ -124,12 +124,17 @@ export async function cacheArtistGenresBatch(
   kv: KVNamespace,
   artistGenreMap: Map<string, string[]>
 ): Promise<void> {
-  // Cache all artists in parallel
-  const cachePromises = Array.from(artistGenreMap.entries()).map(([artistId, genres]) =>
-    cacheArtistGenres(kv, artistId, genres)
-  );
+  const entries = Array.from(artistGenreMap.entries());
+  const CHUNK_SIZE = 40; // Under the 50 subrequest limit
 
-  await Promise.all(cachePromises);
+  // Process in chunks to avoid Cloudflare Worker subrequest limits
+  for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
+    const chunk = entries.slice(i, i + CHUNK_SIZE);
+    const cachePromises = chunk.map(([artistId, genres]) =>
+      cacheArtistGenres(kv, artistId, genres)
+    );
+    await Promise.all(cachePromises);
+  }
 }
 
 /**
@@ -260,9 +265,12 @@ export async function clearAllArtistGenreCache(kv: KVNamespace): Promise<number>
         cursor,
       });
 
-      // Delete in parallel batches
-      const deletePromises = list.keys.map((key) => cachedKV.delete(kv, key.name));
-      await Promise.all(deletePromises);
+      // Delete in parallel batches, chunked to respect Cloudflare Workers 50 subrequests limit
+      for (let i = 0; i < list.keys.length; i += 40) {
+        const chunk = list.keys.slice(i, i + 40);
+        const deletePromises = chunk.map((key) => cachedKV.delete(kv, key.name));
+        await Promise.all(deletePromises);
+      }
 
       deletedCount += list.keys.length;
       hasMore = !list.list_complete;
