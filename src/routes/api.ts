@@ -2358,16 +2358,17 @@ api.get('/admin/users', async (c) => {
   // Also fetch HoF users (pioneers) who might not have user_stats entries
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
   // PERF-029 FIX: Interleave JSON.parse with KV fetches
-  const hofPromises = hofKeys.map(async key => {
+  const hofPromises = hofKeys.map(async (key, i) => {
     const hofJson = await kv.get(key);
     if (hofJson) {
       try {
-        return JSON.parse(hofJson) as {
+        const parsed = JSON.parse(hofJson) as {
           spotifyId: string;
           spotifyName: string;
           spotifyAvatar?: string;
           registeredAt?: string;
         };
+        return { user: parsed, index: i };
       } catch { /* skip malformed entries */ }
     }
     return null;
@@ -2375,9 +2376,9 @@ api.get('/admin/users', async (c) => {
 
   const hofResults = await Promise.all(hofPromises);
 
-  for (let i = 0; i < hofResults.length; i++) {
-    const hofUser = hofResults[i];
-    if (hofUser) {
+  for (const result of hofResults) {
+    if (result) {
+      const { user: hofUser, index: i } = result;
       // Only add if not already in users list
       if (!seenIds.has(hofUser.spotifyId)) {
         seenIds.add(hofUser.spotifyId);
@@ -2445,11 +2446,12 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   // HoF keys are formatted as hof:001, hof:002, etc.
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
   // PERF-030 FIX: Interleave JSON.parse with KV fetches
-  const hofPromises = hofKeys.map(async key => {
+  const hofPromises = hofKeys.map(async (key, i) => {
     const hofJson = await kv.get(key);
     if (hofJson) {
       try {
-        return JSON.parse(hofJson) as { spotifyId?: string };
+        const parsed = JSON.parse(hofJson) as { spotifyId?: string };
+        return { data: parsed, index: i };
       } catch { /* skip malformed entries */ }
     }
     return null;
@@ -2457,9 +2459,9 @@ api.delete('/admin/user/:spotifyId', async (c) => {
 
   const hofResults = await Promise.all(hofPromises);
 
-  for (let i = 0; i < hofResults.length; i++) {
-    const hofData = hofResults[i];
-    if (hofData) {
+  for (const result of hofResults) {
+    if (result) {
+      const { data: hofData, index: i } = result;
       if (hofData.spotifyId === spotifyId) {
         const hofKey = `hof:${String(i + 1).padStart(3, '0')}`;
         await cachedKV.delete(kv, hofKey);
