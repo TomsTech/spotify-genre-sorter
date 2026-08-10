@@ -13,6 +13,7 @@ describe('Now Playing Route Tests', () => {
     // Setup env mock
     app.use('*', async (c, next) => {
       c.env = {
+        BETTERSTACK_LOG_TOKEN: 'test-token',
         SESSIONS: {
           put: vi.fn(),
           get: vi.fn(),
@@ -20,6 +21,12 @@ describe('Now Playing Route Tests', () => {
           list: vi.fn()
         }
       };
+      c.set("executionCtx", {
+        waitUntil: vi.fn(),
+        passThroughOnException: vi.fn(),
+      });
+      // Monkey patch getter since property is getter only
+      Object.defineProperty(c, "executionCtx", { get: () => c.get("executionCtx") });
       await next();
     });
 

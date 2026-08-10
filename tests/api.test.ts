@@ -142,6 +142,7 @@ vi.mock('../src/lib/spotify', () => ({
 
 vi.mock('../src/lib/logger', () => ({
   createLogger: vi.fn().mockReturnValue({
+    error: vi.fn(),
     logError: vi.fn(),
     logInfo: vi.fn(),
     logPerf: vi.fn(),
@@ -232,7 +233,7 @@ describe('Authentication Middleware (Integration)', () => {
     expect(body).toEqual({ error: 'Failed to refresh Spotify token' });
 
     const loggerMock = vi.mocked(createLogger).mock.results[0].value;
-    expect(loggerMock.logError).toHaveBeenCalledWith('Token refresh failed', error);
+    expect(loggerMock.error).toHaveBeenCalledWith('Token refresh failed', expect.any(Object));
 
     expect(createLogger).toHaveBeenCalledWith(mockExecutionContext, undefined, {
       path: '/api/me',

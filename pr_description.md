@@ -1,16 +1,4 @@
-🧪 Add comprehensive tests for determineRecoveryStrategy
-
-🎯 **What:**
-The `determineRecoveryStrategy` function in `src/lib/error-handler.ts` was lacking dedicated unit tests. Given it is a pure function that relies heavily on branch conditions based on `ErrorContext` inputs, testing it explicitly guarantees predictable error recovery flows.
-
-📊 **Coverage:**
-The added test suite comprehensively checks all specific mapped conditional branches and default fallback behaviors for the function:
-*   Authentication errors (`AUTH_ERROR`, `TOKEN_EXPIRED`) map to `abort` and login prompt.
-*   Rate limiting (`RATE_LIMIT_ERROR`) maps to `retry` and rate-limit specific backoff messaging.
-*   Network/Timeout errors (`NETWORK_ERROR`, `TIMEOUT_ERROR`) map to `retry` and connection lost message.
-*   Validation errors (`VALIDATION_ERROR`, `INVALID_INPUT`) map to `abort` using the `userMessage` embedded in the error object.
-*   Cache errors (`CACHE_ERROR`) map to `fallback` and direct storage message.
-*   Default fallback behaviours check that errors marked as `retryable` will trigger `retry`, and errors that are not `retryable` will trigger `abort`.
-
-✨ **Result:**
-The test coverage for error-handler components has significantly improved, ensuring the error response mapping logic remains robust against regressions and refactoring.
+🎯 What: Replaced direct `console.error(...)` invocations with structured `log.error(...)` calls in `src/routes/api.ts`, using the application's logger module. Also resolved test failures caused by the missing context mock in tests.
+💡 Why: Ensures all server logs carry execution context, route path, and are properly sent to the external logging service (BetterStack) rather than being swallowed locally or left unformatted, improving maintainability and observability.
+✅ Verification: Ran `pnpm run lint` successfully, ran `pnpm test` showing all 293 tests passing cleanly, and manually verified tests using mocked logger instances (e.g., `tests/api.test.ts`).
+✨ Result: `src/routes/api.ts` correctly utilizes standard logging practices, eliminating technical debt and bringing consistency to error handling across the codebase.
