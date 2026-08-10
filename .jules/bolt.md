@@ -42,6 +42,15 @@
 ## 2025-05-28 - [Eliminating Intermediate Collections]
 **Learning:** Chaining array methods like `.filter()` and `.map()` before passing to a `Set` creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure in hot endpoints.
 **Action:** Replace functional `.filter().map()` chains with a single `for` loop that iteratively populates the destination collection (e.g. `Set`) in one pass to achieve better throughput and reduced memory pressure.
+## 2024-05-24 - Async Map Interleaving
+**Learning:** In Node.js/V8, using `Array.prototype.map` to create an array of async functions automatically interleaves I/O operations and synchronous processing (like JSON.parse) when passed to `Promise.all`. The runtime processes microtasks independently as soon as each I/O completes. Attempting to "optimize" this with shared array mutation inside `.then()` callbacks introduces race conditions and breaks data ordering because I/O resolution order is non-deterministic.
+**Action:** Recognize that `await Promise.all(arr.map(async () => ...))` already provides optimal, ordered, interleaved execution. Avoid shared state mutation in asynchronous callbacks.
+## 2024-05-19 - Use Map/Return pattern with Promise.all for safe state mutation
+**Learning:** When a `Promise.all()` maps over operations that also need to mutate a shared array (like recording successful operations), doing a `.push()` inside the async callback can be prone to logical bugs and order inconsistencies (especially if the underlying operation throws but the `.push()` was executed first or vice-versa).
+**Action:** The safer pattern is to map the asynchronous operations to return a value (e.g., returning the ID upon success), await the `Promise.all()`, and then use `.push(...results)` synchronously afterwards. This removes the side-effect from the async callback.
+## 2024-05-24 - Chunking Promise.all for Cloudflare KV Deletions
+**Learning:** Cloudflare Workers have a hard limit of 50 concurrent subrequests per invocation. Firing `Promise.all` with more than 50 KV operations (like deletes) will trigger exceptions and fail the worker.
+**Action:** When performing bulk operations against external APIs or KV stores in a Cloudflare Worker, always chunk the promises into arrays of size < 50 and await each chunk sequentially.
 ## 2023-10-27 - Optimize Promise.all Concurrency in KV cache writes
 **Learning:** Using an unbounded `Promise.all` on operations that trigger network requests (like Cloudflare KV puts) can quickly exceed hard subrequest limits (e.g., Cloudflare Worker's 50 subrequests).
 **Action:** When firing concurrent I/O operations from an unbounded array or Map, slice the collection into chunks and process each chunk sequentially, awaiting a batched `Promise.all` for each slice. This bounds concurrency and prevents catastrophic limit exceptions.
