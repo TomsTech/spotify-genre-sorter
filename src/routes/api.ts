@@ -38,6 +38,43 @@ import { getKVMonitorData } from '../lib/kv-monitor';
 import { optionalCsrfProtection } from '../lib/csrf-middleware';
 import { createLogger } from '../lib/logger';
 
+
+async function createAndPopulatePlaylist(
+  session: any,
+  user: { id: string; display_name: string; images?: { url: string }[] },
+  safeName: string,
+  playlistName: string,
+  description: string,
+  safeTrackIds: string[]
+) {
+  const playlist = await createPlaylist(
+    session.spotifyAccessToken,
+    user.id,
+    playlistName,
+    description,
+    false
+  );
+
+  const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
+  await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
+
+  const recentPlaylist: RecentPlaylist = {
+    playlistId: playlist.id,
+    playlistName: playlistName,
+    genre: safeName,
+    trackCount: safeTrackIds.length,
+    createdBy: {
+      spotifyId: user.id,
+      spotifyName: user.display_name,
+      spotifyAvatar: user.images?.[0]?.url,
+    },
+    createdAt: new Date().toISOString(),
+    spotifyUrl: playlist.external_urls.spotify,
+  };
+
+  return { playlist, recentPlaylist };
+}
+
 const api = new Hono<{ Bindings: Env }>();
 
 
@@ -1170,31 +1207,14 @@ api.post('/playlist', async (c) => {
       ? customDescription.trim().slice(0, 300) // Spotify has 300 char limit
       : `${safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`;
 
-    const playlist = await createPlaylist(
-      session.spotifyAccessToken,
-      user.id,
+    const { playlist, recentPlaylist } = await createAndPopulatePlaylist(
+      session,
+      user,
+      safeName,
       playlistName,
       description,
-      false
+      safeTrackIds
     );
-
-    const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
-    await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
-
-    // Create recent playlist object before the background tasks
-    const recentPlaylist: RecentPlaylist = {
-      playlistId: playlist.id,
-      playlistName: playlistName,
-      genre: safeName,
-      trackCount: safeTrackIds.length,
-      createdBy: {
-        spotifyId: user.id,
-        spotifyName: user.display_name,
-        spotifyAvatar: user.images?.[0]?.url,
-      },
-      createdAt: new Date().toISOString(),
-      spotifyUrl: playlist.external_urls.spotify,
-    };
 
     // Run non-essential background tasks concurrently
     c.executionCtx.waitUntil(
@@ -1295,37 +1315,20 @@ api.post('/playlists/bulk', async (c) => {
       try {
         const safeTrackIds = trackValidation.value;
 
-        const playlist = await createPlaylist(
-          session.spotifyAccessToken,
-          user.id,
+        const { playlist, recentPlaylist } = await createAndPopulatePlaylist(
+          session,
+          user,
+          safeName,
           playlistName,
           `${safeName} tracks from your liked songs ♫ Created with Spotify Genre Sorter — organise your music library into genre playlists automatically at github.com/TomsTech/spotify-genre-sorter`,
-          false
+          safeTrackIds
         );
-
-        const trackUris = safeTrackIds.map(id => `spotify:track:${id}`);
-        await addTracksToPlaylist(session.spotifyAccessToken, playlist.id, trackUris);
 
         // Add to existing names to prevent duplicates within same batch
         existingNames.add(playlistName.toLowerCase());
 
         // Update user stats
         await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length);
-
-        // Add to recent playlists feed
-        const recentPlaylist: RecentPlaylist = {
-          playlistId: playlist.id,
-          playlistName: playlistName,
-          genre: safeName,
-          trackCount: safeTrackIds.length,
-          createdBy: {
-            spotifyId: user.id,
-            spotifyName: user.display_name,
-            spotifyAvatar: user.images?.[0]?.url,
-          },
-          createdAt: new Date().toISOString(),
-          spotifyUrl: playlist.external_urls.spotify,
-        };
         await addRecentPlaylist(c.env.SESSIONS, recentPlaylist);
 
         results.push({
