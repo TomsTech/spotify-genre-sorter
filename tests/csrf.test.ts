@@ -121,6 +121,23 @@ describe('CSRF Token Management', () => {
       expect(await validateCsrfToken(c, mockSession)).toBe(false);
     });
 
+    it('should gracefully handle malformed JSON requests (JSON parse error)', async () => {
+      const c = {
+        req: {
+          header: vi.fn((key) => {
+            if (key === 'content-type') return 'application/json';
+            if (key === 'x-csrf-token') return undefined; // No header token
+            return undefined;
+          }),
+          json: vi.fn().mockRejectedValue(new Error('Unexpected end of JSON input'))
+        }
+      } as unknown as Context;
+
+      // Malformed JSON should be caught and return null for the body,
+      // resulting in a missing token and false from validateCsrfToken
+      expect(await validateCsrfToken(c, mockSession)).toBe(false);
+    });
+
     it('should handle csrfToken sync JSON error with a bad JSON payload', async () => {
       const c = {
         req: {
