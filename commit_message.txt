@@ -1,5 +1,13 @@
-🧪 Test createLogger factory
+🛡️ Sentinel: [Low] Fix XSS in Rate Limit Banner via innerHTML
 
-🎯 What: Improved testing for the createLogger factory function by strictly validating the exact shape of the returned logger object and ensuring proper handling of missing request context.
-📊 Coverage: Added tests to verify the explicit keys and function types returned by the factory, and validated the graceful fallback for undefined context in logRequest.
-✨ Result: Enhanced the reliability and strictness of the test suite, preventing regressions if the logger factory shape changes.
+🎯 What: Fixed a potential DOM-based Cross-Site Scripting (XSS) vulnerability in the rate limit banner. The `title` and `msg` variables were being directly concatenated into `banner.innerHTML` without sanitization.
+
+⚠️ Risk: While the current implementation computes `maxPct` safely as a number, injecting raw string variables into `innerHTML` is an insecure pattern. If the data objects computing these strings were ever populated with unvalidated user input or attacker-controlled API payloads, it could lead to arbitrary JavaScript execution in the context of the user's session.
+
+🛡️ Solution: Wrapped the `title` and `msg` variables in the existing `escapeHtml()` function before interpolating them into the HTML string, effectively mitigating the XSS risk by encoding dangerous characters.
+
+✅ Verification:
+- Executed `git diff` to confirm the patch.
+- Rebuilt frontend assets (`npm run build:frontend`).
+- Passed lint checks.
+- Verified test suite passes successfully.
