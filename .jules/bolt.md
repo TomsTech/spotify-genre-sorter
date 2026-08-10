@@ -48,3 +48,6 @@
 ## 2024-05-19 - Use Map/Return pattern with Promise.all for safe state mutation
 **Learning:** When a `Promise.all()` maps over operations that also need to mutate a shared array (like recording successful operations), doing a `.push()` inside the async callback can be prone to logical bugs and order inconsistencies (especially if the underlying operation throws but the `.push()` was executed first or vice-versa).
 **Action:** The safer pattern is to map the asynchronous operations to return a value (e.g., returning the ID upon success), await the `Promise.all()`, and then use `.push(...results)` synchronously afterwards. This removes the side-effect from the async callback.
+## 2024-05-24 - Chunking Promise.all for Cloudflare KV Deletions
+**Learning:** Cloudflare Workers have a hard limit of 50 concurrent subrequests per invocation. Firing `Promise.all` with more than 50 KV operations (like deletes) will trigger exceptions and fail the worker.
+**Action:** When performing bulk operations against external APIs or KV stores in a Cloudflare Worker, always chunk the promises into arrays of size < 50 and await each chunk sequentially.

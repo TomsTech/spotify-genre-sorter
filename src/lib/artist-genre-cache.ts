@@ -260,9 +260,12 @@ export async function clearAllArtistGenreCache(kv: KVNamespace): Promise<number>
         cursor,
       });
 
-      // Delete in parallel batches
-      const deletePromises = list.keys.map((key) => cachedKV.delete(kv, key.name));
-      await Promise.all(deletePromises);
+      // Delete in parallel batches, chunked to respect Cloudflare Workers 50 subrequests limit
+      for (let i = 0; i < list.keys.length; i += 40) {
+        const chunk = list.keys.slice(i, i + 40);
+        const deletePromises = chunk.map((key) => cachedKV.delete(kv, key.name));
+        await Promise.all(deletePromises);
+      }
 
       deletedCount += list.keys.length;
       hasMore = !list.list_complete;
