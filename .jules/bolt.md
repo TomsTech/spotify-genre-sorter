@@ -42,3 +42,6 @@
 ## 2025-05-28 - [Eliminating Intermediate Collections]
 **Learning:** Chaining array methods like `.filter()` and `.map()` before passing to a `Set` creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure in hot endpoints.
 **Action:** Replace functional `.filter().map()` chains with a single `for` loop that iteratively populates the destination collection (e.g. `Set`) in one pass to achieve better throughput and reduced memory pressure.
+## 2025-02-12 - Interleave synchronous work with IO promises
+**Learning:** Returning a `.then()` continuation from a `.map()` callback (e.g., `kv.get().then(res => JSON.parse(res))`) removes the overhead of the `async` state machine compared to using `async/await` inside the callback. It also tightly couples the subsequent synchronous work with the promise resolution event.
+**Action:** Use promise chains (`.then()`) inside array map operations to interleave synchronous CPU tasks (like parsing) directly with async IO, especially when processing large datasets or multiple network requests concurrently.
