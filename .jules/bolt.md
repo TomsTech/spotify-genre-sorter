@@ -42,3 +42,6 @@
 ## 2025-05-28 - [Eliminating Intermediate Collections]
 **Learning:** Chaining array methods like `.filter()` and `.map()` before passing to a `Set` creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure in hot endpoints.
 **Action:** Replace functional `.filter().map()` chains with a single `for` loop that iteratively populates the destination collection (e.g. `Set`) in one pass to achieve better throughput and reduced memory pressure.
+## 2024-05-24 - Async Map Interleaving
+**Learning:** In Node.js/V8, using `Array.prototype.map` to create an array of async functions automatically interleaves I/O operations and synchronous processing (like JSON.parse) when passed to `Promise.all`. The runtime processes microtasks independently as soon as each I/O completes. Attempting to "optimize" this with shared array mutation inside `.then()` callbacks introduces race conditions and breaks data ordering because I/O resolution order is non-deterministic.
+**Action:** Recognize that `await Promise.all(arr.map(async () => ...))` already provides optimal, ordered, interleaved execution. Avoid shared state mutation in asynchronous callbacks.

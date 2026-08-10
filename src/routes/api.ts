@@ -1569,7 +1569,6 @@ api.get('/listening', async (c) => {
     }
 
     // PERF-013 FIX: Use Promise.all for parallel reads instead of sequential loop
-    // PERF-018 FIX: Interleave JSON.parse with KV fetches
     const dataPromises = list.keys.map(async key => {
       const data = await kv.get(key.name);
       if (data) {
@@ -2321,7 +2320,6 @@ api.get('/admin/users', async (c) => {
   const seenIds = new Set<string>();
 
   // PERF-014 FIX: Use Promise.all for parallel reads instead of sequential loop
-  // PERF-019 FIX: Interleave JSON.parse with KV fetches
   const dataPromises = userStatsList.keys.map(async key => {
     const statsJson = await kv.get(key.name);
     if (statsJson) {
@@ -2357,7 +2355,6 @@ api.get('/admin/users', async (c) => {
 
   // Also fetch HoF users (pioneers) who might not have user_stats entries
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
-  // PERF-029 FIX: Interleave JSON.parse with KV fetches
   const hofPromises = hofKeys.map(async key => {
     const hofJson = await kv.get(key);
     if (hofJson) {
@@ -2444,7 +2441,6 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   // Find and delete HoF entry by scanning for matching spotifyId
   // HoF keys are formatted as hof:001, hof:002, etc.
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
-  // PERF-030 FIX: Interleave JSON.parse with KV fetches
   const hofPromises = hofKeys.map(async key => {
     const hofJson = await kv.get(key);
     if (hofJson) {
@@ -2472,7 +2468,6 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   // Find and delete any active sessions for this user
   const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
   // PERF-021 FIX: Use Promise.all for parallel reads instead of sequential loop
-  // PERF-022 FIX: Interleave JSON.parse with KV fetches
   const sessionPromises = sessionsList.keys.map(async key => {
     try {
       const sessionJson = await kv.get(key.name);
@@ -2717,7 +2712,6 @@ api.get('/admin/access-requests', async (c) => {
   const emails: string[] = existingList ? JSON.parse(existingList) as string[] : [];
 
   // PERF-015 FIX: Use Promise.all for parallel reads instead of sequential loop
-  // PERF-020 FIX: Interleave JSON.parse with KV fetches
   const requestKeys = emails.map(email => `access_request_${email}`);
   const dataPromises = requestKeys.map(async key => {
     const data = await kv.get(key);
