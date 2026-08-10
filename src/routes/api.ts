@@ -481,32 +481,7 @@ api.get('/genres', async (c) => {
     }
 
     // Step 4: Count tracks per genre and collect track IDs
-    const genreData = new Map<string, { count: number; trackIds: string[] }>();
-
-    // Performance Optimization Pattern: Eliminate redundant sequential passes over large data arrays
-    // Instantiating a new Set for every track causes massive N*M garbage collection overhead
-    // Use a single reusable Set instead to maintain O(N) deduplication without the memory penalty
-    const reusableTrackGenresSet = new Set<string>();
-
-    for (const { track } of likedTracks) {
-      reusableTrackGenresSet.clear();
-      for (const artist of track.artists) {
-        const genres = artistGenreMap.get(artist.id) || [];
-        for (let i = 0; i < genres.length; i++) {
-          reusableTrackGenresSet.add(genres[i]);
-        }
-      }
-
-      for (const genre of reusableTrackGenresSet) {
-        let data = genreData.get(genre);
-        if (!data) {
-          data = { count: 0, trackIds: [] };
-          genreData.set(genre, data);
-        }
-        data.count++;
-        data.trackIds.push(track.id);
-      }
-    }
+    const genreData = aggregateGenresFromTracks(likedTracks, artistGenreMap);
 
     // Convert to sorted array
     const genres = [...genreData.entries()]
@@ -766,26 +741,7 @@ api.get('/genres/progressive', async (c) => {
     }
 
     // Add new tracks
-    const reusableTrackGenresSet = new Set<string>();
-    for (const { track } of allChunkTracks) {
-      reusableTrackGenresSet.clear();
-      for (const artist of track.artists) {
-        const genres = artistGenreMap.get(artist.id) || [];
-        for (let i = 0; i < genres.length; i++) {
-          reusableTrackGenresSet.add(genres[i]);
-        }
-      }
-
-      for (const genre of reusableTrackGenresSet) {
-        let data = genreMap.get(genre);
-        if (!data) {
-          data = { count: 0, trackIds: [] };
-          genreMap.set(genre, data);
-        }
-        data.count++;
-        data.trackIds.push(track.id);
-      }
-    }
+    aggregateGenresFromTracks(allChunkTracks, artistGenreMap, genreMap);
 
     // Update progress
     progress.partialGenres = [...genreMap.entries()].map(([name, data]) => ({
@@ -1006,28 +962,7 @@ api.get('/genres/chunk', async (c) => {
     }
 
     // Build genre data for this chunk
-    const genreData = new Map<string, { count: number; trackIds: string[] }>();
-
-    const reusableTrackGenresSet = new Set<string>();
-    for (const { track } of allChunkTracks) {
-      reusableTrackGenresSet.clear();
-      for (const artist of track.artists) {
-        const genres = artistGenreMap.get(artist.id) || [];
-        for (let i = 0; i < genres.length; i++) {
-          reusableTrackGenresSet.add(genres[i]);
-        }
-      }
-
-      for (const genre of reusableTrackGenresSet) {
-        let data = genreData.get(genre);
-        if (!data) {
-          data = { count: 0, trackIds: [] };
-          genreData.set(genre, data);
-        }
-        data.count++;
-        data.trackIds.push(track.id);
-      }
-    }
+    const genreData = aggregateGenresFromTracks(allChunkTracks, artistGenreMap);
 
     // Convert to array
     const genres = [...genreData.entries()]
@@ -1768,25 +1703,7 @@ api.get('/scan-playlist/:playlistId', async (c) => {
     }
 
     // Aggregate genres
-    const genreCounts = new Map<string, { count: number; trackIds: string[] }>();
-
-    const reusableTrackGenresSet = new Set<string>();
-    for (const track of trackData) {
-      reusableTrackGenresSet.clear();
-      for (const artistId of track.artistIds) {
-        const genres = artistGenres.get(artistId) || [];
-        for (let i = 0; i < genres.length; i++) {
-          reusableTrackGenresSet.add(genres[i]);
-        }
-      }
-
-      for (const genre of reusableTrackGenresSet) {
-        const existing = genreCounts.get(genre) || { count: 0, trackIds: [] };
-        existing.count++;
-        existing.trackIds.push(track.id);
-        genreCounts.set(genre, existing);
-      }
-    }
+    const genreCounts = aggregateGenresFromTrackData(trackData, artistGenres);
 
     // Convert to sorted array
     const genres = Array.from(genreCounts.entries())
@@ -2946,3 +2863,66 @@ api.delete('/admin/kv-key/:key', async (c) => {
 });
 
 export default api;
+
+
+// Helper to aggregate genres from simplified track data
+export function aggregateGenresFromTrackData(
+  trackData: { id: string; artistIds: string[] }[],
+  artistGenres: Map<string, string[]>,
+  genreData: Map<string, { count: number; trackIds: string[] }> = new Map()
+) {
+  const reusableTrackGenresSet = new Set<string>();
+
+  for (const track of trackData) {
+    reusableTrackGenresSet.clear();
+    for (const artistId of track.artistIds) {
+      const genres = artistGenres.get(artistId) || [];
+      for (let i = 0; i < genres.length; i++) {
+        reusableTrackGenresSet.add(genres[i]);
+      }
+    }
+
+    for (const genre of reusableTrackGenresSet) {
+      let data = genreData.get(genre);
+      if (!data) {
+        data = { count: 0, trackIds: [] };
+        genreData.set(genre, data);
+      }
+      data.count++;
+      data.trackIds.push(track.id);
+    }
+  }
+
+  return genreData;
+}
+
+// Helper to aggregate genres from tracks
+export function aggregateGenresFromTracks(
+  tracks: { track: { id: string; artists: { id: string }[] } }[],
+  artistGenreMap: Map<string, string[]>,
+  genreData: Map<string, { count: number; trackIds: string[] }> = new Map()
+) {
+  const reusableTrackGenresSet = new Set<string>();
+
+  for (const { track } of tracks) {
+    reusableTrackGenresSet.clear();
+    for (const artist of track.artists) {
+      const genres = artistGenreMap.get(artist.id) || [];
+      for (let i = 0; i < genres.length; i++) {
+        reusableTrackGenresSet.add(genres[i]);
+      }
+    }
+
+    for (const genre of reusableTrackGenresSet) {
+      let data = genreData.get(genre);
+      if (!data) {
+        data = { count: 0, trackIds: [] };
+        genreData.set(genre, data);
+      }
+      data.count++;
+      data.trackIds.push(track.id);
+    }
+  }
+
+  return genreData;
+}
