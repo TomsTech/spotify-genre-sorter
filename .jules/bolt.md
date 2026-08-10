@@ -42,3 +42,6 @@
 ## 2025-05-28 - [Eliminating Intermediate Collections]
 **Learning:** Chaining array methods like `.filter()` and `.map()` before passing to a `Set` creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure in hot endpoints.
 **Action:** Replace functional `.filter().map()` chains with a single `for` loop that iteratively populates the destination collection (e.g. `Set`) in one pass to achieve better throughput and reduced memory pressure.
+## 2024-05-30 - [Interleave JSON.parse with KV fetches in mapping]
+**Learning:** Sequential processing of `Promise.all` results for KV fetches causes a large synchronous parsing block and delays CPU-bound work until all I/O is finished.
+**Action:** Always interleave parsing with async KV fetches by performing `JSON.parse` and subsequent operations (like condition checking and mutation) inside the `async` callback passed to `map`, rather than iterating over raw JSON results afterwards.

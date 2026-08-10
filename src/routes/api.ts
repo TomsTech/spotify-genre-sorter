@@ -2445,29 +2445,20 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   // HoF keys are formatted as hof:001, hof:002, etc.
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
   // PERF-030 FIX: Interleave JSON.parse with KV fetches
-  const hofPromises = hofKeys.map(async key => {
+  const hofPromises = hofKeys.map(async (key) => {
     const hofJson = await kv.get(key);
     if (hofJson) {
       try {
-        return JSON.parse(hofJson) as { spotifyId?: string };
+        const hofData = JSON.parse(hofJson) as { spotifyId?: string };
+        if (hofData && hofData.spotifyId === spotifyId) {
+          await cachedKV.delete(kv, key);
+          deleted.push(key);
+        }
       } catch { /* skip malformed entries */ }
     }
-    return null;
   });
 
-  const hofResults = await Promise.all(hofPromises);
-
-  for (let i = 0; i < hofResults.length; i++) {
-    const hofData = hofResults[i];
-    if (hofData) {
-      if (hofData.spotifyId === spotifyId) {
-        const hofKey = `hof:${String(i + 1).padStart(3, '0')}`;
-        await cachedKV.delete(kv, hofKey);
-        deleted.push(hofKey);
-        break; // User can only be in HoF once
-      }
-    }
-  }
+  await Promise.all(hofPromises);
 
   // Find and delete any active sessions for this user
   const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
