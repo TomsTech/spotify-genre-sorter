@@ -2278,10 +2278,25 @@ api.post('/admin/clear-cache', async (c) => {
     case 'leaderboard': await kv.delete('leaderboard_cache'); cleared = 1; break;
     case 'scoreboard': await kv.delete('scoreboard_cache'); cleared = 1; break;
     case 'all_genre_caches': {
-      const list = await kv.list({ prefix: 'genre_cache_' });
-      // PERF-024 FIX: Use Promise.all for parallel KV deletes
-      await Promise.all(list.keys.map(key => kv.delete(key.name)));
-      cleared = list.keys.length;
+      let listComplete = false;
+      let cursor: string | undefined = undefined;
+
+      while (!listComplete) {
+        // Cast to unknown then correct interface to bypass older worker types limitations
+        const list = await kv.list({ prefix: 'genre_cache_', cursor }) as unknown as { keys: { name: string }[], list_complete: boolean, cursor?: string };
+
+        // Split KV deletes into smaller chunks to maximize concurrency and avoid Cloudflare subrequest limits (if applicable)
+        const BATCH_SIZE = 50;
+        for (let i = 0; i < list.keys.length; i += BATCH_SIZE) {
+          const chunk = list.keys.slice(i, i + BATCH_SIZE);
+          await Promise.all(chunk.map(key => kv.delete(key.name)));
+        }
+        cleared += list.keys.length;
+
+        listComplete = list.list_complete;
+        cursor = listComplete ? undefined : list.cursor;
+      }
+
       break;
     }
   }
