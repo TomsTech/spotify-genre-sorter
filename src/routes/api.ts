@@ -343,7 +343,7 @@ api.get('/user-playlists', async (c) => {
     // Refresh token if needed
     if (session.spotifyExpiresAt && Date.now() > session.spotifyExpiresAt - 60000) {
       const newTokens = await refreshSpotifyToken(
-        session.spotifyRefreshToken!,
+        session.spotifyRefreshToken || '',
         c.env.SPOTIFY_CLIENT_ID,
         c.env.SPOTIFY_CLIENT_SECRET
       );
@@ -431,7 +431,7 @@ api.get('/genres', async (c) => {
       path: c.req.path,
       method: c.req.method,
     });
-    log.error('Error fetching liked tracks:', { error: message instanceof Error ? message.message : String(message) });
+    log.error('Error fetching liked tracks:', { error: message });
       return c.json({
         error: 'Failed to fetch liked tracks from Spotify',
         details: message,
@@ -472,7 +472,7 @@ api.get('/genres', async (c) => {
       path: c.req.path,
       method: c.req.method,
     });
-    log.error('Error fetching artists:', { error: message instanceof Error ? message.message : String(message) });
+    log.error('Error fetching artists:', { error: message });
       return c.json({
         error: 'Failed to fetch artist data from Spotify',
         details: message,
