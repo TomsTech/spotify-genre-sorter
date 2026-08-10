@@ -40,7 +40,7 @@ import { createLogger } from '../lib/logger';
 
 
 async function createAndPopulatePlaylist(
-  session: any,
+  session: { spotifyAccessToken: string },
   user: { id: string; display_name: string; images?: { url: string }[] },
   safeName: string,
   playlistName: string,
@@ -364,7 +364,7 @@ api.get('/user-playlists', async (c) => {
     // Refresh token if needed
     if (session.spotifyExpiresAt && Date.now() > session.spotifyExpiresAt - 60000) {
       const newTokens = await refreshSpotifyToken(
-        session.spotifyRefreshToken!,
+        session.spotifyRefreshToken as string,
         c.env.SPOTIFY_CLIENT_ID,
         c.env.SPOTIFY_CLIENT_SECRET
       );
