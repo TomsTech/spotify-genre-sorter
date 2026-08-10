@@ -381,7 +381,6 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
   } while (cursor);
 
   // PERF-001 FIX: Use Promise.all for parallel reads instead of sequential
-  // PERF-016 FIX: Interleave JSON.parse with KV fetches
   const dataPromises = keys.map(async key => {
     const data = await kv.get(key.name);
     if (!data) return null;
@@ -472,7 +471,6 @@ export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData
   // PERF-002 FIX: Use Promise.all for parallel reads instead of sequential
 
   // Get pioneers (first 10 users) - parallel reads
-  // PERF-017 FIX: Interleave JSON.parse with KV fetches
   const pioneerKeys = Array.from({ length: 10 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
   const pioneerPromises = pioneerKeys.map(async key => {
     const data = await kv.get(key);

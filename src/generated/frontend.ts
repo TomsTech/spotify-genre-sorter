@@ -8439,7 +8439,7 @@ export function getHtml(nonce: string): string {
   <!-- Status Widgets Container (top-right corner) -->
   <div class="status-widgets" id="status-widgets">
     <!-- Uptime Status Badge (shields.io - always visible) -->
-    <a href="https://spotify.houstons.tech/health" target="_blank" class="uptime-status-badge" id="uptime-badge" title="Service Status" aria-label="View service status">
+    <a href="https://spotify.houstons.tech/health" target="_blank" rel="noopener noreferrer" class="uptime-status-badge" id="uptime-badge" title="Service Status" aria-label="View service status">
       <img src="https://img.shields.io/website?url=https%3A%2F%2Fspotify.houstons.tech&style=flat-square&logo=spotify&logoColor=white&label=Status&up_color=1DB954&down_color=e74c3c&labelColor=191414" alt="Service Status" loading="lazy" onerror="this.parentElement.style.display='none'">
     </a>
 
@@ -8646,7 +8646,7 @@ export function getHtml(nonce: string): string {
             <button class="btn btn-primary error-retry-btn" onclick="window.location.reload()">
               \${swedishMode ? '🔄 Försök igen' : '🔄 Try Again'}
             </button>
-            <a href="\${escapeHtml(issueUrl)}" target="_blank" rel="noopener" class="btn btn-ghost error-report-btn">
+            <a href="\${escapeHtml(issueUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost error-report-btn">
               \${swedishMode ? '🐛 Rapportera problem' : '🐛 Report Issue'}
             </a>
           </div>
@@ -10554,7 +10554,7 @@ export function getHtml(nonce: string): string {
 
       const footer = document.createElement('div');
       footer.className = 'changelog-footer';
-      footer.innerHTML = \`<a href="\${changelogCache.repoUrl}/releases" target="_blank">\${swedishMode ? 'Visa alla utgåvor' : 'View all releases'} →</a>\`;
+      footer.innerHTML = \`<a href="\${changelogCache.repoUrl}/releases" target="_blank" rel="noopener noreferrer">\${swedishMode ? 'Visa alla utgåvor' : 'View all releases'} →</a>\`;
 
       panel.appendChild(header);
       panel.appendChild(timeline);
@@ -10660,7 +10660,7 @@ export function getHtml(nonce: string): string {
               <span>\${swedishMode ? 'Visa inte igen' : "Don't show again"}</span>
             </label>
             <div class="whats-new-actions">
-              <a href="\${changelogCache?.repoUrl || 'https://github.com/TomsTech/spotify-genre-sorter'}/releases" target="_blank" class="btn btn-ghost">
+              <a href="\${changelogCache?.repoUrl || 'https://github.com/TomsTech/spotify-genre-sorter'}/releases" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">
                 \${swedishMode ? 'Alla utgåvor' : 'All releases'}
               </a>
               <button class="btn btn-primary whats-new-gotit">
@@ -11575,7 +11575,7 @@ export function getHtml(nonce: string): string {
               </div>
             </div>
           </div>
-          <a href="https://github.com/TomsTech/spotify-genre-sorter/blob/main/docs/security.md" target="_blank" class="privacy-docs-link">
+          <a href="https://github.com/TomsTech/spotify-genre-sorter/blob/main/docs/security.md" target="_blank" rel="noopener noreferrer" class="privacy-docs-link">
             📄 \${t('privacyReviewDocs')}
           </a>
         </details>
@@ -11590,10 +11590,10 @@ export function getHtml(nonce: string): string {
           \${privacyExplainer}
           \${loginButton}
           <div class="footer-badges">
-            <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank" class="github-star-badge" title="\${swedishMode ? 'Gillar du det? Stjärnmärk oss! ⭐' : 'Love this? Star us! ⭐'}">
+            <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank" rel="noopener noreferrer" class="github-star-badge" title="\${swedishMode ? 'Gillar du det? Stjärnmärk oss! ⭐' : 'Love this? Star us! ⭐'}">
               <img src="https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=for-the-badge&logo=github&logoColor=white&label=Star&color=1DB954&labelColor=191414" alt="Star on GitHub" loading="lazy" onerror="this.style.display='none'">
             </a>
-            <a href="https://spotify.houstons.tech" target="_blank" class="uptime-badge" title="\${swedishMode ? 'Tjänststatus' : 'Service Status'}">
+            <a href="https://spotify.houstons.tech" target="_blank" rel="noopener noreferrer" class="uptime-badge" title="\${swedishMode ? 'Tjänststatus' : 'Service Status'}">
               <img src="https://img.shields.io/website?url=https%3A%2F%2Fspotify.houstons.tech&style=for-the-badge&logo=spotify&logoColor=white&label=Status&up_color=1DB954&down_color=e74c3c&labelColor=191414" alt="Service Status" loading="lazy" onerror="this.style.display='none'">
             </a>
           </div>
@@ -13884,7 +13884,7 @@ export function getHtml(nonce: string): string {
                 <div class="result-item">
                   <span>\${r.genre}</span>
                   \${r.success
-                    ? \`<a href="\${escapeHtml(r.url)}" target="_blank" class="result-success" data-i18n="openSpotify">\${t('openSpotify')}</a>\`
+                    ? \`<a href="\${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer" class="result-success" data-i18n="openSpotify">\${t('openSpotify')}</a>\`
                     : r.skipped
                       ? \`<span class="result-skipped">\${swedishMode ? 'Finns redan' : 'Already exists'}</span>\`
                       : \`<span class="result-error">\${r.error}</span>\`
@@ -14412,7 +14412,7 @@ export function getHtml(nonce: string): string {
         const delay = i * 50; // Stagger by 50ms
         const genreEmoji = getGenreEmoji(playlist.genre);
         return \`
-          <a href="\${escapeHtml(playlist.spotifyUrl)}" target="_blank" class="playlist-list-item animate-in" style="animation-delay: \${delay}ms" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
+          <a href="\${escapeHtml(playlist.spotifyUrl)}" target="_blank" rel="noopener noreferrer" class="playlist-list-item animate-in" style="animation-delay: \${delay}ms" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
             <div class="playlist-icon">\${genreEmoji}</div>
             <div class="playlist-info">
               <div class="playlist-name">\${escapeHtml(playlist.playlistName)}</div>
@@ -14992,7 +14992,10 @@ export function getHtml(nonce: string): string {
 
       if (userPlaylists.length === 0) {
         const noPlaylists = swedishMode ? 'Inga spellistor hittades' : 'No playlists found';
-        container.innerHTML = '<p>' + noPlaylists + '</p>';
+        container.textContent = '';
+        const p = document.createElement('p');
+        p.textContent = noPlaylists;
+        container.appendChild(p);
         return;
       }
 
@@ -15000,22 +15003,50 @@ export function getHtml(nonce: string): string {
       const ownerText = swedishMode ? 'Din' : 'Yours';
       const tracksText = swedishMode ? 'låtar' : 'tracks';
 
-      let html = '<div class="playlist-list">';
-      for (const playlist of userPlaylists) {
-        html += '<div class="playlist-item">' +
-          '<div class="playlist-item-info">' +
-            '<span class="playlist-item-name">' + escapeHtml(playlist.name) + '</span>' +
-            '<span class="playlist-item-tracks">' + playlist.trackCount + ' ' + tracksText + '</span>' +
-            (playlist.isOwner ? '<span class="playlist-item-owner">' + ownerText + '</span>' : '') +
-          '</div>' +
-          '<button class="playlist-scan-btn" aria-label="' + (swedishMode ? 'Skanna spellista ' : 'Scan playlist ') + escapeHtml(playlist.name) + '" onclick="scanPlaylist(\\'' + playlist.id + '\\', \\'' + escapeHtml(playlist.name).replace(/'/g, "\\'") + '\\')">' +
-            scanText +
-          '</button>' +
-        '</div>';
-      }
-      html += '</div>';
+      container.textContent = '';
+      const listDiv = document.createElement('div');
+      listDiv.className = 'playlist-list';
 
-      container.innerHTML = html;
+      for (const playlist of userPlaylists) {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'playlist-item';
+
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'playlist-item-info';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'playlist-item-name';
+        nameSpan.textContent = playlist.name;
+        infoDiv.appendChild(nameSpan);
+
+        const tracksSpan = document.createElement('span');
+        tracksSpan.className = 'playlist-item-tracks';
+        tracksSpan.textContent = playlist.trackCount + ' ' + tracksText;
+        infoDiv.appendChild(tracksSpan);
+
+        if (playlist.isOwner) {
+          const ownerSpan = document.createElement('span');
+          ownerSpan.className = 'playlist-item-owner';
+          ownerSpan.textContent = ownerText;
+          infoDiv.appendChild(ownerSpan);
+        }
+        itemDiv.appendChild(infoDiv);
+
+        const btn = document.createElement('button');
+        btn.className = 'playlist-scan-btn';
+        btn.setAttribute('aria-label', (swedishMode ? 'Skanna spellista ' : 'Scan playlist ') + playlist.name);
+        btn.textContent = scanText;
+
+        const currentPlaylistId = playlist.id;
+        const currentPlaylistName = playlist.name;
+        btn.addEventListener('click', () => scanPlaylist(currentPlaylistId, currentPlaylistName));
+
+        itemDiv.appendChild(btn);
+
+        listDiv.appendChild(itemDiv);
+      }
+
+      container.appendChild(listDiv);
     }
 
     async function scanPlaylist(playlistId, playlistName) {
@@ -15430,7 +15461,7 @@ export function getHtml(nonce: string): string {
       const msg = swedishMode ? msgSE : msgEN;
 
       banner.innerHTML = '<strong>' + title + '</strong> — ' + msg +
-        ' <a href="https://status.tomstech.dev" target="_blank">' +
+        ' <a href="https://status.tomstech.dev" target="_blank" rel="noopener noreferrer">' +
         (swedishMode ? 'Statussida' : 'Status Page') + '</a>' +
         '<button class="close-btn" onclick="dismissRateLimitBanner()" aria-label="Dismiss banner">&times;</button>';
 
@@ -15517,7 +15548,7 @@ export function getHtml(nonce: string): string {
             '<div class="invite-success">' +
               '<h3>' + successTitle + '</h3>' +
               '<p>' + successMsg + '</p>' +
-              (data.trackingUrl ? '<a href="' + data.trackingUrl + '" class="btn btn-secondary" target="_blank">' + trackText + '</a>' : '') +
+              (data.trackingUrl ? '<a href="' + data.trackingUrl + '" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">' + trackText + '</a>' : '') +
             '</div>';
 
           e.target.style.display = 'none';
@@ -15833,11 +15864,11 @@ export function getHtml(nonce: string): string {
         '    <button class="btn btn-secondary share-copy-btn" onclick="copyShareLink(this)">' + (swedishMode ? 'Kopiera' : 'Copy') + '</button>',
         '  </div>',
         '  <div class="share-social-buttons">',
-        '    <a href="https://twitter.com/intent/tweet?url=' + encodeURIComponent(playlistUrl) + '&text=' + encodeURIComponent('Check out my ' + playlistName + ' playlist! 🎵') + '" target="_blank" class="share-social-btn twitter" aria-label="' + (swedishMode ? 'Dela på X (Twitter)' : 'Share on X (Twitter)') + '">𝕏</a>',
-        '    <a href="https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(playlistUrl) + '" target="_blank" class="share-social-btn facebook" aria-label="' + (swedishMode ? 'Dela på Facebook' : 'Share on Facebook') + '">f</a>',
-        '    <a href="whatsapp://send?text=' + encodeURIComponent(playlistName + ' - ' + playlistUrl) + '" target="_blank" class="share-social-btn whatsapp" aria-label="' + (swedishMode ? 'Dela via WhatsApp' : 'Share via WhatsApp') + '">💬</a>',
+        '    <a href="https://twitter.com/intent/tweet?url=' + encodeURIComponent(playlistUrl) + '&text=' + encodeURIComponent('Check out my ' + playlistName + ' playlist! 🎵') + '" target="_blank" rel="noopener noreferrer" class="share-social-btn twitter" aria-label="' + (swedishMode ? 'Dela på X (Twitter)' : 'Share on X (Twitter)') + '">𝕏</a>',
+        '    <a href="https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(playlistUrl) + '" target="_blank" rel="noopener noreferrer" class="share-social-btn facebook" aria-label="' + (swedishMode ? 'Dela på Facebook' : 'Share on Facebook') + '">f</a>',
+        '    <a href="whatsapp://send?text=' + encodeURIComponent(playlistName + ' - ' + playlistUrl) + '" target="_blank" rel="noopener noreferrer" class="share-social-btn whatsapp" aria-label="' + (swedishMode ? 'Dela via WhatsApp' : 'Share via WhatsApp') + '">💬</a>',
         '  </div>',
-        '  <a href="' + escapeHtml(playlistUrl) + '" target="_blank" class="btn btn-primary share-open-btn">' + (swedishMode ? 'Öppna i Spotify' : 'Open in Spotify') + '</a>',
+        '  <a href="' + escapeHtml(playlistUrl) + '" target="_blank" rel="noopener noreferrer" class="btn btn-primary share-open-btn">' + (swedishMode ? 'Öppna i Spotify' : 'Open in Spotify') + '</a>',
         '</div>'
       ].join('');
 
