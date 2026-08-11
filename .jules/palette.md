@@ -5,3 +5,6 @@
 ## 2024-08-01 - Missing ARIA Labels on Playlist Action Buttons
 **Learning:** Found multiple instances of action buttons (like Fika dismiss, scan playlist, and back to playlists buttons) that lacked \`aria-label\` attributes, making them inaccessible to screen readers.
 **Action:** When adding or reviewing action buttons, always ensure they are accompanied by \`aria-label\`, especially when they don't have descriptive text or are icon-heavy.
+## 2024-05-18 - Input Labels
+**Learning:** Some inputs used `aria-label` but lacked a proper `<label>` with a `for` attribute. Using a visually hidden `sr-only` class on `<label>` elements provides better support for screen readers, as the `aria-label` alone can sometimes be insufficient.
+**Action:** Always provide an explicit `<label for="...">` instead of just an `aria-label` for forms, hiding it with `.sr-only` if a visible label breaks the design.
