@@ -2303,33 +2303,37 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
   const users: AdminUser[] = [];
   const seenIds = new Set<string>();
 
-  // PERF-014 FIX: Use Promise.all for parallel reads instead of sequential loop
-  const dataPromises = userStatsList.keys.map(async key => {
-    const statsJson = await kv.get(key.name);
-    if (statsJson) {
+  // PERF-014 FIX: Use chunked Promise.all for parallel reads to avoid CF Workers limit
+  const dataResults = [];
+  for (let i = 0; i < userStatsList.keys.length; i += 40) {
+    const chunkKeys = userStatsList.keys.slice(i, i + 40);
+    const chunkPromises = chunkKeys.map(async key => {
       try {
-        const stats = JSON.parse(statsJson) as {
-          spotifyId: string;
-          spotifyName: string;
-          spotifyAvatar?: string;
-          playlistsCreated?: number;
-          firstSeen?: string;
-          lastActive?: string;
-        };
-        return {
-          spotifyId: stats.spotifyId,
-          spotifyName: stats.spotifyName || 'Unknown',
-          spotifyAvatar: stats.spotifyAvatar || null,
-          playlistCount: stats.playlistsCreated || 0,
-          registeredAt: stats.firstSeen || 'Unknown',
-          lastActive: stats.lastActive || null,
-        };
+        const statsJson = await kv.get(key.name);
+        if (statsJson) {
+          const stats = JSON.parse(statsJson) as {
+            spotifyId: string;
+            spotifyName: string;
+            spotifyAvatar?: string;
+            playlistsCreated?: number;
+            firstSeen?: string;
+            lastActive?: string;
+          };
+          return {
+            spotifyId: stats.spotifyId,
+            spotifyName: stats.spotifyName || 'Unknown',
+            spotifyAvatar: stats.spotifyAvatar || null,
+            playlistCount: stats.playlistsCreated || 0,
+            registeredAt: stats.firstSeen || 'Unknown',
+            lastActive: stats.lastActive || null,
+          };
+        }
       } catch { /* skip malformed entries */ }
-    }
-    return null;
-  });
-
-  const dataResults = await Promise.all(dataPromises);
+      return null;
+    });
+    const chunkResults = await Promise.all(chunkPromises);
+    dataResults.push(...chunkResults);
+  }
   for (const user of dataResults) {
     if (user) {
       seenIds.add(user.spotifyId);
@@ -2463,22 +2467,26 @@ api.delete('/admin/user/:spotifyId', async (c) => {
 
   // Find and delete any active sessions for this user
   const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
-  // PERF-021 FIX: Use Promise.all for parallel reads instead of sequential loop
-  const sessionPromises = sessionsList.keys.map(async key => {
-    try {
-      const sessionJson = await kv.get(key.name);
-      if (sessionJson) {
-        const sessionData = JSON.parse(sessionJson) as { spotifyUserId?: string };
-        if (sessionData.spotifyUserId === spotifyId) {
-          await cachedKV.delete(kv, key.name);
-          return key.name;
+  // PERF-021 FIX: Use chunked Promise.all for parallel reads to avoid CF Workers limit
+  const sessionResults = [];
+  for (let i = 0; i < sessionsList.keys.length; i += 40) {
+    const chunkKeys = sessionsList.keys.slice(i, i + 40);
+    const chunkPromises = chunkKeys.map(async key => {
+      try {
+        const sessionJson = await kv.get(key.name);
+        if (sessionJson) {
+          const sessionData = JSON.parse(sessionJson) as { spotifyUserId?: string };
+          if (sessionData.spotifyUserId === spotifyId) {
+            await cachedKV.delete(kv, key.name);
+            return key.name;
+          }
         }
-      }
-    } catch { /* skip malformed sessions */ }
-    return null;
-  });
-
-  const sessionResults = await Promise.all(sessionPromises);
+      } catch { /* skip malformed sessions */ }
+      return null;
+    });
+    const chunkResults = await Promise.all(chunkPromises);
+    sessionResults.push(...chunkResults);
+  }
   for (const keyName of sessionResults) {
     if (keyName) deleted.push(keyName);
   }
