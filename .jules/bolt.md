@@ -71,3 +71,6 @@
 ## 2024-05-15 - [Batching Parallel Promises for Environment Limits]
 **Learning:** When deploying in restricted environments (like Cloudflare Workers, which has a 50 subrequest limit), using `Promise.all()` over an unbounded or large array of external API fetches can lead to sudden crashes.
 **Action:** Instead of fetching all items at once, use sequential chunking (e.g. `batchSize = 5`) inside a `for` loop, awaiting `Promise.all(chunk)` iteratively. This keeps concurrency safe without sacrificing the speed benefits of parallel execution. Ensure to clean up any temporary workspace files used during script creation and testing.
+## 2025-05-28 - [Eliminating Intermediate Collections from Maps]
+**Learning:** Chaining array methods after converting iterators to arrays (e.g., `[...map.entries()].map(...)` or `Array.from(map.entries()).map(...)`) creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure, especially when the map has a large number of entries.
+**Action:** Replace iterator array conversions and functional chains with a single `for...of` loop over the map iterator that populates the destination collection directly.
