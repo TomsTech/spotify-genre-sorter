@@ -8713,7 +8713,8 @@ export function getHtml(nonce: string): string {
         modal.innerHTML = [
           '<h3 id="prompt-title">' + (swedishMode ? '📝 Ange namn' : '📝 Enter name') + '</h3>',
           '<p class="prompt-message">' + message + '</p>',
-          '<input type="text" class="prompt-input" id="prompt-input" value="' + escapeForHtml(defaultValue) + '" maxlength="100" aria-label="' + (swedishMode ? 'Ange namn' : 'Enter name') + '">',
+          '<label for="prompt-input" class="sr-only">' + (swedishMode ? 'Ange namn' : 'Enter name') + '</label>',
+          '<input type="text" class="prompt-input" id="prompt-input" value="' + escapeForHtml(defaultValue) + '" maxlength="100">',
           '<div class="prompt-buttons">',
           '  <button class="btn btn-ghost" id="prompt-cancel">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
           '  <button class="btn btn-primary" id="prompt-confirm">' + (swedishMode ? 'OK' : 'OK') + '</button>',
@@ -9441,7 +9442,8 @@ export function getHtml(nonce: string): string {
         content.innerHTML = \`
           <div class="admin-users-header">
             <span>\${data.total} users total</span>
-            <input type="text" class="admin-search" id="admin-user-search" placeholder="Search users..." aria-label="Search users" />
+            <label for="admin-user-search" class="sr-only">Search users</label>
+            <input type="text" class="admin-search" id="admin-user-search" placeholder="Search users..." />
           </div>
           <div class="admin-users-list" id="admin-users-list">
             \${data.users.map(user => \`
@@ -13064,10 +13066,11 @@ export function getHtml(nonce: string): string {
             </div>
           </div>
 
+          <label for="genre-search" class="sr-only">\${t('searchGenres')}</label>
           <input
+            id="genre-search"
             type="text"
             class="search-input"
-            aria-label="\${t('searchGenres')}"
             placeholder="\${t('searchGenres')}"
             data-i18n-placeholder="searchGenres"
             oninput="debouncedFilterAndRenderGenres(this.value)"
@@ -15510,8 +15513,10 @@ export function getHtml(nonce: string): string {
         '<p>' + subtitle + '</p>' +
         '<p>' + desc + '</p>' +
         '<form class="invite-form" onsubmit="submitInviteRequest(event)">' +
-          '<input type="text" id="invite-email" placeholder="' + emailLabel + '" aria-label="' + emailLabel + '" required>' +
-          '<textarea id="invite-note" placeholder="' + noteLabel + '" aria-label="' + noteLabel + '"></textarea>' +
+          '<label for="invite-email" class="sr-only">' + emailLabel + '</label>' +
+          '<input type="text" id="invite-email" placeholder="' + emailLabel + '" required>' +
+          '<label for="invite-note" class="sr-only">' + noteLabel + '</label>' +
+          '<textarea id="invite-note" placeholder="' + noteLabel + '"></textarea>' +
           '<button type="submit" class="btn btn-primary">' + submitText + '</button>' +
         '</form>' +
         '<div id="invite-result"></div>' +
