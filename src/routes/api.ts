@@ -484,13 +484,17 @@ api.get('/genres', async (c) => {
     const genreData = aggregateGenresFromTracks(likedTracks, artistGenreMap);
 
     // Convert to sorted array
-    const genres = [...genreData.entries()]
-      .map(([name, data]) => ({
+    // ⚡ BOLT OPTIMIZATION: Replaced [...map.entries()].map() with a single for...of loop
+    // This eliminates intermediate array allocations and reduces garbage collection pressure
+    const genres = [];
+    for (const [name, data] of genreData) {
+      genres.push({
         name,
         count: data.count,
         trackIds: data.trackIds,
-      }))
-      .sort((a, b) => b.count - a.count);
+      });
+    }
+    genres.sort((a, b) => b.count - a.count);
 
     // Use extended TTL for large libraries (24h vs 1h)
     const cacheTtl = likedTracks.length >= LARGE_LIBRARY_THRESHOLD
@@ -744,11 +748,16 @@ api.get('/genres/progressive', async (c) => {
     aggregateGenresFromTracks(allChunkTracks, artistGenreMap, genreMap);
 
     // Update progress
-    progress.partialGenres = [...genreMap.entries()].map(([name, data]) => ({
-      name,
-      count: data.count,
-      trackIds: data.trackIds,
-    }));
+    // ⚡ BOLT OPTIMIZATION: Replaced [...map.entries()].map() with a single for...of loop
+    // This eliminates intermediate array allocations and reduces garbage collection pressure
+    progress.partialGenres = [];
+    for (const [name, data] of genreMap) {
+      progress.partialGenres.push({
+        name,
+        count: data.count,
+        trackIds: data.trackIds,
+      });
+    }
     progress.partialTrackCount += allChunkTracks.length;
     // PERF-FIX: Eliminate intermediate arrays created by flatMap and spread syntax
     // By iterating manually and adding to a Set, we reduce memory allocations and GC pressure.
@@ -965,13 +974,17 @@ api.get('/genres/chunk', async (c) => {
     const genreData = aggregateGenresFromTracks(allChunkTracks, artistGenreMap);
 
     // Convert to array
-    const genres = [...genreData.entries()]
-      .map(([name, data]) => ({
+    // ⚡ BOLT OPTIMIZATION: Replaced [...map.entries()].map() with a single for...of loop
+    // This eliminates intermediate array allocations and reduces garbage collection pressure
+    const genres = [];
+    for (const [name, data] of genreData) {
+      genres.push({
         name,
         count: data.count,
         trackIds: data.trackIds,
-      }))
-      .sort((a, b) => b.count - a.count);
+      });
+    }
+    genres.sort((a, b) => b.count - a.count);
 
     const chunkData: ChunkCacheData = {
       genres,
@@ -1702,9 +1715,13 @@ api.get('/scan-playlist/:playlistId', async (c) => {
     const genreCounts = aggregateGenresFromTrackData(trackData, artistGenres);
 
     // Convert to sorted array
-    const genres = Array.from(genreCounts.entries())
-      .map(([name, data]) => ({ name, count: data.count, trackIds: data.trackIds }))
-      .sort((a, b) => b.count - a.count);
+    // ⚡ BOLT OPTIMIZATION: Replaced Array.from(map.entries()).map() with a single for...of loop
+    // This eliminates intermediate array allocations and reduces garbage collection pressure
+    const genres = [];
+    for (const [name, data] of genreCounts) {
+      genres.push({ name, count: data.count, trackIds: data.trackIds });
+    }
+    genres.sort((a, b) => b.count - a.count);
 
     return c.json({
       totalTracks: trackData.length,

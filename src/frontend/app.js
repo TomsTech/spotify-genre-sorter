@@ -3447,9 +3447,13 @@
       }
 
       // Convert to sorted array
-      const genres = [...merged.entries()]
-        .map(([name, data]) => ({ name, count: data.count, trackIds: data.trackIds }))
-        .sort((a, b) => b.count - a.count);
+      // ⚡ BOLT OPTIMIZATION: Replaced [...map.entries()].map() with a single for...of loop
+      // This eliminates intermediate array allocations and reduces garbage collection pressure
+      const genres = [];
+      for (const [name, data] of merged) {
+        genres.push({ name, count: data.count, trackIds: data.trackIds });
+      }
+      genres.sort((a, b) => b.count - a.count);
 
       return {
         genres,
