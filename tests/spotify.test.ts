@@ -205,4 +205,48 @@ describe('refreshSpotifyToken', () => {
     expect(tokens.access_token).toBe('new-access-token');
     expect(tokens.refresh_token).toBe('fake-refresh-token'); // It should preserve the refresh token if not returned
   });
+
+  it('should send the correct request parameters to Spotify', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ access_token: 'new-access-token', expires_in: 3600 }),
+      headers: new Headers()
+    });
+    global.fetch = fetchMock;
+
+    await refreshSpotifyToken('fake-refresh-token', 'test-client-id', 'test-client-secret');
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, options] = fetchMock.mock.calls[0];
+
+    expect(url).toBe('https://accounts.spotify.com/api/token');
+    expect(options.method).toBe('POST');
+    expect(options.headers).toEqual({
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': 'Basic ' + btoa('test-client-id:test-client-secret')
+    });
+
+    expect(options.body).toBeInstanceOf(URLSearchParams);
+    const bodyParams = new URLSearchParams(options.body.toString());
+    expect(bodyParams.get('grant_type')).toBe('refresh_token');
+    expect(bodyParams.get('refresh_token')).toBe('fake-refresh-token');
+  });
+
+  it('should use the new refresh token if Spotify returns one', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        access_token: 'new-access-token',
+        expires_in: 3600,
+        refresh_token: 'brand-new-refresh-token'
+      }),
+      headers: new Headers()
+    });
+
+    const tokens = await refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret');
+    expect(tokens.refresh_token).toBe('brand-new-refresh-token');
+  });
+
 });
