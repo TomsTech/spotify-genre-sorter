@@ -4389,7 +4389,7 @@
           ⚠️ \${swedishMode
             ? \`Visar \${genreData.totalTracks.toLocaleString()} av \${genreData.totalInLibrary?.toLocaleString()} låtar\`
             : \`Showing \${genreData.totalTracks.toLocaleString()} of \${genreData.totalInLibrary?.toLocaleString()} tracks\`}
-          <button onclick="loadFullLibrary()" class="btn btn-ghost btn-sm" style="margin-left: 0.5rem;">
+          <button onclick="loadFullLibrary()" class="btn btn-ghost btn-sm" style="margin-left: 0.5rem;" aria-label="\${swedishMode ? 'Ladda alla låtar' : 'Load all tracks'}">
             \${swedishMode ? 'Ladda alla' : 'Load all'}
           </button>
         </div>
@@ -4397,7 +4397,7 @@
 
         <div class="cache-status">
           \${cacheInfo}
-          <button onclick="refreshGenres()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Hämta ny data från Spotify' : 'Fetch fresh data from Spotify'}">
+          <button onclick="refreshGenres()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Hämta ny data från Spotify' : 'Fetch fresh data from Spotify'}" aria-label="\${swedishMode ? 'Uppdatera (Hämta ny data från Spotify)' : 'Refresh (Fetch fresh data from Spotify)'}">
             🔄 \${swedishMode ? 'Uppdatera' : 'Refresh'}
           </button>
         </div>
@@ -4409,13 +4409,13 @@
           <button onclick="toggleStatsDashboard()" class="btn btn-ghost btn-sm stats-toggle" id="stats-toggle">
             \${showStatsDashboard ? (swedishMode ? '📊 Dölj statistik' : '📊 Hide Stats') : (swedishMode ? '📊 Visa statistik' : '📊 Show Stats')}
           </button>
-          <button onclick="toggleMergeMode()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Välj genrer att slå ihop' : 'Select genres to merge into one playlist'}">
+          <button onclick="toggleMergeMode()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Välj genrer att slå ihop' : 'Select genres to merge into one playlist'}" aria-label="\${swedishMode ? 'Slå ihop (Välj genrer att slå ihop)' : 'Merge (Select genres to merge into one playlist)'}">
             📦 \${swedishMode ? 'Slå ihop' : 'Merge'}
           </button>
-          <button onclick="exportGenresJSON()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Exportera som JSON' : 'Export as JSON'}">
+          <button onclick="exportGenresJSON()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Exportera som JSON' : 'Export as JSON'}" aria-label="JSON (\${swedishMode ? 'Exportera som JSON' : 'Export as JSON'})">
             📥 JSON
           </button>
-          <button onclick="exportGenresCSV()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Exportera som CSV' : 'Export as CSV'}">
+          <button onclick="exportGenresCSV()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Exportera som CSV' : 'Export as CSV'}" aria-label="CSV (\${swedishMode ? 'Exportera som CSV' : 'Export as CSV'})">
             📥 CSV
           </button>
         </div>
@@ -4427,10 +4427,10 @@
           <button onclick="toggleShowHidden()" class="btn btn-ghost btn-sm">
             \${showHiddenGenres ? (swedishMode ? '🙈 Dölj dolda' : '🙈 Hide hidden') : (swedishMode ? '👁️ Visa dolda' : '👁️ Show hidden')}
           </button>
-          <button onclick="unhideAllGenres()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Visa alla genrer' : 'Show all genres'}">
+          <button onclick="unhideAllGenres()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Visa alla genrer' : 'Show all genres'}" aria-label="\${swedishMode ? 'Visa alla (Visa alla genrer)' : 'Unhide all (Show all genres)'}">
             ↺ \${swedishMode ? 'Visa alla' : 'Unhide all'}
           </button>
-          <button onclick="hideSmallGenres(5)" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Dölj genrer med färre än 5 låtar' : 'Hide genres with fewer than 5 tracks'}">
+          <button onclick="hideSmallGenres(5)" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Dölj genrer med färre än 5 låtar' : 'Hide genres with fewer than 5 tracks'}" aria-label="\${swedishMode ? 'Dölj små (<5) (Dölj genrer med färre än 5 låtar)' : 'Hide small (<5) (Hide genres with fewer than 5 tracks)'}">
             \${swedishMode ? 'Dölj små (<5)' : 'Hide small (<5)'}
           </button>
         </div>
