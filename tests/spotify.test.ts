@@ -1,10 +1,52 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier } from '../src/lib/spotify';
+import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, createCodeChallenge } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
 
-describe('generateCodeVerifier', () => {
+describe('createCodeChallenge', () => {
+  it('should generate a base64url encoded SHA-256 hash', async () => {
+    // Expected value can be independently verified with standard tools:
+    // echo -n "test-verifier" | openssl dgst -binary -sha256 | openssl base64 | tr '+/' '-_' | tr -d '='
+    const verifier = 'test-verifier';
+    const challenge = await createCodeChallenge(verifier);
+
+    // Expected hash of 'test-verifier' using SHA-256 and base64url encoding
+    expect(challenge).toBe('JBbiqONGWPaAmwXk_8bT6UnlPfrn65D32eZlJS-zGG0');
+  });
+
+  it('should generate consistent hashes for the same input', async () => {
+    const verifier = 'another-verifier';
+    const challenge1 = await createCodeChallenge(verifier);
+    const challenge2 = await createCodeChallenge(verifier);
+
+    expect(challenge1).toBe(challenge2);
+  });
+
+  it('should generate different hashes for different inputs', async () => {
+    const challenge1 = await createCodeChallenge('verifier-1');
+    const challenge2 = await createCodeChallenge('verifier-2');
+
+    expect(challenge1).not.toBe(challenge2);
+  });
+
+  it('should use URL-safe base64 encoding without padding', async () => {
+    // Generate a challenge
+    const challenge = await createCodeChallenge('test-padding-and-url-safety-1234567890');
+
+    // Ensure no padding (=)
+    expect(challenge).not.toContain('=');
+
+    // Ensure no unsafe characters (+, /)
+    expect(challenge).not.toContain('+');
+    expect(challenge).not.toContain('/');
+
+    // URL-safe base64 characters: A-Z, a-z, 0-9, -, _
+    expect(challenge).toMatch(/^[A-Za-z0-9_-]+$/);
+  });
+});
+
+  describe('generateCodeVerifier', () => {
   it('should generate a string of length 43', () => {
     const verifier = generateCodeVerifier();
     expect(verifier.length).toBe(43);
