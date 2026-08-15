@@ -148,6 +148,7 @@ vi.mock('../src/lib/logger', () => ({
   })
 }));
 
+import { aggregateGenresFromTracks } from '../src/routes/api';
 import api from '../src/routes/api';
 
 describe('Authentication Middleware (Integration)', () => {
@@ -287,5 +288,77 @@ describe('Health & Setup Endpoints', () => {
 
     expect(isSpotifyOnly1).toBe(true);
     expect(isSpotifyOnly2).toBe(false);
+  });
+});
+
+
+describe('aggregateGenresFromTracks', () => {
+  it('should correctly aggregate genres from multiple tracks and artists', () => {
+    const tracks = [
+      { track: { id: 't1', artists: [{ id: 'a1' }, { id: 'a2' }] } },
+      { track: { id: 't2', artists: [{ id: 'a1' }] } },
+      { track: { id: 't3', artists: [{ id: 'a3' }] } }
+    ];
+
+    const artistGenreMap = new Map([
+      ['a1', ['rock', 'pop']],
+      ['a2', ['jazz', 'rock']],
+      ['a3', ['classical']]
+    ]);
+
+    const result = aggregateGenresFromTracks(tracks, artistGenreMap);
+
+    expect(result.size).toBe(4);
+
+    const rock = result.get('rock');
+    expect(rock).toBeDefined();
+    expect(rock?.count).toBe(2);
+    expect(rock?.trackIds).toEqual(['t1', 't2']);
+
+    const pop = result.get('pop');
+    expect(pop?.count).toBe(2);
+    expect(pop?.trackIds).toEqual(['t1', 't2']);
+
+    const jazz = result.get('jazz');
+    expect(jazz?.count).toBe(1);
+    expect(jazz?.trackIds).toEqual(['t1']);
+
+    const classical = result.get('classical');
+    expect(classical?.count).toBe(1);
+    expect(classical?.trackIds).toEqual(['t3']);
+  });
+
+  it('should handle missing genres in artistGenreMap', () => {
+    const tracks = [
+      { track: { id: 't1', artists: [{ id: 'a1' }] } }
+    ];
+
+    const artistGenreMap = new Map();
+
+    const result = aggregateGenresFromTracks(tracks, artistGenreMap);
+    expect(result.size).toBe(0);
+  });
+
+  it('should accumulate data correctly into an existing genreData map', () => {
+    const tracks = [
+      { track: { id: 't2', artists: [{ id: 'a1' }] } }
+    ];
+
+    const artistGenreMap = new Map([
+      ['a1', ['rock']]
+    ]);
+
+    const initialMap = new Map();
+    initialMap.set('rock', { count: 1, trackIds: ['t1'] });
+    initialMap.set('pop', { count: 1, trackIds: ['t1'] });
+
+    const result = aggregateGenresFromTracks(tracks, artistGenreMap, initialMap);
+
+    expect(result.size).toBe(2);
+    expect(result.get('rock')?.count).toBe(2);
+    expect(result.get('rock')?.trackIds).toEqual(['t1', 't2']);
+
+    expect(result.get('pop')?.count).toBe(1);
+    expect(result.get('pop')?.trackIds).toEqual(['t1']);
   });
 });
