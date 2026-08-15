@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier } from '../src/lib/spotify';
 
 
@@ -204,5 +204,113 @@ describe('refreshSpotifyToken', () => {
     const tokens = await refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret');
     expect(tokens.access_token).toBe('new-access-token');
     expect(tokens.refresh_token).toBe('fake-refresh-token'); // It should preserve the refresh token if not returned
+  });
+});
+
+
+describe('getArtists', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('should truncate artist ids if they exceed maxRequests * 50', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ artists: Array.from({ length: 100 }, (_, i) => ({ id: `artist${i}`, name: `Artist ${i}`, genres: ['pop'] })) }),
+      headers: new Headers()
+    }));
+
+    const { getArtists } = await import('../src/lib/spotify');
+    const artistIds = Array.from({ length: 150 }, (_, i) => `artist${i}`);
+    const result = await getArtists('fake-token', artistIds, 2);
+
+    expect(result.truncated).toBe(true);
+    expect(result.totalArtists).toBe(150);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('should fetch all artists without KV cache', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ artists: [{ id: 'artist1', name: 'Artist 1', genres: ['pop'] }, { id: 'artist2', name: 'Artist 2', genres: ['rock'] }] }),
+      headers: new Headers()
+    }));
+
+    const { getArtists } = await import('../src/lib/spotify');
+    const artistIds = ['artist1', 'artist2'];
+    const result = await getArtists('fake-token', artistIds);
+
+    expect(result.artists.length).toBe(2);
+    expect(result.truncated).toBe(false);
+    expect(result.cacheHits).toBeUndefined();
+    expect(result.cacheMisses).toBeUndefined();
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('should use KV cache and not fetch if all artists are cached', async () => {
+    const mockKv = {} as any;
+    const mockCachedGenres = new Map([
+      ['artist1', ['pop']],
+      ['artist2', ['rock']]
+    ]);
+
+    vi.doMock('../src/lib/artist-genre-cache', () => ({
+      getCachedArtistGenresBatch: vi.fn().mockResolvedValue(mockCachedGenres),
+      cacheArtistGenresBatch: vi.fn().mockResolvedValue(undefined),
+      updateArtistGenreCacheStats: vi.fn().mockResolvedValue(undefined)
+    }));
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Should not fetch from Spotify')));
+
+    const { getArtists } = await import('../src/lib/spotify');
+    const result = await getArtists('fake-token', ['artist1', 'artist2'], 25, mockKv);
+
+    expect(result.artists.length).toBe(2);
+    expect(result.artists[0].id).toBe('artist1');
+    expect(result.artists[0].genres).toEqual(['pop']);
+    expect(result.cacheHits).toBe(2);
+    expect(result.cacheMisses).toBe(0);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('should fetch only uncached artists and update cache', async () => {
+    const mockKv = {} as any;
+    const mockCachedGenres = new Map([
+      ['artist1', ['pop']]
+    ]);
+
+    const cacheArtistGenresBatchMock = vi.fn().mockResolvedValue(undefined);
+    const updateArtistGenreCacheStatsMock = vi.fn().mockResolvedValue(undefined);
+
+    vi.doMock('../src/lib/artist-genre-cache', () => ({
+      getCachedArtistGenresBatch: vi.fn().mockResolvedValue(mockCachedGenres),
+      cacheArtistGenresBatch: cacheArtistGenresBatchMock,
+      updateArtistGenreCacheStats: updateArtistGenreCacheStatsMock
+    }));
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ artists: [{ id: 'artist2', name: 'Artist 2', genres: ['rock'] }] }),
+      headers: new Headers()
+    }));
+
+    const { getArtists } = await import('../src/lib/spotify');
+    const result = await getArtists('fake-token', ['artist1', 'artist2'], 25, mockKv);
+
+    expect(result.artists.length).toBe(2);
+    expect(result.cacheHits).toBe(1);
+    expect(result.cacheMisses).toBe(1);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+
+    expect(cacheArtistGenresBatchMock).toHaveBeenCalledWith(mockKv, new Map([['artist2', ['rock']]]));
+    expect(updateArtistGenreCacheStatsMock).toHaveBeenCalledWith(mockKv, { cacheHits: 1, cacheMisses: 1 });
   });
 });
