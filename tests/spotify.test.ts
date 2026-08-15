@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier } from '../src/lib/spotify';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, getTracksWithGenres } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
@@ -44,6 +44,90 @@ describe('generateCodeVerifier', () => {
       expect(url).toContain('playlist-modify-public');
       expect(url).toContain('playlist-modify-private');
     });
+  });
+});
+
+describe('getTracksWithGenres', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn());
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should fetch liked tracks and artists to return a map of tracks with genres', async () => {
+    const mockLikedTracksResponse = {
+      items: [
+        {
+          track: {
+            id: 'track1',
+            artists: [{ id: 'artist1', name: 'Artist 1' }, { id: 'artist2', name: 'Artist 2' }]
+          },
+          added_at: '2023-01-01T00:00:00Z'
+        },
+        {
+          track: {
+            id: 'track2',
+            artists: [{ id: 'artist1', name: 'Artist 1' }]
+          },
+          added_at: '2023-01-02T00:00:00Z'
+        }
+      ],
+      total: 2
+    };
+
+    const mockArtistsResponse = {
+      artists: [
+        { id: 'artist1', genres: ['rock', 'pop'] },
+        { id: 'artist2', genres: ['indie'] }
+      ]
+    };
+
+    const fetchMock = vi.mocked(fetch);
+
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes('/me/tracks')) {
+        return {
+          ok: true,
+          json: async () => mockLikedTracksResponse,
+          headers: new Headers()
+        } as Response;
+      } else if (url.includes('/artists')) {
+        return {
+          ok: true,
+          json: async () => mockArtistsResponse,
+          headers: new Headers()
+        } as Response;
+      }
+      return { ok: false } as Response;
+    });
+
+    const result = await getTracksWithGenres('fake-token');
+
+    expect(result.size).toBe(2);
+
+    const track1 = result.get('track1');
+    expect(track1).toBeDefined();
+    expect(track1?.genres).toContain('rock');
+    expect(track1?.genres).toContain('pop');
+    expect(track1?.genres).toContain('indie');
+    expect(track1?.addedAt).toBe('2023-01-01T00:00:00Z');
+
+    const track2 = result.get('track2');
+    expect(track2).toBeDefined();
+    expect(track2?.genres).toEqual(['rock', 'pop']);
+    expect(track2?.addedAt).toBe('2023-01-02T00:00:00Z');
+
+    // Verify fetch was called with correct URLs
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/me/tracks'),
+      expect.any(Object)
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/artists?ids=artist1,artist2'),
+      expect.any(Object)
+    );
   });
 });
 
