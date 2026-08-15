@@ -1,10 +1,59 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier } from '../src/lib/spotify';
-
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, createCodeChallenge } from '../src/lib/spotify';
 
 describe('Spotify Library', () => {
 
+describe('createCodeChallenge', () => {
+  it('should generate a valid SHA-256 base64url encoded challenge', async () => {
+    const verifier = 'this_is_a_test_verifier_string_123';
+    const challenge = await createCodeChallenge(verifier);
+
+    // We expect a specific deterministic output for a known input
+    // "this_is_a_test_verifier_string_123" -> SHA256 -> base64url
+    // We can just verify it generates a string of expected length for SHA256 base64url (43 chars)
+    expect(challenge.length).toBe(43);
+
+    // Verify deterministic hashing output
+    expect(challenge).toBe('FExCPPczfwo6AAbTT9wRuxfkG9Q9_zfow1uMmoL-QlQ');
+
+    // Check it's URL-safe base64
+    expect(challenge).toMatch(/^[A-Za-z0-9_-]+$/);
+  });
+
+  it('should generate different challenges for different verifiers', async () => {
+    const challenge1 = await createCodeChallenge('verifier1');
+    const challenge2 = await createCodeChallenge('verifier2');
+    expect(challenge1).not.toBe(challenge2);
+  });
+});
+
 describe('generateCodeVerifier', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should use crypto.getRandomValues to populate the array', () => {
+    // Create a mock for crypto.getRandomValues
+    const mockGetRandomValues = vi.spyOn(crypto, 'getRandomValues').mockImplementation((array: any) => {
+      for (let i = 0; i < array.length; i++) {
+        array[i] = i; // Predictable values: 0, 1, 2, ..., 31
+      }
+      return array as any;
+    });
+
+    const verifier = generateCodeVerifier();
+
+    // Verify it called getRandomValues with a 32-byte array
+    expect(mockGetRandomValues).toHaveBeenCalledTimes(1);
+    const passedArray = mockGetRandomValues.mock.calls[0][0];
+    expect(passedArray).toBeInstanceOf(Uint8Array);
+    expect(passedArray.length).toBe(32);
+
+    // Check if base64url encoding works on the predictable array we mocked
+    // The predictable array [0, 1, 2... 31] translates to base64url AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8
+    expect(verifier).toBe('AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8');
+  });
+
   it('should generate a string of length 43', () => {
     const verifier = generateCodeVerifier();
     expect(verifier.length).toBe(43);
