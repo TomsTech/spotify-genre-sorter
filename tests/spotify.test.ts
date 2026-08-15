@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier } from '../src/lib/spotify';
+import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, getUserPlaylists } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
@@ -204,5 +204,120 @@ describe('refreshSpotifyToken', () => {
     const tokens = await refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret');
     expect(tokens.access_token).toBe('new-access-token');
     expect(tokens.refresh_token).toBe('fake-refresh-token'); // It should preserve the refresh token if not returned
+  });
+});
+
+
+describe('getUserPlaylists', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should fetch a single page of playlists if under limit', async () => {
+    const mockItems = [{ id: '1', name: 'Playlist 1' }, { id: '2', name: 'Playlist 2' }];
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: mockItems,
+        total: 2,
+        next: null
+      }),
+      headers: new Headers()
+    });
+
+    const playlists = await getUserPlaylists('fake-token');
+    expect(playlists).toEqual(mockItems);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/me/playlists?limit=50&offset=0'),
+      expect.any(Object)
+    );
+  });
+
+  it('should fetch multiple pages concurrently and combine them', async () => {
+    const firstPageItems = [{ id: '1', name: 'Playlist 1' }];
+    const secondPageItems = [{ id: '2', name: 'Playlist 2' }];
+
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: firstPageItems,
+          total: 100,
+          next: 'https://api.spotify.com/v1/me/playlists?offset=50&limit=50'
+        }),
+        headers: new Headers()
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: secondPageItems,
+          total: 100,
+          next: null
+        }),
+        headers: new Headers()
+      });
+
+    const playlists = await getUserPlaylists('fake-token');
+
+    expect(playlists).toEqual([...firstPageItems, ...secondPageItems]);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('/me/playlists?limit=50&offset=0'),
+      expect.any(Object)
+    );
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/me/playlists?limit=50&offset=50'),
+      expect.any(Object)
+    );
+  });
+
+  it('should cap the fetched playlists at maxPlaylists (200)', async () => {
+    const mockItems = Array.from({ length: 50 }, (_, i) => ({ id: `id-${i}`, name: `Playlist ${i}` }));
+
+    // Total is 500, but limit maxes at 200, so we expect 4 calls: offset=0, 50, 100, 150
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: mockItems,
+        total: 500,
+        next: 'https://api.spotify.com/v1/me/playlists?offset=X&limit=50'
+      }),
+      headers: new Headers()
+    });
+
+    const playlists = await getUserPlaylists('fake-token');
+
+    expect(playlists.length).toBe(200);
+    expect(global.fetch).toHaveBeenCalledTimes(4); // initial + 3 paginated calls
+
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('/me/playlists?limit=50&offset=0'),
+      expect.any(Object)
+    );
+    // Notice that due to Promise.all, calls 2, 3, 4 might not be strictly ordered by index 2,3,4.
+    // They are triggered sequentially via map, so they should be.
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/me/playlists?limit=50&offset=50'),
+      expect.any(Object)
+    );
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining('/me/playlists?limit=50&offset=100'),
+      expect.any(Object)
+    );
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      4,
+      expect.stringContaining('/me/playlists?limit=50&offset=150'),
+      expect.any(Object)
+    );
   });
 });
