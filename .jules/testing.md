@@ -9,3 +9,7 @@
 ## 2024-05-18 - Testing error retries with fake timers
 **Learning:** Testing logic involving `setTimeout` (like exponential backoffs in a retry utility) requires `vi.useFakeTimers()` to fast-forward delays deterministically. When verifying the rejection of an async operation that is manually advanced using `vi.runAllTimersAsync()`, attaching a `.catch(() => {})` handler to the pending promise prevents unhandled promise rejection warnings in Vitest before the promise is formally evaluated with `await expect(promise).rejects...`
 **Action:** Always use fake timers combined with `.catch()` sinkholes for testing complex async retry flows to ensure swift, clean test output free of false-positive warnings.
+
+## 2026-08-15 - Testing Spotify Pagination
+**Learning:** When mocking fetch for pagination with next URLs, ensure to test boundary limits and proper mocking of internal fetch retry logic.
+**Prevention:** Keep track of internal retry mechanisms like `fetchWithRetry` to ensure expect.toHaveBeenCalledTimes correctly matches the number of retries + 1 (the initial request).

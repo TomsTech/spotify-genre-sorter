@@ -1,0 +1,3 @@
+🎯 **What:** Added comprehensive unit tests for `getPlaylistTracks` in `src/lib/spotify.ts` which was missing from the test suite.
+📊 **Coverage:** Covered fetching a single page, fetching multiple pages concurrently respecting batch size limits, respecting overall limits, and testing error paths when Spotify fetch requests fail.
+✨ **Result:** Test coverage significantly improved for the playlist processing functionality, making refactors and features that rely on playlist synchronization safer to implement.
