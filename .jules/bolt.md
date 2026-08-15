@@ -71,3 +71,6 @@
 ## 2024-05-15 - [Batching Parallel Promises for Environment Limits]
 **Learning:** When deploying in restricted environments (like Cloudflare Workers, which has a 50 subrequest limit), using `Promise.all()` over an unbounded or large array of external API fetches can lead to sudden crashes.
 **Action:** Instead of fetching all items at once, use sequential chunking (e.g. `batchSize = 5`) inside a `for` loop, awaiting `Promise.all(chunk)` iteratively. This keeps concurrency safe without sacrificing the speed benefits of parallel execution. Ensure to clean up any temporary workspace files used during script creation and testing.
+## 2024-08-16 - [Chunk Promise.all for CF worker KV.get]
+**Learning:** Cloudflare Workers have a 50 subrequests limit. Performing `Promise.all` directly on a large number of KV.get promises generated from `kv.list()` hits the 50 subrequests limit and causes 1042 worker errors when data is scaled.
+**Action:** When mapping over `kv.list().keys` with `kv.get`, always implement chunking to stay within the 50 subrequests limit.
