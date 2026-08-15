@@ -1,6 +1,60 @@
 import { describe, it, expect, vi } from 'vitest';
+import { aggregateGenresFromTrackData } from '../src/routes/api';
 
 describe('API Response Formats', () => {
+
+  describe('aggregateGenresFromTrackData', () => {
+    it('should aggregate genres correctly from track data', () => {
+      const trackData = [
+        { id: 'track1', artistIds: ['artist1', 'artist2'] },
+        { id: 'track2', artistIds: ['artist3'] },
+        { id: 'track3', artistIds: ['artist4'] }
+      ];
+
+      const artistGenres = new Map([
+        ['artist1', ['rock', 'pop']],
+        ['artist2', ['rock', 'indie']],
+        ['artist3', ['pop']],
+        ['artist4', []] // no genres
+      ]);
+
+      const result = aggregateGenresFromTrackData(trackData, artistGenres);
+
+      // 'rock' comes from artist1 and artist2 for track1 (should only count once for track1)
+      expect(result.get('rock')).toEqual({ count: 1, trackIds: ['track1'] });
+
+      // 'pop' comes from artist1 (track1) and artist3 (track2)
+      expect(result.get('pop')).toEqual({ count: 2, trackIds: ['track1', 'track2'] });
+
+      // 'indie' comes from artist2 (track1)
+      expect(result.get('indie')).toEqual({ count: 1, trackIds: ['track1'] });
+
+      expect(result.size).toBe(3);
+    });
+
+    it('should append to existing genreData map if provided', () => {
+      const trackData = [{ id: 'track2', artistIds: ['artist1'] }];
+      const artistGenres = new Map([['artist1', ['rock']]]);
+
+      const existingData = new Map([
+        ['rock', { count: 5, trackIds: ['old1', 'old2'] }],
+        ['jazz', { count: 1, trackIds: ['old3'] }]
+      ]);
+
+      const result = aggregateGenresFromTrackData(trackData, artistGenres, existingData);
+
+      expect(result.get('rock')).toEqual({ count: 6, trackIds: ['old1', 'old2', 'track2'] });
+      expect(result.get('jazz')).toEqual({ count: 1, trackIds: ['old3'] });
+    });
+
+    it('should handle unknown artists safely', () => {
+      const trackData = [{ id: 'track1', artistIds: ['unknown_artist'] }];
+      const artistGenres = new Map();
+      const result = aggregateGenresFromTrackData(trackData, artistGenres);
+      expect(result.size).toBe(0);
+    });
+  });
+
 
 
   describe('GET /api/me', () => {
