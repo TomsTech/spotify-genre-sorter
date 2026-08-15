@@ -1256,9 +1256,10 @@ api.post('/playlists/bulk', async (c) => {
     }
 
     const results: { genre: string; success: boolean; url?: string; error?: string; skipped?: boolean }[] = [];
+    const validGenresToProcess: { safeName: string; playlistName: string; safeTrackIds: string[] }[] = [];
 
+    // Pre-process and validate sequentially to manage deterministic deduplication
     for (const { name, trackIds } of genres) {
-      // Validate each genre
       const genreValidation = sanitiseGenreName(name);
       if (!genreValidation.valid) {
         results.push({ genre: String(name), success: false, error: genreValidation.error });
@@ -1274,7 +1275,6 @@ api.post('/playlists/bulk', async (c) => {
       const safeName = genreValidation.value;
       const playlistName = `${safeName} (from Likes)`;
 
-      // Check for duplicate
       if (existingNames.has(playlistName.toLowerCase())) {
         if (skipDuplicates) {
           results.push({
@@ -1287,52 +1287,65 @@ api.post('/playlists/bulk', async (c) => {
         }
       }
 
-      try {
-        const safeTrackIds = trackValidation.value;
+      // Add to existing names immediately to prevent duplicates within the same batch
+      existingNames.add(playlistName.toLowerCase());
+      validGenresToProcess.push({ safeName, playlistName, safeTrackIds: trackValidation.value });
+    }
 
-        const playlist = await createPlaylistForGenre(
-          session.spotifyAccessToken,
-          user.id,
-          playlistName,
-          safeName,
-          safeTrackIds
-        );
+    // ⚡ BOLT OPTIMIZATION: Chunk parallelization for external network requests
+    const CHUNK_SIZE = 5;
+    for (let i = 0; i < validGenresToProcess.length; i += CHUNK_SIZE) {
+      const chunk = validGenresToProcess.slice(i, i + CHUNK_SIZE);
 
-        // Add to existing names to prevent duplicates within same batch
-        existingNames.add(playlistName.toLowerCase());
+      const chunkResults = await Promise.all(
+        chunk.map(async ({ safeName, playlistName, safeTrackIds }) => {
+          try {
+            const playlist = await createPlaylistForGenre(
+              session.spotifyAccessToken!,
+              user.id,
+              playlistName,
+              safeName,
+              safeTrackIds
+            );
 
-        // Update user stats
-        await addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length);
+            // ⚡ BOLT OPTIMIZATION: Wrap KV writes in waitUntil so they don't delay the API response
+            const recentPlaylist: RecentPlaylist = {
+              playlistId: playlist.id,
+              playlistName: playlistName,
+              genre: safeName,
+              trackCount: safeTrackIds.length,
+              createdBy: {
+                spotifyId: user.id,
+                spotifyName: user.display_name,
+                spotifyAvatar: user.images?.[0]?.url,
+              },
+              createdAt: new Date().toISOString(),
+              spotifyUrl: playlist.external_urls.spotify,
+            };
 
-        // Add to recent playlists feed
-        const recentPlaylist: RecentPlaylist = {
-          playlistId: playlist.id,
-          playlistName: playlistName,
-          genre: safeName,
-          trackCount: safeTrackIds.length,
-          createdBy: {
-            spotifyId: user.id,
-            spotifyName: user.display_name,
-            spotifyAvatar: user.images?.[0]?.url,
-          },
-          createdAt: new Date().toISOString(),
-          spotifyUrl: playlist.external_urls.spotify,
-        };
-        await addRecentPlaylist(c.env.SESSIONS, recentPlaylist);
+            c.executionCtx.waitUntil(
+              Promise.all([
+                addPlaylistToUser(c.env.SESSIONS, user.id, playlist.id, safeTrackIds.length),
+                addRecentPlaylist(c.env.SESSIONS, recentPlaylist)
+              ]).catch(err => console.error('Background KV tasks failed:', err))
+            );
 
-        results.push({
-          genre: safeName,
-          success: true,
-          url: playlist.external_urls.spotify,
-        });
-      } catch {
-        // Don't expose internal error details
-        results.push({
-          genre: safeName,
-          success: false,
-          error: 'Failed to create playlist',
-        });
-      }
+            return {
+              genre: safeName,
+              success: true,
+              url: playlist.external_urls.spotify,
+            };
+          } catch {
+            return {
+              genre: safeName,
+              success: false,
+              error: 'Failed to create playlist',
+            };
+          }
+        })
+      );
+
+      results.push(...chunkResults);
     }
 
     // Invalidate cache if any playlists were created
