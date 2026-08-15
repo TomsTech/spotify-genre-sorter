@@ -206,3 +206,111 @@ describe('refreshSpotifyToken', () => {
     expect(tokens.refresh_token).toBe('fake-refresh-token'); // It should preserve the refresh token if not returned
   });
 });
+
+describe('addTracksToPlaylist', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should add a small number of tracks in a single request', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ snapshot_id: 'abc' }),
+      headers: new Headers()
+    });
+    const { addTracksToPlaylist } = await import('../src/lib/spotify');
+
+    await addTracksToPlaylist('token', 'playlist-id', ['spotify:track:1', 'spotify:track:2']);
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://api.spotify.com/v1/playlists/playlist-id/tracks',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer token',
+        }),
+        body: JSON.stringify({ uris: ['spotify:track:1', 'spotify:track:2'] })
+      })
+    );
+  });
+
+  it('should chunk large arrays of track URIs into batches of 100', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ snapshot_id: 'abc' }),
+      headers: new Headers()
+    });
+
+    const { addTracksToPlaylist } = await import('../src/lib/spotify');
+    const tracks = Array.from({ length: 250 }, (_, i) => `spotify:track:${i}`);
+
+    await addTracksToPlaylist('token', 'playlist-id', tracks);
+
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+
+    // First chunk
+    expect(global.fetch).toHaveBeenNthCalledWith(1,
+      'https://api.spotify.com/v1/playlists/playlist-id/tracks',
+      expect.objectContaining({
+        body: JSON.stringify({ uris: tracks.slice(0, 100) })
+      })
+    );
+
+    // Second chunk
+    expect(global.fetch).toHaveBeenNthCalledWith(2,
+      'https://api.spotify.com/v1/playlists/playlist-id/tracks',
+      expect.objectContaining({
+        body: JSON.stringify({ uris: tracks.slice(100, 200) })
+      })
+    );
+
+    // Third chunk
+    expect(global.fetch).toHaveBeenNthCalledWith(3,
+      'https://api.spotify.com/v1/playlists/playlist-id/tracks',
+      expect.objectContaining({
+        body: JSON.stringify({ uris: tracks.slice(200, 250) })
+      })
+    );
+  });
+
+  it('should continue processing remaining chunks if one chunk fails', async () => {
+    let callCount = 0;
+    global.fetch = vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 2) {
+        // Return 401 or something that doesn't trigger retry, or let retry fail fast
+        return Promise.resolve({
+          ok: false,
+          status: 400, // Bad Request doesn't retry
+          text: async () => 'Bad Request',
+          headers: new Headers()
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 201,
+        json: async () => ({ snapshot_id: 'abc' }),
+        headers: new Headers()
+      });
+    });
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { addTracksToPlaylist } = await import('../src/lib/spotify');
+    const tracks = Array.from({ length: 250 }, (_, i) => `spotify:track:${i}`);
+
+    await addTracksToPlaylist('token', 'playlist-id', tracks);
+
+    expect(global.fetch).toHaveBeenCalledTimes(3); // 3 chunks, no retries because 400
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to add tracks chunk starting at index'),
+      expect.any(Error)
+    );
+
+    consoleSpy.mockRestore();
+  });
+});
