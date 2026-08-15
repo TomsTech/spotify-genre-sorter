@@ -44,6 +44,18 @@ describe('generateCodeVerifier', () => {
       expect(url).toContain('playlist-modify-public');
       expect(url).toContain('playlist-modify-private');
     });
+
+    it('should include PKCE parameters if codeChallenge is provided', () => {
+      const url = getSpotifyAuthUrl(
+        'test-client-id',
+        'https://example.com/callback',
+        'test-state-123',
+        'test-code-challenge'
+      );
+
+      expect(url).toContain('code_challenge_method=S256');
+      expect(url).toContain('code_challenge=test-code-challenge');
+    });
   });
 });
 
