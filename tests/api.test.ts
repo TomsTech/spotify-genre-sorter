@@ -1,6 +1,90 @@
 import { describe, it, expect, vi } from 'vitest';
+import { calculateKVBreakdown } from '../src/routes/api';
+import type { AnalyticsData } from '../src/lib/session';
 
 describe('API Response Formats', () => {
+
+  describe('calculateKVBreakdown', () => {
+    it('should calculate breakdown with zero values', () => {
+      const zeroData: AnalyticsData = {
+        date: '2023-10-10',
+        pageViews: 0,
+        uniqueVisitors: [],
+        signIns: 0,
+        authFailures: 0,
+        errors: [],
+        libraryScans: 0,
+        playlistsCreated: 0,
+        totalTracksAnalysed: 0,
+        kvErrors: 0,
+        kvReads: 0,
+        kvWrites: 0,
+        kvDeletes: 0,
+      };
+
+      const result = calculateKVBreakdown(zeroData);
+
+      expect(result).toEqual({
+        sessions: { reads: 0, writes: 0 },
+        caches: { reads: 0, writes: 0 },
+        userStats: { reads: 0, writes: 0 },
+        recentPlaylists: { reads: 0, writes: 0 },
+        auth: { reads: 0, writes: 0 },
+      });
+    });
+
+    it('should calculate breakdown with typical values correctly applying formulas', () => {
+      const data: AnalyticsData = {
+        date: '2023-10-10',
+        pageViews: 100, // caches.reads: 50, caches.writes: 2, recentPlaylists.reads: 30
+        uniqueVisitors: [],
+        signIns: 5, // sessions.writes: 10, auth.reads: 15, auth.writes: 10
+        authFailures: 0,
+        errors: [],
+        libraryScans: 10, // sessions.reads: 10*2 + 4*2 = 28
+        playlistsCreated: 4, // userStats.reads: 4, userStats.writes: 4, recentPlaylists.writes: 4
+        totalTracksAnalysed: 0,
+        kvErrors: 0,
+        kvReads: 0,
+        kvWrites: 0,
+        kvDeletes: 0,
+      };
+
+      const result = calculateKVBreakdown(data);
+
+      expect(result).toEqual({
+        sessions: { reads: 28, writes: 10 },
+        caches: { reads: 50, writes: 2 },
+        userStats: { reads: 4, writes: 4 },
+        recentPlaylists: { reads: 30, writes: 4 },
+        auth: { reads: 15, writes: 10 },
+      });
+    });
+
+    it('should correctly round fractional values', () => {
+      const data: AnalyticsData = {
+        date: '2023-10-10',
+        pageViews: 25, // caches.reads: 12.5 -> 13, caches.writes: 0.5 -> 1, recentPlaylists.reads: 7.5 -> 8
+        uniqueVisitors: [],
+        signIns: 0,
+        authFailures: 0,
+        errors: [],
+        libraryScans: 0,
+        playlistsCreated: 0,
+        totalTracksAnalysed: 0,
+        kvErrors: 0,
+        kvReads: 0,
+        kvWrites: 0,
+        kvDeletes: 0,
+      };
+
+      const result = calculateKVBreakdown(data);
+
+      expect(result.caches.reads).toBe(13);
+      expect(result.caches.writes).toBe(1);
+      expect(result.recentPlaylists.reads).toBe(8);
+    });
+  });
 
 
   describe('GET /api/me', () => {
