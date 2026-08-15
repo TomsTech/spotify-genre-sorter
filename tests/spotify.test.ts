@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier } from '../src/lib/spotify';
+import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, createPlaylist } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
@@ -204,5 +204,52 @@ describe('refreshSpotifyToken', () => {
     const tokens = await refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret');
     expect(tokens.access_token).toBe('new-access-token');
     expect(tokens.refresh_token).toBe('fake-refresh-token'); // It should preserve the refresh token if not returned
+  });
+});
+
+describe('createPlaylist', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should successfully create a playlist with isPublic defaulting to false', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: 'new-playlist-id', external_urls: { spotify: 'https://spotify.com/playlist' } }),
+      headers: new Headers()
+    });
+
+    const result = await createPlaylist('access-token', 'user-id', 'My Playlist', 'Playlist Description');
+
+    expect(result.id).toBe('new-playlist-id');
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://api.spotify.com/v1/users/user-id/playlists',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer access-token',
+          'Content-Type': 'application/json',
+        }),
+        body: JSON.stringify({
+          name: 'My Playlist',
+          description: 'Playlist Description',
+          public: false,
+        }),
+      })
+    );
+  });
+
+  it('should throw an error if the Spotify API returns a non-ok response', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      text: async () => 'Forbidden',
+      headers: new Headers()
+    });
+
+    await expect(
+      createPlaylist('access-token', 'user-id', 'My Playlist', 'Playlist Description', true)
+    ).rejects.toThrow('Spotify API error: 403 Forbidden');
   });
 });

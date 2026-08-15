@@ -9,3 +9,7 @@
 ## 2024-05-18 - Testing error retries with fake timers
 **Learning:** Testing logic involving `setTimeout` (like exponential backoffs in a retry utility) requires `vi.useFakeTimers()` to fast-forward delays deterministically. When verifying the rejection of an async operation that is manually advanced using `vi.runAllTimersAsync()`, attaching a `.catch(() => {})` handler to the pending promise prevents unhandled promise rejection warnings in Vitest before the promise is formally evaluated with `await expect(promise).rejects...`
 **Action:** Always use fake timers combined with `.catch()` sinkholes for testing complex async retry flows to ensure swift, clean test output free of false-positive warnings.
+## 2023-10-27 - [Testing] createPlaylist
+**Vulnerability:** Missing test for createPlaylist function in spotify.ts.
+**Learning:** Learned how to mock `global.fetch` and test success and error responses for the Spotify API.
+**Prevention:** Always write tests for new functions, especially those that interact with external APIs. Ensure full coverage including happy paths and edge cases like API failures.
