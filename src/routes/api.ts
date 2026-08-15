@@ -451,9 +451,10 @@ api.get('/genres', async (c) => {
 
     // Step 2: Collect unique artist IDs
     const artistIds = new Set<string>();
-    for (const { track } of likedTracks) {
-      for (const artist of track.artists) {
-        artistIds.add(artist.id);
+    for (let i = 0, len = likedTracks.length; i < len; i++) {
+      const artists = likedTracks[i].track.artists;
+      for (let j = 0, alen = artists.length; j < alen; j++) {
+        artistIds.add(artists[j].id);
       }
     }
 
@@ -945,9 +946,10 @@ api.get('/genres/chunk', async (c) => {
 
     // Collect unique artist IDs from this chunk
     const artistIds = new Set<string>();
-    for (const { track } of allChunkTracks) {
-      for (const artist of track.artists) {
-        artistIds.add(artist.id);
+    for (let i = 0, len = allChunkTracks.length; i < len; i++) {
+      const artists = allChunkTracks[i].track.artists;
+      for (let j = 0, alen = artists.length; j < alen; j++) {
+        artistIds.add(artists[j].id);
       }
     }
 
