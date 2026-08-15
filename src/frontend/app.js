@@ -590,7 +590,7 @@
       const lowerName = userName.toLowerCase();
       for (const [name, config] of Object.entries(SPECIAL_USERS)) {
         if (lowerName.includes(name.toLowerCase())) {
-          return '<span class="user-tag ' + config.class + '">' + config.emoji + ' ' + config.tag + '</span>';
+          return '<span class="user-tag ' + escapeHtml(config.class) + '">' + escapeHtml(config.emoji) + ' ' + escapeHtml(config.tag) + '</span>';
         }
       }
       return '';
@@ -601,7 +601,7 @@
       const lowerName = userName.toLowerCase();
       for (const [name, config] of Object.entries(SPECIAL_USERS)) {
         if (lowerName.includes(name.toLowerCase())) {
-          return config.class + '-user';
+          return escapeHtml(config.class) + '-user';
         }
       }
       return '';
@@ -5745,7 +5745,7 @@
           const specialClass = getSpecialUserClass(user.spotifyName);
           const specialTag = getSpecialUserTag(user.spotifyName);
           return \`
-            <div class="user-list-item animate-in owner-item \${specialClass}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
+            <div class="user-list-item animate-in owner-item \${escapeHtml(specialClass)}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
               \${user.spotifyAvatar
                 ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
                 : '<div class="user-avatar-placeholder">👤</div>'}
@@ -5770,7 +5770,7 @@
           const specialClass = getSpecialUserClass(user.spotifyName);
           const specialTag = getSpecialUserTag(user.spotifyName);
           return \`
-            <div class="user-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
+            <div class="user-list-item animate-in \${escapeHtml(specialClass)}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
               <span class="position \${posClass}">#\${i + 1}</span>
               \${user.spotifyAvatar
                 ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
@@ -5800,7 +5800,7 @@
         const specialClass = getSpecialUserClass(user.spotifyName);
         const specialTag = getSpecialUserTag(user.spotifyName);
         return \`
-          <div class="user-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms">
+          <div class="user-list-item animate-in \${escapeHtml(specialClass)}" style="animation-delay: \${delay}ms">
             \${user.spotifyAvatar
               ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
               : '<div class="user-avatar-placeholder">👤</div>'}
@@ -5860,7 +5860,7 @@
         const specialClass = getSpecialUserClass(listener.spotifyName);
         const track = listener.track || {};
         return `
-          <div class="listening-list-item animate-in ${specialClass}" style="animation-delay: ${delay}ms" title="${escapeHtml(track.name || '')} by ${escapeHtml(track.artists || '')}">
+          <div class="listening-list-item animate-in ${escapeHtml(specialClass)}" style="animation-delay: ${delay}ms" title="${escapeHtml(track.name || '')} by ${escapeHtml(track.artists || '')}">
             <div class="listening-user">
               ${listener.spotifyAvatar
                 ? `<img class="user-avatar" src="${escapeHtml(listener.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">`
