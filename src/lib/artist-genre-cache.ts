@@ -322,10 +322,14 @@ export async function cleanupOldArtistGenreCache(
       for (let i = 0; i < list.keys.length; i += CHUNK_SIZE) {
         const chunk = list.keys.slice(i, i + CHUNK_SIZE);
         const checkPromises = chunk.map(async (key) => {
-          const entry = await cachedKV.get<ArtistGenreCacheEntry>(kv, key.name);
-          if (entry && entry.cachedAt < cutoffTime) {
-            await cachedKV.delete(kv, key.name);
-            return 1;
+          try {
+            const entry = await cachedKV.get<ArtistGenreCacheEntry>(kv, key.name);
+            if (entry && entry.cachedAt < cutoffTime) {
+              await cachedKV.delete(kv, key.name);
+              return 1;
+            }
+          } catch {
+            // Ignore error
           }
           return 0;
         });
