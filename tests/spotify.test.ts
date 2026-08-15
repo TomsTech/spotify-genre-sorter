@@ -1,8 +1,122 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier } from '../src/lib/spotify';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, getAllLikedTracks } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
+
+describe('getAllLikedTracks', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    // Mock global fetch
+    global.fetch = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should fetch single page of liked tracks if total < limit', async () => {
+    const mockTracks = [
+      { track: { id: 'track1' }, added_at: '2023-01-01' }
+    ];
+
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: mockTracks,
+        total: 1,
+        next: null
+      })
+    } as any);
+
+    const result = await getAllLikedTracks('fake-token');
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(result.tracks.length).toBe(1);
+    expect(result.tracks[0].track.id).toBe('track1');
+    expect(result.totalInLibrary).toBe(1);
+    expect(result.truncated).toBe(false);
+  });
+
+  it('should fetch multiple pages of liked tracks concurrently', async () => {
+    const mockPage1 = Array.from({ length: 50 }, (_, i) => ({ track: { id: `page1_${i}` } }));
+    const mockPage2 = Array.from({ length: 50 }, (_, i) => ({ track: { id: `page2_${i}` } }));
+    const mockPage3 = Array.from({ length: 20 }, (_, i) => ({ track: { id: `page3_${i}` } }));
+
+    // First call to get total and first page
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: mockPage1,
+        total: 120, // Requires 3 requests (50, 50, 20)
+        next: 'https://api.spotify.com/v1/me/tracks?offset=50&limit=50'
+      })
+    } as any);
+
+    // Second call (offset 50)
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: mockPage2,
+        total: 120,
+        next: 'https://api.spotify.com/v1/me/tracks?offset=100&limit=50'
+      })
+    } as any);
+
+    // Third call (offset 100)
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: mockPage3,
+        total: 120,
+        next: null
+      })
+    } as any);
+
+    const onProgress = vi.fn();
+    const result = await getAllLikedTracks('fake-token', onProgress);
+
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+
+    // Check URLs to ensure offsets are correct
+    const calls = vi.mocked(global.fetch).mock.calls;
+    expect(calls[0][0]).toContain('offset=0');
+    expect(calls[1][0]).toContain('offset=50');
+    expect(calls[2][0]).toContain('offset=100');
+
+    expect(result.tracks.length).toBe(120);
+    expect(result.totalInLibrary).toBe(120);
+    expect(result.truncated).toBe(false);
+    expect(onProgress).toHaveBeenCalled();
+  });
+
+  it('should truncate if maxTracks limit is reached', async () => {
+    const mockPage1 = Array.from({ length: 50 }, (_, i) => ({ track: { id: `page1_${i}` } }));
+
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: mockPage1,
+        total: 200, // Total is 200, but we limit to 50
+        next: 'https://api.spotify.com/v1/me/tracks?offset=50&limit=50'
+      })
+    } as any);
+
+    const result = await getAllLikedTracks('fake-token', undefined, 50);
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(result.tracks.length).toBe(50);
+    expect(result.totalInLibrary).toBe(200);
+    expect(result.truncated).toBe(true);
+  });
+});
+
 
 describe('generateCodeVerifier', () => {
   it('should generate a string of length 43', () => {
