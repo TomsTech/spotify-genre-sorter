@@ -1144,14 +1144,7 @@ api.post('/playlist', async (c) => {
       const existingPlaylists = await getUserPlaylists(session.spotifyAccessToken);
 
       const targetName = playlistName.toLowerCase();
-      let duplicate = undefined;
-      for (let i = 0; i < existingPlaylists.length; i++) {
-        const p = existingPlaylists[i];
-        if (p.owner.id === user.id && p.name.toLowerCase() === targetName) {
-          duplicate = p;
-          break;
-        }
-      }
+      const duplicate = existingPlaylists.find(p => p.owner.id === user.id && p.name.toLowerCase() === targetName);
 
       if (duplicate) {
         return c.json({

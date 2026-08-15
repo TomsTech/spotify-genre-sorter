@@ -71,3 +71,6 @@
 ## 2024-05-15 - [Batching Parallel Promises for Environment Limits]
 **Learning:** When deploying in restricted environments (like Cloudflare Workers, which has a 50 subrequest limit), using `Promise.all()` over an unbounded or large array of external API fetches can lead to sudden crashes.
 **Action:** Instead of fetching all items at once, use sequential chunking (e.g. `batchSize = 5`) inside a `for` loop, awaiting `Promise.all(chunk)` iteratively. This keeps concurrency safe without sacrificing the speed benefits of parallel execution. Ensure to clean up any temporary workspace files used during script creation and testing.
+## 2025-05-25 - Replace Array Loop with find()
+**Learning:** Manual loop arrays for checking elements (such as checking duplicate names) are verbose and can be replaced with idiomatic Javascript array functions like `find()`. While performance gains might be trivial or non-existent in small loops, it improves readability heavily and makes the code slightly more concise.
+**Action:** When finding an element in an array sequentially to test properties, use `find()` instead of a manually constructed `for` loop.
