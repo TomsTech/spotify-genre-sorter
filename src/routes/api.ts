@@ -2483,21 +2483,29 @@ api.delete('/admin/user/:spotifyId', async (c) => {
     if (keyName) deleted.push(keyName);
   }
 
-  // Decrement user count if we deleted a user_stats entry
-  if (deleted.includes(`user_stats:${spotifyId}`)) {
-    try {
-      const countStr = await kv.get('stats:user_count');
-      const count = countStr ? parseInt(countStr, 10) : 0;
-      if (count > 0) {
-        await kv.put('stats:user_count', String(count - 1));
-      }
-    } catch { /* ignore count errors */ }
-  }
-
   // Clear leaderboard and scoreboard caches so they rebuild without this user
   // Use cachedKV to also clear in-memory cache
-  await cachedKV.delete(kv, 'leaderboard_cache');
-  await cachedKV.delete(kv, 'scoreboard_cache');
+  // Group independent KV operations in Promise.all for better performance
+  const cleanupTasks: Promise<void | null>[] = [
+    cachedKV.delete(kv, 'leaderboard_cache'),
+    cachedKV.delete(kv, 'scoreboard_cache'),
+  ];
+
+  // Decrement user count if we deleted a user_stats entry
+  if (deleted.includes(`user_stats:${spotifyId}`)) {
+    cleanupTasks.push(
+      kv.get('stats:user_count')
+        .then(countStr => {
+          const count = countStr ? parseInt(countStr, 10) : 0;
+          if (count > 0) {
+            return kv.put('stats:user_count', String(count - 1));
+          }
+        })
+        .catch(() => { /* ignore count errors */ })
+    );
+  }
+
+  await Promise.all(cleanupTasks);
 
   return c.json({
     success: true,
