@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { determineKVStatus } from '../src/routes/api';
 
 describe('API Response Formats', () => {
 
@@ -287,5 +288,25 @@ describe('Health & Setup Endpoints', () => {
 
     expect(isSpotifyOnly1).toBe(true);
     expect(isSpotifyOnly2).toBe(false);
+  });
+});
+
+describe('determineKVStatus', () => {
+  it('should return critical when either usage exceeds 90', () => {
+    expect(determineKVStatus(91, 50)).toBe('critical');
+    expect(determineKVStatus(50, 91)).toBe('critical');
+    expect(determineKVStatus(95, 95)).toBe('critical');
+  });
+
+  it('should return warning when either usage exceeds 80 but neither exceeds 90', () => {
+    expect(determineKVStatus(81, 50)).toBe('warning');
+    expect(determineKVStatus(50, 85)).toBe('warning');
+    expect(determineKVStatus(89, 89)).toBe('warning');
+  });
+
+  it('should return ok when both usages are 80 or below', () => {
+    expect(determineKVStatus(80, 80)).toBe('ok');
+    expect(determineKVStatus(50, 50)).toBe('ok');
+    expect(determineKVStatus(0, 0)).toBe('ok');
   });
 });
