@@ -1,3 +1,4 @@
+import { generateKVRecommendations } from '../src/routes/api';
 import { describe, it, expect, vi } from 'vitest';
 
 describe('API Response Formats', () => {
@@ -128,6 +129,84 @@ describe('API Response Formats', () => {
       expect(mockResults.results.filter(r => r.success).length).toBe(2);
       expect(mockResults.results.filter(r => !r.success).length).toBe(1);
     });
+  });
+});
+
+
+describe('generateKVRecommendations', () => {
+  const baseBreakdown = {
+    sessions: { reads: 0, writes: 0 },
+    caches: { reads: 0, writes: 0 },
+    userStats: { reads: 0, writes: 0 },
+    recentPlaylists: { reads: 0, writes: 0 },
+    auth: { reads: 0, writes: 0 },
+  };
+
+  const baseToday = {
+    date: '2024-01-01',
+    pageViews: 0,
+    uniqueVisitors: [],
+    signIns: 0,
+    authFailures: 0,
+    errors: [],
+    libraryScans: 0,
+    playlistsCreated: 0,
+    totalTracksAnalysed: 0,
+    kvErrors: 0,
+    kvReads: 0,
+    kvWrites: 0,
+  };
+
+  it('should return no recommendations when metrics are normal', () => {
+    const recommendations = generateKVRecommendations(
+      { ...baseBreakdown },
+      1000,
+      { ...baseToday }
+    );
+    expect(recommendations.length).toBe(0);
+  });
+
+  it('should recommend increasing polling interval when recent playlist reads are high', () => {
+    const recommendations = generateKVRecommendations(
+      { ...baseBreakdown, recentPlaylists: { reads: 401, writes: 0 } },
+      1000,
+      { ...baseToday }
+    );
+    expect(recommendations).toContain('Consider increasing polling interval for recent playlists');
+  });
+
+  it('should recommend about stats writes when playlist creation is high', () => {
+    const recommendations = generateKVRecommendations(
+      { ...baseBreakdown, userStats: { reads: 0, writes: 51 } },
+      1000,
+      { ...baseToday }
+    );
+    expect(recommendations).toContain('High playlist creation activity - stats writes elevated');
+  });
+
+  it('should warn about auth failures when elevated', () => {
+    const recommendations = generateKVRecommendations(
+      { ...baseBreakdown },
+      1000,
+      { ...baseToday, authFailures: 11 }
+    );
+    expect(recommendations).toContain('Elevated auth failures detected - possible attack or misconfiguration');
+  });
+
+  it('should return multiple recommendations if multiple conditions met', () => {
+    const recommendations = generateKVRecommendations(
+      {
+        ...baseBreakdown,
+        recentPlaylists: { reads: 401, writes: 0 },
+        userStats: { reads: 0, writes: 51 }
+      },
+      1000,
+      { ...baseToday, authFailures: 11 }
+    );
+    expect(recommendations.length).toBe(3);
+    expect(recommendations).toContain('Consider increasing polling interval for recent playlists');
+    expect(recommendations).toContain('High playlist creation activity - stats writes elevated');
+    expect(recommendations).toContain('Elevated auth failures detected - possible attack or misconfiguration');
   });
 });
 
