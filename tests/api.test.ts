@@ -289,3 +289,52 @@ describe('Health & Setup Endpoints', () => {
     expect(isSpotifyOnly2).toBe(false);
   });
 });
+
+
+import { calculateKVTrend } from '../src/routes/api';
+
+describe('calculateKVTrend', () => {
+  const baseLast7Days = {
+    signIns: 10,
+    libraryScans: 20,
+    playlistsCreated: 5,
+    authFailures: 0,
+    apiErrors: 0
+  };
+
+  it('should identify stable trend when writes are within normal range', () => {
+    const result = calculateKVTrend(7, baseLast7Days);
+    expect(result.avgDailyWrites).toBe(7);
+    expect(result.direction).toBe('stable');
+  });
+
+  it('should identify increasing trend when writes exceed 1.5x average', () => {
+    const result = calculateKVTrend(11, baseLast7Days);
+    expect(result.avgDailyWrites).toBe(7);
+    expect(result.direction).toBe('increasing');
+  });
+
+  it('should identify decreasing trend when writes fall below 0.5x average', () => {
+    const result = calculateKVTrend(3, baseLast7Days);
+    expect(result.avgDailyWrites).toBe(7);
+    expect(result.direction).toBe('decreasing');
+  });
+
+  it('should handle zero values gracefully', () => {
+    const zeroLast7Days = {
+      signIns: 0,
+      libraryScans: 0,
+      playlistsCreated: 0,
+      authFailures: 0,
+      apiErrors: 0
+    };
+
+    const resultInc = calculateKVTrend(1, zeroLast7Days);
+    expect(resultInc.avgDailyWrites).toBe(0);
+    expect(resultInc.direction).toBe('increasing');
+
+    const resultStable = calculateKVTrend(0, zeroLast7Days);
+    expect(resultStable.avgDailyWrites).toBe(0);
+    expect(resultStable.direction).toBe('stable');
+  });
+});

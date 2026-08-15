@@ -1,16 +1,12 @@
-🧪 Add comprehensive tests for determineRecoveryStrategy
-
 🎯 **What:**
-The `determineRecoveryStrategy` function in `src/lib/error-handler.ts` was lacking dedicated unit tests. Given it is a pure function that relies heavily on branch conditions based on `ErrorContext` inputs, testing it explicitly guarantees predictable error recovery flows.
+Added unit tests for the `calculateKVTrend` function in `src/routes/api.ts`. This was previously identified as a gap in test coverage. Since it's a pure function, adding tests ensures the reliability of trend calculations for status page monitoring.
 
 📊 **Coverage:**
-The added test suite comprehensively checks all specific mapped conditional branches and default fallback behaviors for the function:
-*   Authentication errors (`AUTH_ERROR`, `TOKEN_EXPIRED`) map to `abort` and login prompt.
-*   Rate limiting (`RATE_LIMIT_ERROR`) maps to `retry` and rate-limit specific backoff messaging.
-*   Network/Timeout errors (`NETWORK_ERROR`, `TIMEOUT_ERROR`) map to `retry` and connection lost message.
-*   Validation errors (`VALIDATION_ERROR`, `INVALID_INPUT`) map to `abort` using the `userMessage` embedded in the error object.
-*   Cache errors (`CACHE_ERROR`) map to `fallback` and direct storage message.
-*   Default fallback behaviours check that errors marked as `retryable` will trigger `retry`, and errors that are not `retryable` will trigger `abort`.
+- Identifies stable trends when writes are within normal range
+- Identifies increasing trends when writes exceed 1.5x average
+- Identifies decreasing trends when writes fall below 0.5x average
+- Gracefully handles edge cases such as zero values for all data points
 
 ✨ **Result:**
-The test coverage for error-handler components has significantly improved, ensuring the error response mapping logic remains robust against regressions and refactoring.
+- Improved test coverage with 4 new dedicated test cases for `calculateKVTrend`.
+- Verified deterministic pure function behaviors mapping accurately to requirements.
