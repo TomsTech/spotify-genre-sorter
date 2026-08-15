@@ -2496,8 +2496,10 @@ api.delete('/admin/user/:spotifyId', async (c) => {
 
   // Clear leaderboard and scoreboard caches so they rebuild without this user
   // Use cachedKV to also clear in-memory cache
-  await cachedKV.delete(kv, 'leaderboard_cache');
-  await cachedKV.delete(kv, 'scoreboard_cache');
+  await Promise.all([
+    cachedKV.delete(kv, 'leaderboard_cache'),
+    cachedKV.delete(kv, 'scoreboard_cache')
+  ]);
 
   return c.json({
     success: true,
