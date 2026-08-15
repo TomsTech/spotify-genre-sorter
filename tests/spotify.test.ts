@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier } from '../src/lib/spotify';
+import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, exchangeSpotifyCode } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
@@ -204,5 +204,69 @@ describe('refreshSpotifyToken', () => {
     const tokens = await refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret');
     expect(tokens.access_token).toBe('new-access-token');
     expect(tokens.refresh_token).toBe('fake-refresh-token'); // It should preserve the refresh token if not returned
+  });
+});
+
+describe('exchangeSpotifyCode', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should successfully exchange a code for tokens', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ access_token: 'new-access', refresh_token: 'new-refresh', expires_in: 3600 }),
+      headers: new Headers()
+    });
+
+    const tokens = await exchangeSpotifyCode('test-code', 'client-id', 'client-secret', 'https://redirect.uri');
+    expect(tokens.access_token).toBe('new-access');
+    expect(tokens.refresh_token).toBe('new-refresh');
+
+    // Verify fetch was called correctly
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const fetchCall = vi.mocked(global.fetch).mock.calls[0];
+    expect(fetchCall[0]).toContain('/api/token');
+
+    const requestOptions = fetchCall[1] as RequestInit;
+    expect(requestOptions.method).toBe('POST');
+    expect((requestOptions.headers as Record<string, string>)['Content-Type']).toBe('application/x-www-form-urlencoded');
+    expect((requestOptions.headers as Record<string, string>)['Authorization']).toBe(`Basic ${btoa('client-id:client-secret')}`);
+
+    const body = requestOptions.body as URLSearchParams;
+    expect(body.get('grant_type')).toBe('authorization_code');
+    expect(body.get('code')).toBe('test-code');
+    expect(body.get('redirect_uri')).toBe('https://redirect.uri');
+    expect(body.has('code_verifier')).toBe(false);
+  });
+
+  it('should include code_verifier when provided', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ access_token: 'new-access', expires_in: 3600 }),
+      headers: new Headers()
+    });
+
+    await exchangeSpotifyCode('test-code', 'client-id', 'client-secret', 'https://redirect.uri', 'test-verifier');
+
+    const fetchCall = vi.mocked(global.fetch).mock.calls[0];
+    const requestOptions = fetchCall[1] as RequestInit;
+    const body = requestOptions.body as URLSearchParams;
+
+    expect(body.get('code_verifier')).toBe('test-verifier');
+  });
+
+  it('should throw an error when the response is not ok', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: async () => 'Invalid authorization code',
+      headers: new Headers()
+    });
+
+    await expect(exchangeSpotifyCode('test-code', 'client-id', 'client-secret', 'https://redirect.uri'))
+      .rejects.toThrow('Spotify token exchange failed: Invalid authorization code');
   });
 });
