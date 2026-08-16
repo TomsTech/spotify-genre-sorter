@@ -484,13 +484,15 @@ api.get('/genres', async (c) => {
     const genreData = aggregateGenresFromTracks(likedTracks, artistGenreMap);
 
     // Convert to sorted array
-    const genres = [...genreData.entries()]
-      .map(([name, data]) => ({
+    const genres = [];
+    for (const [name, data] of genreData) {
+      genres.push({
         name,
         count: data.count,
         trackIds: data.trackIds,
-      }))
-      .sort((a, b) => b.count - a.count);
+      });
+    }
+    genres.sort((a, b) => b.count - a.count);
 
     // Use extended TTL for large libraries (24h vs 1h)
     const cacheTtl = likedTracks.length >= LARGE_LIBRARY_THRESHOLD
@@ -744,11 +746,14 @@ api.get('/genres/progressive', async (c) => {
     aggregateGenresFromTracks(allChunkTracks, artistGenreMap, genreMap);
 
     // Update progress
-    progress.partialGenres = [...genreMap.entries()].map(([name, data]) => ({
-      name,
-      count: data.count,
-      trackIds: data.trackIds,
-    }));
+    progress.partialGenres = [];
+    for (const [name, data] of genreMap) {
+      progress.partialGenres.push({
+        name,
+        count: data.count,
+        trackIds: data.trackIds,
+      });
+    }
     progress.partialTrackCount += allChunkTracks.length;
     // PERF-FIX: Eliminate intermediate arrays created by flatMap and spread syntax
     // By iterating manually and adding to a Set, we reduce memory allocations and GC pressure.
@@ -965,13 +970,15 @@ api.get('/genres/chunk', async (c) => {
     const genreData = aggregateGenresFromTracks(allChunkTracks, artistGenreMap);
 
     // Convert to array
-    const genres = [...genreData.entries()]
-      .map(([name, data]) => ({
+    const genres = [];
+    for (const [name, data] of genreData) {
+      genres.push({
         name,
         count: data.count,
         trackIds: data.trackIds,
-      }))
-      .sort((a, b) => b.count - a.count);
+      });
+    }
+    genres.sort((a, b) => b.count - a.count);
 
     const chunkData: ChunkCacheData = {
       genres,
@@ -1248,8 +1255,7 @@ api.post('/playlists/bulk', async (c) => {
     const existingPlaylists = await getUserPlaylists(session.spotifyAccessToken);
     // ⚡ BOLT OPTIMIZATION: Avoid intermediate array creations in filter + map by doing a single pass
     const existingNames = new Set<string>();
-    for (let i = 0; i < existingPlaylists.length; i++) {
-      const p = existingPlaylists[i];
+    for (const p of existingPlaylists) {
       if (p.owner.id === user.id) {
         existingNames.add(p.name.toLowerCase());
       }
@@ -1702,9 +1708,11 @@ api.get('/scan-playlist/:playlistId', async (c) => {
     const genreCounts = aggregateGenresFromTrackData(trackData, artistGenres);
 
     // Convert to sorted array
-    const genres = Array.from(genreCounts.entries())
-      .map(([name, data]) => ({ name, count: data.count, trackIds: data.trackIds }))
-      .sort((a, b) => b.count - a.count);
+    const genres = [];
+    for (const [name, data] of genreCounts) {
+      genres.push({ name, count: data.count, trackIds: data.trackIds });
+    }
+    genres.sort((a, b) => b.count - a.count);
 
     return c.json({
       totalTracks: trackData.length,
