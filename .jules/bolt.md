@@ -71,3 +71,7 @@
 ## 2024-05-15 - [Batching Parallel Promises for Environment Limits]
 **Learning:** When deploying in restricted environments (like Cloudflare Workers, which has a 50 subrequest limit), using `Promise.all()` over an unbounded or large array of external API fetches can lead to sudden crashes.
 **Action:** Instead of fetching all items at once, use sequential chunking (e.g. `batchSize = 5`) inside a `for` loop, awaiting `Promise.all(chunk)` iteratively. This keeps concurrency safe without sacrificing the speed benefits of parallel execution. Ensure to clean up any temporary workspace files used during script creation and testing.
+
+## 2024-11-21 - [I/O] Concurrent KV Deletes in Cache Invalidation
+**Learning:** When retrieving and processing data via keys (e.g. from Cloudflare KV), performing sequential network/I/O requests (e.g. `await get()`, then conditionally `await delete()`) can lead to N+1 network latency.
+**Action:** Use `.map()` with `Promise.all()` inside a chunked sequential loop. The inner callback must use `try/catch` block inside the async operation because failed promises will cause the entire `Promise.all()` block to fail which introduces regressions.

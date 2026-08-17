@@ -34,12 +34,10 @@ jobs:
         id: test-report
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          # Run tests and generate HTML report
           node scripts/generate-test-report.mjs \
             --title "Genre Genie $VERSION - Test Report" \
             --description "Automated test results for release $VERSION"
-          # Rename to include version
-          mv test-report.html test-report-$VERSION.html
+          mv test-report.html "test-report-$VERSION.html"
           echo "report_file=test-report-$VERSION.html" >> $GITHUB_OUTPUT
         continue-on-error: true
 
@@ -47,31 +45,30 @@ jobs:
         id: changelog
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          VERSION_NUM="${VERSION#v}"  # Strip leading 'v' -> "3.4.0"
+          VERSION_NUM="${VERSION#v}"
 
-          echo "Looking for version: $VERSION_NUM in CHANGELOG.md"
+          echo "Looking for version $VERSION_NUM in CHANGELOG.md"
 
+          CONTENT=""
           if [ -f CHANGELOG.md ]; then
-            # Extract from "## [X.Y.Z]" until the next "## [" line
-            # Using sed for more reliable multiline extraction
             CONTENT=$(sed -n "/^## \[$VERSION_NUM\]/,/^## \[/p" CHANGELOG.md | sed '$d')
-
-            if [ -z "$CONTENT" ]; then
-              echo "No changelog entry found, using commit messages"
-              # Fall back to generating from recent commits
-              CONTENT="## $VERSION
-
-### Changes
-$(git log --oneline $(git describe --tags --abbrev=0 HEAD^)..HEAD 2>/dev/null | sed 's/^[a-f0-9]* /- /' || echo "- Release $VERSION")"
-            fi
-          else
-            CONTENT="## $VERSION
-
-Release $VERSION - see commit history for changes."
           fi
 
-          # Write to file for multiline support
-          echo "$CONTENT" > release_notes.md
+          if [ -z "$CONTENT" ]; then
+            echo "No changelog entry found; generating from commit messages"
+            PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+            if [ -n "$PREV_TAG" ]; then
+              LOG=$(git log --oneline "$PREV_TAG"..HEAD | sed 's/^[a-f0-9]* /- /')
+            else
+              LOG=""
+            fi
+            if [ -z "$LOG" ]; then
+              LOG="- Release $VERSION"
+            fi
+            CONTENT=$(printf '## %s\n\n### Changes\n%s\n' "$VERSION" "$LOG")
+          fi
+
+          printf '%s\n' "$CONTENT" > release_notes.md
           echo "Generated release notes:"
           cat release_notes.md
 

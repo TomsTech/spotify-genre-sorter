@@ -71,3 +71,7 @@
 **Vulnerability:** XSS via concatenation of user-controlled Spotify playlist names and assignment into DOM using `innerHTML`.
 **Learning:** Even though `escapeHtml()` was partially used, combining it directly with HTML string concatenation and `innerHTML` bypasses proper DOM sanitization, making the application vulnerable to subtle escaping bugs or attribute injection.
 **Prevention:** Instead of string formatting and `innerHTML`, strictly use `document.createElement`, `element.textContent`, and `element.appendChild()` for dynamic UI construction to enforce structural separation of data from code.
+## 2025-05-25 - [XSS] Unescaped DOM Variables
+**Vulnerability:** The `specialClass` and `specialTag` variables were injected directly into DOM template literals and HTML strings without escaping, potentially allowing XSS if their source data isn't strictly controlled.
+**Learning:** Even variables derived from predefined constants or functions should be properly escaped when injected into HTML templates to prevent future regressions.
+**Prevention:** Always use `escapeHtml()` for variable interpolations and string concatenations that render HTML in the DOM.

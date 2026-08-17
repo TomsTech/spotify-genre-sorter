@@ -126,6 +126,7 @@
         modal.innerHTML = [
           '<h3 id="prompt-title">' + (swedishMode ? '📝 Ange namn' : '📝 Enter name') + '</h3>',
           '<p class="prompt-message">' + message + '</p>',
+          '<label for="prompt-input" class="sr-only">' + (swedishMode ? 'Ange namn' : 'Enter name') + '</label>',
           '<input type="text" class="prompt-input" id="prompt-input" value="' + escapeForHtml(defaultValue) + '" maxlength="100" aria-label="' + (swedishMode ? 'Ange namn' : 'Enter name') + '">',
           '<div class="prompt-buttons">',
           '  <button class="btn btn-ghost" id="prompt-cancel">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
@@ -590,7 +591,7 @@
       const lowerName = userName.toLowerCase();
       for (const [name, config] of Object.entries(SPECIAL_USERS)) {
         if (lowerName.includes(name.toLowerCase())) {
-          return '<span class="user-tag ' + config.class + '">' + config.emoji + ' ' + config.tag + '</span>';
+          return '<span class="user-tag ' + escapeHtml(config.class) + '">' + escapeHtml(config.emoji) + ' ' + escapeHtml(config.tag) + '</span>';
         }
       }
       return '';
@@ -854,6 +855,7 @@
         content.innerHTML = \`
           <div class="admin-users-header">
             <span>\${data.total} users total</span>
+            <label for="admin-user-search" class="sr-only">Search users</label>
             <input type="text" class="admin-search" id="admin-user-search" placeholder="Search users..." aria-label="Search users" />
           </div>
           <div class="admin-users-list" id="admin-users-list">
@@ -4477,7 +4479,9 @@
             </div>
           </div>
 
+          <label for="genre-search-input" class="sr-only">\${t('searchGenres')}</label>
           <input
+            id="genre-search-input"
             type="text"
             class="search-input"
             aria-label="\${t('searchGenres')}"
@@ -5745,7 +5749,7 @@
           const specialClass = getSpecialUserClass(user.spotifyName);
           const specialTag = getSpecialUserTag(user.spotifyName);
           return \`
-            <div class="user-list-item animate-in owner-item \${specialClass}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
+            <div class="user-list-item animate-in owner-item \${escapeHtml(specialClass)}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
               \${user.spotifyAvatar
                 ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
                 : '<div class="user-avatar-placeholder">👤</div>'}
@@ -5770,7 +5774,7 @@
           const specialClass = getSpecialUserClass(user.spotifyName);
           const specialTag = getSpecialUserTag(user.spotifyName);
           return \`
-            <div class="user-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
+            <div class="user-list-item animate-in \${escapeHtml(specialClass)}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
               <span class="position \${posClass}">#\${i + 1}</span>
               \${user.spotifyAvatar
                 ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
@@ -5800,7 +5804,7 @@
         const specialClass = getSpecialUserClass(user.spotifyName);
         const specialTag = getSpecialUserTag(user.spotifyName);
         return \`
-          <div class="user-list-item animate-in \${specialClass}" style="animation-delay: \${delay}ms">
+          <div class="user-list-item animate-in \${escapeHtml(specialClass)}" style="animation-delay: \${delay}ms">
             \${user.spotifyAvatar
               ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
               : '<div class="user-avatar-placeholder">👤</div>'}
@@ -5860,7 +5864,7 @@
         const specialClass = getSpecialUserClass(listener.spotifyName);
         const track = listener.track || {};
         return `
-          <div class="listening-list-item animate-in ${specialClass}" style="animation-delay: ${delay}ms" title="${escapeHtml(track.name || '')} by ${escapeHtml(track.artists || '')}">
+          <div class="listening-list-item animate-in ${escapeHtml(specialClass)}" style="animation-delay: ${delay}ms" title="${escapeHtml(track.name || '')} by ${escapeHtml(track.artists || '')}">
             <div class="listening-user">
               ${listener.spotifyAvatar
                 ? `<img class="user-avatar" src="${escapeHtml(listener.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">`
@@ -6923,6 +6927,7 @@
         '<p>' + subtitle + '</p>' +
         '<p>' + desc + '</p>' +
         '<form class="invite-form" onsubmit="submitInviteRequest(event)">' +
+          '<label for="invite-email" class="sr-only">' + emailLabel + '</label>' +
           '<input type="text" id="invite-email" placeholder="' + emailLabel + '" aria-label="' + emailLabel + '" required>' +
           '<textarea id="invite-note" placeholder="' + noteLabel + '" aria-label="' + noteLabel + '"></textarea>' +
           '<button type="submit" class="btn btn-primary">' + submitText + '</button>' +
@@ -7273,7 +7278,8 @@
         '    <img src="' + escapeHtml(qrCodeUrl) + '" alt="QR Code" class="share-qr-code" />',
         '  </div>',
         '  <div class="share-link-container">',
-        '    <input type="text" class="share-link-input" value="' + escapeHtml(playlistUrl) + '" readonly aria-label="' + (swedishMode ? 'Spellistans URL' : 'Playlist URL') + '" />',
+        '    <label for="share-link-input" class="sr-only">' + (swedishMode ? 'Spellistans URL' : 'Playlist URL') + '</label>',
+        '    <input id="share-link-input" type="text" class="share-link-input" value="' + escapeHtml(playlistUrl) + '" readonly aria-label="' + (swedishMode ? 'Spellistans URL' : 'Playlist URL') + '" />',
         '    <button class="btn btn-secondary share-copy-btn" onclick="copyShareLink(this)">' + (swedishMode ? 'Kopiera' : 'Copy') + '</button>',
         '  </div>',
         '  <div class="share-social-buttons">',
