@@ -75,3 +75,6 @@
 ## 2024-11-21 - [I/O] Concurrent KV Deletes in Cache Invalidation
 **Learning:** When retrieving and processing data via keys (e.g. from Cloudflare KV), performing sequential network/I/O requests (e.g. `await get()`, then conditionally `await delete()`) can lead to N+1 network latency.
 **Action:** Use `.map()` with `Promise.all()` inside a chunked sequential loop. The inner callback must use `try/catch` block inside the async operation because failed promises will cause the entire `Promise.all()` block to fail which introduces regressions.
+## 2024-05-31 - [Eliminating Intermediate Collections in Data Iteration]
+**Learning:** Using spread syntax combined with functional mapping `[...collection.entries()].map(...)` creates intermediate, short-lived arrays which increase memory overhead and garbage collection pressure, leading to measurable slowdowns, especially on large iterables like KV responses or cached tracks/artists.
+**Action:** Replace `[...collection.entries()].map(...)` with standard `for...of` loops appending directly into an array initialized with `const arr = []`. This avoids allocating multiple throwaway objects and improves loop execution times significantly.
