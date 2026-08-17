@@ -11,3 +11,9 @@
 ## 2024-05-18 - Input Labels
 **Learning:** Some inputs used `aria-label` but lacked a proper `<label>` with a `for` attribute. Using a visually hidden `sr-only` class on `<label>` elements provides better support for screen readers, as the `aria-label` alone can sometimes be insufficient.
 **Action:** Always provide an explicit `<label for="...">` instead of just an `aria-label` for forms, hiding it with `.sr-only` if a visible label breaks the design.
+## 2024-08-17 - Add ARIA labels to icon-only buttons
+**Learning:** Adding explicit aria-label to buttons that primarily rely on emoji/icons (even when they have titles) is a crucial accessibility win. Screen readers can be verbose with emojis or ignore titles, so an explicit aria-label ensures clear intent for visually impaired users.
+**Action:** When creating icon-only or primarily visual buttons (e.g. Pause ⏸️, Play ▶️), always add a descriptive aria-label mapping to the action's intent.
+## 2024-08-17 - Add ARIA labels to icon-only buttons
+**Learning:** Adding explicit aria-label to buttons that primarily rely on emoji/icons (even when they have titles) is a crucial accessibility win. Screen readers can be verbose with emojis or ignore titles, so an explicit aria-label ensures clear intent for visually impaired users.
+**Action:** When creating icon-only or primarily visual buttons (e.g. Pause ⏸️, Play ▶️), always add a descriptive aria-label mapping to the action's intent.
