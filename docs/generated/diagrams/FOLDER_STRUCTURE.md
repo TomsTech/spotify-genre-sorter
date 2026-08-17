@@ -187,13 +187,12 @@
 ├── package.json
 ├── playwright.config.ts
 ├── pnpm-lock.yaml
-├── pr_description.md
 ├── tsconfig.json
 ├── vitest.config.ts
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-31 directories, 156 files
+31 directories, 155 files
 ```
 
 ## Key Directories

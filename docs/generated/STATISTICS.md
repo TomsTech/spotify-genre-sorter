@@ -12,7 +12,7 @@
 | PowerShell | 0 |
 | PHP | 0 |
 | Go | 0 |
-| Documentation (MD) | 48 |
+| Documentation (MD) | 47 |
 | Test Files | 45 |
 | GitHub Workflows | 9 |
 
@@ -20,7 +20,7 @@
 
 | Metric | Value |
 |--------|-------|
-| Total Commits | 470 |
+| Total Commits | 482 |
 | Contributors | 0 |
 | First Commit | 2025-11-28 |
-| Last Commit | 2026-08-16 |
+| Last Commit | 2026-08-17 |
