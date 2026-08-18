@@ -78,3 +78,7 @@
 ## 2024-05-31 - [Eliminating Intermediate Collections in Data Iteration]
 **Learning:** Using spread syntax combined with functional mapping `[...collection.entries()].map(...)` creates intermediate, short-lived arrays which increase memory overhead and garbage collection pressure, leading to measurable slowdowns, especially on large iterables like KV responses or cached tracks/artists.
 **Action:** Replace `[...collection.entries()].map(...)` with standard `for...of` loops appending directly into an array initialized with `const arr = []`. This avoids allocating multiple throwaway objects and improves loop execution times significantly.
+
+## 2025-05-28 - [Performance] Chunking Promise.all for CF Limits
+**Learning:** In Cloudflare Workers, mapping over an array directly with `await Promise.all` can exhaust the 50 concurrent subrequest limit when the array has more than 50 elements. This is commonly seen in `.map(async () => { ... })` over large keysets.
+**Action:** Always chunk arrays into pieces smaller than 50 (e.g. 40) before mapping `Promise.all()` when they might trigger KV subrequests.
