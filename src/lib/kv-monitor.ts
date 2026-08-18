@@ -85,7 +85,7 @@ export const KV_PREFIXES = [
 export async function getKVMonitorData(kv: KVNamespace): Promise<KVMonitorResponse> {
   const metrics = getKVMetrics();
 
-  // Collect detailed stats for each prefix
+  // Collect detailed stats for each prefix (already < 50 prefixes so safe)
   const namespaceData = await Promise.all(
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     KV_PREFIXES.map(async ({ name, prefix, description }): Promise<KVNamespaceData> => {
