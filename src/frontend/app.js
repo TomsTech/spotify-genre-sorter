@@ -3449,9 +3449,11 @@
       }
 
       // Convert to sorted array
-      const genres = [...merged.entries()]
-        .map(([name, data]) => ({ name, count: data.count, trackIds: data.trackIds }))
-        .sort((a, b) => b.count - a.count);
+      const genres = [];
+      for (const [name, data] of merged.entries()) {
+        genres.push({ name, count: data.count, trackIds: data.trackIds });
+      }
+      genres.sort((a, b) => b.count - a.count);
 
       return {
         genres,
@@ -7520,9 +7522,12 @@
       }
 
       // Sort by count
-      const sortedArtists = [...artistCounts.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
+      const sortedArtistsFull = [];
+      for (const entry of artistCounts.entries()) {
+        sortedArtistsFull.push(entry);
+      }
+      sortedArtistsFull.sort((a, b) => b[1] - a[1]);
+      const sortedArtists = sortedArtistsFull.slice(0, 10);
 
       const modal = document.createElement('div');
       modal.className = 'modal-overlay artist-breakdown-modal';
