@@ -78,3 +78,6 @@
 ## 2024-05-31 - [Eliminating Intermediate Collections in Data Iteration]
 **Learning:** Using spread syntax combined with functional mapping `[...collection.entries()].map(...)` creates intermediate, short-lived arrays which increase memory overhead and garbage collection pressure, leading to measurable slowdowns, especially on large iterables like KV responses or cached tracks/artists.
 **Action:** Replace `[...collection.entries()].map(...)` with standard `for...of` loops appending directly into an array initialized with `const arr = []`. This avoids allocating multiple throwaway objects and improves loop execution times significantly.
+## 2024-10-24 - [Avoid Array Spread & Map Chains]
+**Learning:** [Chaining array methods (like `.map()`, `.sort()`) after spreading an iterator (like `Map.entries()`) creates hidden intermediate arrays and increases memory allocations, leading to unnecessary garbage collection overhead.]
+**Action:** [Replace these functional chains with a single `for...of` loop that iteratively populates the destination collection in one pass for better throughput and reduced memory pressure.]
