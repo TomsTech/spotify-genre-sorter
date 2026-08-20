@@ -6962,11 +6962,15 @@
             : 'You\'ll get an email once I review your request. Check spam!';
           const trackText = swedishMode ? 'Följ din förfrågan' : 'Track your request';
 
+          // Sanitize URL to prevent XSS via javascript: or data: URIs
+          const safeTrackingUrl = data.trackingUrl && (data.trackingUrl.startsWith('http://') || data.trackingUrl.startsWith('https://'))
+            ? escapeHtml(data.trackingUrl)
+            : '';
           resultDiv.innerHTML =
             '<div class="invite-success">' +
               '<h3>' + successTitle + '</h3>' +
               '<p>' + successMsg + '</p>' +
-              (data.trackingUrl ? '<a href="' + data.trackingUrl + '" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">' + trackText + '</a>' : '') +
+              (safeTrackingUrl ? '<a href="' + safeTrackingUrl + '" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">' + trackText + '</a>' : '') +
             '</div>';
 
           e.target.style.display = 'none';
