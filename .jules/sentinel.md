@@ -75,3 +75,7 @@
 **Vulnerability:** The `specialClass` and `specialTag` variables were injected directly into DOM template literals and HTML strings without escaping, potentially allowing XSS if their source data isn't strictly controlled.
 **Learning:** Even variables derived from predefined constants or functions should be properly escaped when injected into HTML templates to prevent future regressions.
 **Prevention:** Always use `escapeHtml()` for variable interpolations and string concatenations that render HTML in the DOM.
+## 2024-05-23 - XSS Vulnerability in anchor href via javascript URIs
+**Vulnerability:** A Cross-Site Scripting (XSS) vulnerability was found in the invite tracking link creation, where an unsanitized tracking URL was concatenated into an `href` attribute. This allows attackers to inject `javascript:` URIs to execute arbitrary code.
+**Learning:** Even when using standard sanitization like `escapeHtml`, HTML injection is prevented, but protocol-based XSS (like `javascript:`) in `href` attributes is not. Browsers will execute `javascript:` links when clicked.
+**Prevention:** Always validate that user-controlled URLs start with a safe protocol (like `http://` or `https://`) before including them in an `href` attribute, or use DOM methods like `document.createElement` combined with URL parsing if available.
