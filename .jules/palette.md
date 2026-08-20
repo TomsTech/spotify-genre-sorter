@@ -11,3 +11,6 @@
 ## 2024-05-18 - Input Labels
 **Learning:** Some inputs used `aria-label` but lacked a proper `<label>` with a `for` attribute. Using a visually hidden `sr-only` class on `<label>` elements provides better support for screen readers, as the `aria-label` alone can sometimes be insufficient.
 **Action:** Always provide an explicit `<label for="...">` instead of just an `aria-label` for forms, hiding it with `.sr-only` if a visible label breaks the design.
+## 2024-08-20 - Missing ARIA Labels on Genre Playlist Creation Buttons
+**Learning:** Found an instance of an action button for creating genre playlists (genre-create) that lacked an `aria-label` attribute, despite having dynamic translation content, making it less descriptive and context-aware for screen reader users compared to the neighboring toggle hide button.
+**Action:** When adding or modifying list-item level action buttons, especially ones generating content based on the row's data (like a genre name), ensure they include a descriptive `aria-label` that interpolates the specific row context (e.g. "Create playlist for [Genre]") to provide clarity for screen reader users. Use existing `t()` i18n functions instead of hardcoding text for different language modes.
