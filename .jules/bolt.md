@@ -78,3 +78,6 @@
 ## 2024-05-31 - [Eliminating Intermediate Collections in Data Iteration]
 **Learning:** Using spread syntax combined with functional mapping `[...collection.entries()].map(...)` creates intermediate, short-lived arrays which increase memory overhead and garbage collection pressure, leading to measurable slowdowns, especially on large iterables like KV responses or cached tracks/artists.
 **Action:** Replace `[...collection.entries()].map(...)` with standard `for...of` loops appending directly into an array initialized with `const arr = []`. This avoids allocating multiple throwaway objects and improves loop execution times significantly.
+## 2025-05-30 - [Parallelizing KV requests to avoid limits]
+**Learning:** Cloudflare Workers have a limit of 50 concurrent subrequests. Mapping over an array and executing `kv.get` with unbounded `Promise.all` can crash the Worker for large arrays.
+**Action:** When making parallel requests in Cloudflare Workers using `Promise.all`, always chunk the array into batches (e.g. 40) and process them sequentially using a `for` loop to avoid hitting limits while still getting parallel speedup.
