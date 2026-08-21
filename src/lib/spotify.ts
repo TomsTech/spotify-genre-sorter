@@ -365,13 +365,13 @@ export async function getArtists(
       }
 
       // Cache newly fetched artist genres (fire and forget)
-      cacheArtistGenresBatch(kv, newArtistGenres).catch((err) =>
+      cacheArtistGenresBatch(kv, newArtistGenres).catch((err: unknown) =>
         console.error('Failed to cache artist genres:', err)
       );
     }
 
     // Update cache statistics (fire and forget)
-    updateArtistGenreCacheStats(kv, { cacheHits, cacheMisses }).catch((err) =>
+    updateArtistGenreCacheStats(kv, { cacheHits, cacheMisses }).catch((err: unknown) =>
       console.error('Failed to update cache stats:', err)
     );
   } else {
