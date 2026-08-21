@@ -16,7 +16,7 @@ import type { Env } from '../types';
  */
 export async function csrfProtection(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>,
+  c: Context<{ Bindings: Env }, string, unknown>,
   next: Next
 ): Promise<Response | void> {
   const method = c.req.method.toUpperCase();
@@ -63,7 +63,7 @@ export async function csrfProtection(
  */
 export async function optionalCsrfProtection(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>,
+  c: Context<{ Bindings: Env }, string, unknown>,
   next: Next
 ): Promise<Response | void> {
   const method = c.req.method.toUpperCase();

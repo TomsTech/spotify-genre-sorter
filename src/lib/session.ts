@@ -66,7 +66,7 @@ const SESSION_COOKIE = 'session_id';
 const SESSION_TTL = 60 * 60 * 24 * 7; // 7 days
 
 export async function createSession(
-  c: Context<{ Bindings: Env }>,
+  c: Context<{ Bindings: Env }, string, unknown>,
   session: Session
 ): Promise<string> {
   const sessionId = crypto.randomUUID();
@@ -96,7 +96,7 @@ export async function createSession(
 }
 
 export async function getSession(
-  c: Context<{ Bindings: Env }>
+  c: Context<{ Bindings: Env }, string, unknown>
 ): Promise<Session | null> {
   const sessionId = getCookie(c, SESSION_COOKIE);
   if (!sessionId) return null;
@@ -108,7 +108,7 @@ export async function getSession(
 }
 
 export async function updateSession(
-  c: Context<{ Bindings: Env }>,
+  c: Context<{ Bindings: Env }, string, unknown>,
   updates: Partial<Session>
 ): Promise<void> {
   const sessionId = getCookie(c, SESSION_COOKIE);
@@ -131,7 +131,7 @@ export async function updateSession(
 }
 
 export async function deleteSession(
-  c: Context<{ Bindings: Env }>
+  c: Context<{ Bindings: Env }, string, unknown>
 ): Promise<void> {
   const sessionId = getCookie(c, SESSION_COOKIE);
   if (sessionId) {
