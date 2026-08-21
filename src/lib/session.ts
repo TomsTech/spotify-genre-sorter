@@ -66,8 +66,7 @@ const SESSION_COOKIE = 'session_id';
 const SESSION_TTL = 60 * 60 * 24 * 7; // 7 days
 
 export async function createSession(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>,
+  c: Context<{ Bindings: Env }, string, unknown>,
   session: Session
 ): Promise<string> {
   const sessionId = crypto.randomUUID();
@@ -84,8 +83,6 @@ export async function createSession(
     JSON.stringify(sessionWithCsrf),
     { expirationTtl: SESSION_TTL, immediate: true }
   );
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   setCookie(c, SESSION_COOKIE, sessionId, {
     httpOnly: true,
     secure: true,
@@ -98,10 +95,8 @@ export async function createSession(
 }
 
 export async function getSession(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>
+  c: Context<{ Bindings: Env }, string, unknown>
 ): Promise<Session | null> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   const sessionId = getCookie(c, SESSION_COOKIE);
   if (!sessionId) return null;
 
@@ -112,11 +107,9 @@ export async function getSession(
 }
 
 export async function updateSession(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>,
+  c: Context<{ Bindings: Env }, string, unknown>,
   updates: Partial<Session>
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   const sessionId = getCookie(c, SESSION_COOKIE);
   if (!sessionId) return;
 
@@ -137,15 +130,12 @@ export async function updateSession(
 }
 
 export async function deleteSession(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>
+  c: Context<{ Bindings: Env }, string, unknown>
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   const sessionId = getCookie(c, SESSION_COOKIE);
   if (sessionId) {
     await cachedKV.delete(c.env.SESSIONS, `session:${sessionId}`);
   }
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   deleteCookie(c, SESSION_COOKIE, { path: '/' });
 }
 
