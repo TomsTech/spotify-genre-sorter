@@ -35,7 +35,7 @@ import {
   getPlaylistTracks,
 } from '../lib/spotify';
 import { getKVMonitorData } from '../lib/kv-monitor';
-import { optionalCsrfProtection } from '../lib/csrf-middleware';
+import { csrfProtection } from '../lib/csrf-middleware';
 import { createLogger } from '../lib/logger';
 
 const api = new Hono<{ Bindings: Env }>();
@@ -190,7 +190,9 @@ api.use('/*', async (c, next) => {
 });
 
 // Apply CSRF protection to state-changing endpoints
-api.use('/*', optionalCsrfProtection);
+// Apply strict CSRF protection to authenticated endpoints by default
+// Use optionalCsrfProtection only on specific public endpoints if needed
+api.use('/*', csrfProtection);
 
 // Get current user info
 api.get('/me', async (c) => {
