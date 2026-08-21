@@ -1,4 +1,5 @@
-import { Context } from 'hono';
+import type { Context } from 'hono';
+import type { Input, BlankInput } from 'hono/types';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { cachedKV, CACHE_TTL } from './kv-cache';
 import { generateCsrfToken } from './csrf';
@@ -65,7 +66,7 @@ export interface Session {
 const SESSION_COOKIE = 'session_id';
 const SESSION_TTL = 60 * 60 * 24 * 7; // 7 days
 
-export async function createSession<E extends Env, P extends string, I>(
+export async function createSession<E extends Env, P extends string, I extends Input = BlankInput>(
   c: Context<{ Bindings: E }, P, I>,
   session: Session
 ): Promise<string> {
@@ -95,7 +96,7 @@ export async function createSession<E extends Env, P extends string, I>(
   return sessionId;
 }
 
-export async function getSession<E extends Env, P extends string, I>(
+export async function getSession<E extends Env, P extends string, I extends Input = BlankInput>(
   c: Context<{ Bindings: E }, P, I>
 ): Promise<Session | null> {
     const sessionId = getCookie(c, SESSION_COOKIE);
@@ -107,7 +108,7 @@ export async function getSession<E extends Env, P extends string, I>(
   return session;
 }
 
-export async function updateSession<E extends Env, P extends string, I>(
+export async function updateSession<E extends Env, P extends string, I extends Input = BlankInput>(
   c: Context<{ Bindings: E }, P, I>,
   updates: Partial<Session>
 ): Promise<void> {
@@ -130,7 +131,7 @@ export async function updateSession<E extends Env, P extends string, I>(
   );
 }
 
-export async function deleteSession<E extends Env, P extends string, I>(
+export async function deleteSession<E extends Env, P extends string, I extends Input = BlankInput>(
   c: Context<{ Bindings: E }, P, I>
 ): Promise<void> {
     const sessionId = getCookie(c, SESSION_COOKIE);
