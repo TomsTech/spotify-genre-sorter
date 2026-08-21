@@ -85,8 +85,7 @@ export async function createSession(
     { expirationTtl: SESSION_TTL, immediate: true }
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  setCookie(c, SESSION_COOKIE, sessionId, {
+  setCookie(c as Context, SESSION_COOKIE, sessionId, {
     httpOnly: true,
     secure: true,
     sameSite: 'Lax',
@@ -101,8 +100,7 @@ export async function getSession(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   c: Context<{ Bindings: Env }, any, any>
 ): Promise<Session | null> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  const sessionId = getCookie(c, SESSION_COOKIE);
+  const sessionId = getCookie(c as Context, SESSION_COOKIE);
   if (!sessionId) return null;
 
   // CRITICAL FIX: Use cachedKV to reduce KV reads (sessions are read on every authenticated request)
@@ -116,8 +114,7 @@ export async function updateSession(
   c: Context<{ Bindings: Env }, any, any>,
   updates: Partial<Session>
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  const sessionId = getCookie(c, SESSION_COOKIE);
+  const sessionId = getCookie(c as Context, SESSION_COOKIE);
   if (!sessionId) return;
 
   // CRITICAL FIX: Use cachedKV for both read and write to reduce KV operations
@@ -140,13 +137,11 @@ export async function deleteSession(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   c: Context<{ Bindings: Env }, any, any>
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  const sessionId = getCookie(c, SESSION_COOKIE);
+  const sessionId = getCookie(c as Context, SESSION_COOKIE);
   if (sessionId) {
     await cachedKV.delete(c.env.SESSIONS, `session:${sessionId}`);
   }
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  deleteCookie(c, SESSION_COOKIE, { path: '/' });
+  deleteCookie(c as Context, SESSION_COOKIE, { path: '/' });
 }
 
 export function generateState(): string {
