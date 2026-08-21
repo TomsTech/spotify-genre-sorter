@@ -124,8 +124,11 @@ api.use('/*', async (c, next) => {
   if (rateLimitMap.size > RATE_LIMIT_MAX_ENTRIES) {
     // Remove oldest 20% of entries
     const entriesToRemove = Math.floor(RATE_LIMIT_MAX_ENTRIES * 0.2);
-    const sortedEntries = [...rateLimitMap.entries()]
-      .sort((a, b) => a[1].resetAt - b[1].resetAt);
+    const sortedEntries = [];
+    for (const entry of rateLimitMap.entries()) {
+      sortedEntries.push(entry);
+    }
+    sortedEntries.sort((a, b) => a[1].resetAt - b[1].resetAt);
     for (let i = 0; i < entriesToRemove && i < sortedEntries.length; i++) {
       rateLimitMap.delete(sortedEntries[i][0]);
     }

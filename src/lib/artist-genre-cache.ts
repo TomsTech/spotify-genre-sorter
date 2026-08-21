@@ -124,7 +124,10 @@ export async function cacheArtistGenresBatch(
   kv: KVNamespace,
   artistGenreMap: Map<string, string[]>
 ): Promise<void> {
-  const entries = Array.from(artistGenreMap.entries());
+  const entries = [];
+  for (const entry of artistGenreMap.entries()) {
+    entries.push(entry);
+  }
   const CHUNK_SIZE = 40; // Under the 50 subrequest limit
 
   // Process in chunks to avoid Cloudflare Worker subrequest limits

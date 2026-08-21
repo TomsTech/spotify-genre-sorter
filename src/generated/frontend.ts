@@ -12036,9 +12036,11 @@ export function getHtml(nonce: string): string {
       }
 
       // Convert to sorted array
-      const genres = [...merged.entries()]
-        .map(([name, data]) => ({ name, count: data.count, trackIds: data.trackIds }))
-        .sort((a, b) => b.count - a.count);
+      const genres = [];
+      for (const [name, data] of merged.entries()) {
+        genres.push({ name, count: data.count, trackIds: data.trackIds });
+      }
+      genres.sort((a, b) => b.count - a.count);
 
       return {
         genres,
@@ -16107,14 +16109,17 @@ export function getHtml(nonce: string): string {
       }
 
       // Sort by count
-      const sortedArtists = [...artistCounts.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
+      const sortedArtists = [];
+      for (const entry of artistCounts.entries()) {
+        sortedArtists.push(entry);
+      }
+      sortedArtists.sort((a, b) => b[1] - a[1]);
+      const topSortedArtists = sortedArtists.slice(0, 10);
 
       const modal = document.createElement('div');
       modal.className = 'modal-overlay artist-breakdown-modal';
 
-      const artistList = sortedArtists.map(([id, count]) => {
+      const artistList = topSortedArtists.map(([id, count]) => {
         const name = artistNames.get(id) || 'Unknown';
         return '<div class="artist-breakdown-item">' +
           '<span class="artist-name">' + escapeHtml(name) + '</span>' +
