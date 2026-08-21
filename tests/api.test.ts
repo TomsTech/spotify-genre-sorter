@@ -1,6 +1,6 @@
 import { generateKVRecommendations } from '../src/routes/api';
 import { describe, it, expect, vi } from 'vitest';
-import { determineKVStatus } from '../src/routes/api';
+import { determineKVStatus, calculateKVTrend } from '../src/routes/api';
 
 describe('API Response Formats', () => {
 
@@ -387,5 +387,44 @@ describe('determineKVStatus', () => {
     expect(determineKVStatus(80, 80)).toBe('ok');
     expect(determineKVStatus(50, 50)).toBe('ok');
     expect(determineKVStatus(0, 0)).toBe('ok');
+  });
+});
+
+describe('calculateKVTrend', () => {
+  const baseLast7Days = {
+    signIns: 0,
+    libraryScans: 0,
+    playlistsCreated: 0,
+    uniqueVisitors: 0,
+    pageViews: 0,
+    authFailures: 0,
+    errors: 0,
+    totalTracksAnalysed: 0,
+    kvErrors: 0,
+    kvReads: 0,
+    kvWrites: 0
+  };
+
+  it('should return stable direction when estimated writes are within normal range', () => {
+    // avgDailyWrites = (10*2 + 10 + 10*2) / 7 = 50/7 = 7
+    const result = calculateKVTrend(7, { ...baseLast7Days, signIns: 10, libraryScans: 10, playlistsCreated: 10 });
+    expect(result.avgDailyWrites).toBe(7);
+    expect(result.direction).toBe('stable');
+  });
+
+  it('should return increasing direction when estimated writes > avg * 1.5', () => {
+    // avgDailyWrites = (10*2 + 10 + 10*2) / 7 = 7
+    // 7 * 1.5 = 10.5
+    const result = calculateKVTrend(11, { ...baseLast7Days, signIns: 10, libraryScans: 10, playlistsCreated: 10 });
+    expect(result.avgDailyWrites).toBe(7);
+    expect(result.direction).toBe('increasing');
+  });
+
+  it('should return decreasing direction when estimated writes < avg * 0.5', () => {
+    // avgDailyWrites = (10*2 + 10 + 10*2) / 7 = 7
+    // 7 * 0.5 = 3.5
+    const result = calculateKVTrend(3, { ...baseLast7Days, signIns: 10, libraryScans: 10, playlistsCreated: 10 });
+    expect(result.avgDailyWrites).toBe(7);
+    expect(result.direction).toBe('decreasing');
   });
 });
