@@ -1,4 +1,4 @@
-import { Context } from 'hono';
+import type { Context, Input } from 'hono';
 import { Session } from './session';
 import type { Env } from '../types';
 
@@ -36,9 +36,8 @@ export function generateCsrfToken(): string {
  * @param session - Current user session
  * @returns true if token is valid, false otherwise
  */
-export async function validateCsrfToken(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>,
+export async function validateCsrfToken<P extends string, I extends Input>(
+  c: Context<{ Bindings: Env }, P, I>,
   session: Session
 ): Promise<boolean> {
   if (!session.csrfToken) {
