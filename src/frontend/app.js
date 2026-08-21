@@ -5070,7 +5070,7 @@
       modal.innerHTML = \`
         <div class="modal">
           <h3>\${swedishMode ? 'Spellista finns redan' : 'Playlist Already Exists'}</h3>
-          <p>\${result.message}</p>
+          <p>\${escapeForHtml(result.message)}</p>
           <p style="color: var(--text-muted); font-size: 0.9rem;">
             \${swedishMode
               ? \`Ny: \${newCount} låtar, Befintlig: \${existingCount} låtar\`
