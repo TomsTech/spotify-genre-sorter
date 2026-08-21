@@ -15,8 +15,7 @@ import type { Env } from '../types';
  * - CSRF token is invalid
  */
 export async function csrfProtection(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>,
+  c: Context<{ Bindings: Env }, string, unknown>,
   next: Next
 ): Promise<Response | void> {
   const method = c.req.method.toUpperCase();
@@ -62,8 +61,7 @@ export async function csrfProtection(
  * Use for endpoints that accept both authenticated and anonymous requests.
  */
 export async function optionalCsrfProtection(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>,
+  c: Context<{ Bindings: Env }, string, unknown>,
   next: Next
 ): Promise<Response | void> {
   const method = c.req.method.toUpperCase();

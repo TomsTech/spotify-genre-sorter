@@ -37,8 +37,7 @@ export function generateCsrfToken(): string {
  * @returns true if token is valid, false otherwise
  */
 export async function validateCsrfToken(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>,
+  c: Context<{ Bindings: Env }, string, unknown>,
   session: Session
 ): Promise<boolean> {
   if (!session.csrfToken) {
