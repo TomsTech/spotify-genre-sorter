@@ -75,3 +75,7 @@
 **Vulnerability:** The `specialClass` and `specialTag` variables were injected directly into DOM template literals and HTML strings without escaping, potentially allowing XSS if their source data isn't strictly controlled.
 **Learning:** Even variables derived from predefined constants or functions should be properly escaped when injected into HTML templates to prevent future regressions.
 **Prevention:** Always use `escapeHtml()` for variable interpolations and string concatenations that render HTML in the DOM.
+## 2025-01-20 - Fix CSRF Bypass on Authenticated Routes
+**Vulnerability:** The API routes were globally using `optionalCsrfProtection`, which skips CSRF token validation if the authentication session is missing or invalid. This meant that any state-changing endpoint that failed to explicitly verify the authentication token before taking action was vulnerable to CSRF, as the protection was implicitly bypassed.
+**Learning:** Defaulting to optional security controls for authenticated routes creates a fail-open scenario where missing downstream checks lead to vulnerabilities.
+**Prevention:** Apply strict `csrfProtection` by default on all API routes, and only use `optionalCsrfProtection` explicitly on specific public endpoints that actually require accepting both authenticated and anonymous state-changing requests.
