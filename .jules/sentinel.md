@@ -75,3 +75,7 @@
 **Vulnerability:** The `specialClass` and `specialTag` variables were injected directly into DOM template literals and HTML strings without escaping, potentially allowing XSS if their source data isn't strictly controlled.
 **Learning:** Even variables derived from predefined constants or functions should be properly escaped when injected into HTML templates to prevent future regressions.
 **Prevention:** Always use `escapeHtml()` for variable interpolations and string concatenations that render HTML in the DOM.
+## 2024-05-30 - Fix XSS in duplicate playlist dialog
+**Vulnerability:** A Cross-Site Scripting (XSS) vulnerability was found in the `showDuplicateDialog` function because `result.message` was directly embedded into HTML without proper escaping.
+**Learning:** All user-supplied or externally-sourced data must be correctly escaped when inserted into HTML structures, particularly via `.innerHTML`.
+**Prevention:** Apply `escapeForHtml` or a similar escaping function before passing data to the DOM.
