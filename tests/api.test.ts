@@ -1,4 +1,4 @@
-import { generateKVRecommendations } from '../src/routes/api';
+import { generateKVRecommendations, calculateKVBreakdown } from '../src/routes/api';
 import { describe, it, expect, vi } from 'vitest';
 import { determineKVStatus } from '../src/routes/api';
 
@@ -367,6 +367,87 @@ describe('Health & Setup Endpoints', () => {
 
     expect(isSpotifyOnly1).toBe(true);
     expect(isSpotifyOnly2).toBe(false);
+  });
+});
+
+describe('calculateKVBreakdown', () => {
+  it('should accurately calculate reads and writes based on AnalyticsData', () => {
+    const mockData = {
+      date: '2023-10-27',
+      pageViews: 100,
+      uniqueVisitors: [],
+      signIns: 10,
+      authFailures: 0,
+      errors: [],
+      libraryScans: 5,
+      playlistsCreated: 2,
+      totalTracksAnalysed: 0,
+      kvErrors: 0,
+    };
+
+    const breakdown = calculateKVBreakdown(mockData);
+
+    // sessions: reads = libraryScans * 2 + playlistsCreated * 2 = 5 * 2 + 2 * 2 = 14
+    // sessions: writes = signIns * 2 = 10 * 2 = 20
+    expect(breakdown.sessions).toEqual({ reads: 14, writes: 20 });
+
+    // caches: reads = pageViews * 0.5 = 100 * 0.5 = 50
+    // caches: writes = pageViews * 0.02 = 100 * 0.02 = 2
+    expect(breakdown.caches).toEqual({ reads: 50, writes: 2 });
+
+    // userStats: reads = playlistsCreated = 2
+    // userStats: writes = playlistsCreated = 2
+    expect(breakdown.userStats).toEqual({ reads: 2, writes: 2 });
+
+    // recentPlaylists: reads = pageViews * 0.3 = 100 * 0.3 = 30
+    // recentPlaylists: writes = playlistsCreated = 2
+    expect(breakdown.recentPlaylists).toEqual({ reads: 30, writes: 2 });
+
+    // auth: reads = signIns * 3 = 10 * 3 = 30
+    // auth: writes = signIns * 2 = 10 * 2 = 20
+    expect(breakdown.auth).toEqual({ reads: 30, writes: 20 });
+  });
+
+  it('should handle zero values correctly', () => {
+    const mockData = {
+      date: '2023-10-27',
+      pageViews: 0,
+      uniqueVisitors: [],
+      signIns: 0,
+      authFailures: 0,
+      errors: [],
+      libraryScans: 0,
+      playlistsCreated: 0,
+      totalTracksAnalysed: 0,
+      kvErrors: 0,
+    };
+
+    const breakdown = calculateKVBreakdown(mockData);
+    expect(breakdown.sessions).toEqual({ reads: 0, writes: 0 });
+    expect(breakdown.caches).toEqual({ reads: 0, writes: 0 });
+    expect(breakdown.userStats).toEqual({ reads: 0, writes: 0 });
+    expect(breakdown.recentPlaylists).toEqual({ reads: 0, writes: 0 });
+    expect(breakdown.auth).toEqual({ reads: 0, writes: 0 });
+  });
+
+  it('should round fractional reads and writes correctly', () => {
+    const mockData = {
+      date: '2023-10-27',
+      pageViews: 105, // caches reads: 105 * 0.5 = 52.5 -> 53. caches writes: 105 * 0.02 = 2.1 -> 2. recentPlaylists reads: 105 * 0.3 = 31.5 -> 32
+      uniqueVisitors: [],
+      signIns: 0,
+      authFailures: 0,
+      errors: [],
+      libraryScans: 0,
+      playlistsCreated: 0,
+      totalTracksAnalysed: 0,
+      kvErrors: 0,
+    };
+
+    const breakdown = calculateKVBreakdown(mockData);
+    expect(breakdown.caches.reads).toBe(53);
+    expect(breakdown.caches.writes).toBe(2);
+    expect(breakdown.recentPlaylists.reads).toBe(32);
   });
 });
 
