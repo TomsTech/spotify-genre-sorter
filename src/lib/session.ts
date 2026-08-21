@@ -1,4 +1,4 @@
-import { Context } from 'hono';
+import type { Context } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { cachedKV, CACHE_TTL } from './kv-cache';
 import { generateCsrfToken } from './csrf';
@@ -65,9 +65,8 @@ export interface Session {
 const SESSION_COOKIE = 'session_id';
 const SESSION_TTL = 60 * 60 * 24 * 7; // 7 days
 
-export async function createSession(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>,
+export async function createSession<E extends { Bindings: Env }, P extends string, I extends object>(
+  c: Context<E, P, I>,
   session: Session
 ): Promise<string> {
   const sessionId = crypto.randomUUID();
@@ -97,9 +96,8 @@ export async function createSession(
   return sessionId;
 }
 
-export async function getSession(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>
+export async function getSession<E extends { Bindings: Env }, P extends string, I extends object>(
+  c: Context<E, P, I>
 ): Promise<Session | null> {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   const sessionId = getCookie(c, SESSION_COOKIE);
@@ -111,9 +109,8 @@ export async function getSession(
   return session;
 }
 
-export async function updateSession(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>,
+export async function updateSession<E extends { Bindings: Env }, P extends string, I extends object>(
+  c: Context<E, P, I>,
   updates: Partial<Session>
 ): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -136,9 +133,8 @@ export async function updateSession(
   );
 }
 
-export async function deleteSession(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>
+export async function deleteSession<E extends { Bindings: Env }, P extends string, I extends object>(
+  c: Context<E, P, I>
 ): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   const sessionId = getCookie(c, SESSION_COOKIE);
