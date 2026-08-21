@@ -75,3 +75,7 @@
 **Vulnerability:** The `specialClass` and `specialTag` variables were injected directly into DOM template literals and HTML strings without escaping, potentially allowing XSS if their source data isn't strictly controlled.
 **Learning:** Even variables derived from predefined constants or functions should be properly escaped when injected into HTML templates to prevent future regressions.
 **Prevention:** Always use `escapeHtml()` for variable interpolations and string concatenations that render HTML in the DOM.
+## 2026-08-21 - Fix IDOR / Path Traversal in Admin KV endpoints
+**Vulnerability:** Admin KV endpoints for fetching and deleting keys via parameter `:key` lacked validation of the requested key name format, potentially allowing path traversal characters or unexpected key structures.
+**Learning:** Even internal/admin endpoints require strict input validation to restrict scope (e.g. alphanumeric strings, hyphens, and underscores) to prevent traversal or access to unintended resources (IDOR) within flat namespace structures.
+**Prevention:** Always validate user-provided parameters, like route path variables or query strings, using explicit allowlist regex patterns rather than relying merely on access control checks.
