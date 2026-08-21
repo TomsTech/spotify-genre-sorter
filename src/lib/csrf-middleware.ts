@@ -1,4 +1,5 @@
 import { Context, Next } from 'hono';
+import type { Input } from 'hono';
 import { getSession } from './session';
 import { validateCsrfToken } from './csrf';
 import type { Env } from '../types';
@@ -14,8 +15,8 @@ import type { Env } from '../types';
  * - CSRF token is missing
  * - CSRF token is invalid
  */
-export async function csrfProtection(
-    c: Context<{ Bindings: Env }, string, unknown>,
+export async function csrfProtection<P extends string, I extends Input>(
+  c: Context<{ Bindings: Env }, P, I>,
   next: Next
 ): Promise<Response | void> {
   const method = c.req.method.toUpperCase();
@@ -60,8 +61,8 @@ export async function csrfProtection(
  *
  * Use for endpoints that accept both authenticated and anonymous requests.
  */
-export async function optionalCsrfProtection(
-    c: Context<{ Bindings: Env }, string, unknown>,
+export async function optionalCsrfProtection<P extends string, I extends Input>(
+  c: Context<{ Bindings: Env }, P, I>,
   next: Next
 ): Promise<Response | void> {
   const method = c.req.method.toUpperCase();
