@@ -1,0 +1,83 @@
+diff --git a/src/lib/session.ts b/src/lib/session.ts
+index 0d6a686..0ebad91 100644
+--- a/src/lib/session.ts
++++ b/src/lib/session.ts
+@@ -170,8 +170,7 @@ export async function verifyState(
+   const data = await cachedKV.getString(kv, `state:${state}`);
+   if (!data) return null;
+   await cachedKV.delete(kv, `state:${state}`);
+-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+-  const parsed: Record<string, string> = JSON.parse(data);
++  const parsed = JSON.parse(data) as Record<string, string>;
+   return parsed;
+ }
+
+diff --git a/src/routes/api.ts b/src/routes/api.ts
+index 1995720..ef50620 100644
+--- a/src/routes/api.ts
++++ b/src/routes/api.ts
+@@ -1753,8 +1753,7 @@ api.post('/preferences', async (c) => {
+   }
+
+   try {
+-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+-    const body: Record<string, unknown> = await c.req.json();
++    const body = await c.req.json<Record<string, unknown>>();
+
+     // Validate allowed fields
+     const allowedFields = ['theme', 'swedishMode', 'playlistTemplate', 'hiddenGenres', 'showHiddenGenres', 'tutorialCompleted'] as const;
+@@ -1780,8 +1779,7 @@ const INVITE_REQUESTS_KEY = 'invite_requests';
+ // Submit invite request
+ api.post('/invite-request', async (c) => {
+   try {
+-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+-    const body: Record<string, unknown> = await c.req.json();
++    const body = await c.req.json<Record<string, unknown>>();
+     const email = typeof body.email === 'string' ? body.email.trim() : '';
+     const note = typeof body.note === 'string' ? body.note.trim() : '';
+
+@@ -1864,8 +1862,7 @@ const PERF_LOG_KEY = 'client_perf';
+ // Log frontend JS errors
+ api.post('/log-error', async (c) => {
+   try {
+-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+-    const body: Record<string, unknown> = await c.req.json();
++    const body = await c.req.json<Record<string, unknown>>();
+     const errors = Array.isArray(body.errors) ? body.errors : [];
+
+     if (errors.length === 0) {
+@@ -1905,8 +1902,7 @@ api.post('/log-error', async (c) => {
+ // Log frontend performance metrics
+ api.post('/log-perf', async (c) => {
+   try {
+-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+-    const body: Record<string, unknown> = await c.req.json();
++    const body = await c.req.json<Record<string, unknown>>();
+
+     // Validate basic structure
+     if (typeof body.pageLoadTime !== 'number') {
+@@ -2759,7 +2755,6 @@ api.get('/admin/kv-monitor', async (c) => {
+  * GET /admin/kv-keys
+  * Browse keys in a specific namespace with pagination
+  */
+-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+ api.get('/admin/kv-keys', async (c) => {
+   const session = await getSession(c);
+   if (!isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
+@@ -2783,7 +2778,7 @@ api.get('/admin/kv-keys', async (c) => {
+
+     return c.json({
+       keys,
+-      cursor: result.list_complete ? null : (result as { cursor: string }).cursor,
++      cursor: result.list_complete ? null : (result as { cursor?: string }).cursor,
+       list_complete: result.list_complete,
+       total: keys.length,
+     });
+@@ -2793,7 +2788,6 @@ api.get('/admin/kv-keys', async (c) => {
+     return c.json({ error: 'Failed to list keys' }, 500);
+   }
+ });
+-/* eslint-enable @typescript-eslint/no-unsafe-assignment */
+
+ /**
+  * GET /admin/kv-key/:key
