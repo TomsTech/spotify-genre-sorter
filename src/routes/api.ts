@@ -2805,6 +2805,7 @@ api.get('/admin/kv-key/:key', async (c) => {
 
   const keyName = c.req.param('key');
   if (!keyName) return c.json({ error: 'Key name required' }, 400);
+  if (!/^[a-zA-Z0-9_:-]+$/.test(keyName)) return c.json({ error: 'Invalid key format' }, 400);
 
   const kv = c.env.SESSIONS;
 
@@ -2854,6 +2855,7 @@ api.delete('/admin/kv-key/:key', async (c) => {
 
   const keyName = c.req.param('key');
   if (!keyName) return c.json({ error: 'Key name required' }, 400);
+  if (!/^[a-zA-Z0-9_:-]+$/.test(keyName)) return c.json({ error: 'Invalid key format' }, 400);
 
   const kv = c.env.SESSIONS;
 
