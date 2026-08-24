@@ -1969,7 +1969,7 @@
 
       const footer = document.createElement('div');
       footer.className = 'changelog-footer';
-      footer.innerHTML = \`<a href="\${changelogCache.repoUrl}/releases" target="_blank" rel="noopener noreferrer">\${swedishMode ? 'Visa alla utgåvor' : 'View all releases'} →</a>\`;
+      footer.innerHTML = \`<a href="\${escapeHtml(changelogCache.repoUrl)}/releases" target="_blank" rel="noopener noreferrer">\${swedishMode ? 'Visa alla utgåvor' : 'View all releases'} →</a>\`;
 
       panel.appendChild(header);
       panel.appendChild(timeline);
@@ -2075,7 +2075,7 @@
               <span>\${swedishMode ? 'Visa inte igen' : "Don't show again"}</span>
             </label>
             <div class="whats-new-actions">
-              <a href="\${changelogCache?.repoUrl || 'https://github.com/TomsTech/spotify-genre-sorter'}/releases" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">
+              <a href="\${escapeHtml(changelogCache?.repoUrl || 'https://github.com/TomsTech/spotify-genre-sorter')}/releases" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">
                 \${swedishMode ? 'Alla utgåvor' : 'All releases'}
               </a>
               <button class="btn btn-primary whats-new-gotit">
@@ -5899,6 +5899,15 @@
         .replace(/'/g, '&#039;');
     }
 
+    function sanitizeUrl(url) {
+      if (!url) return '';
+      const stringUrl = String(url);
+      if (stringUrl.trim().toLowerCase().startsWith('javascript:') || stringUrl.trim().toLowerCase().startsWith('data:')) {
+        return 'about:blank';
+      }
+      return escapeHtml(stringUrl);
+    }
+
     // Toggle sidebar visibility (mobile)
     function toggleSidebar() {
       const sidebar = document.getElementById('sidebar');
@@ -6966,7 +6975,7 @@
             '<div class="invite-success">' +
               '<h3>' + successTitle + '</h3>' +
               '<p>' + successMsg + '</p>' +
-              (data.trackingUrl ? '<a href="' + data.trackingUrl + '" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">' + trackText + '</a>' : '') +
+              (data.trackingUrl ? '<a href="' + sanitizeUrl(data.trackingUrl) + '" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">' + trackText + '</a>' : '') +
             '</div>';
 
           e.target.style.display = 'none';
