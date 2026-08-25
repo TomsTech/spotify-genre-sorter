@@ -78,7 +78,7 @@ app.use('*', async (c, next) => {
 
   // Flush any pending KV writes from the batch queue using waitUntil
   c.executionCtx.waitUntil(
-    cachedKV.flush(c.env.SESSIONS).catch((err) => {
+    cachedKV.flush(c.env.SESSIONS).catch((err: unknown) => {
       const log = createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method });
       log.logError('Failed to flush KV write queue', err, { path: c.req.path });
     })
