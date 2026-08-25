@@ -1,4 +1,5 @@
 import { Context } from 'hono';
+import type { Input } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { cachedKV, CACHE_TTL } from './kv-cache';
 import { generateCsrfToken } from './csrf';
@@ -65,9 +66,8 @@ export interface Session {
 const SESSION_COOKIE = 'session_id';
 const SESSION_TTL = 60 * 60 * 24 * 7; // 7 days
 
-export async function createSession(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>,
+export async function createSession<P extends string, I extends Input>(
+  c: Context<{ Bindings: Env }, P, I>,
   session: Session
 ): Promise<string> {
   const sessionId = crypto.randomUUID();
@@ -85,8 +85,7 @@ export async function createSession(
     { expirationTtl: SESSION_TTL, immediate: true }
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  setCookie(c, SESSION_COOKIE, sessionId, {
+    setCookie(c, SESSION_COOKIE, sessionId, {
     httpOnly: true,
     secure: true,
     sameSite: 'Lax',
@@ -97,12 +96,10 @@ export async function createSession(
   return sessionId;
 }
 
-export async function getSession(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>
+export async function getSession<P extends string, I extends Input>(
+  c: Context<{ Bindings: Env }, P, I>
 ): Promise<Session | null> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  const sessionId = getCookie(c, SESSION_COOKIE);
+    const sessionId = getCookie(c, SESSION_COOKIE);
   if (!sessionId) return null;
 
   // CRITICAL FIX: Use cachedKV to reduce KV reads (sessions are read on every authenticated request)
@@ -111,13 +108,11 @@ export async function getSession(
   return session;
 }
 
-export async function updateSession(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>,
+export async function updateSession<P extends string, I extends Input>(
+  c: Context<{ Bindings: Env }, P, I>,
   updates: Partial<Session>
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  const sessionId = getCookie(c, SESSION_COOKIE);
+    const sessionId = getCookie(c, SESSION_COOKIE);
   if (!sessionId) return;
 
   // CRITICAL FIX: Use cachedKV for both read and write to reduce KV operations
@@ -136,17 +131,14 @@ export async function updateSession(
   );
 }
 
-export async function deleteSession(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  c: Context<{ Bindings: Env }, any, any>
+export async function deleteSession<P extends string, I extends Input>(
+  c: Context<{ Bindings: Env }, P, I>
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  const sessionId = getCookie(c, SESSION_COOKIE);
+    const sessionId = getCookie(c, SESSION_COOKIE);
   if (sessionId) {
     await cachedKV.delete(c.env.SESSIONS, `session:${sessionId}`);
   }
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  deleteCookie(c, SESSION_COOKIE, { path: '/' });
+    deleteCookie(c, SESSION_COOKIE, { path: '/' });
 }
 
 export function generateState(): string {
@@ -170,8 +162,7 @@ export async function verifyState(
   const data = await cachedKV.getString(kv, `state:${state}`);
   if (!data) return null;
   await cachedKV.delete(kv, `state:${state}`);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const parsed: Record<string, string> = JSON.parse(data);
+  const parsed = JSON.parse(data) as Record<string, string>;
   return parsed;
 }
 
@@ -374,10 +365,8 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
 
   do {
     const response: KVNamespaceListResult<unknown, string> = await kv.list({ prefix: 'user_stats:', cursor });
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
     keys = keys.concat(response.keys);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    cursor = response.list_complete ? undefined : (response as { cursor?: string }).cursor;
+    cursor = response.list_complete ? undefined : response.cursor;
   } while (cursor);
 
   // PERF-001 FIX: Use Promise.all for parallel reads instead of sequential
