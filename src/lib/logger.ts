@@ -4,7 +4,7 @@
  */
 
 // BetterStack source endpoint - configured for Genre Genie Worker
-const BETTERSTACK_ENDPOINT = 'https://s1624750.eu-nbg-2.betterstackdata.com';
+const BETTERSTACK_ENDPOINT = 'https://s2706752.us-west-2a.betterstackdata.com';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 

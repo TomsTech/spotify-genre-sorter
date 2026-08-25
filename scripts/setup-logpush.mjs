@@ -8,7 +8,7 @@ import { spawn } from 'child_process';
 import { readFileSync } from 'fs';
 
 const ACCOUNT_ID = 'df52a0cfc6c1765f726a830ef84ba78c';
-const BETTERSTACK_HOST = 's1616980.eu-nbg-2.betterstackdata.com';
+const BETTERSTACK_HOST = process.env.BETTERSTACK_HOST || 's2706752.us-west-2a.betterstackdata.com';
 const BETTERSTACK_TOKEN = process.env.BETTERSTACK_TOKEN;
 if (!BETTERSTACK_TOKEN) {
   console.error('❌ BETTERSTACK_TOKEN is not set. Export it before running this script:');
