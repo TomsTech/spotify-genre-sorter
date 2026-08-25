@@ -3352,13 +3352,13 @@
             </div>
 
             <div class="progress-controls">
-              <button class="btn btn-secondary" id="pause-scan-btn" onclick="pauseProgressiveScan()" title="\${swedishMode ? 'Pausa skanningen' : 'Pause scan'}">
+              <button class="btn btn-secondary" id="pause-scan-btn" onclick="pauseProgressiveScan()" title="\${swedishMode ? 'Pausa skanningen' : 'Pause scan'}" aria-label="\${swedishMode ? 'Pausa skanningen' : 'Pause scan'}">
                 ⏸️ \${swedishMode ? 'Pausa' : 'Pause'}
               </button>
-              <button class="btn btn-primary" id="resume-scan-btn" onclick="resumeProgressiveScan()" style="display: none;" title="\${swedishMode ? 'Återuppta skanningen' : 'Resume scan'}">
+              <button class="btn btn-primary" id="resume-scan-btn" onclick="resumeProgressiveScan()" style="display: none;" title="\${swedishMode ? 'Återuppta skanningen' : 'Resume scan'}" aria-label="\${swedishMode ? 'Återuppta skanningen' : 'Resume scan'}">
                 ▶️ \${swedishMode ? 'Återuppta' : 'Resume'}
               </button>
-              <button class="btn btn-ghost" onclick="stopProgressiveScan()" title="\${swedishMode ? 'Stoppa skanningen' : 'Stop scan'}">
+              <button class="btn btn-ghost" id="stop-scan-btn" onclick="stopProgressiveScan()" title="\${swedishMode ? 'Stoppa skanningen' : 'Stop scan'}" aria-label="\${swedishMode ? 'Stoppa skanningen' : 'Stop scan'}">
                 ⏹️ \${swedishMode ? 'Stoppa' : 'Stop'}
               </button>
             </div>
@@ -4405,10 +4405,10 @@
         </div>
 
         <div class="toolbar-row">
-          <button onclick="showGenreWrapped()" class="btn btn-primary btn-sm wrapped-btn" title="\${swedishMode ? 'Dela din musiksmak!' : 'Share your music taste!'}">
+          <button onclick="showGenreWrapped()" class="btn btn-primary btn-sm wrapped-btn" title="\${swedishMode ? 'Dela din musiksmak!' : 'Share your music taste!'}" aria-label="\${swedishMode ? 'Dela din musiksmak!' : 'Share your music taste!'}">
             ✨ \${swedishMode ? 'Dela Din Smak' : 'Share Your Taste'}
           </button>
-          <button onclick="toggleStatsDashboard()" class="btn btn-ghost btn-sm stats-toggle" id="stats-toggle">
+          <button onclick="toggleStatsDashboard()" class="btn btn-ghost btn-sm stats-toggle" id="stats-toggle" aria-label="\${showStatsDashboard ? (swedishMode ? 'Dölj statistik' : 'Hide Stats') : (swedishMode ? 'Visa statistik' : 'Show Stats')}">
             \${showStatsDashboard ? (swedishMode ? '📊 Dölj statistik' : '📊 Hide Stats') : (swedishMode ? '📊 Visa statistik' : '📊 Show Stats')}
           </button>
           <button onclick="toggleMergeMode()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Välj genrer att slå ihop' : 'Select genres to merge into one playlist'}" aria-label="\${swedishMode ? 'Slå ihop (Välj genrer att slå ihop)' : 'Merge (Select genres to merge into one playlist)'}">
