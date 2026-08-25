@@ -369,22 +369,31 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
     cursor = response.list_complete ? undefined : response.cursor;
   } while (cursor);
 
-  // PERF-001 FIX: Use Promise.all for parallel reads instead of sequential
-  const dataPromises = keys.map(async key => {
-    const data = await kv.get(key.name);
-    if (!data) return null;
+  // PERF-001 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
+  const allStats: UserStats[] = [];
+  const BATCH_SIZE = 40;
+  for (let i = 0; i < keys.length; i += BATCH_SIZE) {
+    const chunk = keys.slice(i, i + BATCH_SIZE);
+    const dataPromises = chunk.map(async key => {
+      try {
+        const data = await kv.get(key.name);
+        if (!data) return null;
 
-    const stats = JSON.parse(data) as UserStats;
-    // Backfill estimation: if totalTracksInPlaylists is 0 but user has playlists,
-    // estimate based on average tracks per playlist
-    if ((!stats.totalTracksInPlaylists || stats.totalTracksInPlaylists === 0) && stats.playlistsCreated > 0) {
-      stats.totalTracksInPlaylists = stats.playlistsCreated * AVERAGE_TRACKS_PER_PLAYLIST;
-    }
-    return stats;
-  });
+        const stats = JSON.parse(data) as UserStats;
+        // Backfill estimation: if totalTracksInPlaylists is 0 but user has playlists,
+        // estimate based on average tracks per playlist
+        if ((!stats.totalTracksInPlaylists || stats.totalTracksInPlaylists === 0) && stats.playlistsCreated > 0) {
+          stats.totalTracksInPlaylists = stats.playlistsCreated * AVERAGE_TRACKS_PER_PLAYLIST;
+        }
+        return stats;
+      } catch {
+        return null;
+      }
+    });
 
-  const parsedResults = await Promise.all(dataPromises);
-  const allStats: UserStats[] = parsedResults.filter((stats): stats is UserStats => stats !== null);
+    const parsedResults = await Promise.all(dataPromises);
+    allStats.push(...parsedResults.filter((stats): stats is UserStats => stats !== null));
+  }
 
   // Sort and rank for each category
   const makeRanking = (
@@ -473,12 +482,21 @@ export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData
 
   // Only fetch up to 50 users to limit KV reads - but do it in parallel
   const userKeys = userList.keys.slice(0, 50);
-  const userPromises = userKeys.map(async key => {
-    const data = await kv.get(key.name);
-    return data ? JSON.parse(data) as LeaderboardData['newUsers'][number] : null;
-  });
-  const parsedUsers = await Promise.all(userPromises);
-  const recentUsers = parsedUsers.filter((u): u is LeaderboardData['newUsers'][number] => u !== null);
+  const recentUsers: LeaderboardData['newUsers'] = [];
+  const BATCH_SIZE = 40;
+  for (let i = 0; i < userKeys.length; i += BATCH_SIZE) {
+    const chunk = userKeys.slice(i, i + BATCH_SIZE);
+    const userPromises = chunk.map(async key => {
+      try {
+        const data = await kv.get(key.name);
+        return data ? JSON.parse(data) as LeaderboardData['newUsers'][number] : null;
+      } catch {
+        return null;
+      }
+    });
+    const parsedUsers = await Promise.all(userPromises);
+    recentUsers.push(...parsedUsers.filter((u): u is LeaderboardData['newUsers'][number] => u !== null));
+  }
 
   // Sort by registeredAt descending and take last 10
   recentUsers.sort((a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime());
@@ -657,7 +675,7 @@ export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
 
   const analyticsKeys = dateKeys.map(dateKey => `${ANALYTICS_KEY}:${dateKey}`);
 
-  // Fetch all 7 days in parallel
+  // Fetch all 7 days in parallel (already < 50 items so safe from limits)
   const dataPromises = analyticsKeys.map(key => kv.get(key));
   const dataResults = await Promise.all(dataPromises);
 
