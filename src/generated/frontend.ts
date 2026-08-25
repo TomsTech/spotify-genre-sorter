@@ -8646,7 +8646,7 @@ export function getHtml(nonce: string): string {
             <button class="btn btn-primary error-retry-btn" onclick="window.location.reload()">
               \${swedishMode ? '🔄 Försök igen' : '🔄 Try Again'}
             </button>
-            <a href="\${escapeHtml(issueUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost error-report-btn">
+            <a href="\${getSafeUrl(issueUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost error-report-btn">
               \${swedishMode ? '🐛 Rapportera problem' : '🐛 Report Issue'}
             </a>
           </div>
@@ -9450,7 +9450,7 @@ export function getHtml(nonce: string): string {
               <div class="admin-user-row" data-spotify-id="\${user.spotifyId}" data-name="\${user.spotifyName.toLowerCase()}">
                 <div class="admin-user-avatar">
                   \${user.spotifyAvatar
-                    ? \`<img src="\${escapeHtml(user.spotifyAvatar)}" alt="" />\`
+                    ? \`<img src="\${getSafeUrl(user.spotifyAvatar)}" alt="" />\`
                     : '<span class="avatar-placeholder">👤</span>'}
                 </div>
                 <div class="admin-user-info">
@@ -10410,7 +10410,7 @@ export function getHtml(nonce: string): string {
         deployText.textContent = deployment.currentStep || 'Deploying...';
       } else if (deployment?.conclusion === 'success') {
         widget.classList.add('success');
-        statusIcon.innerHTML = \`<img class="avatar" src="\${escapeHtml(deployment.author?.avatar || '')}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
+        statusIcon.innerHTML = \`<img class="avatar" src="\${getSafeUrl(deployment.author?.avatar || '')}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
         const updatedAt = new Date(deployment.updatedAt);
         const timeAgo = formatTimeAgo(updatedAt);
         // Show version, release hint if available, and time
@@ -10556,7 +10556,7 @@ export function getHtml(nonce: string): string {
 
       const footer = document.createElement('div');
       footer.className = 'changelog-footer';
-      footer.innerHTML = \`<a href="\${changelogCache.repoUrl}/releases" target="_blank" rel="noopener noreferrer">\${swedishMode ? 'Visa alla utgåvor' : 'View all releases'} →</a>\`;
+      footer.innerHTML = \`<a href="\${getSafeUrl(changelogCache.repoUrl)}/releases" target="_blank" rel="noopener noreferrer">\${swedishMode ? 'Visa alla utgåvor' : 'View all releases'} →</a>\`;
 
       panel.appendChild(header);
       panel.appendChild(timeline);
@@ -10662,7 +10662,7 @@ export function getHtml(nonce: string): string {
               <span>\${swedishMode ? 'Visa inte igen' : "Don't show again"}</span>
             </label>
             <div class="whats-new-actions">
-              <a href="\${changelogCache?.repoUrl || 'https://github.com/TomsTech/spotify-genre-sorter'}/releases" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">
+              <a href="\${getSafeUrl(changelogCache?.repoUrl || 'https://github.com/TomsTech/spotify-genre-sorter')}/releases" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">
                 \${swedishMode ? 'Alla utgåvor' : 'All releases'}
               </a>
               <button class="btn btn-primary whats-new-gotit">
@@ -13888,7 +13888,7 @@ export function getHtml(nonce: string): string {
                 <div class="result-item">
                   <span>\${r.genre}</span>
                   \${r.success
-                    ? \`<a href="\${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer" class="result-success" data-i18n="openSpotify">\${t('openSpotify')}</a>\`
+                    ? \`<a href="\${getSafeUrl(r.url)}" target="_blank" rel="noopener noreferrer" class="result-success" data-i18n="openSpotify">\${t('openSpotify')}</a>\`
                     : r.skipped
                       ? \`<span class="result-skipped">\${swedishMode ? 'Finns redan' : 'Already exists'}</span>\`
                       : \`<span class="result-error">\${r.error}</span>\`
@@ -14338,7 +14338,7 @@ export function getHtml(nonce: string): string {
           return \`
             <div class="user-list-item animate-in owner-item \${escapeHtml(specialClass)}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
               \${user.spotifyAvatar
-                ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+                ? \`<img class="user-avatar" src="\${getSafeUrl(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
                 : '<div class="user-avatar-placeholder">👤</div>'}
               <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
             </div>
@@ -14364,7 +14364,7 @@ export function getHtml(nonce: string): string {
             <div class="user-list-item animate-in \${escapeHtml(specialClass)}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
               <span class="position \${posClass}">#\${i + 1}</span>
               \${user.spotifyAvatar
-                ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+                ? \`<img class="user-avatar" src="\${getSafeUrl(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
                 : '<div class="user-avatar-placeholder">👤</div>'}
               <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
               \${regalia}
@@ -14393,7 +14393,7 @@ export function getHtml(nonce: string): string {
         return \`
           <div class="user-list-item animate-in \${escapeHtml(specialClass)}" style="animation-delay: \${delay}ms">
             \${user.spotifyAvatar
-              ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+              ? \`<img class="user-avatar" src="\${getSafeUrl(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
               : '<div class="user-avatar-placeholder">👤</div>'}
             <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
             <span class="regalia relative-time" data-timestamp="\${user.registeredAt}">\${formatTimeAgo(new Date(user.registeredAt))}</span>
@@ -14416,14 +14416,14 @@ export function getHtml(nonce: string): string {
         const delay = i * 50; // Stagger by 50ms
         const genreEmoji = getGenreEmoji(playlist.genre);
         return \`
-          <a href="\${escapeHtml(playlist.spotifyUrl)}" target="_blank" rel="noopener noreferrer" class="playlist-list-item animate-in" style="animation-delay: \${delay}ms" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
+          <a href="\${getSafeUrl(playlist.spotifyUrl)}" target="_blank" rel="noopener noreferrer" class="playlist-list-item animate-in" style="animation-delay: \${delay}ms" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
             <div class="playlist-icon">\${genreEmoji}</div>
             <div class="playlist-info">
               <div class="playlist-name">\${escapeHtml(playlist.playlistName)}</div>
               <div class="playlist-meta">
                 <span class="playlist-creator">
                   \${playlist.createdBy.spotifyAvatar
-                    ? \`<img class="creator-avatar" src="\${escapeHtml(playlist.createdBy.spotifyAvatar)}" alt="">\`
+                    ? \`<img class="creator-avatar" src="\${getSafeUrl(playlist.createdBy.spotifyAvatar)}" alt="">\`
                     : ''}
                   \${escapeHtml(playlist.createdBy.spotifyName)}
                 </span>
@@ -14454,13 +14454,13 @@ export function getHtml(nonce: string): string {
           <div class="listening-list-item animate-in \${escapeHtml(specialClass)}" style="animation-delay: \${delay}ms" title="\${escapeHtml(track.name || '')} by \${escapeHtml(track.artists || '')}">
             <div class="listening-user">
               \${listener.spotifyAvatar
-                ? \`<img class="user-avatar" src="\${escapeHtml(listener.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+                ? \`<img class="user-avatar" src="\${getSafeUrl(listener.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
                 : '<div class="user-avatar-placeholder">👤</div>'}
               <span class="user-name">\${escapeHtml(listener.spotifyName)}</span>
             </div>
             <div class="listening-track">
               \${track.albumArt
-                ? \`<img class="track-album-art" src="\${escapeHtml(track.albumArt)}" alt="">\`
+                ? \`<img class="track-album-art" src="\${getSafeUrl(track.albumArt)}" alt="">\`
                 : '<div class="track-album-placeholder">🎵</div>'}
               <div class="track-info">
                 <div class="track-name">\${escapeHtml(track.name || 'Unknown Track')}</div>
@@ -14484,6 +14484,21 @@ export function getHtml(nonce: string): string {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+    }
+
+    // Safely encode URLs for href/src attributes to prevent javascript: and data: XSS
+    function getSafeUrl(url) {
+      if (!url) return '';
+      const safeStr = String(url);
+      // Remove control characters and whitespace
+      const cleaned = safeStr.replace(/[\x00-\x1F\s]/g, '').toLowerCase();
+
+      // Block javascript: and dangerous data: types (allow images)
+      if (cleaned.startsWith('javascript:') ||
+         (cleaned.startsWith('data:') && !cleaned.startsWith('data:image/'))) {
+        return '#';
+      }
+      return escapeHtml(safeStr);
     }
 
     // Toggle sidebar visibility (mobile)
@@ -15553,7 +15568,7 @@ export function getHtml(nonce: string): string {
             '<div class="invite-success">' +
               '<h3>' + successTitle + '</h3>' +
               '<p>' + successMsg + '</p>' +
-              (data.trackingUrl ? '<a href="' + data.trackingUrl + '" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">' + trackText + '</a>' : '') +
+              (data.trackingUrl ? '<a href="' + getSafeUrl(data.trackingUrl) + '" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">' + trackText + '</a>' : '') +
             '</div>';
 
           e.target.style.display = 'none';
@@ -15862,7 +15877,7 @@ export function getHtml(nonce: string): string {
         '  <h3>' + (swedishMode ? '🎉 Dela din spellista!' : '🎉 Share your playlist!') + '</h3>',
         '  <p class="share-playlist-name">' + escapeHtml(playlistName) + '</p>',
         '  <div class="share-qr-container">',
-        '    <img src="' + escapeHtml(qrCodeUrl) + '" alt="QR Code" class="share-qr-code" />',
+        '    <img src="' + getSafeUrl(qrCodeUrl) + '" alt="QR Code" class="share-qr-code" />',
         '  </div>',
         '  <div class="share-link-container">',
         '    <label for="share-link-input" class="sr-only">' + (swedishMode ? 'Spellistans URL' : 'Playlist URL') + '</label>',
@@ -15874,7 +15889,7 @@ export function getHtml(nonce: string): string {
         '    <a href="https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(playlistUrl) + '" target="_blank" rel="noopener noreferrer" class="share-social-btn facebook" aria-label="' + (swedishMode ? 'Dela på Facebook' : 'Share on Facebook') + '">f</a>',
         '    <a href="whatsapp://send?text=' + encodeURIComponent(playlistName + ' - ' + playlistUrl) + '" target="_blank" rel="noopener noreferrer" class="share-social-btn whatsapp" aria-label="' + (swedishMode ? 'Dela via WhatsApp' : 'Share via WhatsApp') + '">💬</a>',
         '  </div>',
-        '  <a href="' + escapeHtml(playlistUrl) + '" target="_blank" rel="noopener noreferrer" class="btn btn-primary share-open-btn">' + (swedishMode ? 'Öppna i Spotify' : 'Open in Spotify') + '</a>',
+        '  <a href="' + getSafeUrl(playlistUrl) + '" target="_blank" rel="noopener noreferrer" class="btn btn-primary share-open-btn">' + (swedishMode ? 'Öppna i Spotify' : 'Open in Spotify') + '</a>',
         '</div>'
       ].join('');
 
