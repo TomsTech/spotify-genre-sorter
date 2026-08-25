@@ -6,6 +6,8 @@
 
 ```
 .
+├── .Jules
+│   └── palette.md
 ├── .claude-review
 │   ├── issues
 │   │   ├── ISSUE-001-low-e2e-test-bypass.md
@@ -35,6 +37,7 @@
 ├── .jules
 │   ├── README.md
 │   ├── bolt.md
+│   ├── code_health.md
 │   ├── palette.md
 │   ├── sentinel.md
 │   └── testing.md
@@ -143,6 +146,7 @@
 │   ├── index.ts
 │   └── types.ts
 ├── tests
+│   ├── aggregate-genres.test.ts
 │   ├── api.test.ts
 │   ├── artist-genre-cache.test.ts
 │   ├── auth-routes.test.ts
@@ -186,13 +190,12 @@
 ├── package-lock.json
 ├── package.json
 ├── playwright.config.ts
-├── pnpm-lock.yaml
 ├── tsconfig.json
 ├── vitest.config.ts
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-31 directories, 155 files
+32 directories, 157 files
 ```
 
 ## Key Directories

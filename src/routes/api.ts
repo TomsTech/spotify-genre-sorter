@@ -124,8 +124,11 @@ api.use('/*', async (c, next) => {
   if (rateLimitMap.size > RATE_LIMIT_MAX_ENTRIES) {
     // Remove oldest 20% of entries
     const entriesToRemove = Math.floor(RATE_LIMIT_MAX_ENTRIES * 0.2);
-    const sortedEntries = [...rateLimitMap.entries()]
-      .sort((a, b) => a[1].resetAt - b[1].resetAt);
+    const sortedEntries = [];
+    for (const entry of rateLimitMap.entries()) {
+      sortedEntries.push(entry);
+    }
+    sortedEntries.sort((a, b) => a[1].resetAt - b[1].resetAt);
     for (let i = 0; i < entriesToRemove && i < sortedEntries.length; i++) {
       rateLimitMap.delete(sortedEntries[i][0]);
     }
@@ -2759,7 +2762,7 @@ api.get('/admin/kv-monitor', async (c) => {
  * GET /admin/kv-keys
  * Browse keys in a specific namespace with pagination
  */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
 api.get('/admin/kv-keys', async (c) => {
   const session = await getSession(c);
   if (!isAdmin(c, session)) return c.json({ error: 'Access denied' }, 403);
@@ -2783,7 +2786,7 @@ api.get('/admin/kv-keys', async (c) => {
 
     return c.json({
       keys,
-      cursor: result.list_complete ? null : (result as { cursor: string }).cursor,
+      cursor: result.list_complete ? null : result.cursor,
       list_complete: result.list_complete,
       total: keys.length,
     });
@@ -2793,7 +2796,7 @@ api.get('/admin/kv-keys', async (c) => {
     return c.json({ error: 'Failed to list keys' }, 500);
   }
 });
-/* eslint-enable @typescript-eslint/no-unsafe-assignment */
+
 
 /**
  * GET /admin/kv-key/:key

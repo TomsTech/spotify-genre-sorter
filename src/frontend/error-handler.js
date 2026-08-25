@@ -325,6 +325,24 @@ function escapeHtml(text) {
 }
 
 /**
+ * Safely encode URLs for href/src attributes to prevent javascript: and data: XSS
+ */
+function getSafeUrl(url) {
+  if (!url) return '';
+  const safeStr = String(url);
+  // Remove control characters and whitespace
+  const cleaned = safeStr.replace(/[\x00-\x1F\s]/g, '').toLowerCase();
+
+  // Block javascript:, vbscript: and dangerous data: types (allow images)
+  if (cleaned.startsWith('javascript:') ||
+      cleaned.startsWith('vbscript:') ||
+     (cleaned.startsWith('data:') && !cleaned.startsWith('data:image/'))) {
+    return '#';
+  }
+  return escapeHtml(safeStr);
+}
+
+/**
  * Handle partial success in batch operations
  */
 function handlePartialSuccess(results, options = {}) {

@@ -14,8 +14,7 @@ import { createLogger } from './logger';
 // V8 Error.captureStackTrace type declaration
 declare global {
   interface ErrorConstructor {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-    captureStackTrace?(targetObject: object, constructorOpt?: Function): void;
+    captureStackTrace?(targetObject: object, constructorOpt?: unknown): void;
   }
 }
 
