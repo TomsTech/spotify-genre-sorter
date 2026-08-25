@@ -144,6 +144,7 @@
 │   ├── index.ts
 │   └── types.ts
 ├── tests
+│   ├── aggregate-genres.test.ts
 │   ├── api.test.ts
 │   ├── artist-genre-cache.test.ts
 │   ├── auth-routes.test.ts
@@ -192,7 +193,7 @@
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-31 directories, 155 files
+31 directories, 156 files
 ```
 
 ## Key Directories
