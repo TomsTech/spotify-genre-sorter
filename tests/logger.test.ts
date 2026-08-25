@@ -56,7 +56,7 @@ describe('logger', () => {
       sendLog(mockCtx, 'test-token', entry);
 
       expect(mockCtx.waitUntil).toHaveBeenCalled();
-      expect(fetch).toHaveBeenCalledWith('https://s1624750.eu-nbg-2.betterstackdata.com', {
+      expect(fetch).toHaveBeenCalledWith('https://s2706752.us-west-2a.betterstackdata.com', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

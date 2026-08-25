@@ -1,4 +1,4 @@
-import { generateKVRecommendations } from '../src/routes/api';
+import { generateKVRecommendations, aggregateGenresFromTrackData } from '../src/routes/api';
 import { describe, it, expect, vi } from 'vitest';
 import { determineKVStatus } from '../src/routes/api';
 
@@ -387,5 +387,84 @@ describe('determineKVStatus', () => {
     expect(determineKVStatus(80, 80)).toBe('ok');
     expect(determineKVStatus(50, 50)).toBe('ok');
     expect(determineKVStatus(0, 0)).toBe('ok');
+  });
+});
+
+
+describe('aggregateGenresFromTrackData', () => {
+  it('should handle empty track data', () => {
+    const artistGenres = new Map<string, string[]>();
+    const result = aggregateGenresFromTrackData([], artistGenres);
+    expect(result.size).toBe(0);
+  });
+
+  it('should aggregate genres for a single track with one artist', () => {
+    const trackData = [{ id: 'track1', artistIds: ['artist1'] }];
+    const artistGenres = new Map<string, string[]>([['artist1', ['rock', 'pop']]]);
+
+    const result = aggregateGenresFromTrackData(trackData, artistGenres);
+
+    expect(result.size).toBe(2);
+    expect(result.get('rock')).toEqual({ count: 1, trackIds: ['track1'] });
+    expect(result.get('pop')).toEqual({ count: 1, trackIds: ['track1'] });
+  });
+
+  it('should handle tracks with missing artist genres', () => {
+    const trackData = [{ id: 'track1', artistIds: ['artist1'] }];
+    const artistGenres = new Map<string, string[]>(); // No genres for artist1
+
+    const result = aggregateGenresFromTrackData(trackData, artistGenres);
+
+    expect(result.size).toBe(0);
+  });
+
+  it('should aggregate genres correctly across multiple tracks and artists', () => {
+    const trackData = [
+      { id: 'track1', artistIds: ['artist1'] }, // rock, pop
+      { id: 'track2', artistIds: ['artist2'] }, // pop, jazz
+      { id: 'track3', artistIds: ['artist1', 'artist2'] }, // rock, pop, jazz (count 1 per track)
+    ];
+
+    const artistGenres = new Map<string, string[]>([
+      ['artist1', ['rock', 'pop']],
+      ['artist2', ['pop', 'jazz']]
+    ]);
+
+    const result = aggregateGenresFromTrackData(trackData, artistGenres);
+
+    expect(result.size).toBe(3);
+
+    // rock: track1, track3
+    expect(result.get('rock')).toEqual({ count: 2, trackIds: ['track1', 'track3'] });
+
+    // pop: track1, track2, track3
+    expect(result.get('pop')).toEqual({ count: 3, trackIds: ['track1', 'track2', 'track3'] });
+
+    // jazz: track2, track3
+    expect(result.get('jazz')).toEqual({ count: 2, trackIds: ['track2', 'track3'] });
+  });
+
+  it('should append to an existing genreData map if provided', () => {
+    const trackData = [{ id: 'track2', artistIds: ['artist2'] }];
+    const artistGenres = new Map<string, string[]>([['artist2', ['pop', 'jazz']]]);
+
+    const existingGenreData = new Map<string, { count: number; trackIds: string[] }>([
+      ['rock', { count: 1, trackIds: ['track1'] }],
+      ['pop', { count: 1, trackIds: ['track1'] }]
+    ]);
+
+    const result = aggregateGenresFromTrackData(trackData, artistGenres, existingGenreData);
+
+    // rock should be unchanged
+    expect(result.get('rock')).toEqual({ count: 1, trackIds: ['track1'] });
+
+    // pop should have new track added
+    expect(result.get('pop')).toEqual({ count: 2, trackIds: ['track1', 'track2'] });
+
+    // jazz should be added
+    expect(result.get('jazz')).toEqual({ count: 1, trackIds: ['track2'] });
+
+    // It should mutate and return the same map
+    expect(result).toBe(existingGenreData);
   });
 });

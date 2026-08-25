@@ -82,3 +82,6 @@
 ## 2025-05-28 - [Performance] Chunking Promise.all for CF Limits
 **Learning:** In Cloudflare Workers, mapping over an array directly with `await Promise.all` can exhaust the 50 concurrent subrequest limit when the array has more than 50 elements. This is commonly seen in `.map(async () => { ... })` over large keysets.
 **Action:** Always chunk arrays into pieces smaller than 50 (e.g. 40) before mapping `Promise.all()` when they might trigger KV subrequests.
+## 2025-05-28 - [Replacing Spread/Array.from on Map.entries() with standard loops]
+**Learning:** Using spread syntax (`[...map.entries()]`) or `Array.from()` to convert Map iterators into arrays creates hidden intermediate arrays, which increases memory allocations and garbage collection overhead in hot loops.
+**Action:** Replace these operations with a single `for...of` loop over `map.entries()` that pushes elements directly into the target array to avoid creating intermediate arrays.

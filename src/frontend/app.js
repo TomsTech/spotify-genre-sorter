@@ -59,7 +59,7 @@
             <button class="btn btn-primary error-retry-btn" onclick="window.location.reload()">
               \${swedishMode ? '🔄 Försök igen' : '🔄 Try Again'}
             </button>
-            <a href="\${escapeHtml(issueUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost error-report-btn">
+            <a href="\${getSafeUrl(issueUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost error-report-btn">
               \${swedishMode ? '🐛 Rapportera problem' : '🐛 Report Issue'}
             </a>
           </div>
@@ -863,7 +863,7 @@
               <div class="admin-user-row" data-spotify-id="\${user.spotifyId}" data-name="\${user.spotifyName.toLowerCase()}">
                 <div class="admin-user-avatar">
                   \${user.spotifyAvatar
-                    ? \`<img src="\${escapeHtml(user.spotifyAvatar)}" alt="" />\`
+                    ? \`<img src="\${getSafeUrl(user.spotifyAvatar)}" alt="" />\`
                     : '<span class="avatar-placeholder">👤</span>'}
                 </div>
                 <div class="admin-user-info">
@@ -1823,7 +1823,7 @@
         deployText.textContent = deployment.currentStep || 'Deploying...';
       } else if (deployment?.conclusion === 'success') {
         widget.classList.add('success');
-        statusIcon.innerHTML = \`<img class="avatar" src="\${escapeHtml(deployment.author?.avatar || '')}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
+        statusIcon.innerHTML = \`<img class="avatar" src="\${getSafeUrl(deployment.author?.avatar || '')}" alt="" onerror="this.style.display='none';this.parentElement.textContent='✓'">\`;
         const updatedAt = new Date(deployment.updatedAt);
         const timeAgo = formatTimeAgo(updatedAt);
         // Show version, release hint if available, and time
@@ -1969,7 +1969,7 @@
 
       const footer = document.createElement('div');
       footer.className = 'changelog-footer';
-      footer.innerHTML = \`<a href="\${changelogCache.repoUrl}/releases" target="_blank" rel="noopener noreferrer">\${swedishMode ? 'Visa alla utgåvor' : 'View all releases'} →</a>\`;
+      footer.innerHTML = \`<a href="\${getSafeUrl(changelogCache.repoUrl)}/releases" target="_blank" rel="noopener noreferrer">\${swedishMode ? 'Visa alla utgåvor' : 'View all releases'} →</a>\`;
 
       panel.appendChild(header);
       panel.appendChild(timeline);
@@ -2075,7 +2075,7 @@
               <span>\${swedishMode ? 'Visa inte igen' : "Don't show again"}</span>
             </label>
             <div class="whats-new-actions">
-              <a href="\${changelogCache?.repoUrl || 'https://github.com/TomsTech/spotify-genre-sorter'}/releases" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">
+              <a href="\${getSafeUrl(changelogCache?.repoUrl || 'https://github.com/TomsTech/spotify-genre-sorter')}/releases" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">
                 \${swedishMode ? 'Alla utgåvor' : 'All releases'}
               </a>
               <button class="btn btn-primary whats-new-gotit">
@@ -3352,13 +3352,13 @@
             </div>
 
             <div class="progress-controls">
-              <button class="btn btn-secondary" id="pause-scan-btn" onclick="pauseProgressiveScan()" title="\${swedishMode ? 'Pausa skanningen' : 'Pause scan'}">
+              <button class="btn btn-secondary" id="pause-scan-btn" onclick="pauseProgressiveScan()" title="\${swedishMode ? 'Pausa skanningen' : 'Pause scan'}" aria-label="\${swedishMode ? 'Pausa skanningen' : 'Pause scan'}">
                 ⏸️ \${swedishMode ? 'Pausa' : 'Pause'}
               </button>
-              <button class="btn btn-primary" id="resume-scan-btn" onclick="resumeProgressiveScan()" style="display: none;" title="\${swedishMode ? 'Återuppta skanningen' : 'Resume scan'}">
+              <button class="btn btn-primary" id="resume-scan-btn" onclick="resumeProgressiveScan()" style="display: none;" title="\${swedishMode ? 'Återuppta skanningen' : 'Resume scan'}" aria-label="\${swedishMode ? 'Återuppta skanningen' : 'Resume scan'}">
                 ▶️ \${swedishMode ? 'Återuppta' : 'Resume'}
               </button>
-              <button class="btn btn-ghost" onclick="stopProgressiveScan()" title="\${swedishMode ? 'Stoppa skanningen' : 'Stop scan'}">
+              <button class="btn btn-ghost" id="stop-scan-btn" onclick="stopProgressiveScan()" title="\${swedishMode ? 'Stoppa skanningen' : 'Stop scan'}" aria-label="\${swedishMode ? 'Stoppa skanningen' : 'Stop scan'}">
                 ⏹️ \${swedishMode ? 'Stoppa' : 'Stop'}
               </button>
             </div>
@@ -3449,9 +3449,11 @@
       }
 
       // Convert to sorted array
-      const genres = [...merged.entries()]
-        .map(([name, data]) => ({ name, count: data.count, trackIds: data.trackIds }))
-        .sort((a, b) => b.count - a.count);
+      const genres = [];
+      for (const [name, data] of merged.entries()) {
+        genres.push({ name, count: data.count, trackIds: data.trackIds });
+      }
+      genres.sort((a, b) => b.count - a.count);
 
       return {
         genres,
@@ -4405,10 +4407,10 @@
         </div>
 
         <div class="toolbar-row">
-          <button onclick="showGenreWrapped()" class="btn btn-primary btn-sm wrapped-btn" title="\${swedishMode ? 'Dela din musiksmak!' : 'Share your music taste!'}">
+          <button onclick="showGenreWrapped()" class="btn btn-primary btn-sm wrapped-btn" title="\${swedishMode ? 'Dela din musiksmak!' : 'Share your music taste!'}" aria-label="\${swedishMode ? 'Dela din musiksmak!' : 'Share your music taste!'}">
             ✨ \${swedishMode ? 'Dela Din Smak' : 'Share Your Taste'}
           </button>
-          <button onclick="toggleStatsDashboard()" class="btn btn-ghost btn-sm stats-toggle" id="stats-toggle">
+          <button onclick="toggleStatsDashboard()" class="btn btn-ghost btn-sm stats-toggle" id="stats-toggle" aria-label="\${showStatsDashboard ? (swedishMode ? 'Dölj statistik' : 'Hide Stats') : (swedishMode ? 'Visa statistik' : 'Show Stats')}">
             \${showStatsDashboard ? (swedishMode ? '📊 Dölj statistik' : '📊 Hide Stats') : (swedishMode ? '📊 Visa statistik' : '📊 Show Stats')}
           </button>
           <button onclick="toggleMergeMode()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Välj genrer att slå ihop' : 'Select genres to merge into one playlist'}" aria-label="\${swedishMode ? 'Slå ihop (Välj genrer att slå ihop)' : 'Merge (Select genres to merge into one playlist)'}">
@@ -4592,6 +4594,7 @@
             class="btn btn-ghost genre-create"
             onclick="event.preventDefault(); createPlaylist('\${genre.name.replace(/'/g, "\\\\'")}')"
             data-i18n="create"
+            aria-label="\${t('create')} \${escapeForHtml(genre.name)}"
           >
             \${t('create')}
           </button>
@@ -5301,7 +5304,7 @@
                 <div class="result-item">
                   <span>\${r.genre}</span>
                   \${r.success
-                    ? \`<a href="\${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer" class="result-success" data-i18n="openSpotify">\${t('openSpotify')}</a>\`
+                    ? \`<a href="\${getSafeUrl(r.url)}" target="_blank" rel="noopener noreferrer" class="result-success" data-i18n="openSpotify">\${t('openSpotify')}</a>\`
                     : r.skipped
                       ? \`<span class="result-skipped">\${swedishMode ? 'Finns redan' : 'Already exists'}</span>\`
                       : \`<span class="result-error">\${r.error}</span>\`
@@ -5751,7 +5754,7 @@
           return \`
             <div class="user-list-item animate-in owner-item \${escapeHtml(specialClass)}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
               \${user.spotifyAvatar
-                ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+                ? \`<img class="user-avatar" src="\${getSafeUrl(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
                 : '<div class="user-avatar-placeholder">👤</div>'}
               <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
             </div>
@@ -5777,7 +5780,7 @@
             <div class="user-list-item animate-in \${escapeHtml(specialClass)}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
               <span class="position \${posClass}">#\${i + 1}</span>
               \${user.spotifyAvatar
-                ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+                ? \`<img class="user-avatar" src="\${getSafeUrl(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
                 : '<div class="user-avatar-placeholder">👤</div>'}
               <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
               \${regalia}
@@ -5806,7 +5809,7 @@
         return \`
           <div class="user-list-item animate-in \${escapeHtml(specialClass)}" style="animation-delay: \${delay}ms">
             \${user.spotifyAvatar
-              ? \`<img class="user-avatar" src="\${escapeHtml(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
+              ? \`<img class="user-avatar" src="\${getSafeUrl(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
               : '<div class="user-avatar-placeholder">👤</div>'}
             <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
             <span class="regalia relative-time" data-timestamp="\${user.registeredAt}">\${formatTimeAgo(new Date(user.registeredAt))}</span>
@@ -5829,14 +5832,14 @@
         const delay = i * 50; // Stagger by 50ms
         const genreEmoji = getGenreEmoji(playlist.genre);
         return \`
-          <a href="\${escapeHtml(playlist.spotifyUrl)}" target="_blank" rel="noopener noreferrer" class="playlist-list-item animate-in" style="animation-delay: \${delay}ms" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
+          <a href="\${getSafeUrl(playlist.spotifyUrl)}" target="_blank" rel="noopener noreferrer" class="playlist-list-item animate-in" style="animation-delay: \${delay}ms" title="\${playlist.trackCount} \${swedishMode ? 'låtar' : 'tracks'}">
             <div class="playlist-icon">\${genreEmoji}</div>
             <div class="playlist-info">
               <div class="playlist-name">\${escapeHtml(playlist.playlistName)}</div>
               <div class="playlist-meta">
                 <span class="playlist-creator">
                   \${playlist.createdBy.spotifyAvatar
-                    ? \`<img class="creator-avatar" src="\${escapeHtml(playlist.createdBy.spotifyAvatar)}" alt="">\`
+                    ? \`<img class="creator-avatar" src="\${getSafeUrl(playlist.createdBy.spotifyAvatar)}" alt="">\`
                     : ''}
                   \${escapeHtml(playlist.createdBy.spotifyName)}
                 </span>
@@ -5867,13 +5870,13 @@
           <div class="listening-list-item animate-in ${escapeHtml(specialClass)}" style="animation-delay: ${delay}ms" title="${escapeHtml(track.name || '')} by ${escapeHtml(track.artists || '')}">
             <div class="listening-user">
               ${listener.spotifyAvatar
-                ? `<img class="user-avatar" src="${escapeHtml(listener.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">`
+                ? `<img class="user-avatar" src="${getSafeUrl(listener.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">`
                 : '<div class="user-avatar-placeholder">👤</div>'}
               <span class="user-name">${escapeHtml(listener.spotifyName)}</span>
             </div>
             <div class="listening-track">
               ${track.albumArt
-                ? `<img class="track-album-art" src="${escapeHtml(track.albumArt)}" alt="">`
+                ? `<img class="track-album-art" src="${getSafeUrl(track.albumArt)}" alt="">`
                 : '<div class="track-album-placeholder">🎵</div>'}
               <div class="track-info">
                 <div class="track-name">${escapeHtml(track.name || 'Unknown Track')}</div>
@@ -5897,6 +5900,21 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+    }
+
+    // Safely encode URLs for href/src attributes to prevent javascript: and data: XSS
+    function getSafeUrl(url) {
+      if (!url) return '';
+      const safeStr = String(url);
+      // Remove control characters and whitespace
+      const cleaned = safeStr.replace(/[\x00-\x1F\s]/g, '').toLowerCase();
+
+      // Block javascript: and dangerous data: types (allow images)
+      if (cleaned.startsWith('javascript:') ||
+         (cleaned.startsWith('data:') && !cleaned.startsWith('data:image/'))) {
+        return '#';
+      }
+      return escapeHtml(safeStr);
     }
 
     // Toggle sidebar visibility (mobile)
@@ -6966,7 +6984,7 @@
             '<div class="invite-success">' +
               '<h3>' + successTitle + '</h3>' +
               '<p>' + successMsg + '</p>' +
-              (data.trackingUrl ? '<a href="' + data.trackingUrl + '" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">' + trackText + '</a>' : '') +
+              (data.trackingUrl ? '<a href="' + getSafeUrl(data.trackingUrl) + '" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">' + trackText + '</a>' : '') +
             '</div>';
 
           e.target.style.display = 'none';
@@ -7275,7 +7293,7 @@
         '  <h3>' + (swedishMode ? '🎉 Dela din spellista!' : '🎉 Share your playlist!') + '</h3>',
         '  <p class="share-playlist-name">' + escapeHtml(playlistName) + '</p>',
         '  <div class="share-qr-container">',
-        '    <img src="' + escapeHtml(qrCodeUrl) + '" alt="QR Code" class="share-qr-code" />',
+        '    <img src="' + getSafeUrl(qrCodeUrl) + '" alt="QR Code" class="share-qr-code" />',
         '  </div>',
         '  <div class="share-link-container">',
         '    <label for="share-link-input" class="sr-only">' + (swedishMode ? 'Spellistans URL' : 'Playlist URL') + '</label>',
@@ -7287,7 +7305,7 @@
         '    <a href="https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(playlistUrl) + '" target="_blank" rel="noopener noreferrer" class="share-social-btn facebook" aria-label="' + (swedishMode ? 'Dela på Facebook' : 'Share on Facebook') + '">f</a>',
         '    <a href="whatsapp://send?text=' + encodeURIComponent(playlistName + ' - ' + playlistUrl) + '" target="_blank" rel="noopener noreferrer" class="share-social-btn whatsapp" aria-label="' + (swedishMode ? 'Dela via WhatsApp' : 'Share via WhatsApp') + '">💬</a>',
         '  </div>',
-        '  <a href="' + escapeHtml(playlistUrl) + '" target="_blank" rel="noopener noreferrer" class="btn btn-primary share-open-btn">' + (swedishMode ? 'Öppna i Spotify' : 'Open in Spotify') + '</a>',
+        '  <a href="' + getSafeUrl(playlistUrl) + '" target="_blank" rel="noopener noreferrer" class="btn btn-primary share-open-btn">' + (swedishMode ? 'Öppna i Spotify' : 'Open in Spotify') + '</a>',
         '</div>'
       ].join('');
 
@@ -7520,14 +7538,17 @@
       }
 
       // Sort by count
-      const sortedArtists = [...artistCounts.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
+      const sortedArtists = [];
+      for (const entry of artistCounts.entries()) {
+        sortedArtists.push(entry);
+      }
+      sortedArtists.sort((a, b) => b[1] - a[1]);
+      const topSortedArtists = sortedArtists.slice(0, 10);
 
       const modal = document.createElement('div');
       modal.className = 'modal-overlay artist-breakdown-modal';
 
-      const artistList = sortedArtists.map(([id, count]) => {
+      const artistList = topSortedArtists.map(([id, count]) => {
         const name = artistNames.get(id) || 'Unknown';
         return '<div class="artist-breakdown-item">' +
           '<span class="artist-name">' + escapeHtml(name) + '</span>' +
