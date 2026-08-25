@@ -9,7 +9,12 @@ import { readFileSync } from 'fs';
 
 const ACCOUNT_ID = 'df52a0cfc6c1765f726a830ef84ba78c';
 const BETTERSTACK_HOST = 's1616980.eu-nbg-2.betterstackdata.com';
-const BETTERSTACK_TOKEN = 'bjS8g5FPFeDxCVHBHxCzHPFr';
+const BETTERSTACK_TOKEN = process.env.BETTERSTACK_TOKEN;
+if (!BETTERSTACK_TOKEN) {
+  console.error('❌ BETTERSTACK_TOKEN is not set. Export it before running this script:');
+  console.error('   export BETTERSTACK_TOKEN="<your BetterStack source token>"');
+  process.exit(1);
+}
 const DATASET = 'workers_trace_events';
 const WORKER_NAME = 'spotify-genre-sorter';
 
