@@ -8632,9 +8632,7 @@ export function getHtml(nonce: string): string {
         errorInfo.message.includes(key)
       )?.[1] || friendlyMessages.default;
 
-      const issueBody = encodeURIComponent(
-        \`## Error Report\\n\\n**Context:** \${context}\\n**Error:** \${errorInfo.message}\\n**URL:** \${errorInfo.url}\\n**Time:** \${errorInfo.timestamp}\\n\\n### Stack Trace\\n\\\`\\\`\\\`\\n\${errorInfo.stack}\\n\\\`\\\`\\\`\`
-      );
+      const issueBody = encodeURIComponent('## Error Report\\n\\n**Context:** ' + context + '\\n**Error:** ' + errorInfo.message + '\\n**URL:** ' + errorInfo.url + '\\n**Time:** ' + errorInfo.timestamp + '\\n\\n### Stack Trace\\n\`\`\`\\n' + errorInfo.stack + '\\n\`\`\`');
       const issueUrl = \`https://github.com/thomashoustontech/spotify-genre-sorter/issues/new?title=Error: \${encodeURIComponent(errorInfo.message.slice(0, 50))}&body=\${issueBody}\`;
 
       overlay.innerHTML = \`
