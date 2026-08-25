@@ -35,6 +35,7 @@
 ├── .jules
 │   ├── README.md
 │   ├── bolt.md
+│   ├── code_health.md
 │   ├── palette.md
 │   ├── sentinel.md
 │   └── testing.md
@@ -191,7 +192,7 @@
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-31 directories, 154 files
+31 directories, 155 files
 ```
 
 ## Key Directories
