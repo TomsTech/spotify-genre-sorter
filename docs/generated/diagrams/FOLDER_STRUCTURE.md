@@ -6,8 +6,6 @@
 
 ```
 .
-├── .Jules
-│   └── palette.md
 ├── .claude-review
 │   ├── issues
 │   │   ├── ISSUE-001-low-e2e-test-bypass.md
@@ -195,7 +193,7 @@
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-32 directories, 157 files
+31 directories, 156 files
 ```
 
 ## Key Directories
