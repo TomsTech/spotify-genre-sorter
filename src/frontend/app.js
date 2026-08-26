@@ -5909,8 +5909,9 @@
       // Remove control characters and whitespace
       const cleaned = safeStr.replace(/[\x00-\x1F\s]/g, '').toLowerCase();
 
-      // Block javascript: and dangerous data: types (allow images)
+      // Block javascript:, vbscript: and dangerous data: types (allow images)
       if (cleaned.startsWith('javascript:') ||
+          cleaned.startsWith('vbscript:') ||
          (cleaned.startsWith('data:') && !cleaned.startsWith('data:image/'))) {
         return '#';
       }
