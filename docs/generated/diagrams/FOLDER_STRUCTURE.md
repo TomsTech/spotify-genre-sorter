@@ -182,7 +182,6 @@
 ├── SECURITY.md
 ├── SUMMARY.md
 ├── cliff.toml
-├── commit_message.txt
 ├── docflow.config.json
 ├── openapi.yaml
 ├── package-lock.json
@@ -193,7 +192,7 @@
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-31 directories, 156 files
+31 directories, 155 files
 ```
 
 ## Key Directories
