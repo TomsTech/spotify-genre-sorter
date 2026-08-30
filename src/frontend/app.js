@@ -3036,7 +3036,7 @@
           \${lightMode ? '🌙' : '☀️'}
         </button>
         <div class="user-info" data-testid="user-info">
-          \${avatar ? \`<img src="\${escapeHtml(avatar)}" alt="" class="avatar" data-testid="user-avatar" onerror="this.style.display='none'">\` : ''}
+          \${avatar ? \`<img src="\${getSafeUrl(avatar)}" alt="" class="avatar" data-testid="user-avatar" onerror="this.style.display='none'">\` : ''}
           <span data-testid="user-name">\${user || 'User'}</span>
           <a href="/auth/logout" class="btn btn-ghost" data-testid="logout-button" data-i18n="logout">\${t('logout')}</a>
         </div>
@@ -3182,13 +3182,13 @@
 
       carousel.innerHTML = [
         '<div class="album-art-item left visible">',
-        '<img src="' + escapeHtml(albumArtUrls[leftIdx]) + '" alt="" loading="lazy">',
+        '<img src="' + getSafeUrl(albumArtUrls[leftIdx]) + '" alt="" loading="lazy">',
         '</div>',
         '<div class="album-art-item center visible">',
-        '<img src="' + escapeHtml(albumArtUrls[centerIdx]) + '" alt="" loading="lazy">',
+        '<img src="' + getSafeUrl(albumArtUrls[centerIdx]) + '" alt="" loading="lazy">',
         '</div>',
         '<div class="album-art-item right visible">',
-        '<img src="' + escapeHtml(albumArtUrls[rightIdx]) + '" alt="" loading="lazy">',
+        '<img src="' + getSafeUrl(albumArtUrls[rightIdx]) + '" alt="" loading="lazy">',
         '</div>'
       ].join('');
     }
@@ -3521,7 +3521,7 @@
                 \${playlists.slice(0, 20).map(p => \`
                   <label class="source-option">
                     <input type="checkbox" data-playlist-id="\${p.id}">
-                    <span class="source-icon">\${p.image ? \`<img src="\${escapeHtml(p.image)}" alt="">\` : '🎵'}</span>
+                    <span class="source-icon">\${p.image ? \`<img src="\${getSafeUrl(p.image)}" alt="">\` : '🎵'}</span>
                     <span class="source-info">
                       <span class="source-name">\${escapeHtml(p.name)}</span>
                       <span class="source-desc">\${p.trackCount} \${swedishMode ? 'låtar' : 'tracks'}</span>
@@ -5190,7 +5190,7 @@
       modal.id = 'loading-modal';
       modal.innerHTML = \`
         <div class="album-carousel">
-          \${shuffled.map(art => \`<img class="album-art" src="\${escapeHtml(art)}" alt="" onerror="this.style.background='var(--surface-2)'">\`).join('')}
+          \${shuffled.map(art => \`<img class="album-art" src="\${getSafeUrl(art)}" alt="" onerror="this.style.background='var(--surface-2)'">\`).join('')}
         </div>
         <div class="loading-text" id="loading-text">\${swedishMode ? 'Skapar spellistor...' : 'Creating playlists...'}</div>
         <div class="loading-progress">
@@ -5654,7 +5654,7 @@
             const tooltip = document.createElement('div');
             tooltip.className = 'now-playing-tooltip';
             tooltip.innerHTML = \`
-              <img class="now-playing-album-art" src="\${escapeHtml(data.track.albumArt || '')}" alt="" \${data.track.albumArt ? '' : 'style="display:none"'}>
+              <img class="now-playing-album-art" src="\${getSafeUrl(data.track.albumArt || '')}" alt="" \${data.track.albumArt ? '' : 'style="display:none"'}>
               <div class="now-playing-info">
                 <div class="now-playing-label">\${swedishMode ? 'Spelar nu' : 'Now Playing'}</div>
                 <div class="now-playing-track">\${escapeHtml(data.track.name)}</div>
@@ -6027,7 +6027,7 @@
               <div class="scoreboard-entry \${top3Class}">
                 <span class="rank \${rankClass}">\${medalEmoji || '#' + entry.rank}</span>
                 \${entry.spotifyAvatar
-                  ? \`<img class="entry-avatar" src="\${escapeHtml(entry.spotifyAvatar)}" alt="" onerror="this.style.display='none'">\`
+                  ? \`<img class="entry-avatar" src="\${getSafeUrl(entry.spotifyAvatar)}" alt="" onerror="this.style.display='none'">\`
                   : '<div class="entry-avatar" style="background:var(--surface-2);display:flex;align-items:center;justify-content:center">👤</div>'}
                 <div class="entry-info">
                   <div class="entry-name">\${escapeHtml(entry.spotifyName)}</div>
