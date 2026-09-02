@@ -72,7 +72,7 @@ async function invalidateGenreCache(kv: KVNamespace, spotifyUserId: string): Pro
 }
 
 // Security constants
-const MAX_TRACK_IDS = 10000; // Max tracks per playlist
+export const MAX_TRACK_IDS = 10000; // Max tracks per playlist
 const MAX_GENRES_BULK = 50; // Max genres in bulk create
 const MAX_GENRE_NAME_LENGTH = 100;
 const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
@@ -1027,7 +1027,7 @@ type ValidationError = { valid: false; error: string };
 type ValidationResult<T> = ValidationSuccess<T> | ValidationError;
 
 // Helper to validate track IDs
-function validateTrackIds(trackIds: unknown): ValidationResult<string[]> {
+export function validateTrackIds(trackIds: unknown): ValidationResult<string[]> {
   if (!Array.isArray(trackIds)) {
     return { valid: false, error: 'trackIds must be an array' };
   }
