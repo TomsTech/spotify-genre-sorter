@@ -85,3 +85,4 @@
 ## 2025-05-28 - [Replacing Spread/Array.from on Map.entries() with standard loops]
 **Learning:** Using spread syntax (`[...map.entries()]`) or `Array.from()` to convert Map iterators into arrays creates hidden intermediate arrays, which increases memory allocations and garbage collection overhead in hot loops.
 **Action:** Replace these operations with a single `for...of` loop over `map.entries()` that pushes elements directly into the target array to avoid creating intermediate arrays.
+## 2025-02-12 - Optimize HoF pioneers array allocation **Learning:** Instantiating arrays unnecessarily, mapping, and pushing elements when you only need a straightforward loop to generate a fixed-size array of Promises wastes resources (CPU, Memory allocations). **Action:** Opt to just allocate the target array directly and populate using a loop rather than going through mapping stages if intermediate states don't hold any actual data and are just sizing placeholders.

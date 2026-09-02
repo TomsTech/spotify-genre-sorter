@@ -2357,11 +2357,10 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
   }
 
   // Also fetch HoF users (pioneers) who might not have user_stats entries
-  const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
-  const hofResults: ({ spotifyId: string; spotifyName: string; spotifyAvatar?: string; registeredAt?: string } | null)[] = [];
-  for (let i = 0; i < hofKeys.length; i += BATCH_SIZE) {
-    const chunk = hofKeys.slice(i, i + BATCH_SIZE);
-    const hofPromises = chunk.map(async key => {
+  const hofPromises: Promise<{ spotifyId: string; spotifyName: string; spotifyAvatar?: string; registeredAt?: string } | null>[] = [];
+  for (let i = 1; i <= 20; i++) {
+    const key = `hof:${String(i).padStart(3, '0')}`;
+    hofPromises.push((async () => {
       try {
         const hofJson = await kv.get(key);
         if (hofJson) {
@@ -2374,9 +2373,9 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
         }
       } catch { /* skip malformed entries */ }
       return null;
-    });
-    hofResults.push(...await Promise.all(hofPromises));
+    })());
   }
+  const hofResults = await Promise.all(hofPromises);
 
   for (let i = 0; i < hofResults.length; i++) {
     const hofUser = hofResults[i];
@@ -2458,12 +2457,10 @@ api.delete('/admin/user/:spotifyId', async (c) => {
 
   // Find and delete HoF entry by scanning for matching spotifyId
   // HoF keys are formatted as hof:001, hof:002, etc.
-  const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
-  const hofResults: ({ spotifyId?: string } | null)[] = [];
-  const BATCH_SIZE = 40;
-  for (let i = 0; i < hofKeys.length; i += BATCH_SIZE) {
-    const chunk = hofKeys.slice(i, i + BATCH_SIZE);
-    const hofPromises = chunk.map(async key => {
+  const hofPromises: Promise<{ spotifyId?: string } | null>[] = [];
+  for (let i = 1; i <= 20; i++) {
+    const key = `hof:${String(i).padStart(3, '0')}`;
+    hofPromises.push((async () => {
       try {
         const hofJson = await kv.get(key);
         if (hofJson) {
@@ -2471,9 +2468,9 @@ api.delete('/admin/user/:spotifyId', async (c) => {
         }
       } catch { /* skip malformed entries */ }
       return null;
-    });
-    hofResults.push(...await Promise.all(hofPromises));
+    })());
   }
+  const hofResults = await Promise.all(hofPromises);
 
   for (let i = 0; i < hofResults.length; i++) {
     const hofData = hofResults[i];
