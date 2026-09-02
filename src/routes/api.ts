@@ -2103,8 +2103,13 @@ api.get('/kv-usage', async (c) => {
     const realtimeMetrics = getKVMetrics();
 
     const breakdown = calculateKVBreakdown(today);
-    const estimatedReads = Object.values(breakdown).reduce((sum, cat) => sum + cat.reads, 0);
-    const estimatedWrites = Object.values(breakdown).reduce((sum, cat) => sum + cat.writes, 0);
+    let estimatedReads = 0;
+    let estimatedWrites = 0;
+    for (const key in breakdown) {
+      const cat = breakdown[key as keyof typeof breakdown];
+      estimatedReads += cat.reads;
+      estimatedWrites += cat.writes;
+    }
 
     // Free tier limits
     const READ_LIMIT = 100000;
