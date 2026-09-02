@@ -78,5 +78,32 @@ describe('KV Cache', () => {
 
       consoleErrorSpy.mockRestore();
     });
+
+    it('catches unexpected errors from flushWriteQueue in scheduleFlush', async () => {
+      // Mock Promise.all to simulate a catastrophic failure in flushWriteQueue
+      const error = new Error('Promise.all failed');
+      const promiseAllSpy = vi.spyOn(Promise, 'all').mockRejectedValueOnce(error);
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      vi.useFakeTimers();
+
+      // Add item to the write queue (immediate: false)
+      // This will call scheduleFlush(kv) internally
+      await cachedKV.put(mockKV, 'test-schedule-error-key', '{"val":"test"}', { immediate: false });
+
+      // Fast forward the scheduled timeout in scheduleFlush
+      vi.runAllTimers();
+
+      // flushWriteQueue runs asynchronously; we need to wait for the event loop
+      // to process the promise rejection and the subsequent .catch(console.error)
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+
+      consoleErrorSpy.mockRestore();
+      promiseAllSpy.mockRestore();
+      vi.useRealTimers();
+    });
   });
 });
