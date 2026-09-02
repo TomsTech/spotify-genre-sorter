@@ -341,8 +341,11 @@ api.get('/user-playlists', async (c) => {
   try {
     // Refresh token if needed
     if (session.spotifyExpiresAt && Date.now() > session.spotifyExpiresAt - 60000) {
+      if (!session.spotifyRefreshToken) {
+        return c.json({ error: 'No refresh token available' }, 401);
+      }
       const newTokens = await refreshSpotifyToken(
-        session.spotifyRefreshToken!,
+        session.spotifyRefreshToken,
         c.env.SPOTIFY_CLIENT_ID,
         c.env.SPOTIFY_CLIENT_SECRET
       );
@@ -2487,6 +2490,7 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   // Find and delete any active sessions for this user
   const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
   // PERF-021 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
+  const BATCH_SIZE = 40;
   for (let i = 0; i < sessionsList.keys.length; i += BATCH_SIZE) {
     const chunk = sessionsList.keys.slice(i, i + BATCH_SIZE);
     const sessionPromises = chunk.map(async key => {
