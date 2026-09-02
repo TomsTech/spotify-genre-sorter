@@ -88,6 +88,9 @@
 ## 2024-05-19 - ⚡ Bolt: Optimize KV Usage Estimation by avoiding intermediate arrays
 **Learning:** `Object.values(obj).reduce(...)` creates an intermediate array of values before performing the reduction. When this pattern is used multiple times (or in a hot path) to sum up fields from an object, the overhead of array allocation and iteration via `reduce` can be significantly higher than a simple `for...in` loop directly accumulating the values.
 **Action:** When summing up values from an object, particularly in performance-critical code or when executed repeatedly, use a `for...in` loop to iterate directly over the object's keys and accumulate the values without creating intermediate arrays.
+## 2024-05-17 - Optimize Track ID Validation Array Iteration
+**Learning:** Using `Array.prototype.slice()` in a loop to limit the number of items iterated over causes unnecessary array allocations, which degrades performance especially in hot paths.
+**Action:** Replace `array.slice(0, N)` in iteration loops with a standard `for` loop, using `Math.min(N, array.length)` as the limit, to avoid allocating a new array.
 ## 2026-09-02 - [Replacing Array.from/map chains with direct loops]
 **Learning:** Using `Array.from()` combined with `.map()` to generate dynamic arrays of Promises creates unnecessary intermediate arrays and closures, increasing memory allocation and CPU overhead.
 **Action:** Replace `Array.from(...).map(...)` chains with a standard `for` loop that directly populates a pre-initialized array (e.g. `const arr = []`) to avoid intermediate allocations and reduce garbage collection pressure.

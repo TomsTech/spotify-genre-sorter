@@ -72,7 +72,7 @@ async function invalidateGenreCache(kv: KVNamespace, spotifyUserId: string): Pro
 }
 
 // Security constants
-const MAX_TRACK_IDS = 10000; // Max tracks per playlist
+export const MAX_TRACK_IDS = 10000; // Max tracks per playlist
 const MAX_GENRES_BULK = 50; // Max genres in bulk create
 const MAX_GENRE_NAME_LENGTH = 100;
 const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
@@ -881,7 +881,9 @@ api.get('/genres/chunk', async (c) => {
       // PERF-026 FIX: Use Promise.all for parallel API requests instead of sequential loop
       const token = session.spotifyAccessToken;
       const playlistPromises = [];
-      for (const playlistId of playlistIds.slice(0, 5)) {
+      const limit = Math.min(5, playlistIds.length);
+      for (let i = 0; i < limit; i++) {
+        const playlistId = playlistIds[i];
         playlistPromises.push(
           getPlaylistTracks(token, playlistId, 500).catch((e) => {
             console.error(`Error fetching playlist ${playlistId}:`, e);
@@ -1027,7 +1029,7 @@ type ValidationError = { valid: false; error: string };
 type ValidationResult<T> = ValidationSuccess<T> | ValidationError;
 
 // Helper to validate track IDs
-function validateTrackIds(trackIds: unknown): ValidationResult<string[]> {
+export function validateTrackIds(trackIds: unknown): ValidationResult<string[]> {
   if (!Array.isArray(trackIds)) {
     return { valid: false, error: 'trackIds must be an array' };
   }

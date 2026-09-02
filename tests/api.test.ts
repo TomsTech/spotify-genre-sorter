@@ -468,3 +468,45 @@ describe('aggregateGenresFromTrackData', () => {
     expect(result).toBe(existingGenreData);
   });
 });
+
+import { validateTrackIds, MAX_TRACK_IDS } from '../src/routes/api';
+
+describe('validateTrackIds', () => {
+  it('should return valid false when trackIds is not an array', () => {
+    const result = validateTrackIds('not-an-array');
+    expect(result.valid).toBe(false);
+    expect((result as any).error).toBe('trackIds must be an array');
+  });
+
+  it('should return valid false when trackIds is an empty array', () => {
+    const result = validateTrackIds([]);
+    expect(result.valid).toBe(false);
+    expect((result as any).error).toBe('trackIds cannot be empty');
+  });
+
+  it('should return valid false when trackIds exceeds max limit', () => {
+    const hugeArray = new Array(MAX_TRACK_IDS + 1).fill('a');
+    const result = validateTrackIds(hugeArray);
+    expect(result.valid).toBe(false);
+    expect((result as any).error).toBe(`trackIds exceeds maximum of ${MAX_TRACK_IDS}`);
+  });
+
+  it('should return valid false when a track ID is not a string', () => {
+    const result = validateTrackIds([123]);
+    expect(result.valid).toBe(false);
+    expect((result as any).error).toBe('Invalid track ID format detected');
+  });
+
+  it('should return valid false when a track ID does not match regex', () => {
+    const result = validateTrackIds(['invalid-id-because-it-has-dashes']);
+    expect(result.valid).toBe(false);
+    expect((result as any).error).toBe('Invalid track ID format detected');
+  });
+
+  it('should return valid true and the valid ids when all conditions are met', () => {
+    const validIds = ['0123456789012345678901', 'abcdefghijklmnopqrstuv'];
+    const result = validateTrackIds(validIds);
+    expect(result.valid).toBe(true);
+    expect((result as any).value).toEqual(validIds);
+  });
+});
