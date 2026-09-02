@@ -4428,7 +4428,7 @@
 
         <div class="hidden-toolbar" id="hidden-toolbar" style="display: \${hiddenGenres.size > 0 ? 'flex' : 'none'}">
           <span>\${swedishMode ? 'Dolda genrer:' : 'Hidden genres:'} <strong id="hidden-count">\${hiddenGenres.size}</strong></span>
-          <button onclick="toggleShowHidden()" class="btn btn-ghost btn-sm">
+          <button onclick="toggleShowHidden()" class="btn btn-ghost btn-sm" aria-label="\${showHiddenGenres ? (swedishMode ? 'Dölj dolda (Dölj dolda genrer)' : 'Hide hidden (Hide hidden genres)') : (swedishMode ? 'Visa dolda (Visa dolda genrer)' : 'Show hidden (Show hidden genres)')}">
             \${showHiddenGenres ? (swedishMode ? '🙈 Dölj dolda' : '🙈 Hide hidden') : (swedishMode ? '👁️ Visa dolda' : '👁️ Show hidden')}
           </button>
           <button onclick="unhideAllGenres()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Visa alla genrer' : 'Show all genres'}" aria-label="\${swedishMode ? 'Visa alla (Visa alla genrer)' : 'Unhide all (Show all genres)'}">
