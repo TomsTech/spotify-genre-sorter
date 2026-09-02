@@ -85,3 +85,6 @@
 ## 2025-05-28 - [Replacing Spread/Array.from on Map.entries() with standard loops]
 **Learning:** Using spread syntax (`[...map.entries()]`) or `Array.from()` to convert Map iterators into arrays creates hidden intermediate arrays, which increases memory allocations and garbage collection overhead in hot loops.
 **Action:** Replace these operations with a single `for...of` loop over `map.entries()` that pushes elements directly into the target array to avoid creating intermediate arrays.
+## 2024-05-17 - Optimize Track ID Validation Array Iteration
+**Learning:** Using `Array.prototype.slice()` in a loop to limit the number of items iterated over causes unnecessary array allocations, which degrades performance especially in hot paths.
+**Action:** Replace `array.slice(0, N)` in iteration loops with a standard `for` loop, using `Math.min(N, array.length)` as the limit, to avoid allocating a new array.
