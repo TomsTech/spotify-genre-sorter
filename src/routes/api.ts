@@ -881,7 +881,9 @@ api.get('/genres/chunk', async (c) => {
       // PERF-026 FIX: Use Promise.all for parallel API requests instead of sequential loop
       const token = session.spotifyAccessToken;
       const playlistPromises = [];
-      for (const playlistId of playlistIds.slice(0, 5)) {
+      const limit = Math.min(5, playlistIds.length);
+      for (let i = 0; i < limit; i++) {
+        const playlistId = playlistIds[i];
         playlistPromises.push(
           getPlaylistTracks(token, playlistId, 500).catch((e) => {
             console.error(`Error fetching playlist ${playlistId}:`, e);
