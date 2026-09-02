@@ -85,3 +85,5 @@
 **Vulnerability:** The application was not blocking `vbscript:` URLs when validating inputs via the `getSafeUrl` function.
 **Learning:** `vbscript:` is a dangerous protocol that is similar to `javascript:`, often being flagged by static analysis tools (e.g. CodeQL) as a potential vector for XSS.
 **Prevention:** Make sure `getSafeUrl` also sanitizes `vbscript:` prefixes.
+
+## 2024-08-27 - Escaping HTML is not enough for URLs **Vulnerability:** Unsafe URLs in `src` attributes of images due to only escaping HTML characters. **Learning:** Although the original text had HTML characters encoded, the URL format could still be XSS-vulnerable if the protocol itself is dangerous (`javascript:`, `vbscript:`, `data:`). **Prevention:** Validate the protocol on top of encoding HTML characters by parsing the string as a URL and restricting allowed protocols/domains. Use `getSafeUrl()` for `src` and `href` attributes instead of just `escapeHtml()`.
