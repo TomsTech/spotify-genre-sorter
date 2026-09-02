@@ -469,11 +469,13 @@ export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData
   // PERF-002 FIX: Use Promise.all for parallel reads instead of sequential
 
   // Get pioneers (first 10 users) - parallel reads
-  const pioneerKeys = Array.from({ length: 10 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
-  const pioneerPromises = pioneerKeys.map(async key => {
-    const data = await kv.get(key);
-    return data ? JSON.parse(data) as LeaderboardData['pioneers'][number] : null;
-  });
+  const pioneerPromises: Promise<LeaderboardData['pioneers'][number] | null>[] = [];
+  for (let i = 1; i <= 10; i++) {
+    pioneerPromises.push((async () => {
+      const data = await kv.get(`hof:${String(i).padStart(3, '0')}`);
+      return data ? JSON.parse(data) as LeaderboardData['pioneers'][number] : null;
+    })());
+  }
   const parsedPioneers = await Promise.all(pioneerPromises);
   const pioneers = parsedPioneers.filter((p): p is LeaderboardData['pioneers'][number] => p !== null);
 
