@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier } from '../src/lib/spotify';
+import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
@@ -158,6 +158,106 @@ describe('Artist Chunking', () => {
   });
 });
 
+
+describe('fetchWithRetry', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('should retry on 429 rate limit response', async () => {
+    vi.useFakeTimers();
+
+    let attemptCount = 0;
+    global.fetch = vi.fn().mockImplementation(async () => {
+      attemptCount++;
+      if (attemptCount < 3) {
+        return {
+          status: 429,
+          headers: new Headers({ 'Retry-After': '2' }),
+        };
+      }
+      return {
+        status: 200,
+        ok: true,
+      };
+    });
+
+    const promise = fetchWithRetry('https://api.spotify.com/v1/me', {});
+
+    // First wait
+    await vi.advanceTimersByTimeAsync(2000);
+    // Second wait
+    await vi.advanceTimersByTimeAsync(2000);
+
+    const res = await promise;
+    expect(attemptCount).toBe(3);
+    expect(res.status).toBe(200);
+
+      });
+
+  it('should retry on 5xx server errors', async () => {
+    vi.useFakeTimers();
+
+    let attemptCount = 0;
+    global.fetch = vi.fn().mockImplementation(async () => {
+      attemptCount++;
+      if (attemptCount < 2) {
+        return {
+          status: 503,
+          headers: new Headers(),
+        };
+      }
+      return {
+        status: 200,
+        ok: true,
+      };
+    });
+
+    const promise = fetchWithRetry('https://api.spotify.com/v1/me', {});
+
+    // Base delay is 1000ms * 2^0 = 1000ms
+    await vi.advanceTimersByTimeAsync(1000);
+
+    const res = await promise;
+    expect(attemptCount).toBe(2);
+    expect(res.status).toBe(200);
+
+      });
+
+  it('should fallback to 2^attempt * BASE_DELAY if Retry-After is missing', async () => {
+    vi.useFakeTimers();
+
+    let attemptCount = 0;
+    global.fetch = vi.fn().mockImplementation(async () => {
+      attemptCount++;
+      if (attemptCount < 3) {
+        return {
+          status: 429,
+          headers: new Headers(), // Missing Retry-After
+        };
+      }
+      return {
+        status: 200,
+        ok: true,
+      };
+    });
+
+    const promise = fetchWithRetry('https://api.spotify.com/v1/me', {});
+
+    // Attempt 0 -> delay: 1000 * 2^0 = 1000
+    await vi.advanceTimersByTimeAsync(1000);
+
+    // Attempt 1 -> delay: 1000 * 2^1 = 2000
+    await vi.advanceTimersByTimeAsync(2000);
+
+    const res = await promise;
+    expect(attemptCount).toBe(3);
+    expect(res.status).toBe(200);
+
+      });
+});
+
 describe('refreshSpotifyToken', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -189,8 +289,7 @@ describe('refreshSpotifyToken', () => {
     expect(caughtError).toBeInstanceOf(Error);
     expect(caughtError?.message).toBe('Network error');
 
-    vi.useRealTimers();
-  });
+      });
 
   it('should throw an error if the response is not ok', async () => {
     // Mock the global fetch object
