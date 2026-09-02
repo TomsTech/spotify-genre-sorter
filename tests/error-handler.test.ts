@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError, createErrorResponse, withRetry } from '../src/lib/error-handler';
+import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError, createErrorResponse, withRetry, logError } from '../src/lib/error-handler';
+import * as logger from '../src/lib/logger';
 
 
 
@@ -375,5 +376,27 @@ describe('withRetry', () => {
 
     await expect(promise).rejects.toThrow(AppError);
     expect(fn).toHaveBeenCalledTimes(1); // No retries because it's not in the allowlist
+  });
+});
+
+
+
+describe('logError fallback', () => {
+  it('should catch logger errors and fallback to console.error', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(logger, 'createLogger').mockImplementation(() => {
+      throw new Error('Logger setup failed');
+    });
+
+    logError(new Error('Test error'), {
+      executionContext: {} as any,
+    });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to send error to logger:',
+      expect.any(Error)
+    );
+
+    vi.restoreAllMocks();
   });
 });
