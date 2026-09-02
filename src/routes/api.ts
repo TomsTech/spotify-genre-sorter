@@ -2321,9 +2321,10 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
   // PERF-014 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
   const BATCH_SIZE = 40;
   for (let i = 0; i < userStatsList.keys.length; i += BATCH_SIZE) {
-    const chunk = userStatsList.keys.slice(i, i + BATCH_SIZE);
-    const dataPromises = chunk.map(async key => {
+    const end = Math.min(i + BATCH_SIZE, userStatsList.keys.length);
+    const dataPromises = Array.from({ length: end - i }, async (_, j) => {
       try {
+        const key = userStatsList.keys[i + j];
         const statsJson = await kv.get(key.name);
         if (statsJson) {
           const stats = JSON.parse(statsJson) as {
@@ -2360,9 +2361,10 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
   const hofResults: ({ spotifyId: string; spotifyName: string; spotifyAvatar?: string; registeredAt?: string } | null)[] = [];
   for (let i = 0; i < hofKeys.length; i += BATCH_SIZE) {
-    const chunk = hofKeys.slice(i, i + BATCH_SIZE);
-    const hofPromises = chunk.map(async key => {
+    const end = Math.min(i + BATCH_SIZE, hofKeys.length);
+    const hofPromises = Array.from({ length: end - i }, async (_, j) => {
       try {
+        const key = hofKeys[i + j];
         const hofJson = await kv.get(key);
         if (hofJson) {
           return JSON.parse(hofJson) as {
