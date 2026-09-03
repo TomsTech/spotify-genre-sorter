@@ -1571,18 +1571,19 @@ api.get('/listening', async (c) => {
     const listeners: ListeningEntry[] = [];
     const BATCH_SIZE = 40;
     for (let i = 0; i < list.keys.length; i += BATCH_SIZE) {
-      const chunk = list.keys.slice(i, i + BATCH_SIZE);
-      const dataPromises = chunk.map(async key => {
-        try {
-          const data = await kv.get(key.name);
-          if (data) {
-            return JSON.parse(data) as ListeningEntry;
-          }
-        } catch { /* skip malformed entries */ }
-        return null;
-      });
+      const dataPromises = [];
+      const end = Math.min(i + BATCH_SIZE, list.keys.length);
+      for (let j = i; j < end; j++) {
+        dataPromises.push(
+          kv.get(list.keys[j].name)
+            .then(data => data ? (JSON.parse(data) as ListeningEntry) : null)
+            .catch(() => null)
+        );
+      }
       const dataResults = await Promise.all(dataPromises);
-      listeners.push(...dataResults.filter((entry): entry is ListeningEntry => entry !== null));
+      for (const entry of dataResults) {
+        if (entry !== null) listeners.push(entry);
+      }
     }
 
     return c.json({
@@ -2281,13 +2282,13 @@ api.post('/admin/clear-cache', async (c) => {
         // PERF-024 FIX: Use Promise.all for parallel KV deletes
 
         // Chunk the keys to avoid exceeding the 50 subrequest limit in Cloudflare Workers
-        const chunks = [];
         for (let i = 0; i < list.keys.length; i += 45) {
-          chunks.push(list.keys.slice(i, i + 45));
-        }
-
-        for (const chunk of chunks) {
-          await Promise.all(chunk.map(key => kv.delete(key.name)));
+          const chunkPromises = [];
+          const end = Math.min(i + 45, list.keys.length);
+          for (let j = i; j < end; j++) {
+            chunkPromises.push(kv.delete(list.keys[j].name));
+          }
+          await Promise.all(chunkPromises);
         }
 
         cleared += list.keys.length;
@@ -2471,17 +2472,19 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   const hofResults: ({ spotifyId?: string } | null)[] = [];
   const BATCH_SIZE = 40;
   for (let i = 0; i < hofKeys.length; i += BATCH_SIZE) {
-    const chunk = hofKeys.slice(i, i + BATCH_SIZE);
-    const hofPromises = chunk.map(async key => {
-      try {
-        const hofJson = await kv.get(key);
-        if (hofJson) {
-          return JSON.parse(hofJson) as { spotifyId?: string };
-        }
-      } catch { /* skip malformed entries */ }
-      return null;
-    });
-    hofResults.push(...await Promise.all(hofPromises));
+    const hofPromises = [];
+    const end = Math.min(i + BATCH_SIZE, hofKeys.length);
+    for (let j = i; j < end; j++) {
+      hofPromises.push(
+        kv.get(hofKeys[j])
+          .then(hofJson => hofJson ? (JSON.parse(hofJson) as { spotifyId?: string }) : null)
+          .catch(() => null)
+      );
+    }
+    const chunkResults = await Promise.all(hofPromises);
+    for (const res of chunkResults) {
+      if (res !== null) hofResults.push(res);
+    }
   }
 
   for (let i = 0; i < hofResults.length; i++) {
@@ -2500,20 +2503,24 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
   // PERF-021 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
   for (let i = 0; i < sessionsList.keys.length; i += BATCH_SIZE) {
-    const chunk = sessionsList.keys.slice(i, i + BATCH_SIZE);
-    const sessionPromises = chunk.map(async key => {
-      try {
-        const sessionJson = await kv.get(key.name);
-        if (sessionJson) {
-          const sessionData = JSON.parse(sessionJson) as { spotifyUserId?: string };
-          if (sessionData.spotifyUserId === spotifyId) {
-            await cachedKV.delete(kv, key.name);
-            return key.name;
-          }
-        }
-      } catch { /* skip malformed sessions */ }
-      return null;
-    });
+    const sessionPromises = [];
+    const end = Math.min(i + BATCH_SIZE, sessionsList.keys.length);
+    for (let j = i; j < end; j++) {
+      const keyName = sessionsList.keys[j].name;
+      sessionPromises.push(
+        kv.get(keyName)
+          .then(sessionJson => {
+            if (sessionJson) {
+              const sessionData = JSON.parse(sessionJson) as { spotifyUserId?: string };
+              if (sessionData.spotifyUserId === spotifyId) {
+                return cachedKV.delete(kv, keyName).then(() => keyName);
+              }
+            }
+            return null;
+          })
+          .catch(() => null)
+      );
+    }
 
     const sessionResults = await Promise.all(sessionPromises);
     for (const keyName of sessionResults) {
@@ -2750,18 +2757,19 @@ api.get('/admin/access-requests', async (c) => {
   const requests: AccessRequest[] = [];
   const BATCH_SIZE = 40;
   for (let i = 0; i < requestKeys.length; i += BATCH_SIZE) {
-    const chunk = requestKeys.slice(i, i + BATCH_SIZE);
-    const dataPromises = chunk.map(async key => {
-      try {
-        const data = await kv.get(key);
-        if (data) {
-          return JSON.parse(data) as AccessRequest;
-        }
-      } catch { /* skip malformed entries */ }
-      return null;
-    });
+    const dataPromises = [];
+    const end = Math.min(i + BATCH_SIZE, requestKeys.length);
+    for (let j = i; j < end; j++) {
+      dataPromises.push(
+        kv.get(requestKeys[j])
+          .then(data => data ? (JSON.parse(data) as AccessRequest) : null)
+          .catch(() => null)
+      );
+    }
     const dataResults = await Promise.all(dataPromises);
-    requests.push(...dataResults.filter((req): req is AccessRequest => req !== null));
+    for (const req of dataResults) {
+      if (req !== null) requests.push(req);
+    }
   }
 
   // Sort by most recent first
