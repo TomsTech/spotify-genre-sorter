@@ -95,3 +95,6 @@
 ## 2026-09-02 - [Replacing Array.from/map chains with direct loops]
 **Learning:** Using `Array.from()` combined with `.map()` to generate dynamic arrays of Promises creates unnecessary intermediate arrays and closures, increasing memory allocation and CPU overhead.
 **Action:** Replace `Array.from(...).map(...)` chains with a standard `for` loop that directly populates a pre-initialized array (e.g. `const arr = []`) to avoid intermediate allocations and reduce garbage collection pressure.
+## 2024-05-19 - Replace reduce() with loops for performance
+**Learning:** Using `reduce()` can result in slower execution speeds due to function overhead in each iteration, compared to a direct for loop or for...of loop. This is especially relevant in frequently called performance paths or when iterating over large datasets.
+**Action:** Replace `reduce()` calls with `for` loops or `for...of` loops where possible to eliminate the callback overhead and avoid potential intermediate array creations (if used with map/filter before it), which reduces garbage collection pressure and increases throughput.

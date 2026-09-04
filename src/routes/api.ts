@@ -1984,10 +1984,16 @@ api.get('/admin/perf', async (c) => {
     );
 
     const avg = (key: string) => {
-      const values = validSamples
-        .map(s => s[key])
-        .filter((v): v is number => typeof v === 'number' && v > 0);
-      return values.length > 0 ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
+      let sum = 0;
+      let count = 0;
+      for (const s of validSamples) {
+        const v = s[key];
+        if (typeof v === 'number' && v > 0) {
+          sum += v;
+          count++;
+        }
+      }
+      return count > 0 ? Math.round(sum / count) : 0;
     };
 
     return c.json({
