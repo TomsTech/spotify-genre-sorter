@@ -1983,11 +1983,19 @@ api.get('/admin/perf', async (c) => {
       typeof s === 'object' && s !== null && typeof (s as Record<string, unknown>).pageLoadTime === 'number'
     );
 
+    // PERF-FIX: Replaced chained .map().filter().reduce() with a direct loop
+    // Prevents creating multiple intermediate arrays and reduces GC pressure during metric aggregations
     const avg = (key: string) => {
-      const values = validSamples
-        .map(s => s[key])
-        .filter((v): v is number => typeof v === 'number' && v > 0);
-      return values.length > 0 ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
+      let sum = 0;
+      let count = 0;
+      for (const sample of validSamples) {
+        const val = sample[key];
+        if (typeof val === 'number' && val > 0) {
+          sum += val;
+          count++;
+        }
+      }
+      return count > 0 ? Math.round(sum / count) : 0;
     };
 
     return c.json({
