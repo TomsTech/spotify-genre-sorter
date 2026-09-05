@@ -8488,7 +8488,7 @@ export function getHtml(nonce: string): string {
   </svg>
 
   <!-- Viking ship Easter egg (only in Swedish mode) -->
-  <div class="viking-ship" title="Vikingaskepp!">⛵</div>
+  <div class="viking-ship" title="Vikingaskepp!" aria-label="Vikingaskepp" role="img">⛵</div>
 
   <div class="app-wrapper">
     <header class="app-header">
@@ -9658,7 +9658,7 @@ export function getHtml(nonce: string): string {
                       <td style="padding: 0.75rem;">\${(ns.totalSize / 1024).toFixed(2)} KB</td>
                       <td style="padding: 0.75rem;">\${ns.avgSize} bytes</td>
                       <td style="padding: 0.75rem;">
-                        <button class="btn btn-ghost btn-sm" onclick="browseKVKeys('\${ns.prefix}', '\${ns.name}')">
+                        <button class="btn btn-ghost btn-sm" aria-label="Browse \${escapeHtml(ns.name)}" onclick="browseKVKeys('\${ns.prefix}', '\${ns.name}')">
                           🔍 Browse
                         </button>
                       </td>
@@ -9737,10 +9737,10 @@ export function getHtml(nonce: string): string {
                           \${key.expiresAt ? new Date(key.expiresAt).toLocaleString() : 'Never'}
                         </td>
                         <td style="padding: 0.75rem; white-space: nowrap;">
-                          <button class="btn btn-ghost btn-sm" onclick="viewKVKey('\${escapeHtml(key.name).replace(/'/g, "\\\\'")}')">
+                          <button class="btn btn-ghost btn-sm" aria-label="View \${escapeHtml(key.name)}" onclick="viewKVKey('\${escapeHtml(key.name).replace(/'/g, "\\\\'")}')">
                             👁️ View
                           </button>
-                          <button class="btn btn-ghost btn-sm" style="color: #ff4444;" onclick="deleteKVKey('\${escapeHtml(key.name).replace(/'/g, "\\\\'")}', '\${prefix}', '\${namespaceName}')">
+                          <button class="btn btn-ghost btn-sm" aria-label="Delete \${escapeHtml(key.name)}" style="color: #ff4444;" onclick="deleteKVKey('\${escapeHtml(key.name).replace(/'/g, "\\\\'")}', '\${prefix}', '\${namespaceName}')">
                             🗑️ Delete
                           </button>
                         </td>
