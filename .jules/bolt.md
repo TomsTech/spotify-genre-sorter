@@ -95,3 +95,10 @@
 ## 2026-09-02 - [Replacing Array.from/map chains with direct loops]
 **Learning:** Using `Array.from()` combined with `.map()` to generate dynamic arrays of Promises creates unnecessary intermediate arrays and closures, increasing memory allocation and CPU overhead.
 **Action:** Replace `Array.from(...).map(...)` chains with a standard `for` loop that directly populates a pre-initialized array (e.g. `const arr = []`) to avoid intermediate allocations and reduce garbage collection pressure.
+## 2026-09-02 - [Avoid chaining functional methods for performance metrics]
+**Learning:** Chaining `.map().filter().reduce()` when aggregating performance metrics creates hidden intermediate arrays, which negatively impacts GC performance.
+**Action:** Always replace these chains with a single `for...of` loop tracking sum and count directly to eliminate overhead.
+
+## 2026-09-02 - [Avoid duplicate loops over object values]
+**Learning:** Using `Object.values(obj).reduce(...)` multiple times to sum different fields forces the JavaScript engine to recreate the values array and iterate the same object twice.
+**Action:** Replace multiple `Object.values(obj).reduce(...)` calls with a single `for (const val of Object.values(obj))` to compute multiple aggregations in one pass.
