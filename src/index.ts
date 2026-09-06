@@ -198,8 +198,17 @@ app.get('/kv-health', async (c) => {
       },
     };
 
-    const estimatedReads = Object.values(breakdown).reduce((sum, cat) => sum + cat.reads, 0);
-    const estimatedWrites = Object.values(breakdown).reduce((sum, cat) => sum + cat.writes, 0);
+    // ⚡ Bolt: Optimize KV usage estimation
+    // Using a for...in loop directly over the object avoids allocating intermediate arrays
+    // created by Object.values(breakdown), saving memory and reducing garbage collection pressure.
+    // This reduces iterations from 3 (Object.values + 2 reduces) to a single O(n) pass.
+    let estimatedReads = 0;
+    let estimatedWrites = 0;
+    for (const key in breakdown) {
+      const cat = breakdown[key as keyof typeof breakdown];
+      estimatedReads += cat.reads;
+      estimatedWrites += cat.writes;
+    }
 
     const readUsagePercent = Math.round((estimatedReads / READ_LIMIT) * 100);
     const writeUsagePercent = Math.round((estimatedWrites / WRITE_LIMIT) * 100);
