@@ -198,8 +198,14 @@ app.get('/kv-health', async (c) => {
       },
     };
 
-    const estimatedReads = Object.values(breakdown).reduce((sum, cat) => sum + cat.reads, 0);
-    const estimatedWrites = Object.values(breakdown).reduce((sum, cat) => sum + cat.writes, 0);
+    let estimatedReads = 0;
+    for (const cat of Object.values(breakdown)) {
+      estimatedReads += cat.reads;
+    }
+    let estimatedWrites = 0;
+    for (const cat of Object.values(breakdown)) {
+      estimatedWrites += cat.writes;
+    }
 
     const readUsagePercent = Math.round((estimatedReads / READ_LIMIT) * 100);
     const writeUsagePercent = Math.round((estimatedWrites / WRITE_LIMIT) * 100);
