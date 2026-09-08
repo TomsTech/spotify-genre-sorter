@@ -340,7 +340,10 @@ export async function cleanupOldArtistGenreCache(
         const chunkResults = await Promise.all(checkPromises);
         results.push(...chunkResults);
       }
-      deletedCount += results.reduce<number>((sum, count) => sum + count, 0);
+      // PERF-FIX: Replace reduce() with native loop for better memory efficiency
+      for (let j = 0; j < results.length; j++) {
+        deletedCount += results[j];
+      }
 
       hasMore = !list.list_complete;
       cursor = list.list_complete ? undefined : (list as { cursor?: string }).cursor;

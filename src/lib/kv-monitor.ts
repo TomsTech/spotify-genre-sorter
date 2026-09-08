@@ -92,10 +92,12 @@ export async function getKVMonitorData(kv: KVNamespace): Promise<KVMonitorRespon
       try {
         const list = await kv.list({ prefix, limit: 1000 });
         const keyCount = list.keys.length;
-        const totalSize = list.keys.reduce((sum, key) => {
-          const metadata = key.metadata as { size?: number } | undefined;
-          return sum + (metadata?.size || 0);
-        }, 0);
+        // PERF-FIX: Replace reduce() with native loop for better memory efficiency
+        let totalSize = 0;
+        for (let i = 0; i < list.keys.length; i++) {
+          const metadata = list.keys[i].metadata as { size?: number } | undefined;
+          totalSize += metadata?.size || 0;
+        }
         const truncated = list.list_complete === false;
 
         // Get sample keys for preview (first 5)
@@ -136,8 +138,13 @@ export async function getKVMonitorData(kv: KVNamespace): Promise<KVMonitorRespon
   );
 
   // Calculate totals
-  const totalKeys = namespaceData.reduce((sum, ns) => sum + ns.keyCount, 0);
-  const totalSize = namespaceData.reduce((sum, ns) => sum + ns.totalSize, 0);
+  // PERF-FIX: Replace reduce() with native loop for better memory efficiency
+  let totalKeys = 0;
+  let totalSize = 0;
+  for (let i = 0; i < namespaceData.length; i++) {
+    totalKeys += namespaceData[i].keyCount;
+    totalSize += namespaceData[i].totalSize;
+  }
 
   // Calculate usage percentages
   const keyUsagePercent = (totalKeys / KV_LIMITS.maxKeys) * 100;

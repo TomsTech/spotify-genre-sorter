@@ -1984,10 +1984,17 @@ api.get('/admin/perf', async (c) => {
     );
 
     const avg = (key: string) => {
-      const values = validSamples
-        .map(s => s[key])
-        .filter((v): v is number => typeof v === 'number' && v > 0);
-      return values.length > 0 ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
+      // PERF-FIX: Replace reduce() with native loop for better memory efficiency
+      let sum = 0;
+      let count = 0;
+      for (let i = 0; i < validSamples.length; i++) {
+        const val = validSamples[i][key];
+        if (typeof val === 'number' && val > 0) {
+          sum += val;
+          count++;
+        }
+      }
+      return count > 0 ? Math.round(sum / count) : 0;
     };
 
     return c.json({

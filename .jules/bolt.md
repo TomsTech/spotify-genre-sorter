@@ -95,3 +95,6 @@
 ## 2026-09-02 - [Replacing Array.from/map chains with direct loops]
 **Learning:** Using `Array.from()` combined with `.map()` to generate dynamic arrays of Promises creates unnecessary intermediate arrays and closures, increasing memory allocation and CPU overhead.
 **Action:** Replace `Array.from(...).map(...)` chains with a standard `for` loop that directly populates a pre-initialized array (e.g. `const arr = []`) to avoid intermediate allocations and reduce garbage collection pressure.
+## 2024-09-08 - Replacing Array.prototype.reduce with native for loops
+**Learning:** Using `Array.prototype.reduce()` in frequently executed paths or when iterating over large datasets creates unnecessary garbage collection pressure and callback function overhead compared to standard `for` or `for...of` loops.
+**Action:** Replace `Array.prototype.reduce()` with native `for`/`for...of` loops for performance-critical aggregation logic across both frontend and backend systems, improving memory efficiency and processing speed.

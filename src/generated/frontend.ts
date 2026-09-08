@@ -8905,10 +8905,15 @@ export function getHtml(nonce: string): string {
         }
       }
 
-      const totalTracks = [...genresToMerge].reduce((sum, name) => {
-        const genre = genreData.genres.find(g => g.name === name);
-        return sum + (genre ? genre.count : 0);
-      }, 0);
+      // PERF-FIX: Eliminate intermediate arrays and reduce() overhead
+      let totalTracks = 0;
+      // PERF-FIX: Eliminate intermediate array allocation from [...genresToMerge] spread.
+      // Iterating directly over the Set prevents GC pressure.
+      for (const name of genresToMerge) {
+        const genre = genreData.genres.find((g) => g.name === name);
+        if (genre) totalTracks += genre.count;
+      }
+
 
       toolbar.innerHTML = [
         '<span class="merge-count">' + genresToMerge.size + (swedishMode ? ' genrer valda' : ' genres selected') + '</span>',
@@ -8940,7 +8945,11 @@ export function getHtml(nonce: string): string {
         return { name, count: genre ? genre.count : 0 };
       }).sort((a, b) => b.count - a.count);
 
-      const totalTracks = genreItems.reduce((sum, g) => sum + g.count, 0);
+      // PERF-FIX: Replace reduce() with native loop for better memory efficiency
+      let totalTracks = 0;
+      for (let i = 0; i < genreItems.length; i++) {
+        totalTracks += genreItems[i].count;
+      }
       const suggestedName = genreNames.slice(0, 3).join(' + ') + (genreNames.length > 3 ? ' +more' : '');
 
       const modal = document.createElement('div');
@@ -12722,7 +12731,11 @@ export function getHtml(nonce: string): string {
     // === Stats Dashboard Functions ===
     function calculateDiversityScore(genres) {
       if (!genres || genres.length === 0) return 0;
-      const total = genres.reduce((sum, g) => sum + g.count, 0);
+      // PERF-FIX: Replace reduce() with native loop for better memory efficiency
+      let total = 0;
+      for (let i = 0; i < genres.length; i++) {
+        total += genres[i].count;
+      }
       if (total === 0) return 0;
       // Shannon diversity index (normalized to 0-100)
       let entropy = 0;
@@ -12875,7 +12888,11 @@ export function getHtml(nonce: string): string {
 
     function calculateAvgGenresPerTrack() {
       if (!genreData?.genres || genreData.totalTracks === 0) return 0;
-      const totalGenreAssignments = genreData.genres.reduce((sum, g) => sum + g.count, 0);
+      // PERF-FIX: Replace reduce() with native loop for better memory efficiency
+      let totalGenreAssignments = 0;
+      for (let i = 0; i < genreData.genres.length; i++) {
+        totalGenreAssignments += genreData.genres[i].count;
+      }
       return (totalGenreAssignments / genreData.totalTracks).toFixed(1);
     }
 

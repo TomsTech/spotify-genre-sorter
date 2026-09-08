@@ -198,8 +198,14 @@ app.get('/kv-health', async (c) => {
       },
     };
 
-    const estimatedReads = Object.values(breakdown).reduce((sum, cat) => sum + cat.reads, 0);
-    const estimatedWrites = Object.values(breakdown).reduce((sum, cat) => sum + cat.writes, 0);
+    // PERF-FIX: Eliminate intermediate arrays and reduce() overhead
+    const breakdownValues = Object.values(breakdown);
+    let estimatedReads = 0;
+    let estimatedWrites = 0;
+    for (let i = 0; i < breakdownValues.length; i++) {
+      estimatedReads += breakdownValues[i].reads;
+      estimatedWrites += breakdownValues[i].writes;
+    }
 
     const readUsagePercent = Math.round((estimatedReads / READ_LIMIT) * 100);
     const writeUsagePercent = Math.round((estimatedWrites / WRITE_LIMIT) * 100);
