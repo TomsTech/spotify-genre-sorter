@@ -2240,9 +2240,10 @@ api.get('/admin', async (c) => {
   // PERF-023 FIX: Use Promise.all for parallel KV listing
   // PERF-031 FIX: Parallelize getAnalytics and KV listing
   const prefixes = ['session:', 'user:', 'user_stats:', 'hof:', 'genre_cache_', 'scan_progress:'];
-  const [analytics, ...listResults] = await Promise.all([
+  const listPromises = prefixes.map(prefix => kv.list({ prefix, limit: 1000 }));
+  const [analytics, listResults] = await Promise.all([
     getAnalytics(kv),
-    ...prefixes.map(prefix => kv.list({ prefix, limit: 1000 }))
+    Promise.all(listPromises)
   ]);
 
   const keyCounts: Record<string, number> = {};
