@@ -10473,7 +10473,7 @@ export function getHtml(nonce: string): string {
       prompt.className = 'deploy-refresh-prompt';
       prompt.innerHTML = \`
         <h3>🚀 New Version Available!</h3>
-        <p>Version \${newVersion} has been deployed. Refresh to get the latest features.</p>
+        <p>Version \${escapeHtml(newVersion)} has been deployed. Refresh to get the latest features.</p>
         <button class="btn btn-primary version-refresh-btn">Refresh Now</button>
         <button class="btn btn-secondary version-later-btn" style="margin-left: 0.5rem;">Later</button>
       \`;
@@ -11585,7 +11585,7 @@ export function getHtml(nonce: string): string {
 
       app.innerHTML = \`
         <div class="welcome">
-          \${error ? \`<div class="error">\${errorMessages[error] || error}\${requestAccessButton}</div>\` : ''}
+          \${error ? \`<div class="error">\${errorMessages[error] || escapeHtml(error)}\${requestAccessButton}</div>\` : ''}
           \${userCounterHtml}
           <h2 data-i18n="organiseMusic">\${t('organiseMusic')}</h2>
           <p data-i18n="organiseDesc">\${t('organiseDesc')}</p>
@@ -14494,7 +14494,7 @@ export function getHtml(nonce: string): string {
       if (!url) return '';
       const safeStr = String(url);
       // Remove control characters and whitespace
-      const cleaned = safeStr.replace(/[\x00-\x1F\s]/g, '').toLowerCase();
+      const cleaned = safeStr.replace(/[\x00-\x20\x7F-\x9F\s]/g, '').toLowerCase();
 
       // Block javascript:, vbscript: and dangerous data: types (allow images)
       if (cleaned.startsWith('javascript:') ||

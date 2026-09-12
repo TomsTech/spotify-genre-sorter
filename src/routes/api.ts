@@ -878,7 +878,6 @@ api.get('/genres/chunk', async (c) => {
 
     // Fetch from playlists first (only on first chunk to avoid re-fetching)
     if (playlistIds.length > 0 && offset === 0) {
-      // PERF-026 FIX: Use Promise.all for parallel API requests instead of sequential loop
       const token = session.spotifyAccessToken;
       const playlistPromises = [];
       const limit = Math.min(5, playlistIds.length);
@@ -993,7 +992,6 @@ api.get('/genres/chunk', async (c) => {
     };
 
     // Cache this chunk
-    // CRITICAL FIX: Use cachedKV for chunk cache writes
     await cachedKV.put(c.env.SESSIONS, chunkCacheKey, JSON.stringify(chunkData), {
       expirationTtl: GENRE_CACHE_TTL,
       immediate: false // Can be batched - chunks are accessed sequentially
@@ -1567,7 +1565,6 @@ api.get('/listening', async (c) => {
       updatedAt: string;
     }
 
-    // PERF-013 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
     const listeners: ListeningEntry[] = [];
     const BATCH_SIZE = 40;
     for (let i = 0; i < list.keys.length; i += BATCH_SIZE) {
@@ -2498,7 +2495,6 @@ api.delete('/admin/user/:spotifyId', async (c) => {
 
   // Find and delete any active sessions for this user
   const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
-  // PERF-021 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
   for (let i = 0; i < sessionsList.keys.length; i += BATCH_SIZE) {
     const chunk = sessionsList.keys.slice(i, i + BATCH_SIZE);
     const sessionPromises = chunk.map(async key => {
