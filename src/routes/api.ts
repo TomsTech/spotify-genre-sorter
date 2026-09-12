@@ -1571,8 +1571,9 @@ api.get('/listening', async (c) => {
     const listeners: ListeningEntry[] = [];
     const BATCH_SIZE = 40;
     for (let i = 0; i < list.keys.length; i += BATCH_SIZE) {
-      const chunk = list.keys.slice(i, i + BATCH_SIZE);
-      const dataPromises = chunk.map(async key => {
+      const size = Math.min(BATCH_SIZE, list.keys.length - i);
+      const dataPromises = Array.from({ length: size }, async (_, j) => {
+        const key = list.keys[i + j];
         try {
           const data = await kv.get(key.name);
           if (data) {
@@ -2471,8 +2472,9 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   const hofResults: ({ spotifyId?: string } | null)[] = [];
   const BATCH_SIZE = 40;
   for (let i = 0; i < hofKeys.length; i += BATCH_SIZE) {
-    const chunk = hofKeys.slice(i, i + BATCH_SIZE);
-    const hofPromises = chunk.map(async key => {
+    const size = Math.min(BATCH_SIZE, hofKeys.length - i);
+    const hofPromises = Array.from({ length: size }, async (_, j) => {
+      const key = hofKeys[i + j];
       try {
         const hofJson = await kv.get(key);
         if (hofJson) {
@@ -2500,8 +2502,10 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
   // PERF-021 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
   for (let i = 0; i < sessionsList.keys.length; i += BATCH_SIZE) {
-    const chunk = sessionsList.keys.slice(i, i + BATCH_SIZE);
-    const sessionPromises = chunk.map(async key => {
+    // Optimization: Use Array.from instead of .slice().map() to bypass intermediate array allocation
+    const size = Math.min(BATCH_SIZE, sessionsList.keys.length - i);
+    const sessionPromises = Array.from({ length: size }, async (_, j) => {
+      const key = sessionsList.keys[i + j];
       try {
         const sessionJson = await kv.get(key.name);
         if (sessionJson) {
@@ -2750,8 +2754,9 @@ api.get('/admin/access-requests', async (c) => {
   const requests: AccessRequest[] = [];
   const BATCH_SIZE = 40;
   for (let i = 0; i < requestKeys.length; i += BATCH_SIZE) {
-    const chunk = requestKeys.slice(i, i + BATCH_SIZE);
-    const dataPromises = chunk.map(async key => {
+    const size = Math.min(BATCH_SIZE, requestKeys.length - i);
+    const dataPromises = Array.from({ length: size }, async (_, j) => {
+      const key = requestKeys[i + j];
       try {
         const data = await kv.get(key);
         if (data) {
