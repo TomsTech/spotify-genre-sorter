@@ -878,7 +878,6 @@ api.get('/genres/chunk', async (c) => {
 
     // Fetch from playlists first (only on first chunk to avoid re-fetching)
     if (playlistIds.length > 0 && offset === 0) {
-      // PERF-026 FIX: Use Promise.all for parallel API requests instead of sequential loop
       const token = session.spotifyAccessToken;
       const playlistPromises = [];
       const limit = Math.min(5, playlistIds.length);
@@ -993,7 +992,6 @@ api.get('/genres/chunk', async (c) => {
     };
 
     // Cache this chunk
-    // CRITICAL FIX: Use cachedKV for chunk cache writes
     await cachedKV.put(c.env.SESSIONS, chunkCacheKey, JSON.stringify(chunkData), {
       expirationTtl: GENRE_CACHE_TTL,
       immediate: false // Can be batched - chunks are accessed sequentially
@@ -1567,7 +1565,6 @@ api.get('/listening', async (c) => {
       updatedAt: string;
     }
 
-    // PERF-013 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
     const listeners: ListeningEntry[] = [];
     const BATCH_SIZE = 40;
     for (let i = 0; i < list.keys.length; i += BATCH_SIZE) {
@@ -2243,9 +2240,10 @@ api.get('/admin', async (c) => {
   // PERF-023 FIX: Use Promise.all for parallel KV listing
   // PERF-031 FIX: Parallelize getAnalytics and KV listing
   const prefixes = ['session:', 'user:', 'user_stats:', 'hof:', 'genre_cache_', 'scan_progress:'];
-  const [analytics, ...listResults] = await Promise.all([
+  const listPromises = prefixes.map(prefix => kv.list({ prefix, limit: 1000 }));
+  const [analytics, listResults] = await Promise.all([
     getAnalytics(kv),
-    ...prefixes.map(prefix => kv.list({ prefix, limit: 1000 }))
+    Promise.all(listPromises)
   ]);
 
   const keyCounts: Record<string, number> = {};
@@ -2471,8 +2469,9 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   const hofResults: ({ spotifyId?: string } | null)[] = [];
   const BATCH_SIZE = 40;
   for (let i = 0; i < hofKeys.length; i += BATCH_SIZE) {
-    const chunk = hofKeys.slice(i, i + BATCH_SIZE);
-    const hofPromises = chunk.map(async key => {
+    const end = Math.min(i + BATCH_SIZE, hofKeys.length);
+    const hofPromises = Array.from({ length: end - i }, async (_, j) => {
+      const key = hofKeys[i + j];
       try {
         const hofJson = await kv.get(key);
         if (hofJson) {
@@ -2498,7 +2497,6 @@ api.delete('/admin/user/:spotifyId', async (c) => {
 
   // Find and delete any active sessions for this user
   const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
-  // PERF-021 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
   for (let i = 0; i < sessionsList.keys.length; i += BATCH_SIZE) {
     // ⚡ Bolt: Avoid intermediate array allocation from slice().map() by using Array.from()
     const chunkSize = Math.min(BATCH_SIZE, sessionsList.keys.length - i);
