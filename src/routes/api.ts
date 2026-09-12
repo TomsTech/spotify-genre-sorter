@@ -2281,13 +2281,13 @@ api.post('/admin/clear-cache', async (c) => {
         // PERF-024 FIX: Use Promise.all for parallel KV deletes
 
         // Chunk the keys to avoid exceeding the 50 subrequest limit in Cloudflare Workers
-        const chunks = [];
         for (let i = 0; i < list.keys.length; i += 45) {
-          chunks.push(list.keys.slice(i, i + 45));
-        }
-
-        for (const chunk of chunks) {
-          await Promise.all(chunk.map(key => kv.delete(key.name)));
+          const chunkPromises = [];
+          const end = Math.min(i + 45, list.keys.length);
+          for (let j = i; j < end; j++) {
+            chunkPromises.push(kv.delete(list.keys[j].name));
+          }
+          await Promise.all(chunkPromises);
         }
 
         cleared += list.keys.length;
