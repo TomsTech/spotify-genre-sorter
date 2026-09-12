@@ -701,10 +701,12 @@ api.get('/genres/progressive', async (c) => {
 
       const cacheKey = `${GENRE_CACHE_PREFIX}${user.id}`;
       // CRITICAL FIX: Use cachedKV for progressive scan final cache
-      await cachedKV.put(c.env.SESSIONS, cacheKey, JSON.stringify(finalData), {
-        expirationTtl: GENRE_CACHE_TTL_LARGE,
-        immediate: false
-      });
+      c.executionCtx.waitUntil(
+        cachedKV.put(c.env.SESSIONS, cacheKey, JSON.stringify(finalData), {
+          expirationTtl: GENRE_CACHE_TTL_LARGE,
+          immediate: false
+        })
+      );
 
       // Update user stats
       c.executionCtx.waitUntil(
