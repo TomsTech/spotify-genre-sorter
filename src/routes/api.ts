@@ -2500,8 +2500,10 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
   // PERF-021 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
   for (let i = 0; i < sessionsList.keys.length; i += BATCH_SIZE) {
-    const chunk = sessionsList.keys.slice(i, i + BATCH_SIZE);
-    const sessionPromises = chunk.map(async key => {
+    // ⚡ Bolt: Avoid intermediate array allocation from slice().map() by using Array.from()
+    const chunkSize = Math.min(BATCH_SIZE, sessionsList.keys.length - i);
+    const sessionPromises = Array.from({ length: chunkSize }, async (_, j) => {
+      const key = sessionsList.keys[i + j];
       try {
         const sessionJson = await kv.get(key.name);
         if (sessionJson) {
