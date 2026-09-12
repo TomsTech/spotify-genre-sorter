@@ -71,7 +71,6 @@ app.use('*', async (c, next) => {
 });
 
 // BetterStack request logging middleware (logs errors and slow requests)
-// CRITICAL FIX: Flush KV write queue at end of each request
 // This ensures batched writes are persisted even if worker terminates
 app.use('*', async (c, next) => {
   await next();

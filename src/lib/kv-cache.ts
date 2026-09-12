@@ -232,11 +232,12 @@ export const cachedKV = {
     checkMetricsReset();
 
     // Update memory cache
+    const memTtl = Math.min((options?.expirationTtl || 3600) * 1000, MEMORY_CACHE_DEFAULT_TTL);
     try {
       const parsed: unknown = JSON.parse(value);
-      memoryCache.set(key, parsed, (options?.expirationTtl || 3600) * 1000);
+      memoryCache.set(key, parsed, memTtl);
     } catch {
-      memoryCache.set(key, value, (options?.expirationTtl || 3600) * 1000);
+      memoryCache.set(key, value, memTtl);
     }
 
     if (options?.immediate) {
