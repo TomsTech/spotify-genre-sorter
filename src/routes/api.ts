@@ -2327,13 +2327,20 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
 
   // PERF-014 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
   const BATCH_SIZE = 40;
-  for (let i = 0; i < userStatsList.keys.length; i += BATCH_SIZE) {
-    const end = Math.min(i + BATCH_SIZE, userStatsList.keys.length);
-    const dataPromises = Array.from({ length: end - i }, async (_, j) => {
-      try {
-        const key = userStatsList.keys[i + j];
-        const statsJson = await kv.get(key.name);
-        if (statsJson) {
+
+  const statsKeys = userStatsList.keys;
+  const statsLen = statsKeys.length;
+  for (let i = 0; i < statsLen; i += BATCH_SIZE) {
+    const end = Math.min(i + BATCH_SIZE, statsLen);
+    const size = end - i;
+
+    // Instead of Array.from with an async function mapping that creates intermediate closures,
+    // pre-allocate the array and build simple promises to reduce memory overhead and latency
+    const dataPromises = Array<Promise<AdminUser | null>>(size);
+    for (let j = 0; j < size; j++) {
+      dataPromises[j] = kv.get(statsKeys[i + j].name).then(statsJson => {
+        if (!statsJson) return null;
+        try {
           const stats = JSON.parse(statsJson) as {
             spotifyId: string;
             spotifyName: string;
@@ -2350,13 +2357,16 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
             registeredAt: stats.firstSeen || 'Unknown',
             lastActive: stats.lastActive || null,
           };
+        } catch {
+          /* skip malformed entries */
+          return null;
         }
-      } catch { /* skip malformed entries */ }
-      return null;
-    });
+      }).catch(() => null);
+    }
 
     const dataResults = await Promise.all(dataPromises);
-    for (const user of dataResults) {
+    for (let j = 0; j < size; j++) {
+      const user = dataResults[j];
       if (user) {
         seenIds.add(user.spotifyId);
         users.push(user);
@@ -2367,24 +2377,32 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
   // Also fetch HoF users (pioneers) who might not have user_stats entries
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
   const hofResults: ({ spotifyId: string; spotifyName: string; spotifyAvatar?: string; registeredAt?: string } | null)[] = [];
-  for (let i = 0; i < hofKeys.length; i += BATCH_SIZE) {
-    const end = Math.min(i + BATCH_SIZE, hofKeys.length);
-    const hofPromises = Array.from({ length: end - i }, async (_, j) => {
-      try {
-        const key = hofKeys[i + j];
-        const hofJson = await kv.get(key);
-        if (hofJson) {
+  const hofLen = hofKeys.length;
+  for (let i = 0; i < hofLen; i += BATCH_SIZE) {
+    const end = Math.min(i + BATCH_SIZE, hofLen);
+    const size = end - i;
+
+    const hofPromises = Array<Promise<{ spotifyId: string; spotifyName: string; spotifyAvatar?: string; registeredAt?: string } | null>>(size);
+    for (let j = 0; j < size; j++) {
+      hofPromises[j] = kv.get(hofKeys[i + j]).then(hofJson => {
+        if (!hofJson) return null;
+        try {
           return JSON.parse(hofJson) as {
             spotifyId: string;
             spotifyName: string;
             spotifyAvatar?: string;
             registeredAt?: string;
           };
+        } catch {
+          /* skip malformed entries */
+          return null;
         }
-      } catch { /* skip malformed entries */ }
-      return null;
-    });
-    hofResults.push(...await Promise.all(hofPromises));
+      }).catch(() => null);
+    }
+    const chunkResults = await Promise.all(hofPromises);
+    for (let j = 0; j < size; j++) {
+        hofResults.push(chunkResults[j]);
+    }
   }
 
   for (let i = 0; i < hofResults.length; i++) {
