@@ -95,3 +95,6 @@
 ## 2026-09-02 - [Replacing Array.from/map chains with direct loops]
 **Learning:** Using `Array.from()` combined with `.map()` to generate dynamic arrays of Promises creates unnecessary intermediate arrays and closures, increasing memory allocation and CPU overhead.
 **Action:** Replace `Array.from(...).map(...)` chains with a standard `for` loop that directly populates a pre-initialized array (e.g. `const arr = []`) to avoid intermediate allocations and reduce garbage collection pressure.
+## 2024-05-19 - Parallelize Heterogeneous API Calls carefully with TS
+**Learning:** When attempting to parallelize multiple asynchronous operations returning different structures using `Promise.all` alongside an array map operation (e.g., `[callA(), ...array.map(callB)]`), TypeScript cannot automatically infer the exact types of the destructured returned tuple due to the rest parameter.
+**Action:** The solution is to separate the homogeneous parallel arrays. Await the single asynchronous call, and map the array over `Promise.all`, then await the results.
