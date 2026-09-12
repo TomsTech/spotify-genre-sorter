@@ -289,7 +289,6 @@ api.get('/now-playing', async (c) => {
         },
         updatedAt: new Date().toISOString(),
       };
-      // CRITICAL FIX: Use cachedKV for listening status writes
       c.executionCtx.waitUntil(
         cachedKV.put(kv, `listening:${session.spotifyUserId}`, JSON.stringify(listeningData), {
           expirationTtl: 90, // 90 seconds - auto-expires if user stops polling
@@ -397,7 +396,7 @@ api.get('/genres', async (c) => {
 
     // Check cache unless forcing refresh
     if (!forceRefresh) {
-      const cachedData = await c.env.SESSIONS.get<GenreCacheData>(cacheKey, 'json');
+      const cachedData = await cachedKV.get<GenreCacheData>(c.env.SESSIONS, cacheKey);
       if (cachedData) {
         return c.json({
           ...cachedData,
@@ -515,7 +514,6 @@ api.get('/genres', async (c) => {
     };
 
     // Store in cache
-    // CRITICAL FIX: Use cachedKV for genre cache writes to leverage batching
     await cachedKV.put(c.env.SESSIONS, cacheKey, JSON.stringify(responseData), {
       expirationTtl: cacheTtl,
       immediate: false // Genre cache can be batched
@@ -644,7 +642,7 @@ api.get('/genres/progressive', async (c) => {
     // If scan is complete, return the full cache
     if (progress.status === 'completed') {
       const cacheKey = `${GENRE_CACHE_PREFIX}${user.id}`;
-      const cachedData = await c.env.SESSIONS.get<GenreCacheData>(cacheKey, 'json');
+      const cachedData = await cachedKV.get<GenreCacheData>(c.env.SESSIONS, cacheKey);
       if (cachedData) {
         return c.json({
           ...cachedData,
@@ -700,7 +698,6 @@ api.get('/genres/progressive', async (c) => {
       };
 
       const cacheKey = `${GENRE_CACHE_PREFIX}${user.id}`;
-      // CRITICAL FIX: Use cachedKV for progressive scan final cache
       await cachedKV.put(c.env.SESSIONS, cacheKey, JSON.stringify(finalData), {
         expirationTtl: GENRE_CACHE_TTL_LARGE,
         immediate: false
@@ -849,7 +846,7 @@ api.get('/genres/chunk', async (c) => {
 
     // Check chunk cache (skip cache when playlists included - too variable)
     if (playlistIds.length === 0) {
-      const cachedChunk = await c.env.SESSIONS.get<ChunkCacheData>(chunkCacheKey, 'json');
+      const cachedChunk = await cachedKV.get<ChunkCacheData>(c.env.SESSIONS, chunkCacheKey);
       if (cachedChunk) {
         // Get total from a quick /me/tracks call
         const totalResponse = await getLikedTracks(session.spotifyAccessToken, 1, 0);
@@ -878,7 +875,6 @@ api.get('/genres/chunk', async (c) => {
 
     // Fetch from playlists first (only on first chunk to avoid re-fetching)
     if (playlistIds.length > 0 && offset === 0) {
-      // PERF-026 FIX: Use Promise.all for parallel API requests instead of sequential loop
       const token = session.spotifyAccessToken;
       const playlistPromises = [];
       const limit = Math.min(5, playlistIds.length);
@@ -993,7 +989,6 @@ api.get('/genres/chunk', async (c) => {
     };
 
     // Cache this chunk
-    // CRITICAL FIX: Use cachedKV for chunk cache writes
     await cachedKV.put(c.env.SESSIONS, chunkCacheKey, JSON.stringify(chunkData), {
       expirationTtl: GENRE_CACHE_TTL,
       immediate: false // Can be batched - chunks are accessed sequentially
@@ -1567,7 +1562,6 @@ api.get('/listening', async (c) => {
       updatedAt: string;
     }
 
-    // PERF-013 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
     const listeners: ListeningEntry[] = [];
     const BATCH_SIZE = 40;
     for (let i = 0; i < list.keys.length; i += BATCH_SIZE) {
@@ -1882,7 +1876,6 @@ api.post('/log-error', async (c) => {
     }
 
     // Get existing errors (last 100)
-    // CRITICAL FIX: Use cachedKV for error log reads
     const existing = await cachedKV.get<unknown[]>(c.env.SESSIONS, ERROR_LOG_KEY) || [];
 
     // Add new errors with server timestamp
@@ -1894,8 +1887,6 @@ api.post('/log-error', async (c) => {
 
     // Keep last 100 errors
     const combined = [...newErrors, ...existing].slice(0, 100);
-
-    // CRITICAL FIX: Use cachedKV with batching for error logs (non-critical, can be delayed)
     await cachedKV.put(c.env.SESSIONS, ERROR_LOG_KEY, JSON.stringify(combined), {
       expirationTtl: 86400 * 7, // 7 days
       immediate: false // Batch error logs to reduce KV writes
@@ -1923,7 +1914,6 @@ api.post('/log-perf', async (c) => {
     }
 
     // Get existing perf data (last 1000 samples)
-    // CRITICAL FIX: Use cachedKV for perf log reads
     const existing = await cachedKV.get<unknown[]>(c.env.SESSIONS, PERF_LOG_KEY) || [];
 
     // Add new sample
@@ -2243,9 +2233,10 @@ api.get('/admin', async (c) => {
   // PERF-023 FIX: Use Promise.all for parallel KV listing
   // PERF-031 FIX: Parallelize getAnalytics and KV listing
   const prefixes = ['session:', 'user:', 'user_stats:', 'hof:', 'genre_cache_', 'scan_progress:'];
-  const [analytics, ...listResults] = await Promise.all([
+  const listPromises = prefixes.map(prefix => kv.list({ prefix, limit: 1000 }));
+  const [analytics, listResults] = await Promise.all([
     getAnalytics(kv),
-    ...prefixes.map(prefix => kv.list({ prefix, limit: 1000 }))
+    Promise.all(listPromises)
   ]);
 
   const keyCounts: Record<string, number> = {};
@@ -2471,8 +2462,9 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   const hofResults: ({ spotifyId?: string } | null)[] = [];
   const BATCH_SIZE = 40;
   for (let i = 0; i < hofKeys.length; i += BATCH_SIZE) {
-    const chunk = hofKeys.slice(i, i + BATCH_SIZE);
-    const hofPromises = chunk.map(async key => {
+    const end = Math.min(i + BATCH_SIZE, hofKeys.length);
+    const hofPromises = Array.from({ length: end - i }, async (_, j) => {
+      const key = hofKeys[i + j];
       try {
         const hofJson = await kv.get(key);
         if (hofJson) {
@@ -2498,10 +2490,11 @@ api.delete('/admin/user/:spotifyId', async (c) => {
 
   // Find and delete any active sessions for this user
   const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
-  // PERF-021 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
   for (let i = 0; i < sessionsList.keys.length; i += BATCH_SIZE) {
-    const chunk = sessionsList.keys.slice(i, i + BATCH_SIZE);
-    const sessionPromises = chunk.map(async key => {
+    // ⚡ Bolt: Avoid intermediate array allocation from slice().map() by using Array.from()
+    const chunkSize = Math.min(BATCH_SIZE, sessionsList.keys.length - i);
+    const sessionPromises = Array.from({ length: chunkSize }, async (_, j) => {
+      const key = sessionsList.keys[i + j];
       try {
         const sessionJson = await kv.get(key.name);
         if (sessionJson) {
@@ -2746,12 +2739,13 @@ api.get('/admin/access-requests', async (c) => {
   const emails: string[] = existingList ? JSON.parse(existingList) as string[] : [];
 
   // PERF-015 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
-  const requestKeys = emails.map(email => `access_request_${email}`);
   const requests: AccessRequest[] = [];
   const BATCH_SIZE = 40;
-  for (let i = 0; i < requestKeys.length; i += BATCH_SIZE) {
-    const chunk = requestKeys.slice(i, i + BATCH_SIZE);
-    const dataPromises = chunk.map(async key => {
+  for (let i = 0; i < emails.length; i += BATCH_SIZE) {
+    // ⚡ Bolt: Bypass intermediate arrays from .map() and .slice().map() by chunking directly over original array using Array.from
+    const size = Math.min(BATCH_SIZE, emails.length - i);
+    const dataPromises = Array.from({ length: size }, async (_, j) => {
+      const key = `access_request_${emails[i + j]}`;
       try {
         const data = await kv.get(key);
         if (data) {
