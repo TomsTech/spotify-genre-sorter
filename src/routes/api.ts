@@ -397,7 +397,7 @@ api.get('/genres', async (c) => {
 
     // Check cache unless forcing refresh
     if (!forceRefresh) {
-      const cachedData = await c.env.SESSIONS.get<GenreCacheData>(cacheKey, 'json');
+      const cachedData = await cachedKV.get<GenreCacheData>(c.env.SESSIONS, cacheKey);
       if (cachedData) {
         return c.json({
           ...cachedData,
@@ -644,7 +644,7 @@ api.get('/genres/progressive', async (c) => {
     // If scan is complete, return the full cache
     if (progress.status === 'completed') {
       const cacheKey = `${GENRE_CACHE_PREFIX}${user.id}`;
-      const cachedData = await c.env.SESSIONS.get<GenreCacheData>(cacheKey, 'json');
+      const cachedData = await cachedKV.get<GenreCacheData>(c.env.SESSIONS, cacheKey);
       if (cachedData) {
         return c.json({
           ...cachedData,
@@ -849,7 +849,7 @@ api.get('/genres/chunk', async (c) => {
 
     // Check chunk cache (skip cache when playlists included - too variable)
     if (playlistIds.length === 0) {
-      const cachedChunk = await c.env.SESSIONS.get<ChunkCacheData>(chunkCacheKey, 'json');
+      const cachedChunk = await cachedKV.get<ChunkCacheData>(c.env.SESSIONS, chunkCacheKey);
       if (cachedChunk) {
         // Get total from a quick /me/tracks call
         const totalResponse = await getLikedTracks(session.spotifyAccessToken, 1, 0);

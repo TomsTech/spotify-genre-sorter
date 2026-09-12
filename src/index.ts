@@ -137,7 +137,7 @@ app.get('/health', async (c) => {
   // Check KV availability
   const kvStart = Date.now();
   try {
-    await c.env.SESSIONS.get('health_check_probe');
+    await cachedKV.getString(c.env.SESSIONS, 'health_check_probe');
     components.kv = { status: 'ok', latency: Date.now() - kvStart };
   } catch {
     components.kv = { status: 'error', latency: Date.now() - kvStart };
@@ -376,14 +376,14 @@ app.get('/session', async (c) => {
 // Stats endpoint - user count and hall of fame (public, no auth)
 app.get('/stats', async (c) => {
   try {
-    const countStr = await c.env.SESSIONS.get('stats:user_count');
+    const countStr = await cachedKV.getString(c.env.SESSIONS, 'stats:user_count');
     const count = countStr ? parseInt(countStr, 10) : 0;
 
     // Get hall of fame (first 10 users for display)
     const hallOfFame: { position: number; spotifyName: string; registeredAt: string }[] = [];
     for (let i = 1; i <= Math.min(count, 10); i++) {
       const hofKey = `hof:${String(i).padStart(3, '0')}`;
-      const data = await c.env.SESSIONS.get(hofKey);
+      const data = await cachedKV.getString(c.env.SESSIONS, hofKey);
       if (data) {
         const entry = JSON.parse(data) as { position: number; spotifyName: string; registeredAt: string };
         hallOfFame.push({
