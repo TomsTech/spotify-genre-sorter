@@ -621,7 +621,8 @@ export async function trackAnalyticsEvent(
   try {
     // Errors always persist - they're critical for debugging
     // Other events are sampled to reduce KV writes by ~90%
-    const shouldPersist = eventType === 'error' || Math.random() < (1 / ANALYTICS_SAMPLE_RATE);
+    const randomValue = crypto.getRandomValues(new Uint32Array(1))[0] / 0xFFFFFFFF;
+    const shouldPersist = eventType === 'error' || randomValue < (1 / ANALYTICS_SAMPLE_RATE);
     if (!shouldPersist) return;
 
     const analytics = await getDailyAnalytics(kv);
@@ -685,8 +686,12 @@ export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
 
   const analyticsKeys = dateKeys.map(dateKey => `${ANALYTICS_KEY}:${dateKey}`);
 
-  // Fetch all 7 days in parallel (already < 50 items so safe from limits)
-  const dataPromises = analyticsKeys.map(key => kv.get(key));
+  // Fetch all 7 days in parallel with memory caching to prevent N+1 DB calls
+  const dataPromises = analyticsKeys.map((key, i) => {
+    // Today's analytics (i=0) get 5 min cache, historical days get 1 hr cache
+    const ttl = i === 0 ? CACHE_TTL.ANALYTICS : CACHE_TTL.ANALYTICS_HISTORICAL;
+    return cachedKV.getString(kv, key, { cacheTtlMs: ttl });
+  });
   const dataResults = await Promise.all(dataPromises);
 
   // Get last 7 days

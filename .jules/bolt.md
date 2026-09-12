@@ -98,3 +98,20 @@
 ## 2023-11-20 - Prevent intermediate array allocations with chunked iteration
 **Learning:** Using `.slice(i, i + size).map(...)` to process array chunks sequentially with `Promise.all()` creates short-lived, intermediate array allocations that increase garbage collection overhead, particularly for large arrays.
 **Action:** Instead, use `new Array(size)` and a direct `for` loop to eliminate the intermediate array copies and callback overhead.
+## 2024-10-24 - Avoid array iteration intermediates using Promise.all mapping
+**Learning:** When processing chunks of an array using Promise.all mapping, using `array.slice(start, end).map()` creates an intermediate array that costs performance via object allocation and copying. Instead, it is faster to bypass `slice()` and `map()` entirely by generating the promises directly via `for` loop and pushing to a pre-initialized array.
+**Action:** Apply standard `for` loops when converting known index ranges of large arrays to promise arrays instead of chaining array operations like `slice.map`.
+## 2023-11-20 - Bolt: Optimize daily analytics fetching with memory caching
+**Learning:** Fetching items from Cloudflare KV using sequential or parallelized `kv.get` for largely static values (like historical daily analytics or logs) introduces significant read latency and uses unnecessary KV operations.
+**Action:** When working with historical windowed keys, introduce `cachedKV.getString` with dynamic cache TTLs to keep older static keys in memory longer (1 hour) and fresher keys in memory for less (5 minutes). This reduces KV hits in repetitive loops or array map processes (preventing the N+1 issue for KV lookups) significantly.
+## 2025-02-18 - Fix PERF-014 chunked Promise.all for parallel reads
+**Learning:** Using `Array.from` with `index` arithmetic creates intermediate mapping layers that can increase memory allocation and overhead, as well as making code harder to read.
+**Action:** Replace `Array.from` index-based iteration with array `.slice()` mapping to process chunks of elements, reducing code complexity and improving performance.
+## 2024-05-19 - ⚡ Bolt: Optimize KV Usage Estimation by avoiding intermediate arrays
+**Learning:** `Object.values(obj).reduce(...)` creates an intermediate array of values before performing the reduction. When this pattern is used multiple times (or in a hot path) to sum up fields from an object, the overhead of array allocation and iteration via `reduce` can be significantly higher than a simple `for...in` loop directly accumulating the values.
+**Action:** When summing up values from an object, particularly in performance-critical code or when executed repeatedly, use a `for...in` loop to iterate directly over the object's keys and accumulate the values without creating intermediate arrays.
+## 2024-05-18 - Avoid Intermediate Array Allocations
+**Learning:** Chaining `.map()` and `.slice().map()` when chunking data for `Promise.all` creates intermediate arrays that increase memory usage and garbage collection pressure.
+**Action:** Use `Array.from({ length: size }, (_, j) => process(arr[start + j]))` to directly compute chunks from the original array, bypassing intermediate allocations.
+## 2024-05-19 - Avoid slice().map() with Promise.all **Learning:** Using `array.slice().map()` creates intermediate arrays, putting pressure on the garbage collector, especially when processing large chunked datasets with `Promise.all()`. **Action:** Use `Array.from({ length }, (_, j) => ...)` to generate promises directly from indices, bypassing the intermediate array creation.
+## 2025-02-12 - Remove array slice and map in chunking **Learning:** Using `.slice().map()` creates intermediate arrays that increase garbage collection overhead and memory allocation, especially in loops. **Action:** Use `Array.from()` to construct the mapped array directly without intermediate slicing.
