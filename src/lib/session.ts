@@ -596,7 +596,7 @@ async function getDailyAnalytics(kv: KVNamespace): Promise<AnalyticsData> {
 
 async function saveDailyAnalytics(kv: KVNamespace, data: AnalyticsData): Promise<void> {
   const key = `${ANALYTICS_KEY}:${data.date}`;
-  // CRITICAL FIX: Use cachedKV for analytics writes (non-critical data, can be batched)
+  // Use cachedKV for analytics writes (non-critical data, can be batched)
   // This significantly reduces KV write operations
   await cachedKV.put(kv, key, JSON.stringify(data), { expirationTtl: ANALYTICS_TTL });
 }
