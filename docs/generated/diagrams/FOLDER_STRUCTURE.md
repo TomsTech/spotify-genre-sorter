@@ -157,6 +157,7 @@
 │   ├── frontend.test.ts
 │   ├── github.test.ts
 │   ├── index.test.ts
+│   ├── invalidate-genre-cache.test.ts
 │   ├── kv-cache.test.ts
 │   ├── kv-monitor.test.ts
 │   ├── logger.test.ts
@@ -188,12 +189,13 @@
 ├── package-lock.json
 ├── package.json
 ├── playwright.config.ts
+├── pr_description.txt
 ├── tsconfig.json
 ├── vitest.config.ts
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-31 directories, 156 files
+31 directories, 158 files
 ```
 
 ## Key Directories
