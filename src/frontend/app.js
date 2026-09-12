@@ -5907,7 +5907,7 @@
       if (!url) return '';
       const safeStr = String(url);
       // Remove control characters and whitespace
-      const cleaned = safeStr.replace(/[\x00-\x1F\s]/g, '').toLowerCase();
+      const cleaned = safeStr.replace(/[\x00-\x20\x7F-\x9F\s]/g, '').toLowerCase();
 
       // Block javascript:, vbscript: and dangerous data: types (allow images)
       if (cleaned.startsWith('javascript:') ||
