@@ -2750,10 +2750,11 @@ api.get('/admin/access-requests', async (c) => {
   const requests: AccessRequest[] = [];
   const BATCH_SIZE = 40;
   for (let i = 0; i < requestKeys.length; i += BATCH_SIZE) {
-    const chunk = requestKeys.slice(i, i + BATCH_SIZE);
-    const dataPromises = chunk.map(async key => {
+    // BOLT: Optimize memory allocation and execution time by avoiding intermediate array creations (slice, map, filter)
+    const size = Math.min(BATCH_SIZE, requestKeys.length - i);
+    const dataPromises = Array.from({ length: size }, async (_, j) => {
       try {
-        const data = await kv.get(key);
+        const data = await kv.get(requestKeys[i + j]);
         if (data) {
           return JSON.parse(data) as AccessRequest;
         }
@@ -2761,7 +2762,11 @@ api.get('/admin/access-requests', async (c) => {
       return null;
     });
     const dataResults = await Promise.all(dataPromises);
-    requests.push(...dataResults.filter((req): req is AccessRequest => req !== null));
+    for (let j = 0; j < dataResults.length; j++) {
+      if (dataResults[j] !== null) {
+        requests.push(dataResults[j] as AccessRequest);
+      }
+    }
   }
 
   // Sort by most recent first
