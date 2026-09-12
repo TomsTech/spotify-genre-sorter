@@ -516,10 +516,12 @@ api.get('/genres', async (c) => {
 
     // Store in cache
     // CRITICAL FIX: Use cachedKV for genre cache writes to leverage batching
-    await cachedKV.put(c.env.SESSIONS, cacheKey, JSON.stringify(responseData), {
-      expirationTtl: cacheTtl,
-      immediate: false // Genre cache can be batched
-    });
+    c.executionCtx.waitUntil(
+      cachedKV.put(c.env.SESSIONS, cacheKey, JSON.stringify(responseData), {
+        expirationTtl: cacheTtl,
+        immediate: false // Genre cache can be batched
+      }).catch(err => console.error('Failed to write genre cache:', err))
+    );
 
     // Update user stats with analysis results
     if (session.spotifyUserId) {
@@ -701,10 +703,12 @@ api.get('/genres/progressive', async (c) => {
 
       const cacheKey = `${GENRE_CACHE_PREFIX}${user.id}`;
       // CRITICAL FIX: Use cachedKV for progressive scan final cache
-      await cachedKV.put(c.env.SESSIONS, cacheKey, JSON.stringify(finalData), {
-        expirationTtl: GENRE_CACHE_TTL_LARGE,
-        immediate: false
-      });
+      c.executionCtx.waitUntil(
+        cachedKV.put(c.env.SESSIONS, cacheKey, JSON.stringify(finalData), {
+          expirationTtl: GENRE_CACHE_TTL_LARGE,
+          immediate: false
+        }).catch(err => console.error('Failed to write progressive scan cache:', err))
+      );
 
       // Update user stats
       c.executionCtx.waitUntil(
@@ -994,10 +998,12 @@ api.get('/genres/chunk', async (c) => {
 
     // Cache this chunk
     // CRITICAL FIX: Use cachedKV for chunk cache writes
-    await cachedKV.put(c.env.SESSIONS, chunkCacheKey, JSON.stringify(chunkData), {
-      expirationTtl: GENRE_CACHE_TTL,
-      immediate: false // Can be batched - chunks are accessed sequentially
-    });
+    c.executionCtx.waitUntil(
+      cachedKV.put(c.env.SESSIONS, chunkCacheKey, JSON.stringify(chunkData), {
+        expirationTtl: GENRE_CACHE_TTL,
+        immediate: false // Can be batched - chunks are accessed sequentially
+      }).catch(err => console.error('Failed to write chunk cache:', err))
+    );
 
     const hasMore = offset + allChunkTracks.length < totalInLibrary;
 
@@ -1827,10 +1833,12 @@ api.post('/invite-request', async (c) => {
 
     existing.push(request);
     // Use cachedKV with batching for invite requests
-    await cachedKV.put(c.env.SESSIONS, INVITE_REQUESTS_KEY, JSON.stringify(existing), {
-      expirationTtl: 86400 * 30, // 30 days
-      immediate: false // Batch to reduce KV writes
-    });
+    c.executionCtx.waitUntil(
+      cachedKV.put(c.env.SESSIONS, INVITE_REQUESTS_KEY, JSON.stringify(existing), {
+        expirationTtl: 86400 * 30, // 30 days
+        immediate: false // Batch to reduce KV writes
+      }).catch(err => console.error('Failed to write invite requests cache:', err))
+    );
 
     // Track analytics
     await trackAnalyticsEvent(c.env.SESSIONS, 'inviteRequest');
@@ -1896,10 +1904,12 @@ api.post('/log-error', async (c) => {
     const combined = [...newErrors, ...existing].slice(0, 100);
 
     // CRITICAL FIX: Use cachedKV with batching for error logs (non-critical, can be delayed)
-    await cachedKV.put(c.env.SESSIONS, ERROR_LOG_KEY, JSON.stringify(combined), {
-      expirationTtl: 86400 * 7, // 7 days
-      immediate: false // Batch error logs to reduce KV writes
-    });
+    c.executionCtx.waitUntil(
+      cachedKV.put(c.env.SESSIONS, ERROR_LOG_KEY, JSON.stringify(combined), {
+        expirationTtl: 86400 * 7, // 7 days
+        immediate: false // Batch error logs to reduce KV writes
+      }).catch(err => console.error('Failed to write error log cache:', err))
+    );
 
     // Log to console for immediate visibility
     console.error('[CLIENT ERROR]', JSON.stringify(newErrors[0]));
@@ -1939,10 +1949,12 @@ api.post('/log-perf', async (c) => {
     const combined = [sample, ...existing].slice(0, 1000);
 
     // Use cachedKV with batching for perf logs (non-critical, can be delayed)
-    await cachedKV.put(c.env.SESSIONS, PERF_LOG_KEY, JSON.stringify(combined), {
-      expirationTtl: 86400 * 30, // 30 days
-      immediate: false // Batch perf logs to reduce KV writes
-    });
+    c.executionCtx.waitUntil(
+      cachedKV.put(c.env.SESSIONS, PERF_LOG_KEY, JSON.stringify(combined), {
+        expirationTtl: 86400 * 30, // 30 days
+        immediate: false // Batch perf logs to reduce KV writes
+      }).catch(err => console.error('Failed to write perf log cache:', err))
+    );
 
     return c.json({ ok: true });
   } catch (err) {
