@@ -1,4 +1,4 @@
-import { generateKVRecommendations, aggregateGenresFromTrackData } from '../src/routes/api';
+import { generateKVRecommendations, aggregateGenresFromTrackData, calculateKVTrend } from '../src/routes/api';
 import { describe, it, expect, vi } from 'vitest';
 import { determineKVStatus } from '../src/routes/api';
 
@@ -508,5 +508,53 @@ describe('validateTrackIds', () => {
     const result = validateTrackIds(validIds);
     expect(result.valid).toBe(true);
     expect((result as any).value).toEqual(validIds);
+  });
+});
+
+
+describe('calculateKVTrend', () => {
+  const baseStats = {
+    pageViews: 0,
+    uniqueVisitors: 0,
+    errors: 0,
+    authFailures: 0,
+  };
+
+  it('should calculate avg daily writes and identify a stable trend', () => {
+    // Math.round((20*2 + 10 + 5*2) / 7) = Math.round(60 / 7) = 9
+    const last7Days = { ...baseStats, signIns: 20, libraryScans: 10, playlistsCreated: 5 };
+
+    // Bounds for 9:
+    // < 0.5 * 9 (4.5) -> decreasing
+    // > 1.5 * 9 (13.5) -> increasing
+    // Stable is between 4.5 and 13.5
+
+    const result = calculateKVTrend(9, last7Days);
+    expect(result.avgDailyWrites).toBe(9);
+    expect(result.direction).toBe('stable');
+  });
+
+  it('should return stable for exact upper boundary', () => {
+    const last7Days = { ...baseStats, signIns: 20, libraryScans: 10, playlistsCreated: 5 };
+    const result = calculateKVTrend(13.5, last7Days); // Not strictly > 13.5
+    expect(result.direction).toBe('stable');
+  });
+
+  it('should return stable for exact lower boundary', () => {
+    const last7Days = { ...baseStats, signIns: 20, libraryScans: 10, playlistsCreated: 5 };
+    const result = calculateKVTrend(4.5, last7Days); // Not strictly < 4.5
+    expect(result.direction).toBe('stable');
+  });
+
+  it('should return increasing when estimated writes exceed 1.5x average', () => {
+    const last7Days = { ...baseStats, signIns: 20, libraryScans: 10, playlistsCreated: 5 };
+    const result = calculateKVTrend(14, last7Days);
+    expect(result.direction).toBe('increasing');
+  });
+
+  it('should return decreasing when estimated writes are below 0.5x average', () => {
+    const last7Days = { ...baseStats, signIns: 20, libraryScans: 10, playlistsCreated: 5 };
+    const result = calculateKVTrend(4, last7Days);
+    expect(result.direction).toBe('decreasing');
   });
 });
