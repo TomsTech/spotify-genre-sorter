@@ -54,7 +54,7 @@
         <div class="error-boundary-modal" role="alertdialog" aria-labelledby="error-title" aria-describedby="error-desc">
           <div class="error-boundary-icon">\${swedishMode ? '😔' : '😵'}</div>
           <h2 id="error-title">\${swedishMode ? 'Oj då!' : 'Oops!'}</h2>
-          <p id="error-desc" class="error-boundary-message">\${friendlyMessage}</p>
+          <p id="error-desc" class="error-boundary-message">\${escapeForHtml(friendlyMessage)}</p>
           <div class="error-boundary-actions">
             <button class="btn btn-primary error-retry-btn" onclick="window.location.reload()">
               \${swedishMode ? '🔄 Försök igen' : '🔄 Try Again'}
