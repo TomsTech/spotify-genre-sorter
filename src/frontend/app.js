@@ -2998,7 +2998,7 @@
 
       app.innerHTML = \`
         <div class="welcome">
-          \${error ? \`<div class="error">\${errorMessages[error] || error}\${requestAccessButton}</div>\` : ''}
+          \${error ? \`<div class="error">\${errorMessages[error] || escapeHtml(error)}\${requestAccessButton}</div>\` : ''}
           \${userCounterHtml}
           <h2 data-i18n="organiseMusic">\${t('organiseMusic')}</h2>
           <p data-i18n="organiseDesc">\${t('organiseDesc')}</p>
