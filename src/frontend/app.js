@@ -318,10 +318,11 @@
         }
       }
 
-      const totalTracks = [...genresToMerge].reduce((sum, name) => {
+      let totalTracks = 0;
+      for (const name of genresToMerge) {
         const genre = genreData.genres.find(g => g.name === name);
-        return sum + (genre ? genre.count : 0);
-      }, 0);
+        if (genre) totalTracks += genre.count;
+      }
 
       toolbar.innerHTML = [
         '<span class="merge-count">' + genresToMerge.size + (swedishMode ? ' genrer valda' : ' genres selected') + '</span>',
@@ -353,7 +354,10 @@
         return { name, count: genre ? genre.count : 0 };
       }).sort((a, b) => b.count - a.count);
 
-      const totalTracks = genreItems.reduce((sum, g) => sum + g.count, 0);
+      let totalTracks = 0;
+      for (let i = 0; i < genreItems.length; i++) {
+        totalTracks += genreItems[i].count;
+      }
       const suggestedName = genreNames.slice(0, 3).join(' + ') + (genreNames.length > 3 ? ' +more' : '');
 
       const modal = document.createElement('div');
@@ -4135,7 +4139,10 @@
     // === Stats Dashboard Functions ===
     function calculateDiversityScore(genres) {
       if (!genres || genres.length === 0) return 0;
-      const total = genres.reduce((sum, g) => sum + g.count, 0);
+      let total = 0;
+      for (let i = 0; i < genres.length; i++) {
+        total += genres[i].count;
+      }
       if (total === 0) return 0;
       // Shannon diversity index (normalized to 0-100)
       let entropy = 0;
@@ -4288,7 +4295,10 @@
 
     function calculateAvgGenresPerTrack() {
       if (!genreData?.genres || genreData.totalTracks === 0) return 0;
-      const totalGenreAssignments = genreData.genres.reduce((sum, g) => sum + g.count, 0);
+      let totalGenreAssignments = 0;
+      for (let i = 0; i < genreData.genres.length; i++) {
+        totalGenreAssignments += genreData.genres[i].count;
+      }
       return (totalGenreAssignments / genreData.totalTracks).toFixed(1);
     }
 
@@ -7412,9 +7422,14 @@
         grouped[family].totalCount += genre.count;
       }
       // Sort families by total count
-      return Object.entries(grouped)
-        .sort((a, b) => b[1].totalCount - a[1].totalCount)
-        .reduce((acc, [k, v]) => { acc[k] = v; return acc; }, {});
+      const sortedEntries = Object.entries(grouped)
+        .sort((a, b) => b[1].totalCount - a[1].totalCount);
+
+      const result = {};
+      for (const [k, v] of sortedEntries) {
+        result[k] = v;
+      }
+      return result;
     }
 
     function toggleGenreViewMode() {
