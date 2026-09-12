@@ -1582,7 +1582,12 @@ api.get('/listening', async (c) => {
         return null;
       });
       const dataResults = await Promise.all(dataPromises);
-      listeners.push(...dataResults.filter((entry): entry is ListeningEntry => entry !== null));
+      for (let j = 0; j < dataResults.length; j++) {
+        const entry = dataResults[j];
+        if (entry !== null) {
+          listeners.push(entry);
+        }
+      }
     }
 
     return c.json({
