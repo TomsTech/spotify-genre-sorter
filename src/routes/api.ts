@@ -878,7 +878,6 @@ api.get('/genres/chunk', async (c) => {
 
     // Fetch from playlists first (only on first chunk to avoid re-fetching)
     if (playlistIds.length > 0 && offset === 0) {
-      // PERF-026 FIX: Use Promise.all for parallel API requests instead of sequential loop
       const token = session.spotifyAccessToken;
       const playlistPromises = [];
       const limit = Math.min(5, playlistIds.length);
