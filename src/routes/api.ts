@@ -1567,7 +1567,6 @@ api.get('/listening', async (c) => {
       updatedAt: string;
     }
 
-    // PERF-013 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
     const listeners: ListeningEntry[] = [];
     const BATCH_SIZE = 40;
     for (let i = 0; i < list.keys.length; i += BATCH_SIZE) {
