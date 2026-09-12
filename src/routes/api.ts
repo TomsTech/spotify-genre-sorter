@@ -2372,14 +2372,9 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
     const hofPromises = Array.from({ length: end - i }, async (_, j) => {
       try {
         const key = hofKeys[i + j];
-        const hofJson = await kv.get(key);
-        if (hofJson) {
-          return JSON.parse(hofJson) as {
-            spotifyId: string;
-            spotifyName: string;
-            spotifyAvatar?: string;
-            registeredAt?: string;
-          };
+        const hofData = await cachedKV.get<{ spotifyId: string; spotifyName: string; spotifyAvatar?: string; registeredAt?: string }>(kv, key, { cacheTtlMs: 300000 });
+        if (hofData) {
+          return hofData;
         }
       } catch { /* skip malformed entries */ }
       return null;
@@ -2474,9 +2469,9 @@ api.delete('/admin/user/:spotifyId', async (c) => {
     const chunk = hofKeys.slice(i, i + BATCH_SIZE);
     const hofPromises = chunk.map(async key => {
       try {
-        const hofJson = await kv.get(key);
-        if (hofJson) {
-          return JSON.parse(hofJson) as { spotifyId?: string };
+        const hofData = await cachedKV.get<{ spotifyId?: string }>(kv, key, { cacheTtlMs: 300000 });
+        if (hofData) {
+          return hofData;
         }
       } catch { /* skip malformed entries */ }
       return null;

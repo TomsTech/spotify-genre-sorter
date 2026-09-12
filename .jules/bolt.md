@@ -95,3 +95,10 @@
 ## 2026-09-02 - [Replacing Array.from/map chains with direct loops]
 **Learning:** Using `Array.from()` combined with `.map()` to generate dynamic arrays of Promises creates unnecessary intermediate arrays and closures, increasing memory allocation and CPU overhead.
 **Action:** Replace `Array.from(...).map(...)` chains with a standard `for` loop that directly populates a pre-initialized array (e.g. `const arr = []`) to avoid intermediate allocations and reduce garbage collection pressure.
+## 2024-05-25 - Avoid intermediate allocations with Promise.all
+**Learning:** Using Array.from with map or chained methods inside a batch processing loop can cause overhead through unnecessary array allocations.
+**Action:** Replace `Array.from(...).map()` or `Array.from` intermediate objects with direct `for` loops inside batch processors pushing directly to a promise array to skip allocations.
+
+## 2024-05-25 - Fixing N+1 KV Latency with Caching
+**Learning:** Sequential/batched calls to external APIs or KV stores (`kv.get`) inside loops create N+1 query performance bottlenecks leading to high latency.
+**Action:** Replace direct network reads inside batched loops with an in-memory cache wrapper (like `cachedKV.get`) to deduplicate redundant network requests and drastically reduce latency for frequently accessed slow-changing data (like hall of fame or configuration objects).
