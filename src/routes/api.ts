@@ -1568,21 +1568,30 @@ api.get('/listening', async (c) => {
     }
 
     // PERF-013 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
+    // Optimization: Avoid intermediate array allocations from .slice().map() and .filter()
     const listeners: ListeningEntry[] = [];
     const BATCH_SIZE = 40;
     for (let i = 0; i < list.keys.length; i += BATCH_SIZE) {
-      const chunk = list.keys.slice(i, i + BATCH_SIZE);
-      const dataPromises = chunk.map(async key => {
-        try {
-          const data = await kv.get(key.name);
-          if (data) {
-            return JSON.parse(data) as ListeningEntry;
-          }
-        } catch { /* skip malformed entries */ }
-        return null;
-      });
+      const dataPromises = [];
+      const end = Math.min(i + BATCH_SIZE, list.keys.length);
+      for (let j = i; j < end; j++) {
+        const key = list.keys[j];
+        dataPromises.push((async () => {
+          try {
+            const data = await kv.get(key.name);
+            if (data) {
+              return JSON.parse(data) as ListeningEntry;
+            }
+          } catch { /* skip malformed entries */ }
+          return null;
+        })());
+      }
       const dataResults = await Promise.all(dataPromises);
-      listeners.push(...dataResults.filter((entry): entry is ListeningEntry => entry !== null));
+      for (const entry of dataResults) {
+        if (entry !== null) {
+          listeners.push(entry);
+        }
+      }
     }
 
     return c.json({
