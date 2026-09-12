@@ -1646,7 +1646,7 @@
       overlay.innerHTML = \`
         <div class="heidi-greeting-content">
           <div class="heidi-crown">👑</div>
-          <p class="heidi-greeting-text">\${greeting}</p>
+          <p class="heidi-greeting-text">\${escapeHtml(greeting)}</p>
           <div class="heidi-hearts">💙💛💙💛💙</div>
         </div>
       \`;
