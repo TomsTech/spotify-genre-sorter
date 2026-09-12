@@ -87,3 +87,7 @@
 **Prevention:** Make sure `getSafeUrl` also sanitizes `vbscript:` prefixes.
 
 ## 2024-08-27 - Escaping HTML is not enough for URLs **Vulnerability:** Unsafe URLs in `src` attributes of images due to only escaping HTML characters. **Learning:** Although the original text had HTML characters encoded, the URL format could still be XSS-vulnerable if the protocol itself is dangerous (`javascript:`, `vbscript:`, `data:`). **Prevention:** Validate the protocol on top of encoding HTML characters by parsing the string as a URL and restricting allowed protocols/domains. Use `getSafeUrl()` for `src` and `href` attributes instead of just `escapeHtml()`.
+## 2024-05-24 - Fix XSS Vulnerability in innerHTML
+**Vulnerability:** Cross-Site Scripting (XSS) possible via string concatenation into `innerHTML` assignment.
+**Learning:** Even if a custom `escapeHtml()` function exists in a codebase, using it inside a patch can lead to runtime `ReferenceError`s if the function is out of scope (e.g. defined within another closure).
+**Prevention:** Instead of concatenating strings with `escapeHtml()` into `innerHTML`, always use secure DOM manipulation methods: create elements with `document.createElement`, set text content with `textContent`, and append with `appendChild`.

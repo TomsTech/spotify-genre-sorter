@@ -6417,7 +6417,11 @@
         const container = document.getElementById('playlist-list-container');
         if (container) {
           const errorText = swedishMode ? 'Kunde inte ladda spellistor' : 'Failed to load playlists';
-          container.innerHTML = '<p style="color: var(--danger)">' + errorText + '</p>';
+          container.innerHTML = '';
+          const p = document.createElement('p');
+          p.style.color = 'var(--danger)';
+          p.textContent = errorText;
+          container.appendChild(p);
         }
       }
     }
