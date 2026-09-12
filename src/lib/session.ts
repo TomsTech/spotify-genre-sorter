@@ -373,8 +373,11 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
   const allStats: UserStats[] = [];
   const BATCH_SIZE = 40;
   for (let i = 0; i < keys.length; i += BATCH_SIZE) {
-    const chunk = keys.slice(i, i + BATCH_SIZE);
-    const dataPromises = chunk.map(async key => {
+    const size = Math.min(BATCH_SIZE, keys.length - i);
+    const dataPromises = new Array(size);
+    for (let j = 0; j < size; j++) {
+      const key = keys[i + j];
+      dataPromises[j] = (async () => {
       try {
         const data = await kv.get(key.name);
         if (!data) return null;
@@ -389,7 +392,8 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
       } catch {
         return null;
       }
-    });
+    })();
+    }
 
     const parsedResults = await Promise.all(dataPromises);
     allStats.push(...parsedResults.filter((stats): stats is UserStats => stats !== null));
@@ -487,15 +491,19 @@ export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData
   const recentUsers: LeaderboardData['newUsers'] = [];
   const BATCH_SIZE = 40;
   for (let i = 0; i < userKeys.length; i += BATCH_SIZE) {
-    const chunk = userKeys.slice(i, i + BATCH_SIZE);
-    const userPromises = chunk.map(async key => {
+    const size = Math.min(BATCH_SIZE, userKeys.length - i);
+    const userPromises = new Array(size);
+    for (let j = 0; j < size; j++) {
+      const key = userKeys[i + j];
+      userPromises[j] = (async () => {
       try {
         const data = await kv.get(key.name);
         return data ? JSON.parse(data) as LeaderboardData['newUsers'][number] : null;
       } catch {
         return null;
       }
-    });
+    })();
+    }
     const parsedUsers = await Promise.all(userPromises);
     recentUsers.push(...parsedUsers.filter((u): u is LeaderboardData['newUsers'][number] => u !== null));
   }
