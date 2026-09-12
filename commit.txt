@@ -1,0 +1,11 @@
+🎯 **What:**
+Removed an outdated "CRITICAL FIX" comment in `src/routes/api.ts`.
+
+💡 **Why:**
+The code below the comment already implements the requested fix by using `cachedKV.get` instead of directly accessing KV, so the comment represents outdated technical debt that needs to be cleaned up.
+
+✅ **Verification:**
+Ran `pnpm test` to ensure no functionality is broken.
+
+✨ **Result:**
+Cleaner code without confusing outdated comments.
