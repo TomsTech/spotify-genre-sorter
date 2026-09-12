@@ -2321,17 +2321,25 @@ type AdminUser = {
 };
 
 async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
-  const userStatsList = await kv.list({ prefix: 'user_stats:', limit: 500 });
+  const userStatsKeys: { name: string }[] = [];
+  let cursor: string | undefined = undefined;
+  do {
+    const list = await kv.list({ prefix: 'user_stats:', limit: 1000, cursor }) as { keys: { name: string }[], list_complete: boolean, cursor?: string };
+    for (const key of list.keys) {
+      userStatsKeys.push(key);
+    }
+    cursor = list.list_complete ? undefined : list.cursor;
+  } while (cursor);
+
   const users: AdminUser[] = [];
   const seenIds = new Set<string>();
 
-  // PERF-014 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
   const BATCH_SIZE = 40;
-  for (let i = 0; i < userStatsList.keys.length; i += BATCH_SIZE) {
-    const end = Math.min(i + BATCH_SIZE, userStatsList.keys.length);
+  for (let i = 0; i < userStatsKeys.length; i += BATCH_SIZE) {
+    const end = Math.min(i + BATCH_SIZE, userStatsKeys.length);
     const dataPromises = Array.from({ length: end - i }, async (_, j) => {
       try {
-        const key = userStatsList.keys[i + j];
+        const key = userStatsKeys[i + j];
         const statsJson = await kv.get(key.name);
         if (statsJson) {
           const stats = JSON.parse(statsJson) as {
