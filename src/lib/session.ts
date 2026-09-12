@@ -678,8 +678,12 @@ export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
 
   const analyticsKeys = dateKeys.map(dateKey => `${ANALYTICS_KEY}:${dateKey}`);
 
-  // Fetch all 7 days in parallel (already < 50 items so safe from limits)
-  const dataPromises = analyticsKeys.map(key => kv.get(key));
+  // Fetch all 7 days in parallel with memory caching to prevent N+1 DB calls
+  const dataPromises = analyticsKeys.map((key, i) => {
+    // Today's analytics (i=0) get 5 min cache, historical days get 1 hr cache
+    const ttl = i === 0 ? CACHE_TTL.ANALYTICS : CACHE_TTL.ANALYTICS_HISTORICAL;
+    return cachedKV.getString(kv, key, { cacheTtlMs: ttl });
+  });
   const dataResults = await Promise.all(dataPromises);
 
   // Get last 7 days
