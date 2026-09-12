@@ -2746,12 +2746,13 @@ api.get('/admin/access-requests', async (c) => {
   const emails: string[] = existingList ? JSON.parse(existingList) as string[] : [];
 
   // PERF-015 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
-  const requestKeys = emails.map(email => `access_request_${email}`);
   const requests: AccessRequest[] = [];
   const BATCH_SIZE = 40;
-  for (let i = 0; i < requestKeys.length; i += BATCH_SIZE) {
-    const chunk = requestKeys.slice(i, i + BATCH_SIZE);
-    const dataPromises = chunk.map(async key => {
+  for (let i = 0; i < emails.length; i += BATCH_SIZE) {
+    // ⚡ Bolt: Bypass intermediate arrays from .map() and .slice().map() by chunking directly over original array using Array.from
+    const size = Math.min(BATCH_SIZE, emails.length - i);
+    const dataPromises = Array.from({ length: size }, async (_, j) => {
+      const key = `access_request_${emails[i + j]}`;
       try {
         const data = await kv.get(key);
         if (data) {
