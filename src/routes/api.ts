@@ -45,7 +45,7 @@ const api = new Hono<{ Bindings: Env }>();
 const GENRE_CACHE_TTL = 3600; // 1 hour in seconds
 const GENRE_CACHE_TTL_LARGE = 86400; // 24 hours for large libraries
 const LARGE_LIBRARY_THRESHOLD = 1000; // tracks
-const GENRE_CACHE_PREFIX = 'genre_cache_';
+export const GENRE_CACHE_PREFIX = 'genre_cache_';
 const CHUNK_CACHE_PREFIX = 'genre_chunk_';
 
 // Progressive loading constants - stay under 50 subrequests
@@ -66,7 +66,7 @@ interface GenreCacheData {
 }
 
 // Helper to invalidate genre cache for a user
-async function invalidateGenreCache(kv: KVNamespace, spotifyUserId: string): Promise<void> {
+export async function invalidateGenreCache(kv: KVNamespace, spotifyUserId: string): Promise<void> {
   const cacheKey = `${GENRE_CACHE_PREFIX}${spotifyUserId}`;
   await kv.delete(cacheKey);
 }
