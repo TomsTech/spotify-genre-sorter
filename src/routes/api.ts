@@ -289,7 +289,6 @@ api.get('/now-playing', async (c) => {
         },
         updatedAt: new Date().toISOString(),
       };
-      // CRITICAL FIX: Use cachedKV for listening status writes
       c.executionCtx.waitUntil(
         cachedKV.put(kv, `listening:${session.spotifyUserId}`, JSON.stringify(listeningData), {
           expirationTtl: 90, // 90 seconds - auto-expires if user stops polling
@@ -515,7 +514,6 @@ api.get('/genres', async (c) => {
     };
 
     // Store in cache
-    // CRITICAL FIX: Use cachedKV for genre cache writes to leverage batching
     await cachedKV.put(c.env.SESSIONS, cacheKey, JSON.stringify(responseData), {
       expirationTtl: cacheTtl,
       immediate: false // Genre cache can be batched
@@ -700,7 +698,6 @@ api.get('/genres/progressive', async (c) => {
       };
 
       const cacheKey = `${GENRE_CACHE_PREFIX}${user.id}`;
-      // CRITICAL FIX: Use cachedKV for progressive scan final cache
       await cachedKV.put(c.env.SESSIONS, cacheKey, JSON.stringify(finalData), {
         expirationTtl: GENRE_CACHE_TTL_LARGE,
         immediate: false
@@ -993,7 +990,6 @@ api.get('/genres/chunk', async (c) => {
     };
 
     // Cache this chunk
-    // CRITICAL FIX: Use cachedKV for chunk cache writes
     await cachedKV.put(c.env.SESSIONS, chunkCacheKey, JSON.stringify(chunkData), {
       expirationTtl: GENRE_CACHE_TTL,
       immediate: false // Can be batched - chunks are accessed sequentially
@@ -1882,7 +1878,6 @@ api.post('/log-error', async (c) => {
     }
 
     // Get existing errors (last 100)
-    // CRITICAL FIX: Use cachedKV for error log reads
     const existing = await cachedKV.get<unknown[]>(c.env.SESSIONS, ERROR_LOG_KEY) || [];
 
     // Add new errors with server timestamp
@@ -1894,8 +1889,6 @@ api.post('/log-error', async (c) => {
 
     // Keep last 100 errors
     const combined = [...newErrors, ...existing].slice(0, 100);
-
-    // CRITICAL FIX: Use cachedKV with batching for error logs (non-critical, can be delayed)
     await cachedKV.put(c.env.SESSIONS, ERROR_LOG_KEY, JSON.stringify(combined), {
       expirationTtl: 86400 * 7, // 7 days
       immediate: false // Batch error logs to reduce KV writes
@@ -1923,7 +1916,6 @@ api.post('/log-perf', async (c) => {
     }
 
     // Get existing perf data (last 1000 samples)
-    // CRITICAL FIX: Use cachedKV for perf log reads
     const existing = await cachedKV.get<unknown[]>(c.env.SESSIONS, PERF_LOG_KEY) || [];
 
     // Add new sample
