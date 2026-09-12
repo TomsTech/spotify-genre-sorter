@@ -1886,7 +1886,7 @@
       prompt.className = 'deploy-refresh-prompt';
       prompt.innerHTML = \`
         <h3>🚀 New Version Available!</h3>
-        <p>Version \${newVersion} has been deployed. Refresh to get the latest features.</p>
+        <p>Version \${escapeHtml(newVersion)} has been deployed. Refresh to get the latest features.</p>
         <button class="btn btn-primary version-refresh-btn">Refresh Now</button>
         <button class="btn btn-secondary version-later-btn" style="margin-left: 0.5rem;">Later</button>
       \`;
