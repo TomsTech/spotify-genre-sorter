@@ -27,3 +27,18 @@ test-report.html
 
 # Windows artifacts
 nul
+# Agent scratch files. Jules personas sometimes stage the PR body or commit
+# message as a repo file; they are PR metadata, not source, and have been
+# committed to main by accident more than once.
+commit.txt
+commit_msg.txt
+commit_message.txt
+pr_description.txt
+pr_description.md
+PR_DESCRIPTION.md
+pr_body.txt
+pr_notes.md
+patch.diff
+patch_comment.cjs
+dump.txt
+tsconfig.tsbuildinfo
