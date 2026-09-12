@@ -87,6 +87,7 @@
 **Prevention:** Make sure `getSafeUrl` also sanitizes `vbscript:` prefixes.
 
 ## 2024-08-27 - Escaping HTML is not enough for URLs **Vulnerability:** Unsafe URLs in `src` attributes of images due to only escaping HTML characters. **Learning:** Although the original text had HTML characters encoded, the URL format could still be XSS-vulnerable if the protocol itself is dangerous (`javascript:`, `vbscript:`, `data:`). **Prevention:** Validate the protocol on top of encoding HTML characters by parsing the string as a URL and restricting allowed protocols/domains. Use `getSafeUrl()` for `src` and `href` attributes instead of just `escapeHtml()`.
+## 2024-05-24 - Insecure Randomness in Analytics **Vulnerability:** Use of Math.random() for security-sensitive or unpredictable operations. **Learning:** Math.random() is predictable and should not be used where cryptographic security is needed. **Prevention:** Use crypto.getRandomValues() instead.
 
 ## 2025-05-25 - XSS Vulnerability in Error Message rendering
 **Vulnerability:** The `error` parameter from the URL was displayed directly within the HTML payload in `src/frontend/app.js` without escaping when the `error` string did not map to a key in the `errorMessages` object.
