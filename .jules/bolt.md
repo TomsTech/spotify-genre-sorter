@@ -95,6 +95,9 @@
 ## 2026-09-02 - [Replacing Array.from/map chains with direct loops]
 **Learning:** Using `Array.from()` combined with `.map()` to generate dynamic arrays of Promises creates unnecessary intermediate arrays and closures, increasing memory allocation and CPU overhead.
 **Action:** Replace `Array.from(...).map(...)` chains with a standard `for` loop that directly populates a pre-initialized array (e.g. `const arr = []`) to avoid intermediate allocations and reduce garbage collection pressure.
+## 2023-11-20 - Prevent intermediate array allocations with chunked iteration
+**Learning:** Using `.slice(i, i + size).map(...)` to process array chunks sequentially with `Promise.all()` creates short-lived, intermediate array allocations that increase garbage collection overhead, particularly for large arrays.
+**Action:** Instead, use `new Array(size)` and a direct `for` loop to eliminate the intermediate array copies and callback overhead.
 ## 2024-10-24 - Avoid array iteration intermediates using Promise.all mapping
 **Learning:** When processing chunks of an array using Promise.all mapping, using `array.slice(start, end).map()` creates an intermediate array that costs performance via object allocation and copying. Instead, it is faster to bypass `slice()` and `map()` entirely by generating the promises directly via `for` loop and pushing to a pre-initialized array.
 **Action:** Apply standard `for` loops when converting known index ranges of large arrays to promise arrays instead of chaining array operations like `slice.map`.
