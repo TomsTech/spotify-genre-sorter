@@ -87,3 +87,7 @@
 **Prevention:** Make sure `getSafeUrl` also sanitizes `vbscript:` prefixes.
 
 ## 2024-08-27 - Escaping HTML is not enough for URLs **Vulnerability:** Unsafe URLs in `src` attributes of images due to only escaping HTML characters. **Learning:** Although the original text had HTML characters encoded, the URL format could still be XSS-vulnerable if the protocol itself is dangerous (`javascript:`, `vbscript:`, `data:`). **Prevention:** Validate the protocol on top of encoding HTML characters by parsing the string as a URL and restricting allowed protocols/domains. Use `getSafeUrl()` for `src` and `href` attributes instead of just `escapeHtml()`.
+## 2026-09-12 - Fix Cross-Site Scripting (XSS) via innerHTML in showPromptModal
+**Vulnerability:** The \`showPromptModal\` function in \`src/frontend/app.js\` concatenates the \`message\` parameter directly into a string assigned to \`modal.innerHTML\` without any escaping, leading to a potential Cross-Site Scripting (XSS) vulnerability if the \`message\` parameter is controlled by an attacker.
+**Learning:** Directly concatenating unescaped inputs into HTML strings assigned to \`innerHTML\` is a common source of XSS.
+**Prevention:** Always use appropriate escaping functions (like the existing \`escapeForHtml\` function) when inserting dynamic strings into HTML markup.
