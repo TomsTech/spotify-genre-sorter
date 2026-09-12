@@ -9737,10 +9737,10 @@ export function getHtml(nonce: string): string {
                           \${key.expiresAt ? new Date(key.expiresAt).toLocaleString() : 'Never'}
                         </td>
                         <td style="padding: 0.75rem; white-space: nowrap;">
-                          <button class="btn btn-ghost btn-sm" onclick="viewKVKey('\${escapeHtml(key.name).replace(/'/g, "\\\\'")}')">
+                          <button class="btn btn-ghost btn-sm" onclick="viewKVKey('\${escapeHtml(key.name).replace(/'/g, "\\\\'")}')" aria-label="View KV key \${escapeHtml(key.name)}">
                             👁️ View
                           </button>
-                          <button class="btn btn-ghost btn-sm" style="color: #ff4444;" onclick="deleteKVKey('\${escapeHtml(key.name).replace(/'/g, "\\\\'")}', '\${prefix}', '\${namespaceName}')">
+                          <button class="btn btn-ghost btn-sm" style="color: #ff4444;" onclick="deleteKVKey('\${escapeHtml(key.name).replace(/'/g, "\\\\'")}', '\${prefix}', '\${namespaceName}')" aria-label="Delete KV key \${escapeHtml(key.name)}">
                             🗑️ Delete
                           </button>
                         </td>
