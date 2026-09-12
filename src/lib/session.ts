@@ -613,7 +613,8 @@ export async function trackAnalyticsEvent(
   try {
     // Errors always persist - they're critical for debugging
     // Other events are sampled to reduce KV writes by ~90%
-    const shouldPersist = eventType === 'error' || Math.random() < (1 / ANALYTICS_SAMPLE_RATE);
+    const randomValue = crypto.getRandomValues(new Uint32Array(1))[0] / 0xFFFFFFFF;
+    const shouldPersist = eventType === 'error' || randomValue < (1 / ANALYTICS_SAMPLE_RATE);
     if (!shouldPersist) return;
 
     const analytics = await getDailyAnalytics(kv);
