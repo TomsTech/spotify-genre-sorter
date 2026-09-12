@@ -298,4 +298,6 @@ export const CACHE_TTL = {
   SCOREBOARD: 3600000, // 1 hour
   RECENT_PLAYLISTS: 60000, // 1 minute
   GENRE_CACHE: 3600000, // 1 hour
+  ANALYTICS: 300000, // 5 minutes
+  ANALYTICS_HISTORICAL: 3600000, // 1 hour
 } as const;

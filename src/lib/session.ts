@@ -373,8 +373,11 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
   const allStats: UserStats[] = [];
   const BATCH_SIZE = 40;
   for (let i = 0; i < keys.length; i += BATCH_SIZE) {
-    const chunk = keys.slice(i, i + BATCH_SIZE);
-    const dataPromises = chunk.map(async key => {
+    const size = Math.min(BATCH_SIZE, keys.length - i);
+    const dataPromises = new Array(size);
+    for (let j = 0; j < size; j++) {
+      const key = keys[i + j];
+      dataPromises[j] = (async () => {
       try {
         const data = await kv.get(key.name);
         if (!data) return null;
@@ -389,7 +392,8 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
       } catch {
         return null;
       }
-    });
+    })();
+    }
 
     const parsedResults = await Promise.all(dataPromises);
     allStats.push(...parsedResults.filter((stats): stats is UserStats => stats !== null));
@@ -487,15 +491,19 @@ export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData
   const recentUsers: LeaderboardData['newUsers'] = [];
   const BATCH_SIZE = 40;
   for (let i = 0; i < userKeys.length; i += BATCH_SIZE) {
-    const chunk = userKeys.slice(i, i + BATCH_SIZE);
-    const userPromises = chunk.map(async key => {
+    const size = Math.min(BATCH_SIZE, userKeys.length - i);
+    const userPromises = new Array(size);
+    for (let j = 0; j < size; j++) {
+      const key = userKeys[i + j];
+      userPromises[j] = (async () => {
       try {
         const data = await kv.get(key.name);
         return data ? JSON.parse(data) as LeaderboardData['newUsers'][number] : null;
       } catch {
         return null;
       }
-    });
+    })();
+    }
     const parsedUsers = await Promise.all(userPromises);
     recentUsers.push(...parsedUsers.filter((u): u is LeaderboardData['newUsers'][number] => u !== null));
   }
@@ -613,7 +621,8 @@ export async function trackAnalyticsEvent(
   try {
     // Errors always persist - they're critical for debugging
     // Other events are sampled to reduce KV writes by ~90%
-    const shouldPersist = eventType === 'error' || Math.random() < (1 / ANALYTICS_SAMPLE_RATE);
+    const randomValue = crypto.getRandomValues(new Uint32Array(1))[0] / 0xFFFFFFFF;
+    const shouldPersist = eventType === 'error' || randomValue < (1 / ANALYTICS_SAMPLE_RATE);
     if (!shouldPersist) return;
 
     const analytics = await getDailyAnalytics(kv);
@@ -677,8 +686,12 @@ export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
 
   const analyticsKeys = dateKeys.map(dateKey => `${ANALYTICS_KEY}:${dateKey}`);
 
-  // Fetch all 7 days in parallel (already < 50 items so safe from limits)
-  const dataPromises = analyticsKeys.map(key => kv.get(key));
+  // Fetch all 7 days in parallel with memory caching to prevent N+1 DB calls
+  const dataPromises = analyticsKeys.map((key, i) => {
+    // Today's analytics (i=0) get 5 min cache, historical days get 1 hr cache
+    const ttl = i === 0 ? CACHE_TTL.ANALYTICS : CACHE_TTL.ANALYTICS_HISTORICAL;
+    return cachedKV.getString(kv, key, { cacheTtlMs: ttl });
+  });
   const dataResults = await Promise.all(dataPromises);
 
   // Get last 7 days

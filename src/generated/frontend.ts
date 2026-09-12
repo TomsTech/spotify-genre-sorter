@@ -9287,13 +9287,13 @@ export function getHtml(nonce: string): string {
             <button class="modal-close" onclick="this.closest('.modal-overlay').remove()" aria-label="Close admin panel">×</button>
           </div>
           <div class="admin-tabs">
-            <button class="admin-tab active" data-tab="stats">📊 Stats</button>
-            <button class="admin-tab" data-tab="kv">🗄️ KV Monitor</button>
-            <button class="admin-tab" data-tab="cache">💾 Cache</button>
-            <button class="admin-tab" data-tab="health">🏥 Health</button>
-            <button class="admin-tab" data-tab="errors">🐛 Errors</button>
-            <button class="admin-tab" data-tab="perf">⚡ Performance</button>
-            <button class="admin-tab" data-tab="users">👥 Users</button>
+            <button class="admin-tab active" data-tab="stats" aria-label="Stats">📊 Stats</button>
+            <button class="admin-tab" data-tab="kv" aria-label="KV Monitor">🗄️ KV Monitor</button>
+            <button class="admin-tab" data-tab="cache" aria-label="Cache">💾 Cache</button>
+            <button class="admin-tab" data-tab="health" aria-label="Health">🏥 Health</button>
+            <button class="admin-tab" data-tab="errors" aria-label="Errors">🐛 Errors</button>
+            <button class="admin-tab" data-tab="perf" aria-label="Performance">⚡ Performance</button>
+            <button class="admin-tab" data-tab="users" aria-label="Users">👥 Users</button>
           </div>
           <div class="admin-tab-content" id="admin-tab-content">
             <div class="admin-grid">
@@ -9741,10 +9741,10 @@ export function getHtml(nonce: string): string {
                           \${key.expiresAt ? new Date(key.expiresAt).toLocaleString() : 'Never'}
                         </td>
                         <td style="padding: 0.75rem; white-space: nowrap;">
-                          <button class="btn btn-ghost btn-sm" onclick="viewKVKey('\${escapeHtml(key.name).replace(/'/g, "\\\\'")}')">
+                          <button class="btn btn-ghost btn-sm" onclick="viewKVKey('\${escapeHtml(key.name).replace(/'/g, "\\\\'")}')" aria-label="View KV key \${escapeHtml(key.name)}">
                             👁️ View
                           </button>
-                          <button class="btn btn-ghost btn-sm" style="color: #ff4444;" onclick="deleteKVKey('\${escapeHtml(key.name).replace(/'/g, "\\\\'")}', '\${prefix}', '\${namespaceName}')">
+                          <button class="btn btn-ghost btn-sm" style="color: #ff4444;" onclick="deleteKVKey('\${escapeHtml(key.name).replace(/'/g, "\\\\'")}', '\${prefix}', '\${namespaceName}')" aria-label="Delete KV key \${escapeHtml(key.name)}">
                             🗑️ Delete
                           </button>
                         </td>
@@ -10477,7 +10477,7 @@ export function getHtml(nonce: string): string {
       prompt.className = 'deploy-refresh-prompt';
       prompt.innerHTML = \`
         <h3>🚀 New Version Available!</h3>
-        <p>Version \${newVersion} has been deployed. Refresh to get the latest features.</p>
+        <p>Version \${escapeHtml(newVersion)} has been deployed. Refresh to get the latest features.</p>
         <button class="btn btn-primary version-refresh-btn">Refresh Now</button>
         <button class="btn btn-secondary version-later-btn" style="margin-left: 0.5rem;">Later</button>
       \`;
@@ -11589,7 +11589,7 @@ export function getHtml(nonce: string): string {
 
       app.innerHTML = \`
         <div class="welcome">
-          \${error ? \`<div class="error">\${errorMessages[error] || error}\${requestAccessButton}</div>\` : ''}
+          \${error ? \`<div class="error">\${errorMessages[error] || escapeHtml(error)}\${requestAccessButton}</div>\` : ''}
           \${userCounterHtml}
           <h2 data-i18n="organiseMusic">\${t('organiseMusic')}</h2>
           <p data-i18n="organiseDesc">\${t('organiseDesc')}</p>
@@ -14504,7 +14504,7 @@ export function getHtml(nonce: string): string {
       if (!url) return '';
       const safeStr = String(url);
       // Remove control characters and whitespace
-      const cleaned = safeStr.replace(/[\x00-\x1F\s]/g, '').toLowerCase();
+      const cleaned = safeStr.replace(/[\x00-\x20\x7F-\x9F\s]/g, '').toLowerCase();
 
       // Block javascript:, vbscript: and dangerous data: types (allow images)
       if (cleaned.startsWith('javascript:') ||
@@ -14562,11 +14562,11 @@ export function getHtml(nonce: string): string {
             <button class="btn btn-ghost" onclick="closeScoreboard()" aria-label="Close scoreboard">✕</button>
           </div>
           <div class="scoreboard-tabs">
-            <button class="scoreboard-tab active" data-tab="playlists">🎵 \${swedishMode ? 'Spellistor' : 'Playlists'}</button>
-            <button class="scoreboard-tab" data-tab="genres">🎸 \${swedishMode ? 'Genrer' : 'Genres'}</button>
-            <button class="scoreboard-tab" data-tab="artists">🎤 \${swedishMode ? 'Artister' : 'Artists'}</button>
-            <button class="scoreboard-tab" data-tab="tracks">📀 \${swedishMode ? 'Låtar' : 'Tracks'}</button>
-            <button class="scoreboard-tab" data-tab="sorted">📋 \${swedishMode ? 'Sorterade' : 'Sorted'}</button>
+            <button class="scoreboard-tab active" data-tab="playlists" aria-label="\${swedishMode ? 'Spellistor' : 'Playlists'}">🎵 \${swedishMode ? 'Spellistor' : 'Playlists'}</button>
+            <button class="scoreboard-tab" data-tab="genres" aria-label="\${swedishMode ? 'Genrer' : 'Genres'}">🎸 \${swedishMode ? 'Genrer' : 'Genres'}</button>
+            <button class="scoreboard-tab" data-tab="artists" aria-label="\${swedishMode ? 'Artister' : 'Artists'}">🎤 \${swedishMode ? 'Artister' : 'Artists'}</button>
+            <button class="scoreboard-tab" data-tab="tracks" aria-label="\${swedishMode ? 'Låtar' : 'Tracks'}">📀 \${swedishMode ? 'Låtar' : 'Tracks'}</button>
+            <button class="scoreboard-tab" data-tab="sorted" aria-label="\${swedishMode ? 'Sorterade' : 'Sorted'}">📋 \${swedishMode ? 'Sorterade' : 'Sorted'}</button>
           </div>
           <div class="scoreboard-content" id="scoreboard-content">
             \${renderScoreboardTab('playlists')}

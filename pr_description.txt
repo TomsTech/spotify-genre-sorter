@@ -1,0 +1,10 @@
+🎯 **What:** Added comprehensive unit tests for the `calculateKVTrend` function in `src/routes/api.ts` to address the missing test coverage. The function calculates average daily KV writes based on a 7-day summary and determines the write trend direction ('increasing', 'decreasing', or 'stable').
+
+📊 **Coverage:** Added test cases covering:
+- Correct mathematical calculation of average daily writes.
+- 'Stable' trend when estimated writes are within bounds.
+- Exact boundary conditions for the 'stable' trend (exactly 0.5x and 1.5x of the average).
+- 'Increasing' trend when estimated writes are strictly > 1.5x average.
+- 'Decreasing' trend when estimated writes are strictly < 0.5x average.
+
+✨ **Result:** Increased code reliability and test coverage by ensuring the mathematical calculations and boundary conditions for KV trend analysis are properly verified.
