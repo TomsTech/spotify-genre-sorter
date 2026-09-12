@@ -2240,18 +2240,24 @@ api.get('/admin', async (c) => {
   const kv = c.env.SESSIONS;
   const metrics = getKVMetrics();
 
-  // PERF-023 FIX: Use Promise.all for parallel KV listing
   // PERF-031 FIX: Parallelize getAnalytics and KV listing
   const prefixes = ['session:', 'user:', 'user_stats:', 'hof:', 'genre_cache_', 'scan_progress:'];
-  const [analytics, ...listResults] = await Promise.all([
+
+  // PERF-FIX: Eliminate intermediate arrays created by rest/spread syntax, .map(), and .forEach()
+  const listPromises = [];
+  for (let i = 0; i < prefixes.length; i++) {
+    listPromises.push(kv.list({ prefix: prefixes[i], limit: 1000 }));
+  }
+
+  const [analytics, listResults] = await Promise.all([
     getAnalytics(kv),
-    ...prefixes.map(prefix => kv.list({ prefix, limit: 1000 }))
+    Promise.all(listPromises)
   ]);
 
   const keyCounts: Record<string, number> = {};
-  prefixes.forEach((prefix, index) => {
-    keyCounts[prefix] = listResults[index].keys.length;
-  });
+  for (let i = 0; i < prefixes.length; i++) {
+    keyCounts[prefixes[i]] = listResults[i].keys.length;
+  }
 
   return c.json({
     admin: { user: session?.githubUser || session?.spotifyUserId, accessTime: new Date().toISOString() },

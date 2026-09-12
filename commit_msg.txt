@@ -1,0 +1,13 @@
+⚡ Bolt: Eliminate intermediate arrays in API Route
+
+💡 What:
+Replaced spread syntax, `.map()`, and `.forEach()` with standard `for` loops when fetching KV metrics.
+
+🎯 Why:
+This eliminates intermediate array allocations and reduces garbage collection pressure on frequently accessed API endpoints.
+
+📊 Impact:
+Minor reduction in memory usage and garbage collection pauses during /api/admin route processing.
+
+🔬 Measurement:
+Confirmed behavior preservation via existing test suite runs.
