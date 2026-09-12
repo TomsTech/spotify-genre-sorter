@@ -2469,8 +2469,9 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   const hofResults: ({ spotifyId?: string } | null)[] = [];
   const BATCH_SIZE = 40;
   for (let i = 0; i < hofKeys.length; i += BATCH_SIZE) {
-    const chunk = hofKeys.slice(i, i + BATCH_SIZE);
-    const hofPromises = chunk.map(async key => {
+    const end = Math.min(i + BATCH_SIZE, hofKeys.length);
+    const hofPromises = Array.from({ length: end - i }, async (_, j) => {
+      const key = hofKeys[i + j];
       try {
         const hofJson = await kv.get(key);
         if (hofJson) {
