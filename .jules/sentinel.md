@@ -87,3 +87,7 @@
 **Prevention:** Make sure `getSafeUrl` also sanitizes `vbscript:` prefixes.
 
 ## 2024-08-27 - Escaping HTML is not enough for URLs **Vulnerability:** Unsafe URLs in `src` attributes of images due to only escaping HTML characters. **Learning:** Although the original text had HTML characters encoded, the URL format could still be XSS-vulnerable if the protocol itself is dangerous (`javascript:`, `vbscript:`, `data:`). **Prevention:** Validate the protocol on top of encoding HTML characters by parsing the string as a URL and restricting allowed protocols/domains. Use `getSafeUrl()` for `src` and `href` attributes instead of just `escapeHtml()`.
+## 2023-10-27 - 🛡️ Sentinel: [HIGH] Fix XSS bypass in getSafeUrl
+**Vulnerability:** The `getSafeUrl()` function relied on string replacement (`[\x00-\x1F\s]`) and `.startsWith()` to block dangerous protocols like `javascript:`. This regex misses the `\x7F` (DEL) control character and other invisible characters that the browser ignores when interpreting the URL protocol in an anchor `href`. This allowed an attacker to bypass the protocol filter, leading to Cross-Site Scripting (XSS).
+**Learning:** URL sanitization should never rely on simple string matching (`.startsWith`) and incomplete regex replacement, as browsers are extremely lenient with whitespace and control characters in URL protocols.
+**Prevention:** Always use the browser's native `URL` API constructor to safely parse and extract the `protocol` when validating URLs. It correctly normalizes control characters and whitespace.
