@@ -92,3 +92,7 @@
 **Vulnerability:** The `error` parameter from the URL was displayed directly within the HTML payload in `src/frontend/app.js` without escaping when the `error` string did not map to a key in the `errorMessages` object.
 **Learning:** Even if `errorMessages[error]` handles some known predefined error keys properly (although still injecting them as HTML), the fallback string `|| error` which is retrieved directly from user-controlled URL search parameter (`error`) is concatenated directly to the DOM using `innerHTML`, allowing XSS execution.
 **Prevention:** Sanitize user-provided URL inputs or use safe rendering mechanisms (such as `escapeHtml` utility) before incorporating them into HTML generated dynamically and injected via `innerHTML`.
+## $(date +%Y-%m-%d) - Fix XSS in Version Prompt
+**Vulnerability:** XSS vulnerability through unescaped variable `newVersion` injected into the DOM via `innerHTML` in a version prompt overlay.
+**Learning:** Variables that originate from external APIs or backend states can act as XSS vectors if injected blindly into template strings assigned to `innerHTML`. Automated scanners like CodeQL identify this immediately.
+**Prevention:** Use `escapeHtml` (or similar utility) universally when interpolating raw text variables into `innerHTML` templates.
