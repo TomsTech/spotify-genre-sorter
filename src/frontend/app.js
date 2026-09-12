@@ -696,13 +696,13 @@
             <button class="modal-close" onclick="this.closest('.modal-overlay').remove()" aria-label="Close admin panel">×</button>
           </div>
           <div class="admin-tabs">
-            <button class="admin-tab active" data-tab="stats">📊 Stats</button>
-            <button class="admin-tab" data-tab="kv">🗄️ KV Monitor</button>
-            <button class="admin-tab" data-tab="cache">💾 Cache</button>
-            <button class="admin-tab" data-tab="health">🏥 Health</button>
-            <button class="admin-tab" data-tab="errors">🐛 Errors</button>
-            <button class="admin-tab" data-tab="perf">⚡ Performance</button>
-            <button class="admin-tab" data-tab="users">👥 Users</button>
+            <button class="admin-tab active" data-tab="stats" aria-label="Stats">📊 Stats</button>
+            <button class="admin-tab" data-tab="kv" aria-label="KV Monitor">🗄️ KV Monitor</button>
+            <button class="admin-tab" data-tab="cache" aria-label="Cache">💾 Cache</button>
+            <button class="admin-tab" data-tab="health" aria-label="Health">🏥 Health</button>
+            <button class="admin-tab" data-tab="errors" aria-label="Errors">🐛 Errors</button>
+            <button class="admin-tab" data-tab="perf" aria-label="Performance">⚡ Performance</button>
+            <button class="admin-tab" data-tab="users" aria-label="Users">👥 Users</button>
           </div>
           <div class="admin-tab-content" id="admin-tab-content">
             <div class="admin-grid">
@@ -5965,11 +5965,11 @@
             <button class="btn btn-ghost" onclick="closeScoreboard()" aria-label="Close scoreboard">✕</button>
           </div>
           <div class="scoreboard-tabs">
-            <button class="scoreboard-tab active" data-tab="playlists">🎵 \${swedishMode ? 'Spellistor' : 'Playlists'}</button>
-            <button class="scoreboard-tab" data-tab="genres">🎸 \${swedishMode ? 'Genrer' : 'Genres'}</button>
-            <button class="scoreboard-tab" data-tab="artists">🎤 \${swedishMode ? 'Artister' : 'Artists'}</button>
-            <button class="scoreboard-tab" data-tab="tracks">📀 \${swedishMode ? 'Låtar' : 'Tracks'}</button>
-            <button class="scoreboard-tab" data-tab="sorted">📋 \${swedishMode ? 'Sorterade' : 'Sorted'}</button>
+            <button class="scoreboard-tab active" data-tab="playlists" aria-label="\${swedishMode ? 'Spellistor' : 'Playlists'}">🎵 \${swedishMode ? 'Spellistor' : 'Playlists'}</button>
+            <button class="scoreboard-tab" data-tab="genres" aria-label="\${swedishMode ? 'Genrer' : 'Genres'}">🎸 \${swedishMode ? 'Genrer' : 'Genres'}</button>
+            <button class="scoreboard-tab" data-tab="artists" aria-label="\${swedishMode ? 'Artister' : 'Artists'}">🎤 \${swedishMode ? 'Artister' : 'Artists'}</button>
+            <button class="scoreboard-tab" data-tab="tracks" aria-label="\${swedishMode ? 'Låtar' : 'Tracks'}">📀 \${swedishMode ? 'Låtar' : 'Tracks'}</button>
+            <button class="scoreboard-tab" data-tab="sorted" aria-label="\${swedishMode ? 'Sorterade' : 'Sorted'}">📋 \${swedishMode ? 'Sorterade' : 'Sorted'}</button>
           </div>
           <div class="scoreboard-content" id="scoreboard-content">
             \${renderScoreboardTab('playlists')}
