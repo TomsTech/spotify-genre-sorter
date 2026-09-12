@@ -1,6 +1,6 @@
 import { generateKVRecommendations, aggregateGenresFromTrackData } from '../src/routes/api';
 import { describe, it, expect, vi } from 'vitest';
-import { determineKVStatus } from '../src/routes/api';
+import { determineKVStatus, calculateKVBreakdown } from '../src/routes/api';
 
 describe('API Response Formats', () => {
 
@@ -508,5 +508,72 @@ describe('validateTrackIds', () => {
     const result = validateTrackIds(validIds);
     expect(result.valid).toBe(true);
     expect((result as any).value).toEqual(validIds);
+  });
+});
+
+describe('calculateKVBreakdown', () => {
+  it('should correctly calculate reads and writes for all categories', () => {
+    const mockData = {
+      date: '2023-10-27',
+      pageViews: 1000,
+      uniqueVisitors: [],
+      signIns: 50,
+      authFailures: 5,
+      errors: [],
+      libraryScans: 20,
+      playlistsCreated: 30,
+      totalTracksAnalysed: 500,
+      kvErrors: 0
+    };
+
+    const breakdown = calculateKVBreakdown(mockData);
+
+    expect(breakdown).toEqual({
+      sessions: {
+        reads: Math.round(20 * 2 + 30 * 2),
+        writes: 50 * 2
+      },
+      caches: {
+        reads: Math.round(1000 * 0.5),
+        writes: Math.round(1000 * 0.02)
+      },
+      userStats: {
+        reads: 30,
+        writes: 30
+      },
+      recentPlaylists: {
+        reads: Math.round(1000 * 0.3),
+        writes: 30
+      },
+      auth: {
+        reads: 50 * 3,
+        writes: 50 * 2
+      }
+    });
+  });
+
+  it('should handle zero values gracefully', () => {
+    const emptyData = {
+      date: '2023-10-27',
+      pageViews: 0,
+      uniqueVisitors: [],
+      signIns: 0,
+      authFailures: 0,
+      errors: [],
+      libraryScans: 0,
+      playlistsCreated: 0,
+      totalTracksAnalysed: 0,
+      kvErrors: 0
+    };
+
+    const breakdown = calculateKVBreakdown(emptyData);
+
+    expect(breakdown).toEqual({
+      sessions: { reads: 0, writes: 0 },
+      caches: { reads: 0, writes: 0 },
+      userStats: { reads: 0, writes: 0 },
+      recentPlaylists: { reads: 0, writes: 0 },
+      auth: { reads: 0, writes: 0 }
+    });
   });
 });
