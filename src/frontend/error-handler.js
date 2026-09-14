@@ -330,15 +330,28 @@ function escapeHtml(text) {
 function getSafeUrl(url) {
   if (!url) return '';
   const safeStr = String(url);
-  // Remove control characters and whitespace
-  const cleaned = safeStr.replace(/[\x00-\x1F\s]/g, '').toLowerCase();
 
-  // Block javascript:, vbscript: and dangerous data: types (allow images)
-  if (cleaned.startsWith('javascript:') ||
-      cleaned.startsWith('vbscript:') ||
-     (cleaned.startsWith('data:') && !cleaned.startsWith('data:image/'))) {
-    return '#';
+  try {
+    const parsedUrl = new URL(safeStr, window.location.origin);
+    const protocol = parsedUrl.protocol.toLowerCase();
+
+    if (protocol === 'javascript:' || protocol === 'vbscript:') {
+      return '#';
+    }
+
+    if (protocol === 'data:' && !safeStr.toLowerCase().startsWith('data:image/')) {
+      return '#';
+    }
+  } catch (e) {
+    // If URL parsing fails, fallback to basic sanitization check
+    const cleaned = safeStr.replace(/[\x00-\x1F\s]/g, '').toLowerCase();
+    if (cleaned.startsWith('javascript:') ||
+        cleaned.startsWith('vbscript:') ||
+       (cleaned.startsWith('data:') && !cleaned.startsWith('data:image/'))) {
+      return '#';
+    }
   }
+
   return escapeHtml(safeStr);
 }
 
