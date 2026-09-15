@@ -277,9 +277,11 @@ export async function getAllLikedTracks(
     const responses = [];
     const BATCH_SIZE = 5;
     for (let i = 0; i < remainingOffsets.length; i += BATCH_SIZE) {
-      const batchOffsets = remainingOffsets.slice(i, i + BATCH_SIZE);
+      // ⚡ Bolt: Avoid intermediate array allocation from slice().map() by using Array.from()
+      const chunkSize = Math.min(BATCH_SIZE, remainingOffsets.length - i);
       const batchResponses = await Promise.all(
-        batchOffsets.map(async (off) => {
+        Array.from({ length: chunkSize }, async (_, j) => {
+          const off = remainingOffsets[i + j];
           const response = await getLikedTracks(accessToken, limit, off);
           return response;
         })
@@ -519,14 +521,16 @@ export async function getUserPlaylists(
     if (remainingOffsets.length > 0) {
       const BATCH_SIZE = 5;
       for (let i = 0; i < remainingOffsets.length; i += BATCH_SIZE) {
-        const batchOffsets = remainingOffsets.slice(i, i + BATCH_SIZE);
+        // ⚡ Bolt: Avoid intermediate array allocation from slice().map() by using Array.from()
+        const chunkSize = Math.min(BATCH_SIZE, remainingOffsets.length - i);
         const responses = await Promise.all(
-          batchOffsets.map(off =>
-            spotifyFetch<{ items: SpotifyPlaylist[] }>(
+          Array.from({ length: chunkSize }, (_, j) => {
+            const off = remainingOffsets[i + j];
+            return spotifyFetch<{ items: SpotifyPlaylist[] }>(
               `/me/playlists?limit=${limit}&offset=${off}`,
               accessToken
-            )
-          )
+            );
+          })
         );
         for (const res of responses) {
           allPlaylists.push(...res.items);
@@ -574,14 +578,16 @@ export async function getPlaylistTracks(
     if (remainingOffsets.length > 0) {
       const BATCH_SIZE = 5;
       for (let i = 0; i < remainingOffsets.length; i += BATCH_SIZE) {
-        const batchOffsets = remainingOffsets.slice(i, i + BATCH_SIZE);
+        // ⚡ Bolt: Avoid intermediate array allocation from slice().map() by using Array.from()
+        const chunkSize = Math.min(BATCH_SIZE, remainingOffsets.length - i);
         const responses = await Promise.all(
-          batchOffsets.map(off =>
-            spotifyFetch<{ items: PlaylistTrack[] }>(
+          Array.from({ length: chunkSize }, (_, j) => {
+            const off = remainingOffsets[i + j];
+            return spotifyFetch<{ items: PlaylistTrack[] }>(
               `/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${off}`,
               accessToken
-            )
-          )
+            );
+          })
         );
         for (const res of responses) {
           allTracks.push(...res.items);

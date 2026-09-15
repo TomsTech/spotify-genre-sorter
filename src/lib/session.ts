@@ -374,10 +374,9 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
   const BATCH_SIZE = 40;
   for (let i = 0; i < keys.length; i += BATCH_SIZE) {
     const size = Math.min(BATCH_SIZE, keys.length - i);
-    const dataPromises = new Array(size);
-    for (let j = 0; j < size; j++) {
+    // ⚡ Bolt: Avoid intermediate array allocation from index-based mapping
+    const dataPromises = Array.from({ length: size }, async (_, j) => {
       const key = keys[i + j];
-      dataPromises[j] = (async () => {
       try {
         const data = await kv.get(key.name);
         if (!data) return null;
@@ -392,8 +391,7 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
       } catch {
         return null;
       }
-    })();
-    }
+    });
 
     const parsedResults = await Promise.all(dataPromises);
     allStats.push(...parsedResults.filter((stats): stats is UserStats => stats !== null));
@@ -492,18 +490,16 @@ export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData
   const BATCH_SIZE = 40;
   for (let i = 0; i < userKeys.length; i += BATCH_SIZE) {
     const size = Math.min(BATCH_SIZE, userKeys.length - i);
-    const userPromises = new Array(size);
-    for (let j = 0; j < size; j++) {
+    // ⚡ Bolt: Avoid intermediate array allocation from index-based mapping
+    const userPromises = Array.from({ length: size }, async (_, j) => {
       const key = userKeys[i + j];
-      userPromises[j] = (async () => {
       try {
         const data = await kv.get(key.name);
         return data ? JSON.parse(data) as LeaderboardData['newUsers'][number] : null;
       } catch {
         return null;
       }
-    })();
-    }
+    });
     const parsedUsers = await Promise.all(userPromises);
     recentUsers.push(...parsedUsers.filter((u): u is LeaderboardData['newUsers'][number] => u !== null));
   }

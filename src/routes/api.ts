@@ -2239,16 +2239,19 @@ api.get('/admin', async (c) => {
   // PERF-023 FIX: Use Promise.all for parallel KV listing
   // PERF-031 FIX: Parallelize getAnalytics and KV listing
   const prefixes = ['session:', 'user:', 'user_stats:', 'hof:', 'genre_cache_', 'scan_progress:'];
-  const listPromises = prefixes.map(prefix => kv.list({ prefix, limit: 1000 }));
+  const listPromises = Array.from({ length: prefixes.length }, (_, j) =>
+    kv.list({ prefix: prefixes[j], limit: 1000 })
+  );
   const [analytics, listResults] = await Promise.all([
     getAnalytics(kv),
     Promise.all(listPromises)
   ]);
 
   const keyCounts: Record<string, number> = {};
-  prefixes.forEach((prefix, index) => {
+  for (let index = 0; index < prefixes.length; index++) {
+    const prefix = prefixes[index];
     keyCounts[prefix] = listResults[index].keys.length;
-  });
+  }
 
   return c.json({
     admin: { user: session?.githubUser || session?.spotifyUserId, accessTime: new Date().toISOString() },
@@ -2325,8 +2328,10 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
   // PERF-014 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
   const BATCH_SIZE = 40;
   for (let i = 0; i < userStatsList.keys.length; i += BATCH_SIZE) {
-    const chunk = userStatsList.keys.slice(i, i + BATCH_SIZE);
-    const dataPromises = chunk.map(async key => {
+    // ⚡ Bolt: Avoid intermediate array allocation from slice().map() by using Array.from()
+    const chunkSize = Math.min(BATCH_SIZE, userStatsList.keys.length - i);
+    const dataPromises = Array.from({ length: chunkSize }, async (_, j) => {
+      const key = userStatsList.keys[i + j];
       try {
         const statsJson = await kv.get(key.name);
         if (statsJson) {
@@ -2364,8 +2369,10 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
   const hofResults: ({ spotifyId: string; spotifyName: string; spotifyAvatar?: string; registeredAt?: string } | null)[] = [];
   for (let i = 0; i < hofKeys.length; i += BATCH_SIZE) {
-    const chunk = hofKeys.slice(i, i + BATCH_SIZE);
-    const hofPromises = chunk.map(async key => {
+    // ⚡ Bolt: Avoid intermediate array allocation from slice().map() by using Array.from()
+    const chunkSize = Math.min(BATCH_SIZE, hofKeys.length - i);
+    const hofPromises = Array.from({ length: chunkSize }, async (_, j) => {
+      const key = hofKeys[i + j];
       try {
         const hofJson = await kv.get(key);
         if (hofJson) {
