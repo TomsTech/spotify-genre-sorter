@@ -151,7 +151,14 @@ app.get('/health', async (c) => {
   components.secrets = { status: secretsConfigured ? 'ok' : 'missing' };
 
   // Overall status
-  const allOk = Object.values(components).every(c => c.status === 'ok');
+  // PERF-033 FIX: Avoid intermediate array allocation from Object.values()
+  let allOk = true;
+  for (const key in components) {
+    if (components[key].status !== 'ok') {
+      allOk = false;
+      break;
+    }
+  }
 
   return c.json({
     status: allOk ? 'ok' : 'degraded',

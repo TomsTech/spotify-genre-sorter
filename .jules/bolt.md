@@ -118,3 +118,7 @@
 **Action:** Use `Array.from({ length: size }, (_, j) => process(arr[start + j]))` to directly compute chunks from the original array, bypassing intermediate allocations.
 ## 2024-05-19 - Avoid slice().map() with Promise.all **Learning:** Using `array.slice().map()` creates intermediate arrays, putting pressure on the garbage collector, especially when processing large chunked datasets with `Promise.all()`. **Action:** Use `Array.from({ length }, (_, j) => ...)` to generate promises directly from indices, bypassing the intermediate array creation.
 ## 2025-02-12 - Remove array slice and map in chunking **Learning:** Using `.slice().map()` creates intermediate arrays that increase garbage collection overhead and memory allocation, especially in loops. **Action:** Use `Array.from()` to construct the mapped array directly without intermediate slicing.
+
+## 2024-05-23 - Avoid Object.values().every() in health checks
+**Learning:** Using `Object.values().every()` creates an intermediate array containing all object values, which increases garbage collection pressure, especially in frequently hit endpoints like health checks.
+**Action:** Replace `Object.values().every()` with native `for...in` loops to iterate directly over the object keys, avoiding the intermediate array allocation.
