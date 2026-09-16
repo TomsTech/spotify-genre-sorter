@@ -5916,14 +5916,21 @@
     function getSafeUrl(url) {
       if (!url) return '';
       const safeStr = String(url);
-      // Remove control characters and whitespace
-      const cleaned = safeStr.replace(/[\x00-\x20\x7F-\x9F\s]/g, '').toLowerCase();
-
-      // Block javascript:, vbscript: and dangerous data: types (allow images)
-      if (cleaned.startsWith('javascript:') ||
-          cleaned.startsWith('vbscript:') ||
-         (cleaned.startsWith('data:') && !cleaned.startsWith('data:image/'))) {
-        return '#';
+      try {
+        const parsed = new URL(safeStr, window.location.origin || 'http://localhost');
+        const protocol = parsed.protocol;
+        if (protocol === 'javascript:' || protocol === 'vbscript:' ||
+           (protocol === 'data:' && !parsed.pathname.startsWith('image/'))) {
+          return '#';
+        }
+      } catch (e) {
+        // Fallback for invalid URLs or environments without DOM URL
+        const cleaned = safeStr.replace(/[\x00-\x20\x7F-\x9F\s]/g, '').toLowerCase();
+        if (cleaned.startsWith('javascript:') ||
+            cleaned.startsWith('vbscript:') ||
+           (cleaned.startsWith('data:') && !cleaned.startsWith('data:image/'))) {
+          return '#';
+        }
       }
       return escapeHtml(safeStr);
     }
