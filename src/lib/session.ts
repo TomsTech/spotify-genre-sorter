@@ -105,6 +105,14 @@ export async function getSession<P extends string, I extends Input>(
   // CRITICAL FIX: Use cachedKV to reduce KV reads (sessions are read on every authenticated request)
   // Memory cache TTL: 1 minute (CACHE_TTL.SESSION)
   const session = await cachedKV.get<Session>(c.env.SESSIONS, `session:${sessionId}`, { cacheTtlMs: CACHE_TTL.SESSION });
+  if (!session) return null;
+
+  // Add csrfToken if missing from older sessions
+  if (!session.csrfToken) {
+    session.csrfToken = generateCsrfToken();
+    await updateSession(c, { csrfToken: session.csrfToken });
+  }
+
   return session;
 }
 
