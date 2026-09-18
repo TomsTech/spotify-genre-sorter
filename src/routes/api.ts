@@ -2742,7 +2742,6 @@ api.get('/admin/access-requests', async (c) => {
   const existingList = await kv.get(listKey);
   const emails: string[] = existingList ? JSON.parse(existingList) as string[] : [];
 
-  // PERF-015 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
   const requests: AccessRequest[] = [];
   const BATCH_SIZE = 40;
   for (let i = 0; i < emails.length; i += BATCH_SIZE) {
