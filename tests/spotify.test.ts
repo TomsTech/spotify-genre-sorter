@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry } from '../src/lib/spotify';
-
+import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry, getAllLikedTracks } from '../src/lib/spotify';
 
 describe('Spotify Library', () => {
 
@@ -261,8 +260,8 @@ describe('fetchWithRetry', () => {
 describe('refreshSpotifyToken', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
-
   it('should throw an error if the fetch to Spotify token endpoint fails due to network error', async () => {
     vi.useFakeTimers();
 
@@ -315,5 +314,162 @@ describe('refreshSpotifyToken', () => {
     const tokens = await refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret');
     expect(tokens.access_token).toBe('new-access-token');
     expect(tokens.refresh_token).toBe('fake-refresh-token'); // It should preserve the refresh token if not returned
+  });
+});
+
+
+describe('getAllLikedTracks', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+  const createMockTrack = (id: string): any => ({
+    track: { id, name: `Track ${id}`, artists: [] },
+    added_at: '2023-01-01',
+  });
+
+  it('should fetch a single page of tracks when total <= limit', async () => {
+    const mockItems = Array.from({ length: 10 }, (_, i) => createMockTrack(String(i)));
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: mockItems,
+        total: 10,
+        next: null
+      }),
+      headers: new Headers()
+    });
+
+    const onProgress = vi.fn();
+    const result = await getAllLikedTracks('fake-token', onProgress);
+
+    expect(result.tracks).toHaveLength(10);
+    expect(result.totalInLibrary).toBe(10);
+    expect(result.truncated).toBe(false);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(onProgress).toHaveBeenCalledWith(10, 10);
+  });
+
+  it('should fetch multiple pages in parallel batches when total > limit', async () => {
+    // 150 tracks total: 1 initial fetch (0-50), then 2 parallel fetches (50-100, 100-150)
+    global.fetch = vi.fn().mockImplementation(async (url) => {
+      const urlStr = url.toString();
+      const offsetMatch = urlStr.match(/offset=(\d+)/);
+      const offset = offsetMatch ? parseInt(offsetMatch[1], 10) : 0;
+
+      const items = Array.from({ length: 50 }, (_, i) => createMockTrack(String(offset + i)));
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items,
+          total: 150,
+          next: offset + 50 < 150 ? 'has-next' : null
+        }),
+        headers: new Headers()
+      };
+    });
+
+    const onProgress = vi.fn();
+    const result = await getAllLikedTracks('fake-token', onProgress);
+
+    expect(result.tracks).toHaveLength(150);
+    expect(result.totalInLibrary).toBe(150);
+    expect(result.truncated).toBe(false);
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+
+    expect(onProgress).toHaveBeenCalledTimes(3);
+    expect(onProgress).toHaveBeenNthCalledWith(1, 50, 150);
+    expect(onProgress).toHaveBeenNthCalledWith(2, 100, 150);
+    expect(onProgress).toHaveBeenNthCalledWith(3, 150, 150);
+  });
+
+  it('should respect maxTracks limit and truncate', async () => {
+    global.fetch = vi.fn().mockImplementation(async (url) => {
+      const urlStr = url.toString();
+      const offsetMatch = urlStr.match(/offset=(\d+)/);
+      const offset = offsetMatch ? parseInt(offsetMatch[1], 10) : 0;
+
+      const items = Array.from({ length: 50 }, (_, i) => createMockTrack(String(offset + i)));
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items,
+          total: 200,
+          next: 'has-next'
+        }),
+        headers: new Headers()
+      };
+    });
+
+    const result = await getAllLikedTracks('fake-token', undefined, 75);
+
+    // Initial fetch (50), offset=50 < 75 so requests one more (50). Total 100.
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(result.tracks).toHaveLength(100);
+    expect(result.totalInLibrary).toBe(200);
+    expect(result.truncated).toBe(true);
+  });
+
+  it('should process requests in batches of 5', async () => {
+    // 350 tracks -> 7 pages of 50.
+    global.fetch = vi.fn().mockImplementation(async (url) => {
+      const urlStr = url.toString();
+      const offsetMatch = urlStr.match(/offset=(\d+)/);
+      const offset = offsetMatch ? parseInt(offsetMatch[1], 10) : 0;
+
+      const items = Array.from({ length: 50 }, (_, i) => createMockTrack(String(offset + i)));
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items,
+          total: 350,
+          next: offset + 50 < 350 ? 'has-next' : null
+        }),
+        headers: new Headers()
+      };
+    });
+
+    const result = await getAllLikedTracks('fake-token');
+
+    expect(result.tracks).toHaveLength(350);
+    expect(global.fetch).toHaveBeenCalledTimes(7);
+  });
+
+  it('should throw an error if the fetch fails', async () => {
+    // Use fake timers to fast-forward through the fetchWithRetry delays
+    vi.useFakeTimers();
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      text: async () => 'Internal Server Error',
+      headers: new Headers()
+    });
+
+    const promise = getAllLikedTracks('fake-token');
+
+    // Use a variable to track caught error to avoid unhandled rejection warning
+    let caughtError: Error | null = null;
+    const catchPromise = promise.catch(err => {
+      caughtError = err;
+    });
+
+    // Advance timers for all retry attempts in fetchWithRetry
+    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(4000);
+
+    await catchPromise;
+    expect(caughtError).toBeInstanceOf(Error);
+    expect(caughtError?.message).toContain('Spotify API error: 500');
   });
 });
