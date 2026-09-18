@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { addPlaylistToUser } from '../src/lib/session';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { generateState } from '../src/lib/session';
 
 describe('Session Management', () => {
@@ -59,7 +60,6 @@ describe('Token Refresh Logic', () => {
   });
 });
 
-import { vi } from 'vitest';
 
 import { storeState, verifyState } from '../src/lib/session';
 
@@ -181,5 +181,113 @@ describe('getScoreboard', () => {
 
     // restore
     cachedKV.get = originalGet;
+  });
+});
+
+
+describe('addPlaylistToUser', () => {
+  let originalGet: any;
+  let originalPut: any;
+
+  beforeEach(() => {
+    originalGet = cachedKV.get;
+    originalPut = cachedKV.put;
+  });
+
+  afterEach(() => {
+    cachedKV.get = originalGet;
+    cachedKV.put = originalPut;
+    vi.useRealTimers();
+  });
+
+  it('should not do anything if user does not exist', async () => {
+    cachedKV.get = vi.fn().mockResolvedValue(null);
+    cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    const mockKv = {} as any;
+    await addPlaylistToUser(mockKv, 'missing-user', 'playlist-1', 10);
+
+    expect(cachedKV.get).toHaveBeenCalledWith(mockKv, 'user_stats:missing-user', expect.any(Object));
+    expect(cachedKV.put).not.toHaveBeenCalled();
+  });
+
+  it('should add playlist to user stats and update counts if not already added', async () => {
+    const mockUserStats = {
+      spotifyId: 'test-user',
+      createdPlaylistIds: ['playlist-old'],
+      playlistsCreated: 1,
+      totalTracksInPlaylists: 10,
+      lastActive: 'old-date'
+    };
+
+    cachedKV.get = vi.fn().mockResolvedValue(mockUserStats);
+    cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    const mockKv = {} as any;
+
+    // freeze time for deterministic test safely using vitest
+    const mockDate = new Date('2023-01-01T00:00:00Z');
+    vi.useFakeTimers();
+    vi.setSystemTime(mockDate);
+
+    await addPlaylistToUser(mockKv, 'test-user', 'playlist-new', 25);
+
+    expect(cachedKV.get).toHaveBeenCalledWith(mockKv, 'user_stats:test-user', expect.any(Object));
+    expect(cachedKV.put).toHaveBeenCalledWith(
+      mockKv,
+      'user_stats:test-user',
+      JSON.stringify({
+        spotifyId: 'test-user',
+        createdPlaylistIds: ['playlist-old', 'playlist-new'],
+        playlistsCreated: 2,
+        totalTracksInPlaylists: 35,
+        lastActive: mockDate.toISOString()
+      }),
+      { immediate: true }
+    );
+  });
+
+  it('should not modify user stats if playlist is already added', async () => {
+    const mockUserStats = {
+      spotifyId: 'test-user',
+      createdPlaylistIds: ['playlist-123'],
+      playlistsCreated: 1,
+      totalTracksInPlaylists: 15,
+      lastActive: 'old-date'
+    };
+
+    cachedKV.get = vi.fn().mockResolvedValue(mockUserStats);
+    cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    const mockKv = {} as any;
+
+    await addPlaylistToUser(mockKv, 'test-user', 'playlist-123', 15);
+
+    expect(cachedKV.get).toHaveBeenCalledWith(mockKv, 'user_stats:test-user', expect.any(Object));
+    expect(cachedKV.put).not.toHaveBeenCalled();
+  });
+
+  it('should handle undefined totalTracksInPlaylists', async () => {
+    const mockUserStats = {
+      spotifyId: 'test-user',
+      createdPlaylistIds: [],
+      playlistsCreated: 0,
+      totalTracksInPlaylists: undefined,
+      lastActive: 'old-date'
+    };
+
+    cachedKV.get = vi.fn().mockResolvedValue(mockUserStats);
+    cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    const mockKv = {} as any;
+
+    await addPlaylistToUser(mockKv, 'test-user', 'playlist-new', 5);
+
+    expect(cachedKV.put).toHaveBeenCalledWith(
+      mockKv,
+      'user_stats:test-user',
+      expect.stringContaining('"totalTracksInPlaylists":5'),
+      { immediate: true }
+    );
   });
 });
