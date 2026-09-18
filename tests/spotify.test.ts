@@ -1,8 +1,118 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry } from '../src/lib/spotify';
+import * as artistGenreCache from '../src/lib/artist-genre-cache';
+
+vi.mock('../src/lib/artist-genre-cache', () => ({
+  getCachedArtistGenresBatch: vi.fn(),
+  cacheArtistGenresBatch: vi.fn(),
+  updateArtistGenreCacheStats: vi.fn(),
+}));
+
+import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry , getArtists} from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
+
+describe('getArtists', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should fetch artists from Spotify API without KV cache', async () => {
+    const artistIds = ['artist1', 'artist2'];
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        artists: [
+          { id: 'artist1', name: 'Artist 1', genres: ['rock'] },
+          { id: 'artist2', name: 'Artist 2', genres: ['pop'] }
+        ]
+      }),
+      headers: new Headers()
+    });
+
+    const result = await getArtists('fake-token', artistIds, 1);
+
+    expect(result.artists).toHaveLength(2);
+    expect(result.artists[0].id).toBe('artist1');
+    expect(result.totalArtists).toBe(2);
+    expect(result.truncated).toBe(false);
+  });
+
+  it('should truncate artist IDs if they exceed maxRequests * 50', async () => {
+    const artistIds = Array.from({ length: 150 }, (_, i) => `artist${i}`);
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        artists: Array.from({ length: 50 }, (_, i) => ({
+          id: `artist${i}`,
+          name: `Artist ${i}`,
+          genres: ['rock']
+        }))
+      }),
+      headers: new Headers()
+    });
+
+    const result = await getArtists('fake-token', artistIds, 2);
+    expect(result.truncated).toBe(true);
+    expect(result.totalArtists).toBe(150);
+  });
+
+  it('should use KV cache when provided and skip Spotify API if all artists are cached', async () => {
+    const artistIds = ['artist1', 'artist2'];
+    const mockKv = { get: vi.fn(), put: vi.fn() } as any;
+
+    vi.mocked(artistGenreCache.getCachedArtistGenresBatch).mockResolvedValueOnce(new Map([
+      ['artist1', ['rock']],
+      ['artist2', ['pop']]
+    ]));
+    vi.mocked(artistGenreCache.cacheArtistGenresBatch).mockResolvedValueOnce(undefined as any);
+    vi.mocked(artistGenreCache.updateArtistGenreCacheStats).mockResolvedValueOnce(undefined as any);
+
+    global.fetch = vi.fn();
+
+    const result = await getArtists('fake-token', artistIds, 1, mockKv);
+
+    expect(result.artists).toHaveLength(2);
+    expect(result.artists[0].genres).toEqual(['rock']);
+    expect(result.cacheHits).toBe(2);
+    expect(result.cacheMisses).toBe(0);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('should fetch from Spotify API for artists not in KV cache', async () => {
+    const artistIds = ['artist1', 'uncached-artist'];
+    const mockKv = { get: vi.fn(), put: vi.fn() } as any;
+
+    vi.mocked(artistGenreCache.getCachedArtistGenresBatch).mockResolvedValueOnce(new Map([
+      ['artist1', ['rock']]
+    ]));
+    vi.mocked(artistGenreCache.cacheArtistGenresBatch).mockResolvedValueOnce(undefined as any);
+    vi.mocked(artistGenreCache.updateArtistGenreCacheStats).mockResolvedValueOnce(undefined as any);
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        artists: [
+          { id: 'uncached-artist', name: 'Uncached Artist', genres: ['jazz'] }
+        ]
+      }),
+      headers: new Headers()
+    });
+
+    const result = await getArtists('fake-token', artistIds, 1, mockKv);
+
+    expect(result.artists).toHaveLength(2);
+    expect(result.cacheHits).toBe(1);
+    expect(result.cacheMisses).toBe(1);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
 
 describe('generateCodeVerifier', () => {
   it('should generate a string of length 43', () => {
