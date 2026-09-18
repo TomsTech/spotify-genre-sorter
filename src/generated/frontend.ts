@@ -323,7 +323,8 @@ export function getHtml(nonce: string): string {
       color: var(--text);
     }
 
-    .btn:disabled {
+    .btn:disabled,
+    .btn[aria-disabled="true"] {
       opacity: 0.5;
       cursor: not-allowed;
     }
@@ -13105,7 +13106,7 @@ export function getHtml(nonce: string): string {
             <button onclick="selectAll()" class="btn btn-secondary" data-i18n="selectAll">\${t('selectAll')}</button>
             <button onclick="selectNone()" class="btn btn-secondary" data-i18n="selectNone">\${t('selectNone')}</button>
             <span class="tooltip-wrapper" tabindex="0" data-tooltip="\${swedishMode ? 'Välj minst en genre först' : 'Select at least one genre first'}" style="display: inline-block;">
-              <button onclick="createSelectedPlaylists()" class="btn btn-primary" id="create-btn" disabled data-i18n="createPlaylists">
+              <button onclick="createSelectedPlaylists()" class="btn btn-primary" id="create-btn" disabled aria-disabled="true" data-i18n="createPlaylists">
                 \${t('createPlaylists')}
               </button>
             </span>
@@ -13215,6 +13216,7 @@ export function getHtml(nonce: string): string {
       if (countEl) countEl.textContent = selectedGenres.size;
       if (createBtn) {
         createBtn.disabled = selectedGenres.size === 0;
+        createBtn.setAttribute('aria-disabled', createBtn.disabled ? 'true' : 'false');
         const wrapper = createBtn.closest('.tooltip-wrapper');
         if (wrapper) {
           if (createBtn.disabled) {
@@ -13857,6 +13859,7 @@ export function getHtml(nonce: string): string {
 
       const btn = document.getElementById('create-btn');
       btn.disabled = true;
+      btn.setAttribute('aria-disabled', 'true');
 
       const genres = genreData.genres
         .filter(g => selectedGenres.has(g.name))
@@ -13926,6 +13929,7 @@ export function getHtml(nonce: string): string {
       }
 
       btn.disabled = false;
+      btn.setAttribute('aria-disabled', 'false');
       btn.textContent = t('createPlaylists');
     }
 
