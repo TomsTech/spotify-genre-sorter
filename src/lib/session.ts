@@ -150,7 +150,6 @@ export async function storeState(
   state: string,
   data: Record<string, string>
 ): Promise<void> {
-  // PERF-010 FIX: OAuth state is short-lived and critical - write immediately
   await cachedKV.put(kv, `state:${state}`, JSON.stringify(data), { expirationTtl: 600, immediate: true });
 }
 
@@ -158,10 +157,11 @@ export async function verifyState(
   kv: KVNamespace,
   state: string
 ): Promise<Record<string, string> | null> {
-  // PERF-010 FIX: Use cachedKV for state reads (no caching - single use tokens)
-  const data = await cachedKV.getString(kv, `state:${state}`);
+  const [data] = await Promise.all([
+    cachedKV.getString(kv, `state:${state}`, { cacheTtlMs: 0 }),
+    cachedKV.delete(kv, `state:${state}`)
+  ]);
   if (!data) return null;
-  await cachedKV.delete(kv, `state:${state}`);
   const parsed = JSON.parse(data) as Record<string, string>;
   return parsed;
 }

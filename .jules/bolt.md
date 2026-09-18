@@ -118,3 +118,7 @@
 **Action:** Use `Array.from({ length: size }, (_, j) => process(arr[start + j]))` to directly compute chunks from the original array, bypassing intermediate allocations.
 ## 2024-05-19 - Avoid slice().map() with Promise.all **Learning:** Using `array.slice().map()` creates intermediate arrays, putting pressure on the garbage collector, especially when processing large chunked datasets with `Promise.all()`. **Action:** Use `Array.from({ length }, (_, j) => ...)` to generate promises directly from indices, bypassing the intermediate array creation.
 ## 2025-02-12 - Remove array slice and map in chunking **Learning:** Using `.slice().map()` creates intermediate arrays that increase garbage collection overhead and memory allocation, especially in loops. **Action:** Use `Array.from()` to construct the mapped array directly without intermediate slicing.
+
+## 2024-03-24 - Promise.all for read-and-delete operations
+**Learning:** When retrieving and deleting a single-use token from a storage layer like KV, awaiting the read and delete operations sequentially introduces unnecessary latency. Bypassing memory cache using `{ cacheTtlMs: 0 }` ensures no stale reads occur.
+**Action:** Refactored sequential `cachedKV.getString` and `cachedKV.delete` calls into a concurrent `Promise.all` array for parallel execution, reducing token verification time.

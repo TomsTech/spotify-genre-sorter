@@ -89,14 +89,17 @@ describe('State Management', () => {
     it('should return null if state not found', async () => {
       const originalGetString = cachedKV.getString;
       cachedKV.getString = vi.fn().mockResolvedValue(null);
+      const originalDelete = cachedKV.delete;
+      cachedKV.delete = vi.fn().mockResolvedValue(undefined);
 
       const mockKv = {} as any;
       const result = await verifyState(mockKv, 'missing-id');
 
       expect(result).toBeNull();
-      expect(cachedKV.getString).toHaveBeenCalledWith(mockKv, 'state:missing-id');
+      expect(cachedKV.getString).toHaveBeenCalledWith(mockKv, 'state:missing-id', { cacheTtlMs: 0 });
 
       cachedKV.getString = originalGetString;
+      cachedKV.delete = originalDelete;
     });
 
     it('should return parsed state and delete it from KV', async () => {
@@ -111,7 +114,7 @@ describe('State Management', () => {
       const result = await verifyState(mockKv, 'valid-id');
 
       expect(result).toEqual(mockData);
-      expect(cachedKV.getString).toHaveBeenCalledWith(mockKv, 'state:valid-id');
+      expect(cachedKV.getString).toHaveBeenCalledWith(mockKv, 'state:valid-id', { cacheTtlMs: 0 });
       expect(cachedKV.delete).toHaveBeenCalledWith(mockKv, 'state:valid-id');
 
       cachedKV.getString = originalGetString;
