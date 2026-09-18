@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { generateState } from '../src/lib/session';
+import { describe, it, expect, afterEach } from 'vitest';
+import { generateState, getScanProgress, saveScanProgress, deleteScanProgress } from '../src/lib/session';
 
 describe('Session Management', () => {
   describe('generateState', () => {
@@ -116,6 +116,86 @@ describe('State Management', () => {
 
       cachedKV.getString = originalGetString;
       cachedKV.delete = originalDelete;
+    });
+  });
+});
+
+
+
+
+
+describe('Scan Progress Management', () => {
+  const mockKv = {} as any;
+  const mockUserId = 'test-user-123';
+  const mockProgress = {
+    userId: mockUserId,
+    offset: 0,
+    totalInLibrary: 100,
+    partialGenres: [],
+    partialArtistCount: 0,
+    partialTrackCount: 0,
+    startedAt: new Date().toISOString(),
+    lastUpdatedAt: new Date().toISOString(),
+    status: 'in_progress' as const,
+  };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe('getScanProgress', () => {
+    it('should retrieve scan progress from cachedKV with correct TTL', async () => {
+      vi.spyOn(cachedKV, 'get').mockResolvedValue(mockProgress);
+
+      const result = await getScanProgress(mockKv, mockUserId);
+
+      expect(result).toEqual(mockProgress);
+      expect(cachedKV.get).toHaveBeenCalledWith(
+        mockKv,
+        `scan_progress:${mockUserId}`,
+        { cacheTtlMs: 60000 }
+      );
+    });
+
+    it('should return null if no progress is found', async () => {
+      vi.spyOn(cachedKV, 'get').mockResolvedValue(null);
+
+      const result = await getScanProgress(mockKv, mockUserId);
+
+      expect(result).toBeNull();
+      expect(cachedKV.get).toHaveBeenCalledWith(
+        mockKv,
+        `scan_progress:${mockUserId}`,
+        { cacheTtlMs: 60000 }
+      );
+    });
+  });
+
+  describe('saveScanProgress', () => {
+    it('should save scan progress to cachedKV with correct TTL and immediate true', async () => {
+      vi.spyOn(cachedKV, 'put').mockResolvedValue(undefined);
+
+      await saveScanProgress(mockKv, mockProgress);
+
+      expect(cachedKV.put).toHaveBeenCalledWith(
+        mockKv,
+        `scan_progress:${mockUserId}`,
+        JSON.stringify(mockProgress),
+        { expirationTtl: 3600, immediate: true }
+      );
+    });
+  });
+
+  describe('deleteScanProgress', () => {
+    it('should delete scan progress from cachedKV', async () => {
+      vi.spyOn(cachedKV, 'delete').mockResolvedValue(undefined);
+
+      await deleteScanProgress(mockKv, mockUserId);
+
+      expect(cachedKV.delete).toHaveBeenCalledWith(
+        mockKv,
+        `scan_progress:${mockUserId}`
+      );
     });
   });
 });
