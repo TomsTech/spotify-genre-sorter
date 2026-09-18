@@ -1,5 +1,16 @@
-import { describe, it, expect } from 'vitest';
-import { generateState } from '../src/lib/session';
+import { describe, it, expect, vi } from 'vitest';
+import {
+  generateState,
+  storeState,
+  verifyState,
+  getScoreboard,
+  cachedKV,
+  buildScoreboard,
+  getScanProgress,
+  saveScanProgress,
+  deleteScanProgress,
+  type ScanProgress
+} from '../src/lib/session';
 
 describe('Session Management', () => {
   describe('generateState', () => {
@@ -59,9 +70,7 @@ describe('Token Refresh Logic', () => {
   });
 });
 
-import { vi } from 'vitest';
 
-import { storeState, verifyState } from '../src/lib/session';
 
 describe('State Management', () => {
   describe('storeState', () => {
@@ -120,9 +129,7 @@ describe('State Management', () => {
   });
 });
 
-import { getScoreboard, cachedKV } from '../src/lib/session';
 
-import { buildScoreboard } from '../src/lib/session';
 
 describe('buildScoreboard', () => {
   it('should paginate through user_stats using cursor when list_complete is false', async () => {
@@ -181,5 +188,80 @@ describe('getScoreboard', () => {
 
     // restore
     cachedKV.get = originalGet;
+  });
+});
+
+
+describe('ScanProgress Management', () => {
+  const mockKv = {} as any;
+  const mockProgress: ScanProgress = {
+    userId: 'user-123',
+    totalTracks: 100,
+    processedTracks: 50,
+    startedAt: '2023-01-01T00:00:00Z',
+    lastUpdatedAt: '2023-01-01T00:00:00Z',
+    status: 'in_progress',
+  };
+
+  describe('saveScanProgress', () => {
+    it('should save scan progress to KV with correct key and TTL', async () => {
+      const originalPut = cachedKV.put;
+      cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+      await saveScanProgress(mockKv, mockProgress);
+
+      expect(cachedKV.put).toHaveBeenCalledWith(
+        mockKv,
+        'scan_progress:user-123',
+        JSON.stringify(mockProgress),
+        { expirationTtl: 3600, immediate: true }
+      );
+
+      cachedKV.put = originalPut;
+    });
+  });
+
+  describe('getScanProgress', () => {
+    it('should retrieve scan progress from KV with correct cache TTL', async () => {
+      const originalGet = cachedKV.get;
+      cachedKV.get = vi.fn().mockResolvedValue(mockProgress);
+
+      const result = await getScanProgress(mockKv, 'user-123');
+
+      expect(cachedKV.get).toHaveBeenCalledWith(
+        mockKv,
+        'scan_progress:user-123',
+        { cacheTtlMs: 60000 }
+      );
+      expect(result).toEqual(mockProgress);
+
+      cachedKV.get = originalGet;
+    });
+
+    it('should return null if no progress is found', async () => {
+      const originalGet = cachedKV.get;
+      cachedKV.get = vi.fn().mockResolvedValue(null);
+
+      const result = await getScanProgress(mockKv, 'user-123');
+      expect(result).toBeNull();
+
+      cachedKV.get = originalGet;
+    });
+  });
+
+  describe('deleteScanProgress', () => {
+    it('should delete scan progress from KV', async () => {
+      const originalDelete = cachedKV.delete;
+      cachedKV.delete = vi.fn().mockResolvedValue(undefined);
+
+      await deleteScanProgress(mockKv, 'user-123');
+
+      expect(cachedKV.delete).toHaveBeenCalledWith(
+        mockKv,
+        'scan_progress:user-123'
+      );
+
+      cachedKV.delete = originalDelete;
+    });
   });
 });
