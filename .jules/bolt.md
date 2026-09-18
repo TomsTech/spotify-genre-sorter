@@ -118,3 +118,6 @@
 **Action:** Use `Array.from({ length: size }, (_, j) => process(arr[start + j]))` to directly compute chunks from the original array, bypassing intermediate allocations.
 ## 2024-05-19 - Avoid slice().map() with Promise.all **Learning:** Using `array.slice().map()` creates intermediate arrays, putting pressure on the garbage collector, especially when processing large chunked datasets with `Promise.all()`. **Action:** Use `Array.from({ length }, (_, j) => ...)` to generate promises directly from indices, bypassing the intermediate array creation.
 ## 2025-02-12 - Remove array slice and map in chunking **Learning:** Using `.slice().map()` creates intermediate arrays that increase garbage collection overhead and memory allocation, especially in loops. **Action:** Use `Array.from()` to construct the mapped array directly without intermediate slicing.
+## 2024-05-20 - [Replacing Spread on Set iterators with standard loops]
+**Learning:** Using spread syntax (`[...set]`) to convert a Set into an array creates intermediate arrays and increases garbage collection overhead, especially when done in a tight loop.
+**Action:** Replace `[...set]` with a pre-initialized array (`const arr = []`) and a `for...of` loop over the Set that pushes elements directly to the array. This avoids intermediate allocations and reduces memory pressure.
