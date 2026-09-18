@@ -118,3 +118,7 @@
 **Action:** Use `Array.from({ length: size }, (_, j) => process(arr[start + j]))` to directly compute chunks from the original array, bypassing intermediate allocations.
 ## 2024-05-19 - Avoid slice().map() with Promise.all **Learning:** Using `array.slice().map()` creates intermediate arrays, putting pressure on the garbage collector, especially when processing large chunked datasets with `Promise.all()`. **Action:** Use `Array.from({ length }, (_, j) => ...)` to generate promises directly from indices, bypassing the intermediate array creation.
 ## 2025-02-12 - Remove array slice and map in chunking **Learning:** Using `.slice().map()` creates intermediate arrays that increase garbage collection overhead and memory allocation, especially in loops. **Action:** Use `Array.from()` to construct the mapped array directly without intermediate slicing.
+
+## 2024-05-19 - Object.values().reduce() optimization in e2e mocks and index.ts
+**Learning:** `Object.values(obj).reduce(...)` creates an intermediate array of values before performing the reduction. When this pattern is used multiple times (or in a hot path) to sum up fields from an object, the overhead of array allocation and iteration via `reduce` can be significantly higher than a simple `for...in` loop directly accumulating the values.
+**Action:** Replaced `Object.values(breakdown).reduce(...)` with a direct `for...in` loop in `src/index.ts` and `e2e/mocks/mock-server.ts` to eliminate intermediate array creation and reduce garbage collection overhead, improving performance.
