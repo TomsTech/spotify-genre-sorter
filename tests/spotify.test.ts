@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry } from '../src/lib/spotify';
+import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry, getLikedTracks } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
@@ -158,6 +158,82 @@ describe('Artist Chunking', () => {
   });
 });
 
+
+
+
+
+describe('getLikedTracks', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should fetch liked tracks with default limit and offset', async () => {
+    const mockResponse = {
+      items: [{ track: { id: 'track1' } }],
+      total: 1,
+      next: null
+    };
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => mockResponse,
+      headers: new Headers()
+    });
+
+    const result = await getLikedTracks('fake-token');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://api.spotify.com/v1/me/tracks?limit=50&offset=0',
+      expect.objectContaining({
+        headers: {
+          Authorization: 'Bearer fake-token',
+          'Content-Type': 'application/json',
+        }
+      })
+    );
+    expect(result).toEqual(mockResponse);
+  });
+
+  it('should fetch liked tracks with custom limit and offset', async () => {
+    const mockResponse = {
+      items: [],
+      total: 100,
+      next: 'https://api.spotify.com/v1/me/tracks?limit=20&offset=20'
+    };
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => mockResponse,
+      headers: new Headers()
+    });
+
+    const result = await getLikedTracks('fake-token', 20, 20);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://api.spotify.com/v1/me/tracks?limit=20&offset=20',
+      expect.objectContaining({
+        headers: {
+          Authorization: 'Bearer fake-token',
+          'Content-Type': 'application/json',
+        }
+      })
+    );
+    expect(result).toEqual(mockResponse);
+  });
+
+  it('should throw an error when fetch fails', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      text: async () => 'Unauthorized',
+      headers: new Headers()
+    });
+
+    await expect(getLikedTracks('fake-token')).rejects.toThrow('Spotify API error: 401 Unauthorized');
+  });
+});
 
 describe('fetchWithRetry', () => {
   afterEach(() => {
