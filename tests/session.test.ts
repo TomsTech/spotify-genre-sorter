@@ -122,7 +122,7 @@ describe('State Management', () => {
 
 import { getScoreboard, cachedKV } from '../src/lib/session';
 
-import { buildScoreboard } from '../src/lib/session';
+import { buildScoreboard, incrementUserStats } from '../src/lib/session';
 
 describe('buildScoreboard', () => {
   it('should paginate through user_stats using cursor when list_complete is false', async () => {
@@ -181,5 +181,80 @@ describe('getScoreboard', () => {
 
     // restore
     cachedKV.get = originalGet;
+  });
+});
+
+describe('incrementUserStats', () => {
+  it('should return early if user stats do not exist', async () => {
+    const originalGet = cachedKV.get;
+    const originalPut = cachedKV.put;
+
+    cachedKV.get = vi.fn().mockResolvedValue(null);
+    cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    const mockKv = {} as any;
+    await incrementUserStats(mockKv, 'missing-user', 'totalGenresDiscovered');
+
+    expect(cachedKV.get).toHaveBeenCalledWith(mockKv, 'user_stats:missing-user', expect.any(Object));
+    expect(cachedKV.put).not.toHaveBeenCalled();
+
+    cachedKV.get = originalGet;
+    cachedKV.put = originalPut;
+  });
+
+  it('should increment field by default amount (1) and update lastActive if user stats exist', async () => {
+    const originalGet = cachedKV.get;
+    const originalPut = cachedKV.put;
+
+    const mockUserStats = {
+      spotifyId: 'user1',
+      totalGenresDiscovered: 5,
+      lastActive: '2023-01-01T00:00:00.000Z',
+    };
+
+    cachedKV.get = vi.fn().mockResolvedValue(mockUserStats);
+    cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    const mockKv = {} as any;
+    await incrementUserStats(mockKv, 'user1', 'totalGenresDiscovered');
+
+    expect(cachedKV.get).toHaveBeenCalledWith(mockKv, 'user_stats:user1', expect.any(Object));
+    expect(cachedKV.put).toHaveBeenCalledWith(mockKv, 'user_stats:user1', expect.any(String));
+
+    const putCallArg = (cachedKV.put as any).mock.calls[0][2];
+    const updatedStats = JSON.parse(putCallArg);
+
+    expect(updatedStats.totalGenresDiscovered).toBe(6);
+    expect(updatedStats.lastActive).not.toBe('2023-01-01T00:00:00.000Z');
+
+    cachedKV.get = originalGet;
+    cachedKV.put = originalPut;
+  });
+
+  it('should increment field by specified amount', async () => {
+    const originalGet = cachedKV.get;
+    const originalPut = cachedKV.put;
+
+    const mockUserStats = {
+      spotifyId: 'user1',
+      totalTracksAnalysed: 10,
+      lastActive: '2023-01-01T00:00:00.000Z',
+    };
+
+    cachedKV.get = vi.fn().mockResolvedValue(mockUserStats);
+    cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    const mockKv = {} as any;
+    await incrementUserStats(mockKv, 'user1', 'totalTracksAnalysed', 5);
+
+    expect(cachedKV.put).toHaveBeenCalledWith(mockKv, 'user_stats:user1', expect.any(String));
+
+    const putCallArg = (cachedKV.put as any).mock.calls[0][2];
+    const updatedStats = JSON.parse(putCallArg);
+
+    expect(updatedStats.totalTracksAnalysed).toBe(15);
+
+    cachedKV.get = originalGet;
+    cachedKV.put = originalPut;
   });
 });
