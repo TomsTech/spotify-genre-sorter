@@ -1,4 +1,5 @@
 import { generateKVRecommendations, aggregateGenresFromTrackData, calculateKVTrend } from '../src/routes/api';
+import type { KVBreakdown, AnalyticsData } from '../src/types/analytics';
 import { describe, it, expect, vi } from 'vitest';
 import { determineKVStatus } from '../src/routes/api';
 
@@ -141,7 +142,7 @@ describe('generateKVRecommendations', () => {
     userStats: { reads: 0, writes: 0 },
     recentPlaylists: { reads: 0, writes: 0 },
     auth: { reads: 0, writes: 0 },
-  };
+  } as KVBreakdown;
 
   const baseToday = {
     date: '2024-01-01',
@@ -156,7 +157,7 @@ describe('generateKVRecommendations', () => {
     kvErrors: 0,
     kvReads: 0,
     kvWrites: 0,
-  };
+  } as AnalyticsData;
 
   it('should return no recommendations when metrics are normal', () => {
     const recommendations = generateKVRecommendations(
@@ -176,6 +177,15 @@ describe('generateKVRecommendations', () => {
     expect(recommendations).toContain('Consider increasing polling interval for recent playlists');
   });
 
+  it('should not recommend increasing polling interval when exactly on the boundary', () => {
+    const recommendations = generateKVRecommendations(
+      { ...baseBreakdown, recentPlaylists: { reads: 400, writes: 0 } },
+      1000,
+      { ...baseToday }
+    );
+    expect(recommendations).not.toContain('Consider increasing polling interval for recent playlists');
+  });
+
   it('should recommend about stats writes when playlist creation is high', () => {
     const recommendations = generateKVRecommendations(
       { ...baseBreakdown, userStats: { reads: 0, writes: 51 } },
@@ -185,6 +195,15 @@ describe('generateKVRecommendations', () => {
     expect(recommendations).toContain('High playlist creation activity - stats writes elevated');
   });
 
+  it('should not recommend about stats writes when exactly on the boundary', () => {
+    const recommendations = generateKVRecommendations(
+      { ...baseBreakdown, userStats: { reads: 0, writes: 50 } },
+      1000,
+      { ...baseToday }
+    );
+    expect(recommendations).not.toContain('High playlist creation activity - stats writes elevated');
+  });
+
   it('should warn about auth failures when elevated', () => {
     const recommendations = generateKVRecommendations(
       { ...baseBreakdown },
@@ -192,6 +211,15 @@ describe('generateKVRecommendations', () => {
       { ...baseToday, authFailures: 11 }
     );
     expect(recommendations).toContain('Elevated auth failures detected - possible attack or misconfiguration');
+  });
+
+  it('should not warn about auth failures when exactly on the boundary', () => {
+    const recommendations = generateKVRecommendations(
+      { ...baseBreakdown },
+      1000,
+      { ...baseToday, authFailures: 10 }
+    );
+    expect(recommendations).not.toContain('Elevated auth failures detected - possible attack or misconfiguration');
   });
 
   it('should return multiple recommendations if multiple conditions met', () => {
