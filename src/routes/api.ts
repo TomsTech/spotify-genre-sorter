@@ -486,14 +486,11 @@ api.get('/genres', async (c) => {
     const genreData = aggregateGenresFromTracks(likedTracks, artistGenreMap);
 
     // Convert to sorted array
-    const genres = [];
-    for (const [name, data] of genreData) {
-      genres.push({
-        name,
-        count: data.count,
-        trackIds: data.trackIds,
-      });
-    }
+    const genres = Array.from(genreData, ([name, data]) => ({
+      name,
+      count: data.count,
+      trackIds: data.trackIds,
+    }));
     genres.sort((a, b) => b.count - a.count);
 
     // Use extended TTL for large libraries (24h vs 1h)
