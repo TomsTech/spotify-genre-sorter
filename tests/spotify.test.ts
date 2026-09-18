@@ -1,8 +1,103 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry } from '../src/lib/spotify';
+import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry, getUserPlaylists } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
+
+describe('getUserPlaylists', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should fetch a single page of playlists', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: [{ id: 'p1', name: 'Playlist 1' }, { id: 'p2', name: 'Playlist 2' }],
+        total: 2,
+        next: null
+      }),
+      headers: new Headers()
+    });
+
+    const playlists = await getUserPlaylists('fake-token');
+    expect(playlists).toHaveLength(2);
+    expect(playlists[0].id).toBe('p1');
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://api.spotify.com/v1/me/playlists?limit=50&offset=0',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer fake-token'
+        })
+      })
+    );
+  });
+
+  it('should fetch multiple pages of playlists in batches', async () => {
+    global.fetch = vi.fn().mockImplementation(async (url) => {
+      const urlStr = url.toString();
+      const offsetMatch = urlStr.match(/offset=(\d+)/);
+      const offset = offsetMatch ? parseInt(offsetMatch[1], 10) : 0;
+
+      const items = Array.from({ length: 50 }, (_, i) => ({ id: `p${offset + i}` }));
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: offset >= 100 ? items.slice(0, 20) : items,
+          total: 120,
+          next: offset < 100 ? 'https://api.spotify.com/v1/me/playlists?offset=' + (offset + 50) : null
+        }),
+        headers: new Headers()
+      };
+    });
+
+    const playlists = await getUserPlaylists('fake-token');
+    expect(playlists).toHaveLength(120);
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('should cap playlists at maxPlaylists (200)', async () => {
+    global.fetch = vi.fn().mockImplementation(async (url) => {
+      const urlStr = url.toString();
+      const offsetMatch = urlStr.match(/offset=(\d+)/);
+      const offset = offsetMatch ? parseInt(offsetMatch[1], 10) : 0;
+
+      const items = Array.from({ length: 50 }, (_, i) => ({ id: `p${offset + i}` }));
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items,
+          total: 500,
+          next: 'https://api.spotify.com/v1/me/playlists?offset=' + (offset + 50)
+        }),
+        headers: new Headers()
+      };
+    });
+
+    const playlists = await getUserPlaylists('fake-token');
+
+    expect(playlists).toHaveLength(200);
+    expect(global.fetch).toHaveBeenCalledTimes(4);
+  });
+
+  it('should handle API errors', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      text: async () => 'Unauthorized',
+      headers: new Headers()
+    });
+
+    await expect(getUserPlaylists('fake-token')).rejects.toThrow('Spotify API error: 401 Unauthorized');
+  });
+});
+
 
 describe('generateCodeVerifier', () => {
   it('should generate a string of length 43', () => {
