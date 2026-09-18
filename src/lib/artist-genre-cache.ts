@@ -73,13 +73,23 @@ export async function getCachedArtistGenresBatch(
 ): Promise<Map<string, string[]>> {
   const result = new Map<string, string[]>();
 
-  // Fetch all cached entries in parallel
-  const fetchPromises = artistIds.map(async (artistId) => {
-    const genres = await getCachedArtistGenres(kv, artistId);
-    return { artistId, genres };
-  });
+  const CHUNK_SIZE = 40; // Under the 50 subrequest limit
+  const results = [];
 
-  const results = await Promise.all(fetchPromises);
+  // Process in chunks to avoid Cloudflare Worker subrequest limits
+  for (let i = 0; i < artistIds.length; i += CHUNK_SIZE) {
+    const chunkPromises = Array.from(
+      { length: Math.min(CHUNK_SIZE, artistIds.length - i) },
+      (_, j) => {
+        const artistId = artistIds[i + j];
+        return getCachedArtistGenres(kv, artistId).then(genres => ({ artistId, genres }));
+      }
+    );
+    const chunkResults = await Promise.all(chunkPromises);
+    for (let j = 0; j < chunkResults.length; j++) {
+      results.push(chunkResults[j]);
+    }
+  }
 
   // Build result map
   for (const { artistId, genres } of results) {

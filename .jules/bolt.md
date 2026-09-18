@@ -118,3 +118,6 @@
 **Action:** Use `Array.from({ length: size }, (_, j) => process(arr[start + j]))` to directly compute chunks from the original array, bypassing intermediate allocations.
 ## 2024-05-19 - Avoid slice().map() with Promise.all **Learning:** Using `array.slice().map()` creates intermediate arrays, putting pressure on the garbage collector, especially when processing large chunked datasets with `Promise.all()`. **Action:** Use `Array.from({ length }, (_, j) => ...)` to generate promises directly from indices, bypassing the intermediate array creation.
 ## 2025-02-12 - Remove array slice and map in chunking **Learning:** Using `.slice().map()` creates intermediate arrays that increase garbage collection overhead and memory allocation, especially in loops. **Action:** Use `Array.from()` to construct the mapped array directly without intermediate slicing.
+## 2025-05-25 - Chunking and Array Allocation Performance
+**Learning:** Using `.slice().map()` creates intermediate array allocations that increase garbage collection overhead.
+**Action:** Used `Array.from` with direct index access (`artistIds[i + j]`) to build chunk promises directly from the original array indices, decreasing intermediate allocations while honoring max concurrency limits for subrequests.
