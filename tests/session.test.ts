@@ -120,7 +120,7 @@ describe('State Management', () => {
   });
 });
 
-import { getScoreboard, cachedKV } from '../src/lib/session';
+import { getScoreboard, cachedKV, getUserStats } from '../src/lib/session';
 
 import { buildScoreboard } from '../src/lib/session';
 
@@ -180,6 +180,51 @@ describe('getScoreboard', () => {
     }
 
     // restore
+    cachedKV.get = originalGet;
+  });
+});
+
+describe('getUserStats', () => {
+  it('should return user stats when found in KV', async () => {
+    const originalGet = cachedKV.get;
+
+    const mockStats = {
+      spotifyId: 'test-user',
+      totalGenresDiscovered: 5,
+      firstSeen: '2023-01-01',
+      lastActive: '2023-01-02'
+    };
+
+    cachedKV.get = vi.fn().mockResolvedValue(mockStats);
+
+    const mockKv = {} as any;
+    const result = await getUserStats(mockKv, 'test-user');
+
+    expect(result).toEqual(mockStats);
+    expect(cachedKV.get).toHaveBeenCalledWith(
+      mockKv,
+      'user_stats:test-user',
+      { cacheTtlMs: 300000 } // CACHE_TTL.USER_STATS
+    );
+
+    cachedKV.get = originalGet;
+  });
+
+  it('should return null when user stats not found', async () => {
+    const originalGet = cachedKV.get;
+
+    cachedKV.get = vi.fn().mockResolvedValue(null);
+
+    const mockKv = {} as any;
+    const result = await getUserStats(mockKv, 'missing-user');
+
+    expect(result).toBeNull();
+    expect(cachedKV.get).toHaveBeenCalledWith(
+      mockKv,
+      'user_stats:missing-user',
+      { cacheTtlMs: 300000 }
+    );
+
     cachedKV.get = originalGet;
   });
 });
