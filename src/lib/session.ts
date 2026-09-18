@@ -775,7 +775,7 @@ export async function getUserPreferences(
   kv: KVNamespace,
   spotifyId: string
 ): Promise<UserPreferences> {
-  // PERF-009 FIX: Use cachedKV instead of direct KV access for preferences
+  // Use cachedKV instead of direct KV access for preferences
   const prefs = await cachedKV.get<UserPreferences>(kv, `user_prefs:${spotifyId}`, { cacheTtlMs: 300000 }); // 5 min cache
   return prefs || { ...DEFAULT_PREFERENCES };
 }
@@ -787,7 +787,7 @@ export async function updateUserPreferences(
 ): Promise<UserPreferences> {
   const existing = await getUserPreferences(kv, spotifyId);
   const updated = { ...existing, ...updates };
-  // PERF-009 FIX: Use cachedKV with immediate write for preferences
+  // Use cachedKV with immediate write for preferences
   await cachedKV.put(kv, `user_prefs:${spotifyId}`, JSON.stringify(updated), { immediate: true });
   return updated;
 }
