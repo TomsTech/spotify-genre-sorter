@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateState } from '../src/lib/session';
+import { generateState, createOrUpdateUserStats } from '../src/lib/session';
 
 describe('Session Management', () => {
   describe('generateState', () => {
@@ -181,5 +181,78 @@ describe('getScoreboard', () => {
 
     // restore
     cachedKV.get = originalGet;
+  });
+});
+
+
+
+describe('createOrUpdateUserStats', () => {
+  it('should create new user stats if not existing', async () => {
+    const originalGet = cachedKV.get;
+    const originalPut = cachedKV.put;
+
+    cachedKV.get = vi.fn().mockResolvedValue(null);
+    cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    const mockKv = {} as any;
+    const updates = {
+      spotifyName: 'Test User',
+      spotifyAvatar: 'https://example.com/avatar.jpg'
+    };
+
+    const result = await createOrUpdateUserStats(mockKv, 'user-1', updates);
+
+    expect(result.spotifyId).toBe('user-1');
+    expect(result.spotifyName).toBe('Test User');
+    expect(result.spotifyAvatar).toBe('https://example.com/avatar.jpg');
+    expect(result.totalGenresDiscovered).toBe(0);
+    expect(result.createdPlaylistIds).toEqual([]);
+    expect(result.firstSeen).toBeDefined();
+    expect(result.lastActive).toBeDefined();
+
+    expect(cachedKV.put).toHaveBeenCalled();
+    expect(cachedKV.get).toHaveBeenCalledWith(mockKv, 'user_stats:user-1', expect.any(Object));
+
+    cachedKV.get = originalGet;
+    cachedKV.put = originalPut;
+  });
+
+  it('should update existing user stats', async () => {
+    const originalGet = cachedKV.get;
+    const originalPut = cachedKV.put;
+
+    const existing = {
+      spotifyId: 'user-1',
+      spotifyName: 'Old Name',
+      totalGenresDiscovered: 5,
+      firstSeen: '2023-01-01T00:00:00Z',
+      lastActive: '2023-01-01T00:00:00Z'
+    };
+
+    cachedKV.get = vi.fn().mockResolvedValue(existing);
+    cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    const mockKv = {} as any;
+    const updates = {
+      spotifyName: 'New Name',
+      totalGenresDiscovered: 10
+    };
+
+    const result = await createOrUpdateUserStats(mockKv, 'user-1', updates);
+
+    expect(result.spotifyId).toBe('user-1');
+    expect(result.spotifyName).toBe('New Name');
+    expect(result.totalGenresDiscovered).toBe(10);
+    expect(result.firstSeen).toBe('2023-01-01T00:00:00Z');
+    expect(result.lastActive).not.toBe('2023-01-01T00:00:00Z'); // Should be updated
+
+    expect(cachedKV.put).toHaveBeenCalledWith(
+      mockKv,
+      'user_stats:user-1',
+      expect.any(String)
+    );
+
+    cachedKV.get = originalGet;
+    cachedKV.put = originalPut;
   });
 });
