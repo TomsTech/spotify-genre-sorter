@@ -85,61 +85,83 @@ export const KV_PREFIXES = [
 export async function getKVMonitorData(kv: KVNamespace): Promise<KVMonitorResponse> {
   const metrics = getKVMetrics();
 
-  // Collect detailed stats for each prefix (already < 50 prefixes so safe)
-  const namespaceData = await Promise.all(
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    KV_PREFIXES.map(async ({ name, prefix, description }): Promise<KVNamespaceData> => {
-      try {
-        const list = await kv.list({ prefix, limit: 1000 });
-        const keyCount = list.keys.length;
-        let totalSize = 0;
-        for (const key of list.keys) {
-          const metadata = key.metadata as { size?: number } | undefined;
-          totalSize += metadata?.size || 0;
+  // Collect detailed stats for each prefix
+  // Process in chunks to avoid hitting Cloudflare's 50 concurrent subrequest limit
+  const CHUNK_SIZE = 5;
+  const namespaceData: KVNamespaceData[] = [];
+
+  for (let i = 0; i < KV_PREFIXES.length; i += CHUNK_SIZE) {
+    const chunkSize = Math.min(CHUNK_SIZE, KV_PREFIXES.length - i);
+    const chunkPromises = new Array<Promise<KVNamespaceData>>(chunkSize);
+
+    for (let j = 0; j < chunkSize; j++) {
+      const { name, prefix, description } = KV_PREFIXES[i + j];
+      chunkPromises[j] = (async (): Promise<KVNamespaceData> => {
+        try {
+          const list = await kv.list({ prefix, limit: 1000 });
+          const keys = list.keys;
+          const keyCount = keys.length;
+          let totalSize = 0;
+
+          // Native for loop is faster than for...of for arrays
+          for (let k = 0; k < keyCount; k++) {
+            const metadata = keys[k].metadata as { size?: number } | undefined;
+            if (metadata?.size) totalSize += metadata.size;
+          }
+
+          const truncated = list.list_complete === false;
+
+          // Optimize slice and map
+          const sampleLimit = keyCount > 5 ? 5 : keyCount;
+          const sampleKeys = new Array<{ name: string; expiration?: number; metadata?: unknown }>(sampleLimit);
+          for (let k = 0; k < sampleLimit; k++) {
+            const key = keys[k];
+            sampleKeys[k] = {
+              name: key.name,
+              expiration: key.expiration,
+              metadata: key.metadata,
+            };
+          }
+
+          return {
+            name,
+            prefix,
+            description,
+            keyCount,
+            totalSize,
+            avgSize: keyCount > 0 ? Math.round(totalSize / keyCount) : 0,
+            truncated,
+            sampleKeys,
+          };
+        } catch (err: unknown) {
+          console.error(`Error listing prefix ${prefix}:`, err);
+          return {
+            name,
+            prefix,
+            description,
+            keyCount: 0,
+            totalSize: 0,
+            avgSize: 0,
+            truncated: false,
+            sampleKeys: [],
+            error: 'Failed to list keys',
+          };
         }
-        const truncated = list.list_complete === false;
+      })();
+    }
 
-        // Get sample keys for preview (first 5)
-        const sampleKeys = list.keys.slice(0, 5).map(key => ({
-          name: key.name,
-          expiration: key.expiration,
-          metadata: key.metadata,
-        }));
-
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        return {
-          name,
-          prefix,
-          description,
-          keyCount,
-          totalSize,
-          avgSize: keyCount > 0 ? Math.round(totalSize / keyCount) : 0,
-          truncated,
-          sampleKeys,
-        };
-      } catch (err: unknown) {
-        console.error(`Error listing prefix ${prefix}:`, err);
-        const errorResult: KVNamespaceData = {
-          name,
-          prefix,
-          description,
-          keyCount: 0,
-          totalSize: 0,
-          avgSize: 0,
-          truncated: false,
-          sampleKeys: [],
-          error: 'Failed to list keys',
-        };
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        return errorResult;
-      }
-    })
-  );
+    const chunkResults = await Promise.all(chunkPromises);
+    for (let j = 0; j < chunkResults.length; j++) {
+      namespaceData.push(chunkResults[j]);
+    }
+  }
 
   // Calculate totals
   let totalKeys = 0;
   let totalSize = 0;
-  for (const ns of namespaceData) {
+  // Native for loop is faster
+  for (let i = 0; i < namespaceData.length; i++) {
+    const ns = namespaceData[i];
     totalKeys += ns.keyCount;
     totalSize += ns.totalSize;
   }
