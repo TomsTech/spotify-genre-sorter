@@ -728,7 +728,7 @@ api.get('/genres/progressive', async (c) => {
       }
     }
 
-    const { artists } = await getArtists(session.spotifyAccessToken, [...artistIds].slice(0, 500), undefined, c.env.SESSIONS);
+    const { artists } = await getArtists(session.spotifyAccessToken, [...artistIds], undefined, c.env.SESSIONS);
     const artistGenreMap = new Map<string, string[]>();
     for (const artist of artists) {
       artistGenreMap.set(artist.id, artist.genres);
@@ -1701,8 +1701,7 @@ api.get('/scan-playlist/:playlistId', async (c) => {
 
     // Fetch artists in batches of 50 (limited to stay under subrequest limit)
     // Pass KV namespace to enable persistent caching (#74)
-    // PERF-031 FIX: Pass full array and let getArtists handle parallelization instead of sequential awaits
-    const { artists } = await getArtists(accessToken, artistIdList.slice(0, 500), undefined, c.env.SESSIONS);
+    const { artists } = await getArtists(accessToken, artistIdList, undefined, c.env.SESSIONS);
     for (const artist of artists) {
       artistGenres.set(artist.id, artist.genres);
     }
@@ -2237,7 +2236,6 @@ api.get('/admin', async (c) => {
   const metrics = getKVMetrics();
 
   // PERF-023 FIX: Use Promise.all for parallel KV listing
-  // PERF-031 FIX: Parallelize getAnalytics and KV listing
   const prefixes = ['session:', 'user:', 'user_stats:', 'hof:', 'genre_cache_', 'scan_progress:'];
   const listPromises = prefixes.map(prefix => kv.list({ prefix, limit: 1000 }));
   const [analytics, listResults] = await Promise.all([
