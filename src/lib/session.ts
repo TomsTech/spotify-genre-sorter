@@ -76,7 +76,7 @@ export async function createSession<P extends string, I extends Input>(
   const csrfToken = generateCsrfToken();
   const sessionWithCsrf = { ...session, csrfToken };
 
-  // CRITICAL FIX: Use cachedKV with immediate write for session creation
+  // Use cachedKV with immediate write for session creation
   // This ensures session is immediately persisted and cached in memory
   await cachedKV.put(
     c.env.SESSIONS,
@@ -105,6 +105,14 @@ export async function getSession<P extends string, I extends Input>(
   // CRITICAL FIX: Use cachedKV to reduce KV reads (sessions are read on every authenticated request)
   // Memory cache TTL: 1 minute (CACHE_TTL.SESSION)
   const session = await cachedKV.get<Session>(c.env.SESSIONS, `session:${sessionId}`, { cacheTtlMs: CACHE_TTL.SESSION });
+  if (!session) return null;
+
+  // Add csrfToken if missing from older sessions
+  if (!session.csrfToken) {
+    session.csrfToken = generateCsrfToken();
+    await updateSession(c, { csrfToken: session.csrfToken });
+  }
+
   return session;
 }
 
@@ -117,7 +125,7 @@ export async function updateSession<P extends string, I extends Input>(
 
   // CRITICAL FIX: Use cachedKV for both read and write to reduce KV operations
   // This eliminates duplicate reads and leverages memory cache
-  const existing = await cachedKV.get<Session>(c.env.SESSIONS, `session:${sessionId}`, { cacheTtlMs: CACHE_TTL.SESSION });
+  const existing = await cachedKV.get<Session>(c.env.SESSIONS, `session:${sessionId}`);
   if (!existing) return;
 
   const updated = { ...existing, ...updates };
@@ -660,23 +668,20 @@ export async function trackAnalyticsEvent(
 }
 
 export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
-  // PERF-005 FIX: Use Promise.all for parallel reads instead of sequential
-
   // Build all keys for the last 7 days
-  const dateKeys = Array.from({ length: 7 }, (_, i) => {
+  const dataPromises = [];
+  for (let i = 0; i < 7; i++) {
     const date = new Date();
     date.setDate(date.getDate() - i);
-    return date.toISOString().split('T')[0];
-  });
+    const dateKey = date.toISOString().split('T')[0];
+    const key = `${ANALYTICS_KEY}:${dateKey}`;
 
-  const analyticsKeys = dateKeys.map(dateKey => `${ANALYTICS_KEY}:${dateKey}`);
-
-  // Fetch all 7 days in parallel with memory caching to prevent N+1 DB calls
-  const dataPromises = analyticsKeys.map((key, i) => {
     // Today's analytics (i=0) get 5 min cache, historical days get 1 hr cache
     const ttl = i === 0 ? CACHE_TTL.ANALYTICS : CACHE_TTL.ANALYTICS_HISTORICAL;
-    return cachedKV.getString(kv, key, { cacheTtlMs: ttl });
-  });
+    dataPromises.push(cachedKV.getString(kv, key, { cacheTtlMs: ttl }));
+  }
+
+  // Fetch all 7 days in parallel with memory caching to prevent N+1 DB calls
   const dataResults = await Promise.all(dataPromises);
 
   // Get last 7 days
@@ -760,7 +765,7 @@ export async function getUserPreferences(
   kv: KVNamespace,
   spotifyId: string
 ): Promise<UserPreferences> {
-  // PERF-009 FIX: Use cachedKV instead of direct KV access for preferences
+  // Use cachedKV instead of direct KV access for preferences
   const prefs = await cachedKV.get<UserPreferences>(kv, `user_prefs:${spotifyId}`, { cacheTtlMs: 300000 }); // 5 min cache
   return prefs || { ...DEFAULT_PREFERENCES };
 }
@@ -772,7 +777,7 @@ export async function updateUserPreferences(
 ): Promise<UserPreferences> {
   const existing = await getUserPreferences(kv, spotifyId);
   const updated = { ...existing, ...updates };
-  // PERF-009 FIX: Use cachedKV with immediate write for preferences
+  // Use cachedKV with immediate write for preferences
   await cachedKV.put(kv, `user_prefs:${spotifyId}`, JSON.stringify(updated), { immediate: true });
   return updated;
 }
