@@ -486,14 +486,11 @@ api.get('/genres', async (c) => {
     const genreData = aggregateGenresFromTracks(likedTracks, artistGenreMap);
 
     // Convert to sorted array
-    const genres = [];
-    for (const [name, data] of genreData) {
-      genres.push({
-        name,
-        count: data.count,
-        trackIds: data.trackIds,
-      });
-    }
+    const genres = Array.from(genreData, ([name, data]) => ({
+      name,
+      count: data.count,
+      trackIds: data.trackIds,
+    }));
     genres.sort((a, b) => b.count - a.count);
 
     // Use extended TTL for large libraries (24h vs 1h)
@@ -971,14 +968,11 @@ api.get('/genres/chunk', async (c) => {
     const genreData = aggregateGenresFromTracks(allChunkTracks, artistGenreMap);
 
     // Convert to array
-    const genres = [];
-    for (const [name, data] of genreData) {
-      genres.push({
-        name,
-        count: data.count,
-        trackIds: data.trackIds,
-      });
-    }
+    const genres = Array.from(genreData, ([name, data]) => ({
+      name,
+      count: data.count,
+      trackIds: data.trackIds,
+    }));
     genres.sort((a, b) => b.count - a.count);
 
     const chunkData: ChunkCacheData = {
@@ -1711,10 +1705,11 @@ api.get('/scan-playlist/:playlistId', async (c) => {
     const genreCounts = aggregateGenresFromTrackData(trackData, artistGenres);
 
     // Convert to sorted array
-    const genres = [];
-    for (const [name, data] of genreCounts) {
-      genres.push({ name, count: data.count, trackIds: data.trackIds });
-    }
+    const genres = Array.from(genreCounts, ([name, data]) => ({
+      name,
+      count: data.count,
+      trackIds: data.trackIds,
+    }));
     genres.sort((a, b) => b.count - a.count);
 
     return c.json({
