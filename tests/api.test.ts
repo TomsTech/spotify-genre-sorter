@@ -1,4 +1,4 @@
-import { generateKVRecommendations, aggregateGenresFromTrackData, calculateKVTrend } from '../src/routes/api';
+import { generateKVRecommendations, aggregateGenresFromTrackData, calculateKVTrend, calculateKVBreakdown } from '../src/routes/api';
 import { describe, it, expect, vi } from 'vitest';
 import { determineKVStatus } from '../src/routes/api';
 
@@ -573,5 +573,72 @@ describe('calculateKVTrend', () => {
     const last7Days = { ...baseStats, signIns: 20, libraryScans: 10, playlistsCreated: 5 };
     const result = calculateKVTrend(4, last7Days);
     expect(result.direction).toBe('decreasing');
+  });
+});
+
+describe('calculateKVBreakdown', () => {
+  const baseToday = {
+    date: '2024-01-01',
+    pageViews: 0,
+    uniqueVisitors: [],
+    signIns: 0,
+    authFailures: 0,
+    errors: [],
+    libraryScans: 0,
+    playlistsCreated: 0,
+    totalTracksAnalysed: 0,
+    kvErrors: 0,
+    kvReads: 0,
+    kvWrites: 0,
+  };
+
+  it('should return all zeros when input data is empty', () => {
+    const result = calculateKVBreakdown(baseToday);
+    expect(result.sessions.reads).toBe(0);
+    expect(result.sessions.writes).toBe(0);
+    expect(result.caches.reads).toBe(0);
+    expect(result.caches.writes).toBe(0);
+    expect(result.userStats.reads).toBe(0);
+    expect(result.userStats.writes).toBe(0);
+    expect(result.recentPlaylists.reads).toBe(0);
+    expect(result.recentPlaylists.writes).toBe(0);
+    expect(result.auth.reads).toBe(0);
+    expect(result.auth.writes).toBe(0);
+  });
+
+  it('should correctly calculate reads and writes based on input data', () => {
+    const today = {
+      ...baseToday,
+      libraryScans: 5,
+      playlistsCreated: 10,
+      signIns: 3,
+      pageViews: 100,
+    };
+
+    const result = calculateKVBreakdown(today);
+
+    expect(result.sessions.reads).toBe(30);
+    expect(result.sessions.writes).toBe(6);
+    expect(result.caches.reads).toBe(50);
+    expect(result.caches.writes).toBe(2);
+    expect(result.userStats.reads).toBe(10);
+    expect(result.userStats.writes).toBe(10);
+    expect(result.recentPlaylists.reads).toBe(30);
+    expect(result.recentPlaylists.writes).toBe(10);
+    expect(result.auth.reads).toBe(9);
+    expect(result.auth.writes).toBe(6);
+  });
+
+  it('should correctly round decimal values', () => {
+    const today = {
+      ...baseToday,
+      pageViews: 3,
+    };
+
+    const result = calculateKVBreakdown(today);
+
+    expect(result.caches.reads).toBe(2);
+    expect(result.caches.writes).toBe(0);
+    expect(result.recentPlaylists.reads).toBe(1);
   });
 });
