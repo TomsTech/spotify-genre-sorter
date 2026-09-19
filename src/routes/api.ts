@@ -968,14 +968,11 @@ api.get('/genres/chunk', async (c) => {
     const genreData = aggregateGenresFromTracks(allChunkTracks, artistGenreMap);
 
     // Convert to array
-    const genres = [];
-    for (const [name, data] of genreData) {
-      genres.push({
-        name,
-        count: data.count,
-        trackIds: data.trackIds,
-      });
-    }
+    const genres = Array.from(genreData, ([name, data]) => ({
+      name,
+      count: data.count,
+      trackIds: data.trackIds,
+    }));
     genres.sort((a, b) => b.count - a.count);
 
     const chunkData: ChunkCacheData = {
@@ -1708,10 +1705,11 @@ api.get('/scan-playlist/:playlistId', async (c) => {
     const genreCounts = aggregateGenresFromTrackData(trackData, artistGenres);
 
     // Convert to sorted array
-    const genres = [];
-    for (const [name, data] of genreCounts) {
-      genres.push({ name, count: data.count, trackIds: data.trackIds });
-    }
+    const genres = Array.from(genreCounts, ([name, data]) => ({
+      name,
+      count: data.count,
+      trackIds: data.trackIds,
+    }));
     genres.sort((a, b) => b.count - a.count);
 
     return c.json({
@@ -2272,15 +2270,12 @@ api.post('/admin/clear-cache', async (c) => {
       let cursor: string | undefined = undefined;
       do {
         const list = await kv.list({ prefix: 'genre_cache_', cursor }) as { keys: { name: string }[], list_complete: boolean, cursor?: string };
-        // PERF-024 FIX: Use Promise.all for parallel KV deletes
-
         // Chunk the keys to avoid exceeding the 50 subrequest limit in Cloudflare Workers
         for (let i = 0; i < list.keys.length; i += 45) {
-          const chunkPromises = [];
-          const end = Math.min(i + 45, list.keys.length);
-          for (let j = i; j < end; j++) {
-            chunkPromises.push(kv.delete(list.keys[j].name));
-          }
+          const size = Math.min(45, list.keys.length - i);
+          const chunkPromises = Array.from({ length: size }, (_, j) =>
+            kv.delete(list.keys[i + j].name).catch(() => null)
+          );
           await Promise.all(chunkPromises);
         }
 
@@ -2739,7 +2734,6 @@ api.get('/admin/access-requests', async (c) => {
   const existingList = await kv.get(listKey);
   const emails: string[] = existingList ? JSON.parse(existingList) as string[] : [];
 
-  // PERF-015 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
   const requests: AccessRequest[] = [];
   const BATCH_SIZE = 40;
   for (let i = 0; i < emails.length; i += BATCH_SIZE) {
