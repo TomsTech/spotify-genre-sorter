@@ -411,8 +411,6 @@ export async function getTracksWithGenres(
 
   // Map tracks to their genres
   const tracksWithGenres = new Map<string, { track: SpotifyTrack; genres: string[]; addedAt: string }>();
-
-  // PERF-031 FIX: Eliminate redundant GC overhead
   // Instantiating a new Set for every track causes massive garbage collection overhead.
   // Using a single reusable Set instead maintains O(N) deduplication without memory penalty.
   const reusableGenresSet = new Set<string>();
