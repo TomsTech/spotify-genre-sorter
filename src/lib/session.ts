@@ -76,7 +76,7 @@ export async function createSession<P extends string, I extends Input>(
   const csrfToken = generateCsrfToken();
   const sessionWithCsrf = { ...session, csrfToken };
 
-  // CRITICAL FIX: Use cachedKV with immediate write for session creation
+  // Use cachedKV with immediate write for session creation
   // This ensures session is immediately persisted and cached in memory
   await cachedKV.put(
     c.env.SESSIONS,
