@@ -14507,6 +14507,20 @@ export function getHtml(nonce: string): string {
     function getSafeUrl(url) {
       if (!url) return '';
       const safeStr = String(url);
+
+      // Strip control characters and whitespace, then prefix-match. This must run
+      // unconditionally: new URL(str, base) does not throw on an obfuscated scheme,
+      // it resolves the value as relative against the base, so a catch-only fallback
+      // is unreachable and DEL / C1 / NUL obfuscation slips straight through.
+      const cleaned = safeStr.replace(/[\x00-\x20\x7F-\x9F\s]/g, '').toLowerCase();
+      if (cleaned.startsWith('javascript:') ||
+          cleaned.startsWith('vbscript:') ||
+         (cleaned.startsWith('data:') && !cleaned.startsWith('data:image/'))) {
+        return '#';
+      }
+
+      // Second, additive check: the parser catches scheme spellings that survive the
+      // prefix match but still resolve to a dangerous protocol.
       try {
         const parsed = new URL(safeStr, window.location.origin || 'http://localhost');
         const protocol = parsed.protocol;
@@ -14515,14 +14529,9 @@ export function getHtml(nonce: string): string {
           return '#';
         }
       } catch (e) {
-        // Fallback for invalid URLs or environments without DOM URL
-        const cleaned = safeStr.replace(/[\x00-\x20\x7F-\x9F\s]/g, '').toLowerCase();
-        if (cleaned.startsWith('javascript:') ||
-            cleaned.startsWith('vbscript:') ||
-           (cleaned.startsWith('data:') && !cleaned.startsWith('data:image/'))) {
-          return '#';
-        }
+        // Malformed URL; the cleaned-prefix check above has already run.
       }
+
       return escapeHtml(safeStr);
     }
 
