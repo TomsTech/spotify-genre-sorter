@@ -117,7 +117,7 @@ export async function updateSession<P extends string, I extends Input>(
 
   // CRITICAL FIX: Use cachedKV for both read and write to reduce KV operations
   // This eliminates duplicate reads and leverages memory cache
-  const existing = await cachedKV.get<Session>(c.env.SESSIONS, `session:${sessionId}`, { cacheTtlMs: CACHE_TTL.SESSION });
+  const existing = await cachedKV.get<Session>(c.env.SESSIONS, `session:${sessionId}`);
   if (!existing) return;
 
   const updated = { ...existing, ...updates };
