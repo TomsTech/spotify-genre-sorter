@@ -76,7 +76,7 @@ export async function createSession<P extends string, I extends Input>(
   const csrfToken = generateCsrfToken();
   const sessionWithCsrf = { ...session, csrfToken };
 
-  // CRITICAL FIX: Use cachedKV with immediate write for session creation
+  // Use cachedKV with immediate write for session creation
   // This ensures session is immediately persisted and cached in memory
   await cachedKV.put(
     c.env.SESSIONS,
@@ -105,6 +105,14 @@ export async function getSession<P extends string, I extends Input>(
   // CRITICAL FIX: Use cachedKV to reduce KV reads (sessions are read on every authenticated request)
   // Memory cache TTL: 1 minute (CACHE_TTL.SESSION)
   const session = await cachedKV.get<Session>(c.env.SESSIONS, `session:${sessionId}`, { cacheTtlMs: CACHE_TTL.SESSION });
+  if (!session) return null;
+
+  // Add csrfToken if missing from older sessions
+  if (!session.csrfToken) {
+    session.csrfToken = generateCsrfToken();
+    await updateSession(c, { csrfToken: session.csrfToken });
+  }
+
   return session;
 }
 
@@ -117,7 +125,7 @@ export async function updateSession<P extends string, I extends Input>(
 
   // CRITICAL FIX: Use cachedKV for both read and write to reduce KV operations
   // This eliminates duplicate reads and leverages memory cache
-  const existing = await cachedKV.get<Session>(c.env.SESSIONS, `session:${sessionId}`, { cacheTtlMs: CACHE_TTL.SESSION });
+  const existing = await cachedKV.get<Session>(c.env.SESSIONS, `session:${sessionId}`);
   if (!existing) return;
 
   const updated = { ...existing, ...updates };
@@ -470,16 +478,10 @@ export async function getLeaderboard(kv: KVNamespace): Promise<LeaderboardData |
 }
 
 export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData> {
-  // PERF-002 FIX: Use Promise.all for parallel reads instead of sequential
-
   // Get pioneers (first 10 users) - parallel reads
-  const pioneerPromises: Promise<LeaderboardData['pioneers'][number] | null>[] = [];
-  for (let i = 1; i <= 10; i++) {
-    pioneerPromises.push((async () => {
-      const data = await kv.get(`hof:${String(i).padStart(3, '0')}`);
-      return data ? JSON.parse(data) as LeaderboardData['pioneers'][number] : null;
-    })());
-  }
+  const pioneerPromises = Array.from({ length: 10 }, (_, i) =>
+    cachedKV.get<LeaderboardData['pioneers'][number]>(kv, `hof:${String(i + 1).padStart(3, '0')}`, { cacheTtlMs: 300000 }).catch(() => null)
+  );
   const parsedPioneers = await Promise.all(pioneerPromises);
   const pioneers = parsedPioneers.filter((p): p is LeaderboardData['pioneers'][number] => p !== null);
 
@@ -492,18 +494,9 @@ export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData
   const BATCH_SIZE = 40;
   for (let i = 0; i < userKeys.length; i += BATCH_SIZE) {
     const size = Math.min(BATCH_SIZE, userKeys.length - i);
-    const userPromises = new Array(size);
-    for (let j = 0; j < size; j++) {
-      const key = userKeys[i + j];
-      userPromises[j] = (async () => {
-      try {
-        const data = await kv.get(key.name);
-        return data ? JSON.parse(data) as LeaderboardData['newUsers'][number] : null;
-      } catch {
-        return null;
-      }
-    })();
-    }
+    const userPromises = Array.from({ length: size }, (_, j) =>
+      cachedKV.get<LeaderboardData['newUsers'][number]>(kv, userKeys[i + j].name, { cacheTtlMs: 300000 }).catch(() => null)
+    );
     const parsedUsers = await Promise.all(userPromises);
     recentUsers.push(...parsedUsers.filter((u): u is LeaderboardData['newUsers'][number] => u !== null));
   }
@@ -675,23 +668,20 @@ export async function trackAnalyticsEvent(
 }
 
 export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
-  // PERF-005 FIX: Use Promise.all for parallel reads instead of sequential
-
   // Build all keys for the last 7 days
-  const dateKeys = Array.from({ length: 7 }, (_, i) => {
+  const dataPromises = [];
+  for (let i = 0; i < 7; i++) {
     const date = new Date();
     date.setDate(date.getDate() - i);
-    return date.toISOString().split('T')[0];
-  });
+    const dateKey = date.toISOString().split('T')[0];
+    const key = `${ANALYTICS_KEY}:${dateKey}`;
 
-  const analyticsKeys = dateKeys.map(dateKey => `${ANALYTICS_KEY}:${dateKey}`);
-
-  // Fetch all 7 days in parallel with memory caching to prevent N+1 DB calls
-  const dataPromises = analyticsKeys.map((key, i) => {
     // Today's analytics (i=0) get 5 min cache, historical days get 1 hr cache
     const ttl = i === 0 ? CACHE_TTL.ANALYTICS : CACHE_TTL.ANALYTICS_HISTORICAL;
-    return cachedKV.getString(kv, key, { cacheTtlMs: ttl });
-  });
+    dataPromises.push(cachedKV.getString(kv, key, { cacheTtlMs: ttl }));
+  }
+
+  // Fetch all 7 days in parallel with memory caching to prevent N+1 DB calls
   const dataResults = await Promise.all(dataPromises);
 
   // Get last 7 days
@@ -775,7 +765,7 @@ export async function getUserPreferences(
   kv: KVNamespace,
   spotifyId: string
 ): Promise<UserPreferences> {
-  // PERF-009 FIX: Use cachedKV instead of direct KV access for preferences
+  // Use cachedKV instead of direct KV access for preferences
   const prefs = await cachedKV.get<UserPreferences>(kv, `user_prefs:${spotifyId}`, { cacheTtlMs: 300000 }); // 5 min cache
   return prefs || { ...DEFAULT_PREFERENCES };
 }
@@ -787,7 +777,7 @@ export async function updateUserPreferences(
 ): Promise<UserPreferences> {
   const existing = await getUserPreferences(kv, spotifyId);
   const updated = { ...existing, ...updates };
-  // PERF-009 FIX: Use cachedKV with immediate write for preferences
+  // Use cachedKV with immediate write for preferences
   await cachedKV.put(kv, `user_prefs:${spotifyId}`, JSON.stringify(updated), { immediate: true });
   return updated;
 }

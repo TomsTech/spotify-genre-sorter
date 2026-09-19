@@ -411,8 +411,6 @@ export async function getTracksWithGenres(
 
   // Map tracks to their genres
   const tracksWithGenres = new Map<string, { track: SpotifyTrack; genres: string[]; addedAt: string }>();
-
-  // PERF-031 FIX: Eliminate redundant GC overhead
   // Instantiating a new Set for every track causes massive garbage collection overhead.
   // Using a single reusable Set instead maintains O(N) deduplication without memory penalty.
   const reusableGenresSet = new Set<string>();
@@ -426,7 +424,14 @@ export async function getTracksWithGenres(
         reusableGenresSet.add(artistGenres[i]);
       }
     }
-    tracksWithGenres.set(track.id, { track, genres: [...reusableGenresSet], addedAt: added_at });
+
+    // Avoid spread operator to prevent intermediate array/iterator allocations and GC overhead
+    const genres: string[] = [];
+    for (const genre of reusableGenresSet) {
+      genres.push(genre);
+    }
+
+    tracksWithGenres.set(track.id, { track, genres, addedAt: added_at });
   }
 
   return tracksWithGenres;

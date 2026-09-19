@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry } from '../src/lib/spotify';
+import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry, createPlaylist } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
@@ -121,6 +121,47 @@ describe('Genre Extraction Logic', () => {
 });
 
 describe('Playlist Creation', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should successfully create a playlist and send correct payload', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ id: 'new-playlist-id', external_urls: { spotify: 'url' } }),
+    });
+
+    const result = await createPlaylist('fake-token', 'user-123', 'My Playlist', 'Desc', true);
+
+    expect(result.id).toBe('new-playlist-id');
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const [url, options] = vi.mocked(global.fetch).mock.calls[0];
+
+    expect(url).toBe('https://api.spotify.com/v1/users/user-123/playlists');
+    expect(options.method).toBe('POST');
+    expect(options.headers.Authorization).toBe('Bearer fake-token');
+
+    const body = JSON.parse(options.body);
+    expect(body).toEqual({
+      name: 'My Playlist',
+      description: 'Desc',
+      public: true,
+    });
+  });
+
+  it('should throw an error when API returns non-ok status', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      text: async () => 'Forbidden access',
+    });
+
+    await expect(createPlaylist('fake-token', 'user-123', 'My Playlist', 'Desc', false))
+      .rejects
+      .toThrow('Spotify API error: 403 Forbidden access');
+  });
+
   it('should chunk track URIs for batch operations', () => {
     const trackIds = Array.from({ length: 250 }, (_, i) => `track${i}`);
     const trackUris = trackIds.map(id => `spotify:track:${id}`);
@@ -159,7 +200,227 @@ describe('Artist Chunking', () => {
 });
 
 
-describe('fetchWithRetry', () => {
+
+  describe('getTracksWithGenres', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('should correctly map tracks to their genres', async () => {
+      const mockTracks = {
+        tracks: [
+          {
+            added_at: '2023-01-01T00:00:00Z',
+            track: {
+              id: 'track1',
+              name: 'Song 1',
+              artists: [{ id: 'artist1', name: 'Artist 1' }, { id: 'artist2', name: 'Artist 2' }]
+            }
+          },
+          {
+            added_at: '2023-01-02T00:00:00Z',
+            track: {
+              id: 'track2',
+              name: 'Song 2',
+              artists: [{ id: 'artist3', name: 'Artist 3' }]
+            }
+          }
+        ]
+      };
+
+      const mockArtists = {
+        artists: [
+          { id: 'artist1', name: 'Artist 1', genres: ['rock', 'indie'] },
+          { id: 'artist2', name: 'Artist 2', genres: ['pop'] },
+          { id: 'artist3', name: 'Artist 3', genres: ['jazz', 'blues'] }
+        ]
+      };
+
+      // Mock the global fetch
+      (global as any).fetch = vi.fn().mockImplementation(async (url) => {
+        if (url.includes('/me/tracks')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              items: mockTracks.tracks,
+              total: 2
+            })
+          };
+        } else if (url.includes('/artists')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => mockArtists
+          };
+        }
+        return { ok: true, status: 200, json: async () => ({}) };
+      });
+
+      const { getTracksWithGenres } = await import('../src/lib/spotify');
+      const result = await getTracksWithGenres('fake-token');
+
+      expect((global as any).fetch).toHaveBeenCalled();
+
+      expect(result.size).toBe(2);
+
+      const track1 = result.get('track1');
+      expect(track1).toBeDefined();
+      expect(track1?.addedAt).toBe('2023-01-01T00:00:00Z');
+      expect(track1?.genres).toEqual(expect.arrayContaining(['rock', 'indie', 'pop']));
+      expect(track1?.genres.length).toBe(3);
+
+      const track2 = result.get('track2');
+      expect(track2).toBeDefined();
+      expect(track2?.addedAt).toBe('2023-01-02T00:00:00Z');
+      expect(track2?.genres).toEqual(expect.arrayContaining(['jazz', 'blues']));
+      expect(track2?.genres.length).toBe(2);
+    });
+
+    it('should handle artists with no genres', async () => {
+      const mockTracks = {
+        tracks: [
+          {
+            added_at: '2023-01-01T00:00:00Z',
+            track: {
+              id: 'track1',
+              name: 'Song 1',
+              artists: [{ id: 'artist1', name: 'Artist 1' }]
+            }
+          }
+        ]
+      };
+
+      const mockArtists = {
+        artists: [
+          { id: 'artist1', name: 'Artist 1', genres: [] }
+        ]
+      };
+
+      (global as any).fetch = vi.fn().mockImplementation(async (url) => {
+        if (url.includes('/me/tracks')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              items: mockTracks.tracks,
+              total: 1
+            })
+          };
+        } else if (url.includes('/artists')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => mockArtists
+          };
+        }
+        return { ok: true, status: 200, json: async () => ({}) };
+      });
+
+      const { getTracksWithGenres } = await import('../src/lib/spotify');
+      const result = await getTracksWithGenres('fake-token');
+
+      const track1 = result.get('track1');
+      expect(track1?.genres).toEqual([]);
+    });
+
+    it('should handle missing artists in the response', async () => {
+      const mockTracks = {
+        tracks: [
+          {
+            added_at: '2023-01-01T00:00:00Z',
+            track: {
+              id: 'track1',
+              name: 'Song 1',
+              artists: [{ id: 'artist1', name: 'Artist 1' }]
+            }
+          }
+        ]
+      };
+
+      const mockArtists = {
+        artists: [] // Artist not found in response
+      };
+
+      (global as any).fetch = vi.fn().mockImplementation(async (url) => {
+        if (url.includes('/me/tracks')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              items: mockTracks.tracks,
+              total: 1
+            })
+          };
+        } else if (url.includes('/artists')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => mockArtists
+          };
+        }
+        return { ok: true, status: 200, json: async () => ({}) };
+      });
+
+      const { getTracksWithGenres } = await import('../src/lib/spotify');
+      const result = await getTracksWithGenres('fake-token');
+
+      const track1 = result.get('track1');
+      expect(track1?.genres).toEqual([]);
+    });
+
+    it('should deduplicate genres from multiple artists on the same track', async () => {
+      const mockTracks = {
+        tracks: [
+          {
+            added_at: '2023-01-01T00:00:00Z',
+            track: {
+              id: 'track1',
+              name: 'Song 1',
+              artists: [{ id: 'artist1', name: 'Artist 1' }, { id: 'artist2', name: 'Artist 2' }]
+            }
+          }
+        ]
+      };
+
+      const mockArtists = {
+        artists: [
+          { id: 'artist1', name: 'Artist 1', genres: ['rock', 'pop'] },
+          { id: 'artist2', name: 'Artist 2', genres: ['pop', 'indie'] }
+        ]
+      };
+
+      (global as any).fetch = vi.fn().mockImplementation(async (url) => {
+        if (url.includes('/me/tracks')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              items: mockTracks.tracks,
+              total: 1
+            })
+          };
+        } else if (url.includes('/artists')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => mockArtists
+          };
+        }
+        return { ok: true, status: 200, json: async () => ({}) };
+      });
+
+      const { getTracksWithGenres } = await import('../src/lib/spotify');
+      const result = await getTracksWithGenres('fake-token');
+
+      const track1 = result.get('track1');
+      expect(track1?.genres).toEqual(expect.arrayContaining(['rock', 'pop', 'indie']));
+      expect(track1?.genres.length).toBe(3); // pop should be deduplicated
+    });
+  });
+
+
+  describe('fetchWithRetry', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();
@@ -169,7 +430,7 @@ describe('fetchWithRetry', () => {
     vi.useFakeTimers();
 
     let attemptCount = 0;
-    global.fetch = vi.fn().mockImplementation(async () => {
+    (global as any).fetch = vi.fn().mockImplementation(async () => {
       attemptCount++;
       if (attemptCount < 3) {
         return {
@@ -200,7 +461,7 @@ describe('fetchWithRetry', () => {
     vi.useFakeTimers();
 
     let attemptCount = 0;
-    global.fetch = vi.fn().mockImplementation(async () => {
+    (global as any).fetch = vi.fn().mockImplementation(async () => {
       attemptCount++;
       if (attemptCount < 2) {
         return {
@@ -229,7 +490,7 @@ describe('fetchWithRetry', () => {
     vi.useFakeTimers();
 
     let attemptCount = 0;
-    global.fetch = vi.fn().mockImplementation(async () => {
+    (global as any).fetch = vi.fn().mockImplementation(async () => {
       attemptCount++;
       if (attemptCount < 3) {
         return {
@@ -267,7 +528,7 @@ describe('refreshSpotifyToken', () => {
     vi.useFakeTimers();
 
     // Mock the global fetch object to simulate a network error
-    global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+    (global as any).fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
     // Start the fetch and immediately set up the rejection handler
     const promise = refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret');
@@ -293,7 +554,7 @@ describe('refreshSpotifyToken', () => {
 
   it('should throw an error if the response is not ok', async () => {
     // Mock the global fetch object
-    global.fetch = vi.fn().mockResolvedValue({
+    (global as any).fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 400,
       text: async () => 'Bad Request',
@@ -305,7 +566,7 @@ describe('refreshSpotifyToken', () => {
 
   it('should successfully refresh the token', async () => {
     // Mock the global fetch object
-    global.fetch = vi.fn().mockResolvedValue({
+    (global as any).fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({ access_token: 'new-access-token', expires_in: 3600 }),
