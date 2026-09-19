@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError, createErrorResponse, withRetry, logError } from '../src/lib/error-handler';
+import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError, createErrorResponse, withRetry, logError, processBatch } from '../src/lib/error-handler';
 import * as logger from '../src/lib/logger';
 
 
@@ -398,5 +398,76 @@ describe('logError fallback', () => {
     );
 
     vi.restoreAllMocks();
+  });
+});
+
+
+describe('processBatch', () => {
+  it('should process all items successfully', async () => {
+    const items = [1, 2, 3];
+    const processor = vi.fn(async (item) => item * 2);
+
+    const result = await processBatch(items, processor);
+
+    expect(result.successful.length).toBe(3);
+    expect(result.failed.length).toBe(0);
+    expect(result.totalCount).toBe(3);
+    expect(result.successCount).toBe(3);
+    expect(result.failureCount).toBe(0);
+    expect(result.successful).toEqual([
+      { item: 1, result: 2 },
+      { item: 2, result: 4 },
+      { item: 3, result: 6 }
+    ]);
+  });
+
+  it('should handle failures and continue by default', async () => {
+    const items = [1, 2, 3];
+    const processor = vi.fn(async (item) => {
+      if (item === 2) throw new Error('Failed at 2');
+      return item * 2;
+    });
+
+    const result = await processBatch(items, processor);
+
+    expect(result.successful.length).toBe(2);
+    expect(result.failed.length).toBe(1);
+    expect(result.successCount).toBe(2);
+    expect(result.failureCount).toBe(1);
+    expect(result.failed[0].item).toBe(2);
+    expect(result.failed[0].error.message).toBe('Failed at 2');
+  });
+
+  it('should stop early if continueOnError is false', async () => {
+    const items = [1, 2, 3, 4, 5];
+    const processor = vi.fn(async (item) => {
+      if (item === 3) throw new Error('Failed at 3');
+      return item * 2;
+    });
+
+    const result = await processBatch(items, processor, { continueOnError: false, maxConcurrent: 2 });
+
+    expect(result.successCount).toBe(2);
+    expect(result.failureCount).toBe(1);
+    expect(processor).toHaveBeenCalledTimes(4); // 5 is not processed
+  });
+
+  it('should process items in chunks based on maxConcurrent', async () => {
+    const items = [1, 2, 3, 4, 5];
+    let concurrentCount = 0;
+    let maxObservedConcurrent = 0;
+
+    const processor = vi.fn(async (item) => {
+      concurrentCount++;
+      maxObservedConcurrent = Math.max(maxObservedConcurrent, concurrentCount);
+      await new Promise(resolve => setTimeout(resolve, 10)); // tiny delay
+      concurrentCount--;
+      return item;
+    });
+
+    await processBatch(items, processor, { maxConcurrent: 2 });
+
+    expect(maxObservedConcurrent).toBeLessThanOrEqual(2);
+    expect(processor).toHaveBeenCalledTimes(5);
   });
 });

@@ -122,3 +122,6 @@
 ## 2026-09-14 - [Eliminating Intermediate Arrays and Array.prototype.reduce() Overhead]
 **Learning:** Using `.reduce()` combined with intermediate arrays from `.map()` and `Promise.all()` in chunked iteration creates unnecessary memory allocations and function call overhead, impacting performance. Directly accumulating counts using `for` loops and a typed Promise array (`Promise<number>[]`) prevents these allocations and improves execution speed significantly (measured ~3x speedup in isolated tests).
 **Action:** Replace `results.reduce((sum, count) => sum + count, 0)` on intermediate arrays with a standard `for` loop that directly accumulates the values from `chunkResults` in hot paths and batch operations.
+## 2025-02-14 - Optimize promise arrays for memory efficiency
+**Learning:** Initializing intermediate arrays for `Promise.all` can increase garbage collector pressure due to unnecessary inner-loop closures and dynamic `.push()` allocations, especially in large iterations.
+**Action:** Used `Array.from()` to construct array iterations optimally in parallel map tasks in `src/routes/api.ts`, and appending `.catch(() => null)` to handle rejected promises silently across array processing iterations.
