@@ -1,41 +1,44 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { getHtml } from '../src/generated/frontend';
 
 /**
- * getSafeUrl lives in src/frontend/app.js and is shipped inside the committed
- * bundle src/generated/frontend.ts, which is what the Worker actually serves.
- * It is not importable, so this suite extracts it from the shipping bundle and
- * executes it. That matters: this guard has been silently weakened twice by
- * pull requests that replaced the control-character strip with URL parsing.
- * new URL(str, base) does not throw on an obfuscated scheme, it resolves the
- * value as relative against the base, so a catch-only fallback never runs and
- * DEL / C1 / NUL obfuscation passes straight through. Both regressions were
- * green on every existing check.
+ * getSafeUrl lives in src/frontend/app.js and ships inside the bundle that
+ * src/index.ts serves. Two independent defects have hidden in that path, and
+ * both were green on every existing check:
+ *
+ *  1. The guard was twice rewritten to use URL parsing, moving the
+ *     control-character strip into an unreachable catch. new URL(str, base)
+ *     does not throw on an obfuscated scheme, it resolves the value as
+ *     relative against the base, so DEL / C1 / NUL obfuscation passed through.
+ *
+ *  2. The bundle is a template literal, so rendering it consumed one level of
+ *     backslash escaping. The generator did not preserve \s or \x, so the
+ *     served class was /[\x00- \x7f-\x9fs]/ and stripped the letter "s"
+ *     instead of whitespace, meaning "javascript:" never matched the prefix.
+ *
+ * Reading app.js would have missed the second defect, and reading the
+ * generated bundle would have missed it too, because both hold the correct
+ * text. Only the rendered output is wrong. So these tests render the page and
+ * execute the function exactly as a browser receives it.
  */
-function extractGetSafeUrl(): (u: unknown) => string {
-  const bundle = readFileSync(
-    join(__dirname, '..', 'src', 'generated', 'frontend.ts'),
-    'utf-8',
-  );
-  const start = bundle.indexOf('function getSafeUrl');
-  if (start < 0) throw new Error('getSafeUrl not found in the generated bundle');
+function getSafeUrlAsServed(): (u: unknown) => string {
+  const html = getHtml('test-nonce');
+  const start = html.indexOf('function getSafeUrl');
+  if (start < 0) throw new Error('getSafeUrl not present in the rendered page');
 
   // brace-balance scan; a regex stops at the first inner closing brace
   let depth = 0;
-  let i = bundle.indexOf('{', start);
-  const open = i;
-  for (; i < bundle.length; i++) {
-    if (bundle[i] === '{') depth++;
-    else if (bundle[i] === '}') {
+  let i = html.indexOf('{', start);
+  for (; i < html.length; i++) {
+    if (html[i] === '{') depth++;
+    else if (html[i] === '}') {
       depth--;
       if (depth === 0) break;
     }
   }
   if (depth !== 0) throw new Error('unbalanced braces extracting getSafeUrl');
-  const source = bundle.slice(start, i + 1);
-  if (open < 0) throw new Error('no function body found');
 
+  const source = html.slice(start, i + 1);
   const escapeHtml = (s: unknown) =>
     String(s).replace(/[&<>"']/g, (c) =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string,
@@ -76,8 +79,8 @@ const MUST_PASS: Array<[string, string]> = [
   ['data image/jpeg', 'data:image/jpeg;base64,/9j/4AAQ'],
 ];
 
-describe('getSafeUrl in the shipping frontend bundle', () => {
-  const getSafeUrl = extractGetSafeUrl();
+describe('getSafeUrl as the browser receives it', () => {
+  const getSafeUrl = getSafeUrlAsServed();
 
   it.each(MUST_BLOCK)('blocks %s', (_label, vector) => {
     expect(getSafeUrl(vector)).toBe('#');
@@ -91,5 +94,29 @@ describe('getSafeUrl in the shipping frontend bundle', () => {
     expect(getSafeUrl('')).toBe('');
     expect(getSafeUrl(null)).toBe('');
     expect(getSafeUrl(undefined)).toBe('');
+  });
+});
+
+describe('the rendered page preserves regex escapes', () => {
+  const html = getHtml('test-nonce');
+
+  it('still parses as JavaScript', () => {
+    const marker = '<script nonce="test-nonce">';
+    const open = html.indexOf(marker) + marker.length + 1;
+    const close = html.lastIndexOf('\n  </script>');
+    // over-escaping is as damaging as under-escaping: doubling the backslash in
+    // an already-escaped \' closes a string early and breaks the whole page
+    expect(() => new Function(html.slice(open, close))).not.toThrow();
+  });
+
+  // each of these reached production with its backslashes stripped
+  it.each([
+    ['getSafeUrl control-character class', String.raw`/[\x00-\x20\x7F-\x9F\s]/g`],
+    ['onclick argument parser', String.raw`/^(\w+)\s*\(([^)]*)\)$/`],
+    ['location.href extractor', String.raw`location\.href\s*=\s*`],
+    ['closest selector extractor', String.raw`/\.closest\s*\(\s*`],
+    ['trailing function-call parser', String.raw`/;\s*(\w+)\s*\(([^)]*)\)/`],
+  ])('keeps %s intact', (_label, pattern) => {
+    expect(html).toContain(pattern);
   });
 });

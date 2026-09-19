@@ -42,13 +42,25 @@ function escapeCss(str) {
 // from the previous extraction, so we only escape unescaped ones
 // Use negative lookbehind to NOT escape sequences already escaped
 function escapeJs(str) {
+  // The JS below is embedded in a template literal, so evaluating getHtml()
+  // consumes one level of backslash escaping. Anything not doubled here is
+  // silently eaten, which previously broke five regexes: \s, \x, \w, \. and \(
+  // reached the served page as the bare characters s, x, w, a wildcard dot and
+  // a capture group. The security consequence was in getSafeUrl, whose
+  // character class became /[\x00- \x7f-\x9fs]/ and stripped the letter "s"
+  // rather than whitespace, so "javascript:" never matched the prefix check.
+  //
+  // Two sequences must NOT be doubled: app.js carries \` and \${ deliberately
+  // from the original extraction and they are meant to resolve on render.
+  //
+  // An already-doubled \\ is matched first, as one atom, and left alone. That
+  // keeps \\n and \\' emitting \n and \' as they always have; doubling their
+  // leading backslash would emit a real newline, or an apostrophe that closes
+  // the string early and breaks the page.
   return str
-    .replace(/(?<!\\)`/g, "\\`")      // ` -> \` (only unescaped backticks)
-    .replace(/(?<!\\)\$\{/g, "\\${")  // ${ -> \${ (only unescaped template expressions)
-    .replace(/(?<!\\)\\'/g, "\\\\'")  // \' -> \\' (but not \\')
-    .replace(/(?<!\\)\\n/g, "\\\\n")  // \n -> \\n (but not \\n)
-    .replace(/(?<!\\)\\r/g, "\\\\r")  // \r -> \\r (but not \\r)
-    .replace(/(?<!\\)\\t/g, "\\\\t"); // \t -> \\t (but not \\t)
+    .replace(/\\\\|\\(?!`|\$\{)/g, (m) => (m === '\\\\' ? m : '\\\\'))
+    .replace(/(?<!\\)`/g, '\\`')
+    .replace(/(?<!\\)\$\{/g, '\\${');
 }
 
 // Create the TypeScript file content
