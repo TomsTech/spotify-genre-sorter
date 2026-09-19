@@ -14512,7 +14512,7 @@ export function getHtml(nonce: string): string {
       // unconditionally: new URL(str, base) does not throw on an obfuscated scheme,
       // it resolves the value as relative against the base, so a catch-only fallback
       // is unreachable and DEL / C1 / NUL obfuscation slips straight through.
-      const cleaned = safeStr.replace(/[\x00-\x20\x7F-\x9F\s]/g, '').toLowerCase();
+      const cleaned = safeStr.replace(/[\\x00-\\x20\\x7F-\\x9F\\s]/g, '').toLowerCase();
       if (cleaned.startsWith('javascript:') ||
           cleaned.startsWith('vbscript:') ||
          (cleaned.startsWith('data:') && !cleaned.startsWith('data:image/'))) {
@@ -14740,7 +14740,7 @@ export function getHtml(nonce: string): string {
 
       // Parse and execute the onclick handler safely
       // Extract function name and arguments
-      const match = onclickAttr.match(/^(\w+)\s*\(([^)]*)\)$/);
+      const match = onclickAttr.match(/^(\\w+)\\s*\\(([^)]*)\\)$/);
       if (match) {
         const fnName = match[1];
         const argsStr = match[2];
@@ -14834,18 +14834,18 @@ export function getHtml(nonce: string): string {
           } else if (onclickAttr.includes('location.reload')) {
             location.reload(true);
           } else if (onclickAttr.includes('location.href')) {
-            const hrefMatch = onclickAttr.match(/location\.href\s*=\s*['"]([^'"]+)['"]/);
+            const hrefMatch = onclickAttr.match(/location\\.href\\s*=\\s*['"]([^'"]+)['"]/);
             if (hrefMatch) location.href = hrefMatch[1];
           } else if (onclickAttr.includes('.closest(') && onclickAttr.includes('.remove()')) {
             // Handle: this.closest('.selector').remove()
-            const selectorMatch = onclickAttr.match(/\.closest\s*\(\s*['"]([^'"]+)['"]\s*\)/);
+            const selectorMatch = onclickAttr.match(/\\.closest\\s*\\(\\s*['"]([^'"]+)['"]\\s*\\)/);
             if (selectorMatch) {
               const closest = target.closest(selectorMatch[1]);
               if (closest) closest.remove();
             }
           } else if (onclickAttr.includes('event.preventDefault()')) {
             // Already prevented, now execute the rest
-            const fnMatch = onclickAttr.match(/;\s*(\w+)\s*\(([^)]*)\)/);
+            const fnMatch = onclickAttr.match(/;\\s*(\\w+)\\s*\\(([^)]*)\\)/);
             if (fnMatch) {
               const fnName = fnMatch[1];
 
