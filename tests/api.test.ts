@@ -388,6 +388,23 @@ describe('determineKVStatus', () => {
     expect(determineKVStatus(50, 50)).toBe('ok');
     expect(determineKVStatus(0, 0)).toBe('ok');
   });
+
+  it('should handle boundary conditions properly', () => {
+    // Exactly 90 shouldn't be critical, but warning
+    expect(determineKVStatus(90, 50)).toBe('warning');
+    expect(determineKVStatus(50, 90)).toBe('warning');
+    expect(determineKVStatus(90, 90)).toBe('warning');
+
+    // Exactly 80 shouldn't be warning, but ok
+    expect(determineKVStatus(80, 50)).toBe('ok');
+    expect(determineKVStatus(50, 80)).toBe('ok');
+  });
+
+  it('should handle negative and fractional inputs', () => {
+    expect(determineKVStatus(-10, -50)).toBe('ok');
+    expect(determineKVStatus(90.1, 50)).toBe('critical');
+    expect(determineKVStatus(50, 80.5)).toBe('warning');
+  });
 });
 
 
