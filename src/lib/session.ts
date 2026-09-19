@@ -683,23 +683,20 @@ export async function trackAnalyticsEvent(
 }
 
 export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
-  // PERF-005 FIX: Use Promise.all for parallel reads instead of sequential
-
   // Build all keys for the last 7 days
-  const dateKeys = Array.from({ length: 7 }, (_, i) => {
+  const dataPromises = [];
+  for (let i = 0; i < 7; i++) {
     const date = new Date();
     date.setDate(date.getDate() - i);
-    return date.toISOString().split('T')[0];
-  });
+    const dateKey = date.toISOString().split('T')[0];
+    const key = `${ANALYTICS_KEY}:${dateKey}`;
 
-  const analyticsKeys = dateKeys.map(dateKey => `${ANALYTICS_KEY}:${dateKey}`);
-
-  // Fetch all 7 days in parallel with memory caching to prevent N+1 DB calls
-  const dataPromises = analyticsKeys.map((key, i) => {
     // Today's analytics (i=0) get 5 min cache, historical days get 1 hr cache
     const ttl = i === 0 ? CACHE_TTL.ANALYTICS : CACHE_TTL.ANALYTICS_HISTORICAL;
-    return cachedKV.getString(kv, key, { cacheTtlMs: ttl });
-  });
+    dataPromises.push(cachedKV.getString(kv, key, { cacheTtlMs: ttl }));
+  }
+
+  // Fetch all 7 days in parallel with memory caching to prevent N+1 DB calls
   const dataResults = await Promise.all(dataPromises);
 
   // Get last 7 days
