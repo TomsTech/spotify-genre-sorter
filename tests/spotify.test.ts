@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry } from '../src/lib/spotify';
+import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry, createPlaylist } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
@@ -121,6 +121,47 @@ describe('Genre Extraction Logic', () => {
 });
 
 describe('Playlist Creation', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should successfully create a playlist and send correct payload', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ id: 'new-playlist-id', external_urls: { spotify: 'url' } }),
+    });
+
+    const result = await createPlaylist('fake-token', 'user-123', 'My Playlist', 'Desc', true);
+
+    expect(result.id).toBe('new-playlist-id');
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const [url, options] = vi.mocked(global.fetch).mock.calls[0];
+
+    expect(url).toBe('https://api.spotify.com/v1/users/user-123/playlists');
+    expect(options.method).toBe('POST');
+    expect(options.headers.Authorization).toBe('Bearer fake-token');
+
+    const body = JSON.parse(options.body);
+    expect(body).toEqual({
+      name: 'My Playlist',
+      description: 'Desc',
+      public: true,
+    });
+  });
+
+  it('should throw an error when API returns non-ok status', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      text: async () => 'Forbidden access',
+    });
+
+    await expect(createPlaylist('fake-token', 'user-123', 'My Playlist', 'Desc', false))
+      .rejects
+      .toThrow('Spotify API error: 403 Forbidden access');
+  });
+
   it('should chunk track URIs for batch operations', () => {
     const trackIds = Array.from({ length: 250 }, (_, i) => `track${i}`);
     const trackUris = trackIds.map(id => `spotify:track:${id}`);
