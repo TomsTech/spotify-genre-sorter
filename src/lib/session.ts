@@ -76,7 +76,7 @@ export async function createSession<P extends string, I extends Input>(
   const csrfToken = generateCsrfToken();
   const sessionWithCsrf = { ...session, csrfToken };
 
-  // CRITICAL FIX: Use cachedKV with immediate write for session creation
+  // Use cachedKV with immediate write for session creation
   // This ensures session is immediately persisted and cached in memory
   await cachedKV.put(
     c.env.SESSIONS,
@@ -105,6 +105,14 @@ export async function getSession<P extends string, I extends Input>(
   // CRITICAL FIX: Use cachedKV to reduce KV reads (sessions are read on every authenticated request)
   // Memory cache TTL: 1 minute (CACHE_TTL.SESSION)
   const session = await cachedKV.get<Session>(c.env.SESSIONS, `session:${sessionId}`, { cacheTtlMs: CACHE_TTL.SESSION });
+  if (!session) return null;
+
+  // Add csrfToken if missing from older sessions
+  if (!session.csrfToken) {
+    session.csrfToken = generateCsrfToken();
+    await updateSession(c, { csrfToken: session.csrfToken });
+  }
+
   return session;
 }
 
@@ -117,7 +125,7 @@ export async function updateSession<P extends string, I extends Input>(
 
   // CRITICAL FIX: Use cachedKV for both read and write to reduce KV operations
   // This eliminates duplicate reads and leverages memory cache
-  const existing = await cachedKV.get<Session>(c.env.SESSIONS, `session:${sessionId}`, { cacheTtlMs: CACHE_TTL.SESSION });
+  const existing = await cachedKV.get<Session>(c.env.SESSIONS, `session:${sessionId}`);
   if (!existing) return;
 
   const updated = { ...existing, ...updates };
@@ -772,7 +780,7 @@ export async function getUserPreferences(
   kv: KVNamespace,
   spotifyId: string
 ): Promise<UserPreferences> {
-  // PERF-009 FIX: Use cachedKV instead of direct KV access for preferences
+  // Use cachedKV instead of direct KV access for preferences
   const prefs = await cachedKV.get<UserPreferences>(kv, `user_prefs:${spotifyId}`, { cacheTtlMs: 300000 }); // 5 min cache
   return prefs || { ...DEFAULT_PREFERENCES };
 }
@@ -784,7 +792,7 @@ export async function updateUserPreferences(
 ): Promise<UserPreferences> {
   const existing = await getUserPreferences(kv, spotifyId);
   const updated = { ...existing, ...updates };
-  // PERF-009 FIX: Use cachedKV with immediate write for preferences
+  // Use cachedKV with immediate write for preferences
   await cachedKV.put(kv, `user_prefs:${spotifyId}`, JSON.stringify(updated), { immediate: true });
   return updated;
 }
