@@ -329,28 +329,35 @@ export async function cleanupOldArtistGenreCache(
 
       // Check each entry's age in chunks to avoid Cloudflare Workers subrequest limits
       // The limit is 50 subrequests, so we chunk by 25 to be safe
-      const results: number[] = [];
       const CHUNK_SIZE = 25;
 
       for (let i = 0; i < list.keys.length; i += CHUNK_SIZE) {
-        const chunk = list.keys.slice(i, i + CHUNK_SIZE);
-        const checkPromises = chunk.map(async (key) => {
-          try {
-            const entry = await cachedKV.get<ArtistGenreCacheEntry>(kv, key.name);
-            if (entry && entry.cachedAt < cutoffTime) {
-              await cachedKV.delete(kv, key.name);
-              return 1;
+        const end = Math.min(i + CHUNK_SIZE, list.keys.length);
+        const checkPromises: Promise<number>[] = [];
+
+        // ⚡ Bolt: Eliminate intermediate arrays and reduce() overhead
+        for (let j = i; j < end; j++) {
+          const key = list.keys[j];
+          checkPromises.push((async () => {
+            try {
+              const entry = await cachedKV.get<ArtistGenreCacheEntry>(kv, key.name);
+              if (entry && entry.cachedAt < cutoffTime) {
+                await cachedKV.delete(kv, key.name);
+                return 1;
+              }
+            } catch {
+              // Ignore error
             }
-          } catch {
-            // Ignore error
-          }
-          return 0;
-        });
+            return 0;
+          })());
+        }
 
         const chunkResults = await Promise.all(checkPromises);
-        results.push(...chunkResults);
+        // Directly accumulate count rather than using reduce on a large accumulated array
+        for (const count of chunkResults) {
+          deletedCount += count;
+        }
       }
-      deletedCount += results.reduce<number>((sum, count) => sum + count, 0);
 
       hasMore = !list.list_complete;
       cursor = list.list_complete ? undefined : (list as { cursor?: string }).cursor;

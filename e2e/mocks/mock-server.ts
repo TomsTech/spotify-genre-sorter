@@ -306,8 +306,12 @@ const allHandlers = [
       },
     };
 
-    const estimatedReads = Object.values(breakdown).reduce((sum, cat) => sum + cat.reads, 0) + metrics.reads;
-    const estimatedWrites = Object.values(breakdown).reduce((sum, cat) => sum + cat.writes, 0) + metrics.writes;
+    let estimatedReads = metrics.reads;
+    let estimatedWrites = metrics.writes;
+    for (const key in breakdown) {
+      estimatedReads += breakdown[key as keyof typeof breakdown].reads;
+      estimatedWrites += breakdown[key as keyof typeof breakdown].writes;
+    }
 
     const READ_LIMIT = 100000;
     const WRITE_LIMIT = 1000;

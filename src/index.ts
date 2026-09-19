@@ -198,7 +198,6 @@ app.get('/kv-health', async (c) => {
       },
     };
 
-    // PERF-032 FIX: Avoid intermediate arrays created by Object.values().reduce()
     let estimatedReads = 0;
     let estimatedWrites = 0;
     for (const key in breakdown) {
