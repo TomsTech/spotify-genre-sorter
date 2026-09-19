@@ -61,7 +61,7 @@ describe('Token Refresh Logic', () => {
 
 import { vi } from 'vitest';
 
-import { storeState, verifyState } from '../src/lib/session';
+import { storeState, verifyState, deleteScanProgress } from '../src/lib/session';
 
 describe('State Management', () => {
   describe('storeState', () => {
@@ -89,14 +89,17 @@ describe('State Management', () => {
     it('should return null if state not found', async () => {
       const originalGetString = cachedKV.getString;
       cachedKV.getString = vi.fn().mockResolvedValue(null);
+      const originalDelete = cachedKV.delete;
+      cachedKV.delete = vi.fn().mockResolvedValue(undefined);
 
       const mockKv = {} as any;
       const result = await verifyState(mockKv, 'missing-id');
 
       expect(result).toBeNull();
-      expect(cachedKV.getString).toHaveBeenCalledWith(mockKv, 'state:missing-id');
+      expect(cachedKV.getString).toHaveBeenCalledWith(mockKv, 'state:missing-id', { cacheTtlMs: 0 });
 
       cachedKV.getString = originalGetString;
+      cachedKV.delete = originalDelete;
     });
 
     it('should return parsed state and delete it from KV', async () => {
@@ -111,7 +114,7 @@ describe('State Management', () => {
       const result = await verifyState(mockKv, 'valid-id');
 
       expect(result).toEqual(mockData);
-      expect(cachedKV.getString).toHaveBeenCalledWith(mockKv, 'state:valid-id');
+      expect(cachedKV.getString).toHaveBeenCalledWith(mockKv, 'state:valid-id', { cacheTtlMs: 0 });
       expect(cachedKV.delete).toHaveBeenCalledWith(mockKv, 'state:valid-id');
 
       cachedKV.getString = originalGetString;
@@ -181,5 +184,34 @@ describe('getScoreboard', () => {
 
     // restore
     cachedKV.get = originalGet;
+  });
+});
+
+describe('deleteScanProgress', () => {
+  it('should call cachedKV.delete with correct key', async () => {
+    const originalDelete = cachedKV.delete;
+    cachedKV.delete = vi.fn().mockResolvedValue(undefined);
+
+    const mockKv = {} as any;
+    const userId = 'test-user-123';
+
+    await deleteScanProgress(mockKv, userId);
+
+    expect(cachedKV.delete).toHaveBeenCalledWith(mockKv, 'scan_progress:test-user-123');
+
+    cachedKV.delete = originalDelete;
+  });
+
+  it('should propagate errors from cachedKV.delete', async () => {
+    const originalDelete = cachedKV.delete;
+    const error = new Error('KV Error');
+    cachedKV.delete = vi.fn().mockRejectedValue(error);
+
+    const mockKv = {} as any;
+    const userId = 'test-user-123';
+
+    await expect(deleteScanProgress(mockKv, userId)).rejects.toThrow('KV Error');
+
+    cachedKV.delete = originalDelete;
   });
 });

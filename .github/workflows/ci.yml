@@ -117,6 +117,39 @@ jobs:
       - name: Check version sync
         run: node scripts/sync-version.mjs --check
 
+  bundle-sync:
+    name: Frontend Bundle Sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Regenerate the frontend bundle
+        run: npm run build:frontend
+
+      - name: Assert the committed bundle matches its sources
+        run: |
+          if git diff --quiet -- src/generated/frontend.ts; then
+            echo "Committed bundle matches its sources."
+            exit 0
+          fi
+          echo "::error file=src/generated/frontend.ts::Committed bundle is out of sync with src/frontend/"
+          echo ""
+          echo "src/index.ts serves src/generated/frontend.ts, and build:frontend is NOT part of"
+          echo "the deploy chain. A change to src/frontend/app.js, body.html or styles.css that"
+          echo "does not carry a regenerated bundle will merge green, deploy green, and ship"
+          echo "nothing. Six pull requests did exactly that before this check existed."
+          echo ""
+          echo "Fix: run 'npm run build:frontend' and commit src/generated/frontend.ts."
+          echo ""
+          git --no-pager diff --stat -- src/generated/frontend.ts
+          git --no-pager diff -- src/generated/frontend.ts | head -60
+          exit 1
+
   dependency-check:
     name: Dependency Check
     runs-on: ubuntu-latest
