@@ -486,14 +486,11 @@ api.get('/genres', async (c) => {
     const genreData = aggregateGenresFromTracks(likedTracks, artistGenreMap);
 
     // Convert to sorted array
-    const genres = [];
-    for (const [name, data] of genreData) {
-      genres.push({
-        name,
-        count: data.count,
-        trackIds: data.trackIds,
-      });
-    }
+    const genres = Array.from(genreData, ([name, data]) => ({
+      name,
+      count: data.count,
+      trackIds: data.trackIds,
+    }));
     genres.sort((a, b) => b.count - a.count);
 
     // Use extended TTL for large libraries (24h vs 1h)
@@ -728,7 +725,7 @@ api.get('/genres/progressive', async (c) => {
       }
     }
 
-    const { artists } = await getArtists(session.spotifyAccessToken, [...artistIds].slice(0, 500), undefined, c.env.SESSIONS);
+    const { artists } = await getArtists(session.spotifyAccessToken, [...artistIds], undefined, c.env.SESSIONS);
     const artistGenreMap = new Map<string, string[]>();
     for (const artist of artists) {
       artistGenreMap.set(artist.id, artist.genres);
@@ -746,13 +743,14 @@ api.get('/genres/progressive', async (c) => {
     aggregateGenresFromTracks(allChunkTracks, artistGenreMap, genreMap);
 
     // Update progress
-    progress.partialGenres = [];
+    progress.partialGenres = new Array<{ name: string; count: number; trackIds: string[] }>(genreMap.size);
+    let genreIdx = 0;
     for (const [name, data] of genreMap) {
-      progress.partialGenres.push({
+      progress.partialGenres[genreIdx++] = {
         name,
         count: data.count,
         trackIds: data.trackIds,
-      });
+      };
     }
     progress.partialTrackCount += allChunkTracks.length;
     // PERF-FIX: Eliminate intermediate arrays created by flatMap and spread syntax
@@ -971,14 +969,11 @@ api.get('/genres/chunk', async (c) => {
     const genreData = aggregateGenresFromTracks(allChunkTracks, artistGenreMap);
 
     // Convert to array
-    const genres = [];
-    for (const [name, data] of genreData) {
-      genres.push({
-        name,
-        count: data.count,
-        trackIds: data.trackIds,
-      });
-    }
+    const genres = Array.from(genreData, ([name, data]) => ({
+      name,
+      count: data.count,
+      trackIds: data.trackIds,
+    }));
     genres.sort((a, b) => b.count - a.count);
 
     const chunkData: ChunkCacheData = {
@@ -1701,8 +1696,7 @@ api.get('/scan-playlist/:playlistId', async (c) => {
 
     // Fetch artists in batches of 50 (limited to stay under subrequest limit)
     // Pass KV namespace to enable persistent caching (#74)
-    // PERF-031 FIX: Pass full array and let getArtists handle parallelization instead of sequential awaits
-    const { artists } = await getArtists(accessToken, artistIdList.slice(0, 500), undefined, c.env.SESSIONS);
+    const { artists } = await getArtists(accessToken, artistIdList, undefined, c.env.SESSIONS);
     for (const artist of artists) {
       artistGenres.set(artist.id, artist.genres);
     }
@@ -1711,10 +1705,11 @@ api.get('/scan-playlist/:playlistId', async (c) => {
     const genreCounts = aggregateGenresFromTrackData(trackData, artistGenres);
 
     // Convert to sorted array
-    const genres = [];
-    for (const [name, data] of genreCounts) {
-      genres.push({ name, count: data.count, trackIds: data.trackIds });
-    }
+    const genres = Array.from(genreCounts, ([name, data]) => ({
+      name,
+      count: data.count,
+      trackIds: data.trackIds,
+    }));
     genres.sort((a, b) => b.count - a.count);
 
     return c.json({
@@ -2237,7 +2232,6 @@ api.get('/admin', async (c) => {
   const metrics = getKVMetrics();
 
   // PERF-023 FIX: Use Promise.all for parallel KV listing
-  // PERF-031 FIX: Parallelize getAnalytics and KV listing
   const prefixes = ['session:', 'user:', 'user_stats:', 'hof:', 'genre_cache_', 'scan_progress:'];
   const listPromises = prefixes.map(prefix => kv.list({ prefix, limit: 1000 }));
   const [analytics, listResults] = await Promise.all([
@@ -2275,15 +2269,12 @@ api.post('/admin/clear-cache', async (c) => {
       let cursor: string | undefined = undefined;
       do {
         const list = await kv.list({ prefix: 'genre_cache_', cursor }) as { keys: { name: string }[], list_complete: boolean, cursor?: string };
-        // PERF-024 FIX: Use Promise.all for parallel KV deletes
-
         // Chunk the keys to avoid exceeding the 50 subrequest limit in Cloudflare Workers
         for (let i = 0; i < list.keys.length; i += 45) {
-          const chunkPromises = [];
-          const end = Math.min(i + 45, list.keys.length);
-          for (let j = i; j < end; j++) {
-            chunkPromises.push(kv.delete(list.keys[j].name));
-          }
+          const size = Math.min(45, list.keys.length - i);
+          const chunkPromises = Array.from({ length: size }, (_, j) =>
+            kv.delete(list.keys[i + j].name).catch(() => null)
+          );
           await Promise.all(chunkPromises);
         }
 
@@ -2322,11 +2313,12 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
   const users: AdminUser[] = [];
   const seenIds = new Set<string>();
 
-  // PERF-014 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
+  // ⚡ Bolt: Chunked parallel reads for KV.get to avoid limits and reduce GC via Array.from over slice().map()
   const BATCH_SIZE = 40;
   for (let i = 0; i < userStatsList.keys.length; i += BATCH_SIZE) {
-    const chunk = userStatsList.keys.slice(i, i + BATCH_SIZE);
-    const dataPromises = chunk.map(async key => {
+    const size = Math.min(BATCH_SIZE, userStatsList.keys.length - i);
+    const dataPromises = Array.from({ length: size }, async (_, j) => {
+      const key = userStatsList.keys[i + j];
       try {
         const statsJson = await kv.get(key.name);
         if (statsJson) {
@@ -2364,8 +2356,9 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
   const hofResults: ({ spotifyId: string; spotifyName: string; spotifyAvatar?: string; registeredAt?: string } | null)[] = [];
   for (let i = 0; i < hofKeys.length; i += BATCH_SIZE) {
-    const chunk = hofKeys.slice(i, i + BATCH_SIZE);
-    const hofPromises = chunk.map(async key => {
+    const size = Math.min(BATCH_SIZE, hofKeys.length - i);
+    const hofPromises = Array.from({ length: size }, async (_, j) => {
+      const key = hofKeys[i + j];
       try {
         const hofJson = await kv.get(key);
         if (hofJson) {
@@ -2379,7 +2372,11 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
       } catch { /* skip malformed entries */ }
       return null;
     });
-    hofResults.push(...await Promise.all(hofPromises));
+
+    const results = await Promise.all(hofPromises);
+    for (const result of results) {
+      hofResults.push(result);
+    }
   }
 
   for (let i = 0; i < hofResults.length; i++) {
@@ -2742,7 +2739,6 @@ api.get('/admin/access-requests', async (c) => {
   const existingList = await kv.get(listKey);
   const emails: string[] = existingList ? JSON.parse(existingList) as string[] : [];
 
-  // PERF-015 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
   const requests: AccessRequest[] = [];
   const BATCH_SIZE = 40;
   for (let i = 0; i < emails.length; i += BATCH_SIZE) {
