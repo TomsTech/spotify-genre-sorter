@@ -478,16 +478,10 @@ export async function getLeaderboard(kv: KVNamespace): Promise<LeaderboardData |
 }
 
 export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData> {
-  // PERF-002 FIX: Use Promise.all for parallel reads instead of sequential
-
   // Get pioneers (first 10 users) - parallel reads
-  const pioneerPromises: Promise<LeaderboardData['pioneers'][number] | null>[] = [];
-  for (let i = 1; i <= 10; i++) {
-    pioneerPromises.push((async () => {
-      const data = await kv.get(`hof:${String(i).padStart(3, '0')}`);
-      return data ? JSON.parse(data) as LeaderboardData['pioneers'][number] : null;
-    })());
-  }
+  const pioneerPromises = Array.from({ length: 10 }, (_, i) =>
+    cachedKV.get<LeaderboardData['pioneers'][number]>(kv, `hof:${String(i + 1).padStart(3, '0')}`, { cacheTtlMs: 300000 }).catch(() => null)
+  );
   const parsedPioneers = await Promise.all(pioneerPromises);
   const pioneers = parsedPioneers.filter((p): p is LeaderboardData['pioneers'][number] => p !== null);
 
@@ -500,18 +494,9 @@ export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData
   const BATCH_SIZE = 40;
   for (let i = 0; i < userKeys.length; i += BATCH_SIZE) {
     const size = Math.min(BATCH_SIZE, userKeys.length - i);
-    const userPromises = new Array(size);
-    for (let j = 0; j < size; j++) {
-      const key = userKeys[i + j];
-      userPromises[j] = (async () => {
-      try {
-        const data = await kv.get(key.name);
-        return data ? JSON.parse(data) as LeaderboardData['newUsers'][number] : null;
-      } catch {
-        return null;
-      }
-    })();
-    }
+    const userPromises = Array.from({ length: size }, (_, j) =>
+      cachedKV.get<LeaderboardData['newUsers'][number]>(kv, userKeys[i + j].name, { cacheTtlMs: 300000 }).catch(() => null)
+    );
     const parsedUsers = await Promise.all(userPromises);
     recentUsers.push(...parsedUsers.filter((u): u is LeaderboardData['newUsers'][number] => u !== null));
   }
