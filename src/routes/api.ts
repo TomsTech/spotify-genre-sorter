@@ -743,13 +743,14 @@ api.get('/genres/progressive', async (c) => {
     aggregateGenresFromTracks(allChunkTracks, artistGenreMap, genreMap);
 
     // Update progress
-    progress.partialGenres = [];
+    progress.partialGenres = new Array<{ name: string; count: number; trackIds: string[] }>(genreMap.size);
+    let genreIdx = 0;
     for (const [name, data] of genreMap) {
-      progress.partialGenres.push({
+      progress.partialGenres[genreIdx++] = {
         name,
         count: data.count,
         trackIds: data.trackIds,
-      });
+      };
     }
     progress.partialTrackCount += allChunkTracks.length;
     // PERF-FIX: Eliminate intermediate arrays created by flatMap and spread syntax

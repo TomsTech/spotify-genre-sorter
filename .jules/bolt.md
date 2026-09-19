@@ -118,6 +118,9 @@
 **Action:** Use `Array.from({ length: size }, (_, j) => process(arr[start + j]))` to directly compute chunks from the original array, bypassing intermediate allocations.
 ## 2024-05-19 - Avoid slice().map() with Promise.all **Learning:** Using `array.slice().map()` creates intermediate arrays, putting pressure on the garbage collector, especially when processing large chunked datasets with `Promise.all()`. **Action:** Use `Array.from({ length }, (_, j) => ...)` to generate promises directly from indices, bypassing the intermediate array creation.
 ## 2025-02-12 - Remove array slice and map in chunking **Learning:** Using `.slice().map()` creates intermediate arrays that increase garbage collection overhead and memory allocation, especially in loops. **Action:** Use `Array.from()` to construct the mapped array directly without intermediate slicing.
+## 2025-02-12 - Pre-allocate arrays where length is known
+**Learning:** Initializing an empty array and repeatedly calling `.push()` in a tight loop forces the JS engine to dynamically reallocate and resize the array backing buffer, which creates garbage collection pressure and increases overhead.
+**Action:** When mapping over items and creating an array (like iterating over a `Map`), pre-allocate the array if the exact final size is known (e.g. `new Array(map.size)`) and assign items by index.
 ## 2024-05-18 - [Chunked Promise.all for parallel reads] **Learning:** [Instead of array.slice().map(), using Array.from with length allows for direct index-based chunking which reduces intermediate array allocations, hence less garbage collection overhead in hot loops] **Action:** [Refactored chunked array iteration in getAdminUsersList to use Array.from for parallel KV reads.]
 
 ## 2025-02-23 - PERF-031 FIX: Pass full array and let getArtists handle parallelization instead of sequential awaits
