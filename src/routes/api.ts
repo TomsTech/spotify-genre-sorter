@@ -1558,10 +1558,12 @@ api.get('/listening', async (c) => {
     }
 
     const listeners: ListeningEntry[] = [];
+    // ⚡ Bolt: Chunked parallel reads for KV.get to avoid limits and reduce GC via Array.from over slice().map()
     const BATCH_SIZE = 40;
     for (let i = 0; i < list.keys.length; i += BATCH_SIZE) {
-      const chunk = list.keys.slice(i, i + BATCH_SIZE);
-      const dataPromises = chunk.map(async key => {
+      const size = Math.min(BATCH_SIZE, list.keys.length - i);
+      const dataPromises = Array.from({ length: size }, async (_, j) => {
+        const key = list.keys[i + j];
         try {
           const data = await kv.get(key.name);
           if (data) {
