@@ -61,7 +61,7 @@ describe('Token Refresh Logic', () => {
 
 import { vi } from 'vitest';
 
-import { storeState, verifyState, deleteScanProgress } from '../src/lib/session';
+import { storeState, verifyState, deleteScanProgress, getScanProgress } from '../src/lib/session';
 
 describe('State Management', () => {
   describe('storeState', () => {
@@ -213,5 +213,55 @@ describe('deleteScanProgress', () => {
     await expect(deleteScanProgress(mockKv, userId)).rejects.toThrow('KV Error');
 
     cachedKV.delete = originalDelete;
+  });
+});
+
+
+describe('getScanProgress', () => {
+  it('should call cachedKV.get with correct key and TTL', async () => {
+    const originalGet = cachedKV.get;
+    const mockProgress = { status: 'in_progress' };
+    cachedKV.get = vi.fn().mockResolvedValue(mockProgress);
+
+    const mockKv = {} as any;
+    const userId = 'test-user-123';
+
+    const result = await getScanProgress(mockKv, userId);
+
+    expect(cachedKV.get).toHaveBeenCalledWith(
+      mockKv,
+      'scan_progress:test-user-123',
+      { cacheTtlMs: 60000 }
+    );
+    expect(result).toEqual(mockProgress);
+
+    cachedKV.get = originalGet;
+  });
+
+  it('should return null when progress is not found', async () => {
+    const originalGet = cachedKV.get;
+    cachedKV.get = vi.fn().mockResolvedValue(null);
+
+    const mockKv = {} as any;
+    const userId = 'test-user-123';
+
+    const result = await getScanProgress(mockKv, userId);
+
+    expect(result).toBeNull();
+
+    cachedKV.get = originalGet;
+  });
+
+  it('should propagate errors from cachedKV.get', async () => {
+    const originalGet = cachedKV.get;
+    const error = new Error('KV Error');
+    cachedKV.get = vi.fn().mockRejectedValue(error);
+
+    const mockKv = {} as any;
+    const userId = 'test-user-123';
+
+    await expect(getScanProgress(mockKv, userId)).rejects.toThrow('KV Error');
+
+    cachedKV.get = originalGet;
   });
 });
