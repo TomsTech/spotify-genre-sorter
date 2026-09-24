@@ -2457,38 +2457,17 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   const deletedKeys = await Promise.all(deletePromises);
   deleted.push(...deletedKeys);
 
-  // Find and delete HoF entry by scanning for matching spotifyId
-  // HoF keys are formatted as hof:001, hof:002, etc.
-  const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
-  const hofResults: ({ spotifyId?: string } | null)[] = [];
+  // Find and delete HoF entry
+  // Use reverse-lookup index to avoid full scan (O(1) vs O(N) reads)
+  const indexKey = `hof_index:${spotifyId}`;
+  const hofKey = await kv.get(indexKey);
+  if (hofKey) {
+    await cachedKV.delete(kv, hofKey);
+    await cachedKV.delete(kv, indexKey);
+    deleted.push(hofKey);
+  }
+
   const BATCH_SIZE = 40;
-  for (let i = 0; i < hofKeys.length; i += BATCH_SIZE) {
-    const end = Math.min(i + BATCH_SIZE, hofKeys.length);
-    const hofPromises = Array.from({ length: end - i }, async (_, j) => {
-      const key = hofKeys[i + j];
-      try {
-        const hofJson = await kv.get(key);
-        if (hofJson) {
-          return JSON.parse(hofJson) as { spotifyId?: string };
-        }
-      } catch { /* skip malformed entries */ }
-      return null;
-    });
-    hofResults.push(...await Promise.all(hofPromises));
-  }
-
-  for (let i = 0; i < hofResults.length; i++) {
-    const hofData = hofResults[i];
-    if (hofData) {
-      if (hofData.spotifyId === spotifyId) {
-        const hofKey = `hof:${String(i + 1).padStart(3, '0')}`;
-        await cachedKV.delete(kv, hofKey);
-        deleted.push(hofKey);
-        break; // User can only be in HoF once
-      }
-    }
-  }
-
   // Find and delete any active sessions for this user
   const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
   for (let i = 0; i < sessionsList.keys.length; i += BATCH_SIZE) {
