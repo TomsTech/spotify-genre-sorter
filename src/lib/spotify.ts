@@ -403,7 +403,7 @@ export async function getTracksWithGenres(
   }
 
   // Fetch all artists to get genres (limited to prevent subrequest overflow)
-  const { artists } = await getArtists(accessToken, [...artistIds]);
+  const { artists } = await getArtists(accessToken, Array.from(artistIds));
   const artistGenreMap = new Map<string, string[]>();
   for (const artist of artists) {
     artistGenreMap.set(artist.id, artist.genres);
