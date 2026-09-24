@@ -101,3 +101,7 @@
 **Vulnerability:** The application attempted to prevent `javascript:` and `data:` XSS attacks by filtering out the beginning of URLs. However, a malicious URL could bypass this check if it was prefixed with non-standard whitespaces or control characters that escaped the simple regex `.replace(/[\x00-\x20\x7F-\x9F\s]/g, '')`, or by exploiting URL parser differences between the filter and the browser.
 **Learning:** Checking for protocols using string manipulations and `.startsWith` is extremely brittle against browser URL parsing leniency. Browsers normalize URLs in complex ways, and many different string payloads can result in a `javascript:` execution context.
 **Prevention:** Instead of trying to clean and check strings, always use the browser's native `URL` constructor (e.g., `new URL(url, base).protocol`) to securely parse and extract the protocol for validation. Fallback to strict string checking only if parsing fails or URL API is unavailable.
+## 2026-09-24 - Fix XSS in heidi-greeting-overlay
+**Vulnerability:** Unescaped template literal insertion of the `greeting` variable into `innerHTML`.
+**Learning:** Using `innerHTML` with string interpolation can lead to DOM XSS if variables are controlled or become controlled by user input in the future.
+**Prevention:** Use `textContent`, or explicitly sanitize values using a helper like `escapeHtml()` when updating `innerHTML`.

@@ -1650,7 +1650,7 @@
       overlay.innerHTML = \`
         <div class="heidi-greeting-content">
           <div class="heidi-crown">👑</div>
-          <p class="heidi-greeting-text">\${greeting}</p>
+          <p class="heidi-greeting-text">\${String(greeting).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;')}</p>
           <div class="heidi-hearts">💙💛💙💛💙</div>
         </div>
       \`;
