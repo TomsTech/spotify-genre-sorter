@@ -61,6 +61,43 @@ async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+
+/**
+ * Helper to fetch paginated Spotify API endpoints concurrently in batches.
+ * Prevents Cloudflare Worker 50 subrequest limit errors while preserving order.
+ */
+async function fetchBatchedPages<T>(
+  offsets: number[],
+  fetchFn: (offset: number) => Promise<{ items: T[] }>,
+  onBatchProcessed?: (items: T[]) => void
+): Promise<T[]> {
+  const allItems: T[] = [];
+  const BATCH_SIZE = 5;
+
+  for (let i = 0; i < offsets.length; i += BATCH_SIZE) {
+    const chunkSize = Math.min(BATCH_SIZE, offsets.length - i);
+    const chunkPromises = new Array(chunkSize);
+
+    for (let j = 0; j < chunkSize; j++) {
+      chunkPromises[j] = fetchFn(offsets[i + j]).catch((err: unknown) => { throw err; });
+    }
+
+    const batchResponses = await Promise.all(chunkPromises);
+
+    for (let j = 0; j < batchResponses.length; j++) {
+      const items = batchResponses[j].items;
+      for (let k = 0; k < items.length; k++) {
+        allItems.push(items[k]);
+      }
+      if (onBatchProcessed) {
+        onBatchProcessed(items);
+      }
+    }
+  }
+
+  return allItems;
+}
+
 export async function fetchWithRetry(
   url: string,
   options: RequestInit,
@@ -274,26 +311,17 @@ export async function getAllLikedTracks(
     // PERF-FIX: Batch parallel requests to prevent Cloudflare Worker 50 subrequest limit errors
     // while preserving order and progress updates
     let loadedCount = allTracks.length;
-    const responses = [];
-    const BATCH_SIZE = 5;
-    for (let i = 0; i < remainingOffsets.length; i += BATCH_SIZE) {
-      const batchOffsets = remainingOffsets.slice(i, i + BATCH_SIZE);
-      const batchResponses = await Promise.all(
-        batchOffsets.map(async (off) => {
-          const response = await getLikedTracks(accessToken, limit, off);
-          return response;
-        })
-      );
-
-      for (const response of batchResponses) {
-        loadedCount += response.items.length;
+    const fetchedItems = await fetchBatchedPages(
+      remainingOffsets,
+      (off) => getLikedTracks(accessToken, limit, off),
+      (items) => {
+        loadedCount += items.length;
         onProgress?.(loadedCount, totalInLibrary);
-        responses.push(response);
       }
-    }
+    );
 
-    for (const response of responses) {
-      allTracks.push(...response.items);
+    for (let i = 0; i < fetchedItems.length; i++) {
+      allTracks.push(fetchedItems[i]);
     }
   }
 
@@ -522,20 +550,15 @@ export async function getUserPlaylists(
 
     // PERF-FIX: Batch parallel requests to prevent Cloudflare Worker 50 subrequest limit errors
     if (remainingOffsets.length > 0) {
-      const BATCH_SIZE = 5;
-      for (let i = 0; i < remainingOffsets.length; i += BATCH_SIZE) {
-        const batchOffsets = remainingOffsets.slice(i, i + BATCH_SIZE);
-        const responses = await Promise.all(
-          batchOffsets.map(off =>
-            spotifyFetch<{ items: SpotifyPlaylist[] }>(
-              `/me/playlists?limit=${limit}&offset=${off}`,
-              accessToken
-            )
-          )
-        );
-        for (const res of responses) {
-          allPlaylists.push(...res.items);
-        }
+      const fetchedItems = await fetchBatchedPages(
+        remainingOffsets,
+        (off) => spotifyFetch<{ items: SpotifyPlaylist[] }>(
+          `/me/playlists?limit=${limit}&offset=${off}`,
+          accessToken
+        )
+      );
+      for (let i = 0; i < fetchedItems.length; i++) {
+        allPlaylists.push(fetchedItems[i]);
       }
     }
   }
@@ -577,20 +600,15 @@ export async function getPlaylistTracks(
     // Fetch remaining pages concurrently
     // PERF-FIX: Batch parallel requests to prevent Cloudflare Worker 50 subrequest limit errors
     if (remainingOffsets.length > 0) {
-      const BATCH_SIZE = 5;
-      for (let i = 0; i < remainingOffsets.length; i += BATCH_SIZE) {
-        const batchOffsets = remainingOffsets.slice(i, i + BATCH_SIZE);
-        const responses = await Promise.all(
-          batchOffsets.map(off =>
-            spotifyFetch<{ items: PlaylistTrack[] }>(
-              `/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${off}`,
-              accessToken
-            )
-          )
-        );
-        for (const res of responses) {
-          allTracks.push(...res.items);
-        }
+      const fetchedItems = await fetchBatchedPages(
+        remainingOffsets,
+        (off) => spotifyFetch<{ items: PlaylistTrack[] }>(
+          `/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${off}`,
+          accessToken
+        )
+      );
+      for (let i = 0; i < fetchedItems.length; i++) {
+        allTracks.push(fetchedItems[i]);
       }
     }
   }
