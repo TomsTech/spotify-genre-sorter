@@ -155,3 +155,6 @@
 ## 2025-02-14 - Optimize promise arrays for memory efficiency
 **Learning:** Initializing intermediate arrays for `Promise.all` can increase garbage collector pressure due to unnecessary inner-loop closures and dynamic `.push()` allocations, especially in large iterations.
 **Action:** Used `Array.from()` to construct array iterations optimally in parallel map tasks in `src/routes/api.ts`, and appending `.catch(() => null)` to handle rejected promises silently across array processing iterations.
+## 2025-02-23 - PERF-003 FIX: Bounded rate limiter with deterministic cleanup
+**Learning:** Initializing an empty array and repeatedly pushing map entries to it, then sorting and accessing by index creates unnecessary intermediate arrays and sort operations. Using `Map.prototype.keys()` iteration natively loops in insertion order, allowing for a fast `break` without array allocations.
+**Action:** Replaced array sorting in `rateLimitMap` cleanup with direct Map keys iteration.
