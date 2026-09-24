@@ -578,3 +578,109 @@ describe('refreshSpotifyToken', () => {
     expect(tokens.refresh_token).toBe('fake-refresh-token'); // It should preserve the refresh token if not returned
   });
 });
+
+
+describe('getAllLikedTracks', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const createMockResponse = (total, items) => {
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items,
+        total,
+      }),
+      headers: new Headers(),
+    };
+  };
+
+  it('should fetch all tracks when total is less than limit', async () => {
+    const mockItems = Array.from({ length: 30 }, (_, i) => ({ track: { id: `t${i}` } }));
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(createMockResponse(30, mockItems)));
+
+    const { getAllLikedTracks } = await import('../src/lib/spotify');
+    const onProgress = vi.fn();
+
+    const result = await getAllLikedTracks('fake-token', onProgress);
+
+    expect(result.tracks).toHaveLength(30);
+    expect(result.totalInLibrary).toBe(30);
+    expect(result.truncated).toBe(false);
+    expect(onProgress).toHaveBeenCalledWith(30, 30);
+
+    // Only one fetch call expected
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('should paginate and fetch all tracks in batches when total exceeds limit', async () => {
+    // Total 120 tracks: limit is 50. Requires 3 pages (offset 0, 50, 100)
+    const mockItemsPage1 = Array.from({ length: 50 }, (_, i) => ({ track: { id: `p1-${i}` } }));
+    const mockItemsPage2 = Array.from({ length: 50 }, (_, i) => ({ track: { id: `p2-${i}` } }));
+    const mockItemsPage3 = Array.from({ length: 20 }, (_, i) => ({ track: { id: `p3-${i}` } }));
+
+    const fetchMock = vi.fn().mockImplementation(async (url) => {
+      const urlObj = new URL(url);
+      const offset = parseInt(urlObj.searchParams.get('offset') || '0', 10);
+
+      if (offset === 0) return createMockResponse(120, mockItemsPage1);
+      if (offset === 50) return createMockResponse(120, mockItemsPage2);
+      if (offset === 100) return createMockResponse(120, mockItemsPage3);
+
+      return createMockResponse(120, []);
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { getAllLikedTracks } = await import('../src/lib/spotify');
+    const onProgress = vi.fn();
+
+    const result = await getAllLikedTracks('fake-token', onProgress);
+
+    expect(result.tracks).toHaveLength(120);
+    expect(result.totalInLibrary).toBe(120);
+    expect(result.truncated).toBe(false);
+
+    // Verify progress was called multiple times as batches complete
+    expect(onProgress).toHaveBeenCalled();
+    // The final call should be with total count
+    expect(onProgress).toHaveBeenLastCalledWith(120, 120);
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('should truncate tracks if maxTracks limit is reached', async () => {
+    // Total 150 tracks. maxTracks = 100.
+    const mockItemsPage1 = Array.from({ length: 50 }, (_, i) => ({ track: { id: `p1-${i}` } }));
+    const mockItemsPage2 = Array.from({ length: 50 }, (_, i) => ({ track: { id: `p2-${i}` } }));
+    const mockItemsPage3 = Array.from({ length: 50 }, (_, i) => ({ track: { id: `p3-${i}` } }));
+
+    const fetchMock = vi.fn().mockImplementation(async (url) => {
+      const urlObj = new URL(url);
+      const offset = parseInt(urlObj.searchParams.get('offset') || '0', 10);
+
+      if (offset === 0) return createMockResponse(150, mockItemsPage1);
+      if (offset === 50) return createMockResponse(150, mockItemsPage2);
+      if (offset === 100) return createMockResponse(150, mockItemsPage3);
+
+      return createMockResponse(150, []);
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { getAllLikedTracks } = await import('../src/lib/spotify');
+    const onProgress = vi.fn();
+
+    const result = await getAllLikedTracks('fake-token', onProgress, 100);
+
+    expect(result.tracks).toHaveLength(100);
+    expect(result.totalInLibrary).toBe(150);
+    expect(result.truncated).toBe(true);
+
+    // Initial fetch (offset 0) + 1 remaining fetch (offset 50) before hitting maxTracks limit
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
