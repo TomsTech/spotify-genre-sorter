@@ -61,7 +61,7 @@ describe('Token Refresh Logic', () => {
 
 import { vi } from 'vitest';
 
-import { storeState, verifyState, deleteScanProgress } from '../src/lib/session';
+import { storeState, verifyState, deleteScanProgress, saveScanProgress } from '../src/lib/session';
 
 describe('State Management', () => {
   describe('storeState', () => {
@@ -213,5 +213,59 @@ describe('deleteScanProgress', () => {
     await expect(deleteScanProgress(mockKv, userId)).rejects.toThrow('KV Error');
 
     cachedKV.delete = originalDelete;
+  });
+});
+
+describe('saveScanProgress', () => {
+  it('should store scan progress in KV with correct TTL', async () => {
+    const originalPut = cachedKV.put;
+    cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    const mockKv = {} as any;
+    const progress = {
+      userId: 'test-user-123',
+      offset: 0,
+      totalInLibrary: 100,
+      partialGenres: [],
+      partialArtistCount: 0,
+      partialTrackCount: 0,
+      startedAt: new Date().toISOString(),
+      lastUpdatedAt: new Date().toISOString(),
+      status: 'in_progress' as const
+    };
+
+    await saveScanProgress(mockKv, progress);
+
+    expect(cachedKV.put).toHaveBeenCalledWith(
+      mockKv,
+      'scan_progress:test-user-123',
+      JSON.stringify(progress),
+      { expirationTtl: 3600, immediate: true }
+    );
+
+    cachedKV.put = originalPut;
+  });
+
+  it('should propagate errors from cachedKV.put', async () => {
+    const originalPut = cachedKV.put;
+    const error = new Error('KV Error');
+    cachedKV.put = vi.fn().mockRejectedValue(error);
+
+    const mockKv = {} as any;
+    const progress = {
+      userId: 'test-user-123',
+      offset: 0,
+      totalInLibrary: 100,
+      partialGenres: [],
+      partialArtistCount: 0,
+      partialTrackCount: 0,
+      startedAt: new Date().toISOString(),
+      lastUpdatedAt: new Date().toISOString(),
+      status: 'in_progress' as const
+    };
+
+    await expect(saveScanProgress(mockKv, progress)).rejects.toThrow('KV Error');
+
+    cachedKV.put = originalPut;
   });
 });
