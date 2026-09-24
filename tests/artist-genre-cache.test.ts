@@ -8,6 +8,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   getCachedArtistGenres,
+  getCachedArtistGenresBatch,
   cacheArtistGenres,
   getArtistGenreCacheStats,
   updateArtistGenreCacheStats,
@@ -174,6 +175,65 @@ describe('invalidateArtistGenreCache', () => {
     expect(deleteSpy).not.toHaveBeenCalled();
 
     deleteSpy.mockRestore();
+  });
+});
+
+describe('getCachedArtistGenresBatch', () => {
+  it('should process artists in chunks and return merged results for cache hits', async () => {
+    const mockKv = {} as any;
+    const artistIds = Array.from({ length: 100 }, (_, i) => `artist_${i}`);
+
+    // We mock getCachedArtistGenres indirectly by mocking cachedKV.get
+    const getSpy = vi.spyOn(cachedKV, 'get').mockImplementation(async (kv, key) => {
+      const artistId = (key as string).replace('artist_genre:', '');
+      const idNum = parseInt(artistId.split('_')[1], 10);
+
+      // Return a hit for even artists, miss for odd
+      if (idNum % 2 === 0) {
+        return {
+          artistId,
+          genres: [`genre_${idNum}`],
+          cachedAt: Date.now()
+        };
+      }
+      return null;
+    });
+
+    const result = await getCachedArtistGenresBatch(mockKv, artistIds);
+
+    expect(result.size).toBe(50);
+    expect(result.get('artist_0')).toEqual(['genre_0']);
+    expect(result.get('artist_1')).toBeUndefined();
+    expect(result.get('artist_98')).toEqual(['genre_98']);
+    expect(getSpy).toHaveBeenCalledTimes(100);
+
+    getSpy.mockRestore();
+  });
+
+  it('should handle errors gracefully without crashing the entire batch', async () => {
+    const mockKv = {} as any;
+    const artistIds = ['artist_error', 'artist_success'];
+
+    const getSpy = vi.spyOn(cachedKV, 'get')
+      .mockRejectedValueOnce(new Error('KV connection failed'))
+      .mockResolvedValueOnce({ artistId: 'artist_success', genres: ['pop'], cachedAt: Date.now() });
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await getCachedArtistGenresBatch(mockKv, artistIds);
+
+    expect(result.size).toBe(1);
+    expect(result.get('artist_success')).toEqual(['pop']);
+    expect(consoleSpy).toHaveBeenCalled();
+
+    getSpy.mockRestore();
+    consoleSpy.mockRestore();
+  });
+
+  it('should return empty map for empty input array', async () => {
+    const mockKv = {} as any;
+    const result = await getCachedArtistGenresBatch(mockKv, []);
+    expect(result.size).toBe(0);
   });
 });
 
