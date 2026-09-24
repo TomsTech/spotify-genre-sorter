@@ -8713,7 +8713,7 @@ export function getHtml(nonce: string): string {
 
         modal.innerHTML = [
           '<h3 id="prompt-title">' + (swedishMode ? '📝 Ange namn' : '📝 Enter name') + '</h3>',
-          '<p class="prompt-message">' + message + '</p>',
+          '<p class="prompt-message">' + escapeForHtml(message) + '</p>',
           '<label for="prompt-input" class="sr-only">' + (swedishMode ? 'Ange namn' : 'Enter name') + '</label>',
           '<input type="text" class="prompt-input" id="prompt-input" value="' + escapeForHtml(defaultValue) + '" maxlength="100" aria-label="' + (swedishMode ? 'Ange namn' : 'Enter name') + '">',
           '<div class="prompt-buttons">',

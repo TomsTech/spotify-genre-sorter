@@ -101,3 +101,8 @@
 **Vulnerability:** The application attempted to prevent `javascript:` and `data:` XSS attacks by filtering out the beginning of URLs. However, a malicious URL could bypass this check if it was prefixed with non-standard whitespaces or control characters that escaped the simple regex `.replace(/[\x00-\x20\x7F-\x9F\s]/g, '')`, or by exploiting URL parser differences between the filter and the browser.
 **Learning:** Checking for protocols using string manipulations and `.startsWith` is extremely brittle against browser URL parsing leniency. Browsers normalize URLs in complex ways, and many different string payloads can result in a `javascript:` execution context.
 **Prevention:** Instead of trying to clean and check strings, always use the browser's native `URL` constructor (e.g., `new URL(url, base).protocol`) to securely parse and extract the protocol for validation. Fallback to strict string checking only if parsing fails or URL API is unavailable.
+
+## 2026-09-24 - Unescaped prompt message in modal allows XSS
+**Vulnerability:** The custom prompt function `showPrompt` in `src/frontend/app.js` constructed a modal's HTML string using direct concatenation of the `message` parameter (`'<p class="prompt-message">' + message + '</p>'`). If the `message` originated from untrusted input, this would lead to DOM-based Cross-Site Scripting (XSS).
+**Learning:** Even internal utility functions like custom prompts must escape all arguments injected into DOM via `innerHTML`, especially in applications handling external user data (like Spotify API data).
+**Prevention:** Always use safe DOM APIs (like `textContent`) or sanitize strings with HTML escaping (like `escapeForHtml`) before interpolating them into HTML strings for `innerHTML`.
