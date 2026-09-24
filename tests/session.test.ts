@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateState } from '../src/lib/session';
+import { generateState, getUserStats } from '../src/lib/session';
 
 describe('Session Management', () => {
   describe('generateState', () => {
@@ -213,5 +213,51 @@ describe('deleteScanProgress', () => {
     await expect(deleteScanProgress(mockKv, userId)).rejects.toThrow('KV Error');
 
     cachedKV.delete = originalDelete;
+  });
+});
+
+describe('getUserStats', () => {
+  it('should fetch user stats using cachedKV.get with correct parameters', async () => {
+    const originalGet = cachedKV.get;
+
+    const mockUserStats = {
+      totalGenresDiscovered: 10,
+      totalArtistsDiscovered: 5,
+      totalTracksAnalysed: 20,
+      playlistsCreated: 1,
+      totalTracksInPlaylists: 15,
+      firstSeen: '2023-01-01',
+      lastActive: '2023-01-02',
+      createdPlaylistIds: ['playlist-1']
+    };
+
+    cachedKV.get = vi.fn().mockResolvedValue(mockUserStats);
+
+    const mockKv = {} as any;
+    const spotifyId = 'test-spotify-id';
+
+    const result = await getUserStats(mockKv, spotifyId);
+
+    expect(result).toEqual(mockUserStats);
+    expect(cachedKV.get).toHaveBeenCalledWith(
+      mockKv,
+      `user_stats:${spotifyId}`,
+      { cacheTtlMs: 300000 } // CACHE_TTL.USER_STATS is 300000
+    );
+
+    cachedKV.get = originalGet;
+  });
+
+  it('should propagate errors from cachedKV.get', async () => {
+    const originalGet = cachedKV.get;
+
+    cachedKV.get = vi.fn().mockRejectedValue(new Error('KV Error'));
+
+    const mockKv = {} as any;
+    const spotifyId = 'test-spotify-id';
+
+    await expect(getUserStats(mockKv, spotifyId)).rejects.toThrow('KV Error');
+
+    cachedKV.get = originalGet;
   });
 });
