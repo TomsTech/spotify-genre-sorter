@@ -2888,13 +2888,14 @@ export default api;
 
 // Helper to aggregate genres from tracks
 export function aggregateGenresFromTracks(
-  tracks: { track: { id: string; artists: { id: string }[] } }[],
+  tracks: { track: { id: string; artists: { id: string }[] } | null }[],
   artistGenreMap: Map<string, string[]>,
   genreData: Map<string, { count: number; trackIds: string[] }> = new Map()
 ) {
   const reusableTrackGenresSet = new Set<string>();
 
   for (const { track } of tracks) {
+    if (!track) continue;
     reusableTrackGenresSet.clear();
     for (const artist of track.artists) {
       const genres = artistGenreMap.get(artist.id) || [];
