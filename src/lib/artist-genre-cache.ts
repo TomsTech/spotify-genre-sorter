@@ -120,6 +120,7 @@ export async function cacheArtistGenres(
     // Use batched write (non-critical data)
     await cachedKV.put(kv, cacheKey, JSON.stringify(entry), {
       expirationTtl: ARTIST_GENRE_CACHE_TTL,
+      metadata: { cachedAt: entry.cachedAt },
     });
   } catch (err) {
     console.error(`Error caching genres for artist ${artistId}:`, err);
@@ -335,9 +336,19 @@ export async function cleanupOldArtistGenreCache(
         const end = Math.min(i + CHUNK_SIZE, list.keys.length);
         const checkPromises: Promise<number>[] = [];
 
-        // ⚡ Bolt: Eliminate intermediate arrays and reduce() overhead
+        // ⚡ Bolt: Use expirationTtl/metadata for eviction, avoiding N KV reads.
         for (let j = i; j < end; j++) {
           const key = list.keys[j];
+
+          // If metadata exists, check it directly
+          if (key.metadata && typeof (key.metadata as Record<string, unknown>).cachedAt === 'number') {
+             if ((key.metadata as Record<string, unknown>).cachedAt as number < cutoffTime) {
+                checkPromises.push(cachedKV.delete(kv, key.name).then(() => 1).catch(() => 0));
+             }
+             continue;
+          }
+
+          // Fallback if no metadata is available (legacy entries)
           checkPromises.push((async () => {
             try {
               const entry = await cachedKV.get<ArtistGenreCacheEntry>(kv, key.name);
