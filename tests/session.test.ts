@@ -215,3 +215,111 @@ describe('deleteScanProgress', () => {
     cachedKV.delete = originalDelete;
   });
 });
+
+import { incrementUserStats } from '../src/lib/session';
+
+describe('incrementUserStats', () => {
+  it('should increment the specified field and update lastActive', async () => {
+    const originalGet = cachedKV.get;
+    const originalPut = cachedKV.put;
+
+    vi.useFakeTimers();
+    const now = new Date('2024-01-01T00:00:00Z');
+    vi.setSystemTime(now);
+
+    const existingStats = {
+      spotifyId: 'user123',
+      spotifyName: 'User',
+      spotifyAvatar: 'avatar.jpg',
+      totalGenresDiscovered: 10,
+      totalArtistsDiscovered: 5,
+      totalTracksAnalysed: 50,
+      playlistsCreated: 1,
+      totalTracksInPlaylists: 20,
+      firstSeen: '2023-01-01T00:00:00Z',
+      lastActive: '2023-12-31T00:00:00Z',
+      createdPlaylistIds: []
+    };
+
+    const mockExisting = { ...existingStats };
+
+    cachedKV.get = vi.fn().mockResolvedValue(mockExisting);
+    cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    try {
+      const mockKv = {} as any;
+      await incrementUserStats(mockKv, 'user123', 'totalGenresDiscovered', 5);
+
+      expect(cachedKV.get).toHaveBeenCalledWith(mockKv, 'user_stats:user123', { cacheTtlMs: expect.any(Number) });
+      expect(cachedKV.put).toHaveBeenCalledWith(
+        mockKv,
+        'user_stats:user123',
+        JSON.stringify({
+          ...existingStats,
+          totalGenresDiscovered: 15,
+          lastActive: '2024-01-01T00:00:00.000Z'
+        })
+      );
+    } finally {
+      cachedKV.get = originalGet;
+      cachedKV.put = originalPut;
+      vi.useRealTimers();
+    }
+  });
+
+  it('should default amount to 1 if not provided', async () => {
+    const originalGet = cachedKV.get;
+    const originalPut = cachedKV.put;
+
+    vi.useFakeTimers();
+    const now = new Date('2024-01-01T00:00:00Z');
+    vi.setSystemTime(now);
+
+    const existingStats = {
+      totalGenresDiscovered: 10,
+      lastActive: '2023-12-31T00:00:00Z',
+    };
+
+    const mockExisting = { ...existingStats };
+
+    cachedKV.get = vi.fn().mockResolvedValue(mockExisting);
+    cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    try {
+      const mockKv = {} as any;
+      await incrementUserStats(mockKv, 'user123', 'totalGenresDiscovered');
+
+      expect(cachedKV.put).toHaveBeenCalledWith(
+        mockKv,
+        'user_stats:user123',
+        JSON.stringify({
+          ...existingStats,
+          totalGenresDiscovered: 11,
+          lastActive: '2024-01-01T00:00:00.000Z'
+        })
+      );
+    } finally {
+      cachedKV.get = originalGet;
+      cachedKV.put = originalPut;
+      vi.useRealTimers();
+    }
+  });
+
+  it('should not do anything if user stats do not exist', async () => {
+    const originalGet = cachedKV.get;
+    const originalPut = cachedKV.put;
+
+    cachedKV.get = vi.fn().mockResolvedValue(null);
+    cachedKV.put = vi.fn();
+
+    try {
+      const mockKv = {} as any;
+      await incrementUserStats(mockKv, 'unknown-user', 'totalGenresDiscovered', 5);
+
+      expect(cachedKV.put).not.toHaveBeenCalled();
+    } finally {
+      cachedKV.get = originalGet;
+      cachedKV.put = originalPut;
+    }
+  });
+});
