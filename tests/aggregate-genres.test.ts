@@ -10,7 +10,7 @@ describe('aggregateGenresFromTracks', () => {
       ['a1', ['rock', 'pop']]
     ]);
 
-    const result = aggregateGenresFromTracks(tracks, artistGenreMap);
+    const result = aggregateGenresFromTracks(tracks as any, artistGenreMap);
 
     expect(result.size).toBe(2);
     expect(result.get('rock')).toEqual({ count: 1, trackIds: ['t1'] });
@@ -26,7 +26,7 @@ describe('aggregateGenresFromTracks', () => {
       ['a2', ['rock', 'indie']]
     ]);
 
-    const result = aggregateGenresFromTracks(tracks, artistGenreMap);
+    const result = aggregateGenresFromTracks(tracks as any, artistGenreMap);
 
     expect(result.size).toBe(2);
     expect(result.get('rock')).toEqual({ count: 1, trackIds: ['t1'] }); // Only counted once
@@ -43,7 +43,7 @@ describe('aggregateGenresFromTracks', () => {
       ['a2', ['rock', 'metal']]
     ]);
 
-    const result = aggregateGenresFromTracks(tracks, artistGenreMap);
+    const result = aggregateGenresFromTracks(tracks as any, artistGenreMap);
 
     expect(result.size).toBe(3);
     expect(result.get('rock')).toEqual({ count: 2, trackIds: ['t1', 't2'] });
@@ -63,7 +63,7 @@ describe('aggregateGenresFromTracks', () => {
       ['jazz', { count: 1, trackIds: ['t0'] }]
     ]);
 
-    const result = aggregateGenresFromTracks(tracks, artistGenreMap, existingData);
+    const result = aggregateGenresFromTracks(tracks as any, artistGenreMap, existingData);
 
     expect(result).toBe(existingData); // Should mutate and return the same map
     expect(result.size).toBe(2);
@@ -77,7 +77,7 @@ describe('aggregateGenresFromTracks', () => {
     ];
     const artistGenreMap = new Map<string, string[]>(); // Empty map
 
-    const result = aggregateGenresFromTracks(tracks, artistGenreMap);
+    const result = aggregateGenresFromTracks(tracks as any, artistGenreMap);
 
     expect(result.size).toBe(0);
   });
@@ -86,7 +86,7 @@ describe('aggregateGenresFromTracks', () => {
     const tracks: any[] = [];
     const artistGenreMap = new Map([['a1', ['rock']]]);
 
-    const result = aggregateGenresFromTracks(tracks, artistGenreMap);
+    const result = aggregateGenresFromTracks(tracks as any, artistGenreMap);
 
     expect(result.size).toBe(0);
   });

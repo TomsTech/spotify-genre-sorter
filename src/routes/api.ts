@@ -1670,23 +1670,12 @@ api.get('/scan-playlist/:playlistId', async (c) => {
 
     // Get unique artists
     const artistIds = new Set<string>();
-    const trackData: { id: string; name: string; artistIds: string[] }[] = [];
 
     for (const item of tracks) {
       if (item.track && item.track.id) {
-        // PERF-FIX: Eliminate intermediate arrays created by .map() and .forEach()
-        // Iterating in a single loop avoids unnecessary allocations and improves performance.
-        const artistIdsForTrack: string[] = [];
         for (let i = 0; i < item.track.artists.length; i++) {
-          const id = item.track.artists[i].id;
-          artistIdsForTrack.push(id);
-          artistIds.add(id);
+          artistIds.add(item.track.artists[i].id);
         }
-        trackData.push({
-          id: item.track.id,
-          name: item.track.name,
-          artistIds: artistIdsForTrack
-        });
       }
     }
 
@@ -1702,7 +1691,7 @@ api.get('/scan-playlist/:playlistId', async (c) => {
     }
 
     // Aggregate genres
-    const genreCounts = aggregateGenresFromTrackData(trackData, artistGenres);
+    const genreCounts = aggregateGenresFromTracks(tracks, artistGenres);
 
     // Convert to sorted array
     const genres = Array.from(genreCounts, ([name, data]) => ({
@@ -1713,7 +1702,7 @@ api.get('/scan-playlist/:playlistId', async (c) => {
     genres.sort((a, b) => b.count - a.count);
 
     return c.json({
-      totalTracks: trackData.length,
+      totalTracks: tracks.filter(t => t.track && t.track.id).length,
       totalArtists: artistIds.size,
       totalGenres: genres.length,
       genres,
@@ -2897,46 +2886,16 @@ api.delete('/admin/kv-key/:key', async (c) => {
 export default api;
 
 
-// Helper to aggregate genres from simplified track data
-export function aggregateGenresFromTrackData(
-  trackData: { id: string; artistIds: string[] }[],
-  artistGenres: Map<string, string[]>,
-  genreData: Map<string, { count: number; trackIds: string[] }> = new Map()
-) {
-  const reusableTrackGenresSet = new Set<string>();
-
-  for (const track of trackData) {
-    reusableTrackGenresSet.clear();
-    for (const artistId of track.artistIds) {
-      const genres = artistGenres.get(artistId) || [];
-      for (let i = 0; i < genres.length; i++) {
-        reusableTrackGenresSet.add(genres[i]);
-      }
-    }
-
-    for (const genre of reusableTrackGenresSet) {
-      let data = genreData.get(genre);
-      if (!data) {
-        data = { count: 0, trackIds: [] };
-        genreData.set(genre, data);
-      }
-      data.count++;
-      data.trackIds.push(track.id);
-    }
-  }
-
-  return genreData;
-}
-
 // Helper to aggregate genres from tracks
 export function aggregateGenresFromTracks(
-  tracks: { track: { id: string; artists: { id: string }[] } }[],
+  tracks: { track: { id: string; artists: { id: string }[] } | null }[],
   artistGenreMap: Map<string, string[]>,
   genreData: Map<string, { count: number; trackIds: string[] }> = new Map()
 ) {
   const reusableTrackGenresSet = new Set<string>();
 
   for (const { track } of tracks) {
+    if (!track) continue;
     reusableTrackGenresSet.clear();
     for (const artist of track.artists) {
       const genres = artistGenreMap.get(artist.id) || [];
