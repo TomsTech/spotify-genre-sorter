@@ -119,6 +119,7 @@ interface WriteQueueEntry {
   key: string;
   value: string;
   expirationTtl?: number;
+  metadata?: any;
   addedAt: number;
 }
 
@@ -136,7 +137,11 @@ async function flushWriteQueue(kv: KVNamespace): Promise<void> {
   // Impact: Reduces flush time from O(N) to O(1) regarding network latency.
   const writePromises = batch.map(async (entry) => {
     try {
-      await kv.put(entry.key, entry.value, entry.expirationTtl ? { expirationTtl: entry.expirationTtl } : undefined);
+      const putOptions = {
+        ...(entry.expirationTtl ? { expirationTtl: entry.expirationTtl } : {}),
+        ...(entry.metadata ? { metadata: entry.metadata } : {})
+      };
+      await kv.put(entry.key, entry.value, Object.keys(putOptions).length > 0 ? putOptions : undefined);
       metrics.writes++;
     } catch (err) {
       console.error(`KV write failed for key ${entry.key}:`, err);
@@ -227,7 +232,7 @@ export const cachedKV = {
     kv: KVNamespace,
     key: string,
     value: string,
-    options?: { expirationTtl?: number; immediate?: boolean }
+    options?: { expirationTtl?: number; immediate?: boolean; metadata?: any }
   ): Promise<void> {
     checkMetricsReset();
 
@@ -241,7 +246,11 @@ export const cachedKV = {
 
     if (options?.immediate) {
       // Write immediately
-      await kv.put(key, value, options.expirationTtl ? { expirationTtl: options.expirationTtl } : undefined);
+      const putOptions = {
+        ...(options.expirationTtl ? { expirationTtl: options.expirationTtl } : {}),
+        ...(options.metadata ? { metadata: options.metadata } : {})
+      };
+      await kv.put(key, value, Object.keys(putOptions).length > 0 ? putOptions : undefined);
       metrics.writes++;
     } else {
       // Add to write queue
@@ -249,6 +258,7 @@ export const cachedKV = {
         key,
         value,
         expirationTtl: options?.expirationTtl,
+        metadata: options?.metadata,
         addedAt: Date.now(),
       });
 
