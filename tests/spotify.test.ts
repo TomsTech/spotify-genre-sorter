@@ -201,6 +201,122 @@ describe('Artist Chunking', () => {
 
 
 
+
+  describe('getArtists', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('should fetch artists from Spotify when KV is not provided', async () => {
+      const mockArtists = {
+        artists: [
+          { id: '1', name: 'Artist 1', genres: ['pop'] },
+          { id: '2', name: 'Artist 2', genres: ['rock'] }
+        ]
+      };
+
+      vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url) => {
+        if (url.includes('/artists')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => mockArtists
+          };
+        }
+        return { ok: true, status: 200, json: async () => ({}) };
+      }));
+
+      const { getArtists } = await import('../src/lib/spotify');
+      const result = await getArtists('fake-token', ['1', '2']);
+
+      expect(result.artists.length).toBe(2);
+      expect(result.artists[0].id).toBe('1');
+      expect(result.totalArtists).toBe(2);
+      expect(result.truncated).toBe(false);
+      expect(result.cacheHits).toBeUndefined();
+      expect(result.cacheMisses).toBeUndefined();
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should truncate artistIds if exceeding maxRequests', async () => {
+      const mockArtists = { artists: [] };
+      vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => {
+        return { ok: true, status: 200, json: async () => mockArtists };
+      }));
+
+      // maxRequests is 1, so maxArtists is 50
+      const largeArtistIds = Array.from({ length: 60 }, (_, i) => String(i));
+      const { getArtists } = await import('../src/lib/spotify');
+
+      const result = await getArtists('fake-token', largeArtistIds, 1);
+
+      expect(result.totalArtists).toBe(60);
+      expect(result.truncated).toBe(true);
+
+      // Should have only requested the first 50
+      expect(fetch).toHaveBeenCalledTimes(1);
+      const fetchCallUrl = vi.mocked(fetch).mock.calls[0][0] as string;
+      const urlParams = new URLSearchParams(fetchCallUrl.split('?')[1]);
+      const idsParam = urlParams.get('ids');
+      expect(idsParam?.split(',').length).toBe(50);
+    });
+
+    it('should use KV cache when provided and return cached genres', async () => {
+      const mockKv = {} as KVNamespace;
+
+      // Mock the cache functions directly via vi.doMock
+      vi.doMock('../src/lib/artist-genre-cache', () => {
+        return {
+          getCachedArtistGenresBatch: vi.fn().mockResolvedValue(new Map([
+            ['1', ['pop', 'dance']]
+          ])),
+          cacheArtistGenresBatch: vi.fn().mockResolvedValue(undefined),
+          updateArtistGenreCacheStats: vi.fn().mockResolvedValue(undefined),
+        };
+      });
+
+      const mockSpotifyArtists = {
+        artists: [
+          { id: '2', name: 'Artist 2', genres: ['rock'] }
+        ]
+      };
+
+      vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url) => {
+        if (url.includes('/artists')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => mockSpotifyArtists
+          };
+        }
+        return { ok: true, status: 200, json: async () => ({}) };
+      }));
+
+      // Need to re-import dynamically to pick up the doMock
+      vi.resetModules();
+      const { getArtists } = await import('../src/lib/spotify');
+      const result = await getArtists('fake-token', ['1', '2'], undefined, mockKv);
+
+      expect(result.artists.length).toBe(2);
+
+      // Check cached artist
+      const cachedArtist = result.artists.find(a => a.id === '1');
+      expect(cachedArtist).toBeDefined();
+      expect(cachedArtist?.genres).toEqual(['pop', 'dance']);
+
+      // Check fetched artist
+      const fetchedArtist = result.artists.find(a => a.id === '2');
+      expect(fetchedArtist).toBeDefined();
+      expect(fetchedArtist?.genres).toEqual(['rock']);
+
+      expect(result.cacheHits).toBe(1);
+      expect(result.cacheMisses).toBe(1);
+
+      // Clean up mock
+      vi.doUnmock('../src/lib/artist-genre-cache');
+    });
+  });
+
   describe('getTracksWithGenres', () => {
     afterEach(() => {
       vi.restoreAllMocks();
@@ -237,7 +353,7 @@ describe('Artist Chunking', () => {
       };
 
       // Mock the global fetch
-      (global as any).fetch = vi.fn().mockImplementation(async (url) => {
+      vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url) => {
         if (url.includes('/me/tracks')) {
           return {
             ok: true,
@@ -255,12 +371,12 @@ describe('Artist Chunking', () => {
           };
         }
         return { ok: true, status: 200, json: async () => ({}) };
-      });
+      }));
 
       const { getTracksWithGenres } = await import('../src/lib/spotify');
       const result = await getTracksWithGenres('fake-token');
 
-      expect((global as any).fetch).toHaveBeenCalled();
+      expect(fetch).toHaveBeenCalled();
 
       expect(result.size).toBe(2);
 
@@ -297,7 +413,7 @@ describe('Artist Chunking', () => {
         ]
       };
 
-      (global as any).fetch = vi.fn().mockImplementation(async (url) => {
+      vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url) => {
         if (url.includes('/me/tracks')) {
           return {
             ok: true,
@@ -315,7 +431,7 @@ describe('Artist Chunking', () => {
           };
         }
         return { ok: true, status: 200, json: async () => ({}) };
-      });
+      }));
 
       const { getTracksWithGenres } = await import('../src/lib/spotify');
       const result = await getTracksWithGenres('fake-token');
@@ -342,7 +458,7 @@ describe('Artist Chunking', () => {
         artists: [] // Artist not found in response
       };
 
-      (global as any).fetch = vi.fn().mockImplementation(async (url) => {
+      vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url) => {
         if (url.includes('/me/tracks')) {
           return {
             ok: true,
@@ -360,7 +476,7 @@ describe('Artist Chunking', () => {
           };
         }
         return { ok: true, status: 200, json: async () => ({}) };
-      });
+      }));
 
       const { getTracksWithGenres } = await import('../src/lib/spotify');
       const result = await getTracksWithGenres('fake-token');
@@ -390,7 +506,7 @@ describe('Artist Chunking', () => {
         ]
       };
 
-      (global as any).fetch = vi.fn().mockImplementation(async (url) => {
+      vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url) => {
         if (url.includes('/me/tracks')) {
           return {
             ok: true,
@@ -408,7 +524,7 @@ describe('Artist Chunking', () => {
           };
         }
         return { ok: true, status: 200, json: async () => ({}) };
-      });
+      }));
 
       const { getTracksWithGenres } = await import('../src/lib/spotify');
       const result = await getTracksWithGenres('fake-token');
@@ -430,7 +546,7 @@ describe('Artist Chunking', () => {
     vi.useFakeTimers();
 
     let attemptCount = 0;
-    (global as any).fetch = vi.fn().mockImplementation(async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => {
       attemptCount++;
       if (attemptCount < 3) {
         return {
@@ -442,7 +558,7 @@ describe('Artist Chunking', () => {
         status: 200,
         ok: true,
       };
-    });
+    }));
 
     const promise = fetchWithRetry('https://api.spotify.com/v1/me', {});
 
@@ -461,7 +577,7 @@ describe('Artist Chunking', () => {
     vi.useFakeTimers();
 
     let attemptCount = 0;
-    (global as any).fetch = vi.fn().mockImplementation(async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => {
       attemptCount++;
       if (attemptCount < 2) {
         return {
@@ -473,7 +589,7 @@ describe('Artist Chunking', () => {
         status: 200,
         ok: true,
       };
-    });
+    }));
 
     const promise = fetchWithRetry('https://api.spotify.com/v1/me', {});
 
@@ -490,7 +606,7 @@ describe('Artist Chunking', () => {
     vi.useFakeTimers();
 
     let attemptCount = 0;
-    (global as any).fetch = vi.fn().mockImplementation(async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => {
       attemptCount++;
       if (attemptCount < 3) {
         return {
@@ -502,7 +618,7 @@ describe('Artist Chunking', () => {
         status: 200,
         ok: true,
       };
-    });
+    }));
 
     const promise = fetchWithRetry('https://api.spotify.com/v1/me', {});
 
