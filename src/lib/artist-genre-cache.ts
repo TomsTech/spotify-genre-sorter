@@ -341,8 +341,8 @@ export async function cleanupOldArtistGenreCache(
           const key = list.keys[j];
 
           // If metadata exists, check it directly
-          if (key.metadata && (key.metadata as any).cachedAt) {
-             if ((key.metadata as any).cachedAt < cutoffTime) {
+          if (key.metadata && typeof (key.metadata as Record<string, unknown>).cachedAt === 'number') {
+             if ((key.metadata as Record<string, unknown>).cachedAt as number < cutoffTime) {
                 checkPromises.push(cachedKV.delete(kv, key.name).then(() => 1).catch(() => 0));
              }
              continue;

@@ -119,7 +119,7 @@ interface WriteQueueEntry {
   key: string;
   value: string;
   expirationTtl?: number;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   addedAt: number;
 }
 
@@ -232,7 +232,7 @@ export const cachedKV = {
     kv: KVNamespace,
     key: string,
     value: string,
-    options?: { expirationTtl?: number; immediate?: boolean; metadata?: any }
+    options?: { expirationTtl?: number; immediate?: boolean; metadata?: Record<string, unknown> }
   ): Promise<void> {
     checkMetricsReset();
 
