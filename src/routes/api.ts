@@ -341,7 +341,7 @@ api.get('/user-playlists', async (c) => {
     // Refresh token if needed
     if (session.spotifyExpiresAt && Date.now() > session.spotifyExpiresAt - 60000) {
       const newTokens = await refreshSpotifyToken(
-        session.spotifyRefreshToken!,
+        session.spotifyRefreshToken || '', // default to empty string if somehow not set
         c.env.SPOTIFY_CLIENT_ID,
         c.env.SPOTIFY_CLIENT_SECRET
       );

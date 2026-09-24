@@ -76,7 +76,7 @@ async function fetchBatchedPages<T>(
 
   for (let i = 0; i < offsets.length; i += BATCH_SIZE) {
     const chunkSize = Math.min(BATCH_SIZE, offsets.length - i);
-    const chunkPromises = new Array(chunkSize);
+    const chunkPromises = new Array<Promise<{ items: T[] }>>(chunkSize);
 
     for (let j = 0; j < chunkSize; j++) {
       chunkPromises[j] = fetchFn(offsets[i + j]).catch((err: unknown) => { throw err; });
