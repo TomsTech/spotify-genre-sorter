@@ -155,3 +155,7 @@
 ## 2025-02-14 - Optimize promise arrays for memory efficiency
 **Learning:** Initializing intermediate arrays for `Promise.all` can increase garbage collector pressure due to unnecessary inner-loop closures and dynamic `.push()` allocations, especially in large iterations.
 **Action:** Used `Array.from()` to construct array iterations optimally in parallel map tasks in `src/routes/api.ts`, and appending `.catch(() => null)` to handle rejected promises silently across array processing iterations.
+
+## 2024-12-17 - O(1) LRU Eviction via Map Insertion Order
+**Learning:** The custom memory cache used a standard loop over `Map.entries()` to find the oldest entry, resulting in O(N) eviction times. JavaScript Map objects preserve insertion order.
+**Action:** Implemented an O(1) eviction approach by deleting and re-inserting elements upon access in `get()`. This naturally keeps the most recently used elements at the back and the oldest elements at the front of the Map, allowing O(1) eviction via `map.keys().next().value`.
