@@ -30,12 +30,20 @@ class MemoryCache {
       return null;
     }
 
-    // Update last accessed for LRU
+    // Update last accessed for LRU by re-inserting to maintain Map insertion order (O(1) eviction)
+    this.cache.delete(key);
     entry.lastAccessed = Date.now();
+    this.cache.set(key, entry);
+
     return entry.value as T;
   }
 
   set<T>(key: string, value: T, ttlMs: number = MEMORY_CACHE_DEFAULT_TTL): void {
+    // ⚡ Bolt: Maintain LRU order by deleting before setting if it already exists
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    }
+
     // Evict oldest entries if at capacity
     if (this.cache.size >= MEMORY_CACHE_MAX_SIZE) {
       this.evictOldest();
@@ -53,17 +61,11 @@ class MemoryCache {
   }
 
   private evictOldest(): void {
-    let oldestKey: string | null = null;
-    let oldestTime = Infinity;
-
-    for (const [key, entry] of this.cache.entries()) {
-      if (entry.lastAccessed < oldestTime) {
-        oldestTime = entry.lastAccessed;
-        oldestKey = key;
-      }
-    }
-
-    if (oldestKey) {
+    // ⚡ Bolt: Leverage JavaScript Map's inherent insertion order for O(1) LRU eviction.
+    // Because we delete/re-insert keys on access (in get()), the oldest element
+    // naturally remains at the front of the map, eliminating the need for an O(N) search.
+    const oldestKey = this.cache.keys().next().value;
+    if (oldestKey !== undefined) {
       this.cache.delete(oldestKey);
     }
   }
