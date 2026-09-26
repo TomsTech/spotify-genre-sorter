@@ -155,3 +155,6 @@
 ## 2025-02-14 - Optimize promise arrays for memory efficiency
 **Learning:** Initializing intermediate arrays for `Promise.all` can increase garbage collector pressure due to unnecessary inner-loop closures and dynamic `.push()` allocations, especially in large iterations.
 **Action:** Used `Array.from()` to construct array iterations optimally in parallel map tasks in `src/routes/api.ts`, and appending `.catch(() => null)` to handle rejected promises silently across array processing iterations.
+## 2025-10-18 - Avoid slice().map() in artist-genre-cache chunking
+**Learning:** Using `.slice(i, i + size).map(...)` allocates intermediate arrays that create unnecessary garbage collection overhead when batching operations into `Promise.all()` over large sets.
+**Action:** Use `Array.from({ length: size }, (_, j) => process(array[i + j]))` to directly generate chunks for Cloudflare KV batch requests, avoiding intermediate allocations.
