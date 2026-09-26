@@ -134,7 +134,7 @@ export async function cacheArtistGenresBatch(
   kv: KVNamespace,
   artistGenreMap: Map<string, string[]>
 ): Promise<void> {
-  const entries = [];
+  const entries: [string, string[]][] = [];
   for (const entry of artistGenreMap.entries()) {
     entries.push(entry);
   }
@@ -145,7 +145,7 @@ export async function cacheArtistGenresBatch(
     // ⚡ Bolt: Avoid intermediate array allocation from slice().map() by using Array.from()
     const size = Math.min(CHUNK_SIZE, entries.length - i);
     const cachePromises = Array.from({ length: size }, (_, j) => {
-      const [artistId, genres] = entries[i + j] as [string, string[]];
+      const [artistId, genres] = entries[i + j];
       return cacheArtistGenres(kv, artistId, genres);
     });
     await Promise.all(cachePromises);
