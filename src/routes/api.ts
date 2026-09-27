@@ -1375,7 +1375,10 @@ interface GitHubRelease {
 }
 
 function transformGitHubReleases(releases: GitHubRelease[]) {
-  return releases.slice(0, 10).map((release) => {
+  // ⚡ Bolt: avoid intermediate array allocations with slice().map()
+  const size = Math.min(10, releases.length);
+  return Array.from({ length: size }, (_, i) => {
+    const release = releases[i];
     const version = release.tag_name.replace(/^v/, '');
     const date = release.published_at.split('T')[0];
     const bodyLines = (release.body || '').split('\n');
@@ -1560,8 +1563,10 @@ api.get('/listening', async (c) => {
     const listeners: ListeningEntry[] = [];
     const BATCH_SIZE = 40;
     for (let i = 0; i < list.keys.length; i += BATCH_SIZE) {
-      const chunk = list.keys.slice(i, i + BATCH_SIZE);
-      const dataPromises = chunk.map(async key => {
+      // ⚡ Bolt: chunked mapping over keys with Array.from instead of slice().map()
+      const size = Math.min(BATCH_SIZE, list.keys.length - i);
+      const dataPromises = Array.from({ length: size }, async (_, j) => {
+        const key = list.keys[i + j];
         try {
           const data = await kv.get(key.name);
           if (data) {
@@ -1874,11 +1879,16 @@ api.post('/log-error', async (c) => {
     const existing = await cachedKV.get<unknown[]>(c.env.SESSIONS, ERROR_LOG_KEY) || [];
 
     // Add new errors with server timestamp
-    const newErrors = errors.slice(0, 10).map((e: unknown) => ({
-      ...(typeof e === 'object' && e !== null ? e : { raw: e }),
-      serverTime: new Date().toISOString(),
-      ip: c.req.header('cf-connecting-ip') || 'unknown'
-    }));
+    // ⚡ Bolt: avoid intermediate array allocations with slice().map()
+    const size = Math.min(10, errors.length);
+    const newErrors = Array.from({ length: size }, (_, i) => {
+      const e = errors[i] as unknown;
+      return {
+        ...(typeof e === 'object' && e !== null ? (e as Record<string, unknown>) : { raw: e }),
+        serverTime: new Date().toISOString(),
+        ip: c.req.header('cf-connecting-ip') || 'unknown'
+      };
+    });
 
     // Keep last 100 errors
     const combined = [...newErrors, ...existing].slice(0, 100);
