@@ -199,7 +199,7 @@
         return;
       }
 
-      const genreNames = [...selectedGenres];
+      const genreNames = Array.from(selectedGenres);
       const suggestedName = genreNames.slice(0, 3).join(' + ') + (genreNames.length > 3 ? ' +more' : '');
 
       // Show custom prompt modal for playlist name
@@ -232,7 +232,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: playlistName,
-            trackIds: [...trackIds],
+            trackIds: Array.from(trackIds),
           }),
         });
 
@@ -348,7 +348,7 @@
         return;
       }
 
-      const genreNames = [...genresToMerge];
+      const genreNames = Array.from(genresToMerge);
       const genreItems = genreNames.map(name => {
         const genre = genreData.genres.find(g => g.name === name);
         return { name, count: genre ? genre.count : 0 };
@@ -425,7 +425,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: playlistName,
-            trackIds: [...trackIds],
+            trackIds: Array.from(trackIds),
           }),
         });
 
@@ -3202,7 +3202,7 @@
       const container = document.getElementById('bar-chart-items');
       if (!container) return;
 
-      const sortedGenres = [...genres].sort((a, b) => b.count - a.count).slice(0, 8);
+      const sortedGenres = Array.from(genres).sort((a, b) => b.count - a.count).slice(0, 8);
       const maxCount = sortedGenres[0]?.count || 1;
 
       container.innerHTML = sortedGenres.map(g => {
@@ -3411,7 +3411,7 @@
         const grid = document.getElementById('live-genres-grid');
         if (grid) {
           // Show top genres with emojis, sorted by count
-          const sortedGenres = [...partialGenres].sort((a, b) => b.count - a.count).slice(0, 20);
+          const sortedGenres = Array.from(partialGenres).sort((a, b) => b.count - a.count).slice(0, 20);
           grid.innerHTML = sortedGenres.map(g => {
             const emoji = getGenreEmoji(g.name);
             const safeName = escapeForHtml(g.name);
@@ -3437,7 +3437,7 @@
       // Add existing genres
       if (existing?.genres) {
         for (const g of existing.genres) {
-          merged.set(g.name, { count: g.count, trackIds: [...g.trackIds] });
+          merged.set(g.name, { count: g.count, trackIds: Array.from(g.trackIds) });
         }
       }
 
@@ -3448,7 +3448,7 @@
           existing.count += g.count;
           existing.trackIds.push(...g.trackIds);
         } else {
-          merged.set(g.name, { count: g.count, trackIds: [...g.trackIds] });
+          merged.set(g.name, { count: g.count, trackIds: Array.from(g.trackIds) });
         }
       }
 
@@ -4009,7 +4009,7 @@
     }
 
     function saveHiddenGenres() {
-      localStorage.setItem('hiddenGenres', JSON.stringify([...hiddenGenres]));
+      localStorage.setItem('hiddenGenres', JSON.stringify(Array.from(hiddenGenres)));
     }
 
     function toggleShowHidden() {
@@ -5148,7 +5148,7 @@
       const genre = genreData?.genres?.find(g => g.name === genreName);
       if (genre?.albumArts && genre.albumArts.length > 0) {
         // Get up to 5 random album arts
-        const shuffled = [...genre.albumArts].sort(() => 0.5 - getSecureRandom());
+        const shuffled = Array.from(genre.albumArts).sort(() => 0.5 - getSecureRandom());
         return shuffled.slice(0, 5);
       }
 
@@ -5194,7 +5194,7 @@
         allAlbumArts.push(...arts);
       }
       // Shuffle and take up to 5
-      const shuffled = [...new Set(allAlbumArts)].sort(() => 0.5 - getSecureRandom()).slice(0, 5);
+      const shuffled = Array.from(new Set(allAlbumArts)).sort(() => 0.5 - getSecureRandom()).slice(0, 5);
 
       const modal = document.createElement('div');
       modal.className = 'playlist-loading-modal';
@@ -7107,7 +7107,7 @@
     function flushErrors() {
       if (errorQueue.length === 0) return;
 
-      const errors = [...errorQueue];
+      const errors = Array.from(errorQueue);
       errorQueue.length = 0;
 
       // Send to backend (fire and forget)

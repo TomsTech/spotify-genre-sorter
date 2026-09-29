@@ -265,7 +265,7 @@ function logErrorToBackend(error, context) {
 
   errorBatchTimeout = setTimeout(() => {
     if (errorQueue.length > 0) {
-      const errors = [...errorQueue];
+      const errors = Array.from(errorQueue);
       errorQueue.length = 0;
 
       // Send to backend (don't await, fire and forget)
