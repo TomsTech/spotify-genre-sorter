@@ -463,7 +463,8 @@ api.get('/genres', async (c) => {
     // Pass KV namespace to enable persistent caching (#74)
     let artists;
     try {
-      const artistResult = await getArtists(session.spotifyAccessToken, [...artistIds], undefined, c.env.SESSIONS);
+      // ⚡ Bolt: Use Array.from() instead of [...set] to avoid intermediate allocations and dynamic resizing
+      const artistResult = await getArtists(session.spotifyAccessToken, Array.from(artistIds), undefined, c.env.SESSIONS);
       artists = artistResult.artists;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -725,7 +726,8 @@ api.get('/genres/progressive', async (c) => {
       }
     }
 
-    const { artists } = await getArtists(session.spotifyAccessToken, [...artistIds], undefined, c.env.SESSIONS);
+    // ⚡ Bolt: Use Array.from() instead of [...set] to avoid intermediate allocations and dynamic resizing
+    const { artists } = await getArtists(session.spotifyAccessToken, Array.from(artistIds), undefined, c.env.SESSIONS);
     const artistGenreMap = new Map<string, string[]>();
     for (const artist of artists) {
       artistGenreMap.set(artist.id, artist.genres);
@@ -957,7 +959,8 @@ api.get('/genres/chunk', async (c) => {
 
     // Fetch artists (stay under subrequest limit)
     // Pass KV namespace to enable persistent caching (#74)
-    const artistIdArray = [...artistIds].slice(0, MAX_ARTIST_REQUESTS_PER_CHUNK * 50);
+    // ⚡ Bolt: Use Array.from() instead of [...set] to avoid intermediate allocations and dynamic resizing
+    const artistIdArray = Array.from(artistIds).slice(0, MAX_ARTIST_REQUESTS_PER_CHUNK * 50);
     const { artists } = await getArtists(session.spotifyAccessToken, artistIdArray, undefined, c.env.SESSIONS);
 
     const artistGenreMap = new Map<string, string[]>();
