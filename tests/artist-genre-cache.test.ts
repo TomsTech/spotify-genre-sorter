@@ -9,6 +9,7 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   getCachedArtistGenres,
   cacheArtistGenres,
+  cacheArtistGenresBatch,
   getArtistGenreCacheStats,
   updateArtistGenreCacheStats,
   getCachedArtistCount,
@@ -146,6 +147,36 @@ describe('Cache Performance Benefits (#74)', () => {
 });
 
 
+
+
+describe('cacheArtistGenresBatch', () => {
+  it('should process empty map without error', async () => {
+    const mockKv = {} as any;
+    const putSpy = vi.spyOn(cachedKV, 'put').mockResolvedValue(undefined);
+
+    await cacheArtistGenresBatch(mockKv, new Map());
+
+    expect(putSpy).not.toHaveBeenCalled();
+    putSpy.mockRestore();
+  });
+
+  it('should process batch within subrequest limits', async () => {
+    const mockKv = {} as any;
+    const putSpy = vi.spyOn(cachedKV, 'put').mockResolvedValue(undefined);
+
+    const mockMap = new Map<string, string[]>();
+    for (let i = 0; i < 45; i++) {
+        mockMap.set(`artist_${i}`, [`genre_${i}`]);
+    }
+
+    await cacheArtistGenresBatch(mockKv, mockMap);
+
+    expect(putSpy).toHaveBeenCalledTimes(45);
+    expect(putSpy).toHaveBeenCalledWith(mockKv, 'artist_genre:artist_0', expect.any(String), expect.any(Object));
+    expect(putSpy).toHaveBeenCalledWith(mockKv, 'artist_genre:artist_44', expect.any(String), expect.any(Object));
+    putSpy.mockRestore();
+  });
+});
 
 describe('invalidateArtistGenreCache', () => {
   it('should invalidate cache for specific artists in chunks and return deleted count', async () => {
