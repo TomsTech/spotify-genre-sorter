@@ -79,75 +79,76 @@ export const KV_PREFIXES = [
 ];
 
 /**
- * Get comprehensive KV monitoring data
+ * Fetches data for a single KV prefix
  */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-export async function getKVMonitorData(kv: KVNamespace): Promise<KVMonitorResponse> {
-  const metrics = getKVMetrics();
+async function fetchPrefixData(
+  kv: KVNamespace,
+  { name, prefix, description }: { name: string; prefix: string; description: string }
+): Promise<KVNamespaceData> {
+  try {
+    const list = await kv.list({ prefix, limit: 1000 });
+    const keys = list.keys;
+    const keyCount = keys.length;
+    let totalSize = 0;
 
-  // Collect detailed stats for each prefix
-  // Process in chunks to avoid hitting Cloudflare's 50 concurrent subrequest limit
-  const CHUNK_SIZE = 5;
+    // Native for loop is faster than for...of for arrays
+    for (let k = 0; k < keyCount; k++) {
+      const metadata = keys[k].metadata as { size?: number } | undefined;
+      if (metadata?.size) totalSize += metadata.size;
+    }
+
+    const truncated = list.list_complete === false;
+
+    // Optimize slice and map
+    const sampleLimit = keyCount > 5 ? 5 : keyCount;
+    const sampleKeys = new Array<{ name: string; expiration?: number; metadata?: unknown }>(sampleLimit);
+    for (let k = 0; k < sampleLimit; k++) {
+      const key = keys[k];
+      sampleKeys[k] = {
+        name: key.name,
+        expiration: key.expiration,
+        metadata: key.metadata,
+      };
+    }
+
+    return {
+      name,
+      prefix,
+      description,
+      keyCount,
+      totalSize,
+      avgSize: keyCount > 0 ? Math.round(totalSize / keyCount) : 0,
+      truncated,
+      sampleKeys,
+    };
+  } catch (err: unknown) {
+    console.error(`Error listing prefix ${prefix}:`, err);
+    return {
+      name,
+      prefix,
+      description,
+      keyCount: 0,
+      totalSize: 0,
+      avgSize: 0,
+      truncated: false,
+      sampleKeys: [],
+      error: 'Failed to list keys',
+    };
+  }
+}
+
+/**
+ * Fetches namespace data in chunks to avoid hitting concurrency limits
+ */
+async function fetchNamespaceDataInChunks(kv: KVNamespace, chunkSize: number = 5): Promise<KVNamespaceData[]> {
   const namespaceData: KVNamespaceData[] = [];
 
-  for (let i = 0; i < KV_PREFIXES.length; i += CHUNK_SIZE) {
-    const chunkSize = Math.min(CHUNK_SIZE, KV_PREFIXES.length - i);
-    const chunkPromises = new Array<Promise<KVNamespaceData>>(chunkSize);
+  for (let i = 0; i < KV_PREFIXES.length; i += chunkSize) {
+    const currentChunkSize = Math.min(chunkSize, KV_PREFIXES.length - i);
+    const chunkPromises = new Array<Promise<KVNamespaceData>>(currentChunkSize);
 
-    for (let j = 0; j < chunkSize; j++) {
-      const { name, prefix, description } = KV_PREFIXES[i + j];
-      chunkPromises[j] = (async (): Promise<KVNamespaceData> => {
-        try {
-          const list = await kv.list({ prefix, limit: 1000 });
-          const keys = list.keys;
-          const keyCount = keys.length;
-          let totalSize = 0;
-
-          // Native for loop is faster than for...of for arrays
-          for (let k = 0; k < keyCount; k++) {
-            const metadata = keys[k].metadata as { size?: number } | undefined;
-            if (metadata?.size) totalSize += metadata.size;
-          }
-
-          const truncated = list.list_complete === false;
-
-          // Optimize slice and map
-          const sampleLimit = keyCount > 5 ? 5 : keyCount;
-          const sampleKeys = new Array<{ name: string; expiration?: number; metadata?: unknown }>(sampleLimit);
-          for (let k = 0; k < sampleLimit; k++) {
-            const key = keys[k];
-            sampleKeys[k] = {
-              name: key.name,
-              expiration: key.expiration,
-              metadata: key.metadata,
-            };
-          }
-
-          return {
-            name,
-            prefix,
-            description,
-            keyCount,
-            totalSize,
-            avgSize: keyCount > 0 ? Math.round(totalSize / keyCount) : 0,
-            truncated,
-            sampleKeys,
-          };
-        } catch (err: unknown) {
-          console.error(`Error listing prefix ${prefix}:`, err);
-          return {
-            name,
-            prefix,
-            description,
-            keyCount: 0,
-            totalSize: 0,
-            avgSize: 0,
-            truncated: false,
-            sampleKeys: [],
-            error: 'Failed to list keys',
-          };
-        }
-      })();
+    for (let j = 0; j < currentChunkSize; j++) {
+      chunkPromises[j] = fetchPrefixData(kv, KV_PREFIXES[i + j]);
     }
 
     const chunkResults = await Promise.all(chunkPromises);
@@ -156,7 +157,13 @@ export async function getKVMonitorData(kv: KVNamespace): Promise<KVMonitorRespon
     }
   }
 
-  // Calculate totals
+  return namespaceData;
+}
+
+/**
+ * Calculates totals for keys and sizes across all namespaces
+ */
+function calculateNamespaceTotals(namespaceData: KVNamespaceData[]): { totalKeys: number; totalSize: number } {
   let totalKeys = 0;
   let totalSize = 0;
   // Native for loop is faster
@@ -165,6 +172,22 @@ export async function getKVMonitorData(kv: KVNamespace): Promise<KVMonitorRespon
     totalKeys += ns.keyCount;
     totalSize += ns.totalSize;
   }
+  return { totalKeys, totalSize };
+}
+
+/**
+ * Get comprehensive KV monitoring data
+ */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+export async function getKVMonitorData(kv: KVNamespace): Promise<KVMonitorResponse> {
+  const metrics = getKVMetrics();
+
+  // Collect detailed stats for each prefix
+  // Process in chunks to avoid hitting Cloudflare's 50 concurrent subrequest limit
+  const namespaceData = await fetchNamespaceDataInChunks(kv, 5);
+
+  // Calculate totals
+  const { totalKeys, totalSize } = calculateNamespaceTotals(namespaceData);
 
   // Calculate usage percentages
   const keyUsagePercent = (totalKeys / KV_LIMITS.maxKeys) * 100;
