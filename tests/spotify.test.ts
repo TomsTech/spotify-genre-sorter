@@ -1,91 +1,97 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry, createPlaylist } from '../src/lib/spotify';
+import { describe, it, expect, vi, afterEach } from "vitest";
+import {
+  getSpotifyAuthUrl,
+  refreshSpotifyToken,
+  generateCodeVerifier,
+  fetchWithRetry,
+  createPlaylist,
+} from "../src/lib/spotify";
 
+describe("Spotify Library", () => {
+  describe("generateCodeVerifier", () => {
+    it("should generate a string of length 43", () => {
+      const verifier = generateCodeVerifier();
+      expect(verifier.length).toBe(43);
+    });
 
-describe('Spotify Library', () => {
+    it("should generate a URL-safe base64 string", () => {
+      const verifier = generateCodeVerifier();
+      // URL-safe base64 characters: A-Z, a-z, 0-9, -, _
+      expect(verifier).toMatch(/^[A-Za-z0-9_-]+$/);
+    });
 
-describe('generateCodeVerifier', () => {
-  it('should generate a string of length 43', () => {
-    const verifier = generateCodeVerifier();
-    expect(verifier.length).toBe(43);
+    it("should be cryptographically random (different each time)", () => {
+      const verifier1 = generateCodeVerifier();
+      const verifier2 = generateCodeVerifier();
+      expect(verifier1).not.toBe(verifier2);
+    });
   });
 
-  it('should generate a URL-safe base64 string', () => {
-    const verifier = generateCodeVerifier();
-    // URL-safe base64 characters: A-Z, a-z, 0-9, -, _
-    expect(verifier).toMatch(/^[A-Za-z0-9_-]+$/);
-  });
+  describe("getSpotifyAuthUrl", () => {
+    it("should generate a valid Spotify auth URL", () => {
+      const url = getSpotifyAuthUrl(
+        "test-client-id",
+        "https://example.com/callback",
+        "test-state-123",
+      );
 
-  it('should be cryptographically random (different each time)', () => {
-    const verifier1 = generateCodeVerifier();
-    const verifier2 = generateCodeVerifier();
-    expect(verifier1).not.toBe(verifier2);
+      expect(url).toContain("https://accounts.spotify.com/authorize");
+      expect(url).toContain("client_id=test-client-id");
+      expect(url).toContain(
+        "redirect_uri=https%3A%2F%2Fexample.com%2Fcallback",
+      );
+      expect(url).toContain("state=test-state-123");
+    });
+
+    it("should include required scopes", () => {
+      const url = getSpotifyAuthUrl("client", "redirect", "state");
+
+      expect(url).toContain("user-library-read");
+      expect(url).toContain("playlist-modify-public");
+      expect(url).toContain("playlist-modify-private");
+    });
+
+    it("should include PKCE parameters if codeChallenge is provided", () => {
+      const url = getSpotifyAuthUrl(
+        "test-client-id",
+        "https://example.com/callback",
+        "test-state-123",
+        "test-code-challenge",
+      );
+
+      expect(url).toContain("code_challenge_method=S256");
+      expect(url).toContain("code_challenge=test-code-challenge");
+    });
   });
 });
 
-  describe('getSpotifyAuthUrl', () => {
-    it('should generate a valid Spotify auth URL', () => {
-      const url = getSpotifyAuthUrl(
-        'test-client-id',
-        'https://example.com/callback',
-        'test-state-123'
-      );
-
-      expect(url).toContain('https://accounts.spotify.com/authorize');
-      expect(url).toContain('client_id=test-client-id');
-      expect(url).toContain('redirect_uri=https%3A%2F%2Fexample.com%2Fcallback');
-      expect(url).toContain('state=test-state-123');
-    });
-
-    it('should include required scopes', () => {
-      const url = getSpotifyAuthUrl('client', 'redirect', 'state');
-
-      expect(url).toContain('user-library-read');
-      expect(url).toContain('playlist-modify-public');
-      expect(url).toContain('playlist-modify-private');
-    });
-
-    it('should include PKCE parameters if codeChallenge is provided', () => {
-      const url = getSpotifyAuthUrl(
-        'test-client-id',
-        'https://example.com/callback',
-        'test-state-123',
-        'test-code-challenge'
-      );
-
-      expect(url).toContain('code_challenge_method=S256');
-      expect(url).toContain('code_challenge=test-code-challenge');
-    });
-  });
-});
-
-describe('Genre Extraction Logic', () => {
-  it('should extract unique genres from artist data', () => {
+describe("Genre Extraction Logic", () => {
+  it("should extract unique genres from artist data", () => {
     const artistGenreMap = new Map<string, string[]>([
-      ['artist1', ['rock', 'alternative rock']],
-      ['artist2', ['pop', 'dance pop']],
-      ['artist3', ['rock', 'indie rock']],
+      ["artist1", ["rock", "alternative rock"]],
+      ["artist2", ["pop", "dance pop"]],
+      ["artist3", ["rock", "indie rock"]],
     ]);
 
     const allGenres = new Set<string>();
     for (const genres of artistGenreMap.values()) {
-      genres.forEach(g => allGenres.add(g));
+      genres.forEach((g) => allGenres.add(g));
     }
 
     expect(allGenres.size).toBe(5);
-    expect(allGenres.has('rock')).toBe(true);
+    expect(allGenres.has("rock")).toBe(true);
   });
 
-  it('should count tracks per genre correctly', () => {
+  it("should count tracks per genre correctly", () => {
     const tracks = [
-      { id: '1', artists: [{ id: 'a1' }] },
-      { id: '2', artists: [{ id: 'a1' }, { id: 'a2' }] },
-      { id: '3', artists: [{ id: 'a2' }] },
+      { id: "1", artists: [{ id: "a1" }] },
+      { id: "2", artists: [{ id: "a1" }, { id: "a2" }] },
+      { id: "3", artists: [{ id: "a2" }] },
     ];
 
     const artistGenres = new Map([
-      ['a1', ['rock']],
-      ['a2', ['pop', 'rock']],
+      ["a1", ["rock"]],
+      ["a2", ["pop", "rock"]],
     ]);
 
     const genreCounts = new Map<string, number>();
@@ -94,77 +100,86 @@ describe('Genre Extraction Logic', () => {
       const trackGenres = new Set<string>();
       for (const artist of track.artists) {
         const genres = artistGenres.get(artist.id) || [];
-        genres.forEach(g => trackGenres.add(g));
+        genres.forEach((g) => trackGenres.add(g));
       }
       for (const genre of trackGenres) {
         genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
       }
     }
 
-    expect(genreCounts.get('rock')).toBe(3);
-    expect(genreCounts.get('pop')).toBe(2);
+    expect(genreCounts.get("rock")).toBe(3);
+    expect(genreCounts.get("pop")).toBe(2);
   });
 
-  it('should sort genres by track count descending', () => {
+  it("should sort genres by track count descending", () => {
     const genres = [
-      { name: 'indie', count: 5 },
-      { name: 'rock', count: 20 },
-      { name: 'pop', count: 15 },
+      { name: "indie", count: 5 },
+      { name: "rock", count: 20 },
+      { name: "pop", count: 15 },
     ];
 
     const sorted = [...genres].sort((a, b) => b.count - a.count);
 
-    expect(sorted[0].name).toBe('rock');
-    expect(sorted[1].name).toBe('pop');
-    expect(sorted[2].name).toBe('indie');
+    expect(sorted[0].name).toBe("rock");
+    expect(sorted[1].name).toBe("pop");
+    expect(sorted[2].name).toBe("indie");
   });
 });
 
-describe('Playlist Creation', () => {
+describe("Playlist Creation", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('should successfully create a playlist and send correct payload', async () => {
+  it("should successfully create a playlist and send correct payload", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 201,
-      json: async () => ({ id: 'new-playlist-id', external_urls: { spotify: 'url' } }),
+      json: async () => ({
+        id: "new-playlist-id",
+        external_urls: { spotify: "url" },
+      }),
     });
 
-    const result = await createPlaylist('fake-token', 'user-123', 'My Playlist', 'Desc', true);
+    const result = await createPlaylist(
+      "fake-token",
+      "user-123",
+      "My Playlist",
+      "Desc",
+      true,
+    );
 
-    expect(result.id).toBe('new-playlist-id');
+    expect(result.id).toBe("new-playlist-id");
     expect(global.fetch).toHaveBeenCalledTimes(1);
     const [url, options] = vi.mocked(global.fetch).mock.calls[0];
 
-    expect(url).toBe('https://api.spotify.com/v1/users/user-123/playlists');
-    expect(options.method).toBe('POST');
-    expect(options.headers.Authorization).toBe('Bearer fake-token');
+    expect(url).toBe("https://api.spotify.com/v1/users/user-123/playlists");
+    expect(options.method).toBe("POST");
+    expect(options.headers.Authorization).toBe("Bearer fake-token");
 
     const body = JSON.parse(options.body);
     expect(body).toEqual({
-      name: 'My Playlist',
-      description: 'Desc',
+      name: "My Playlist",
+      description: "Desc",
       public: true,
     });
   });
 
-  it('should throw an error when API returns non-ok status', async () => {
+  it("should throw an error when API returns non-ok status", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 403,
-      text: async () => 'Forbidden access',
+      text: async () => "Forbidden access",
     });
 
-    await expect(createPlaylist('fake-token', 'user-123', 'My Playlist', 'Desc', false))
-      .rejects
-      .toThrow('Spotify API error: 403 Forbidden access');
+    await expect(
+      createPlaylist("fake-token", "user-123", "My Playlist", "Desc", false),
+    ).rejects.toThrow("Spotify API error: 403 Forbidden access");
   });
 
-  it('should chunk track URIs for batch operations', () => {
+  it("should chunk track URIs for batch operations", () => {
     const trackIds = Array.from({ length: 250 }, (_, i) => `track${i}`);
-    const trackUris = trackIds.map(id => `spotify:track:${id}`);
+    const trackUris = trackIds.map((id) => `spotify:track:${id}`);
 
     const chunks: string[][] = [];
     for (let i = 0; i < trackUris.length; i += 100) {
@@ -176,16 +191,150 @@ describe('Playlist Creation', () => {
     expect(chunks[2].length).toBe(50);
   });
 
-  it('should format track URIs correctly', () => {
-    const trackId = 'abc123xyz';
+  it("should format track URIs correctly", () => {
+    const trackId = "abc123xyz";
     const uri = `spotify:track:${trackId}`;
 
-    expect(uri).toBe('spotify:track:abc123xyz');
+    expect(uri).toBe("spotify:track:abc123xyz");
   });
 });
 
-describe('Artist Chunking', () => {
-  it('should chunk artist IDs into groups of 50', () => {
+describe("getAllLikedTracks", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("should fetch single page if total is less than limit", async () => {
+    const mockTracks = {
+      items: [{ track: { id: "track1" } }, { track: { id: "track2" } }],
+      total: 2,
+    };
+
+    (global as any).fetch = vi.fn().mockImplementation(async (url) => {
+      if (url.includes("/me/tracks")) {
+        return { ok: true, status: 200, json: async () => mockTracks };
+      }
+      return { ok: true, status: 200, json: async () => ({}) };
+    });
+
+    const { getAllLikedTracks } = await import("../src/lib/spotify");
+    const onProgress = vi.fn();
+
+    const result = await getAllLikedTracks("fake-token", onProgress);
+
+    expect(result.tracks.length).toBe(2);
+    expect(result.totalInLibrary).toBe(2);
+    expect(result.truncated).toBe(false);
+    expect((global as any).fetch).toHaveBeenCalledTimes(1);
+    expect(onProgress).toHaveBeenCalledWith(2, 2);
+  });
+
+  it("should fetch multiple pages and preserve order", async () => {
+    const total = 120; // 3 pages: 50, 50, 20
+
+    (global as any).fetch = vi.fn().mockImplementation(async (url) => {
+      if (url.includes("/me/tracks")) {
+        const urlObj = new URL(url);
+        const offset = parseInt(urlObj.searchParams.get("offset") || "0", 10);
+
+        let itemsCount = 50;
+        if (offset === 100) itemsCount = 20;
+
+        const items = Array.from({ length: itemsCount }).map((_, i) => ({
+          track: { id: `track-${offset + i}` },
+        }));
+
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ items, total }),
+        };
+      }
+      return { ok: true, status: 200, json: async () => ({}) };
+    });
+
+    const { getAllLikedTracks } = await import("../src/lib/spotify");
+    const onProgress = vi.fn();
+
+    const result = await getAllLikedTracks("fake-token", onProgress);
+
+    expect(result.tracks.length).toBe(120);
+    expect(result.totalInLibrary).toBe(120);
+    expect(result.truncated).toBe(false);
+
+    // Check if order is preserved
+    expect(result.tracks[0].track.id).toBe("track-0");
+    expect(result.tracks[50].track.id).toBe("track-50");
+    expect(result.tracks[100].track.id).toBe("track-100");
+
+    expect((global as any).fetch).toHaveBeenCalledTimes(3);
+
+    // onProgress should be called 3 times total
+    // 1st: initial fetch
+    // 2nd: batch 1 complete (offset 50)
+    // 3rd: batch 1 complete (offset 100)
+    expect(onProgress).toHaveBeenCalledTimes(3);
+    expect(onProgress).toHaveBeenNthCalledWith(1, 50, 120);
+    expect(onProgress).toHaveBeenNthCalledWith(2, 100, 120);
+    expect(onProgress).toHaveBeenNthCalledWith(3, 120, 120);
+  });
+
+  it("should respect maxTracks limit", async () => {
+    const total = 200;
+
+    (global as any).fetch = vi.fn().mockImplementation(async (url) => {
+      if (url.includes("/me/tracks")) {
+        const items = Array.from({ length: 50 }).map((_, i) => ({
+          track: { id: `track-${i}` },
+        }));
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ items, total }),
+        };
+      }
+      return { ok: true, status: 200, json: async () => ({}) };
+    });
+
+    const { getAllLikedTracks } = await import("../src/lib/spotify");
+
+    // set maxTracks = 70. This should fetch 2 pages: offset=0 and offset=50
+    // so it gets 100 tracks total (because pages are size 50) and handles it appropriately
+    const result = await getAllLikedTracks("fake-token", undefined, 70);
+
+    // It actually fetched 100 tracks, but only because we fetch in chunks of 50
+    expect(result.tracks.length).toBe(100);
+    expect(result.totalInLibrary).toBe(200);
+    expect(result.truncated).toBe(true);
+
+    // Initial fetch (0) + 1 parallel fetch (50)
+    expect((global as any).fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("should handle empty library", async () => {
+    (global as any).fetch = vi.fn().mockImplementation(async (url) => {
+      if (url.includes("/me/tracks")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ items: [], total: 0 }),
+        };
+      }
+      return { ok: true, status: 200, json: async () => ({}) };
+    });
+
+    const { getAllLikedTracks } = await import("../src/lib/spotify");
+    const result = await getAllLikedTracks("fake-token");
+
+    expect(result.tracks.length).toBe(0);
+    expect(result.totalInLibrary).toBe(0);
+    expect(result.truncated).toBe(false);
+    expect((global as any).fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("Artist Chunking", () => {
+  it("should chunk artist IDs into groups of 50", () => {
     const artistIds = Array.from({ length: 175 }, (_, i) => `artist${i}`);
 
     const chunks: string[][] = [];
@@ -199,234 +348,239 @@ describe('Artist Chunking', () => {
   });
 });
 
-
-
-  describe('getTracksWithGenres', () => {
-    afterEach(() => {
-      vi.restoreAllMocks();
-    });
-
-    it('should correctly map tracks to their genres', async () => {
-      const mockTracks = {
-        tracks: [
-          {
-            added_at: '2023-01-01T00:00:00Z',
-            track: {
-              id: 'track1',
-              name: 'Song 1',
-              artists: [{ id: 'artist1', name: 'Artist 1' }, { id: 'artist2', name: 'Artist 2' }]
-            }
-          },
-          {
-            added_at: '2023-01-02T00:00:00Z',
-            track: {
-              id: 'track2',
-              name: 'Song 2',
-              artists: [{ id: 'artist3', name: 'Artist 3' }]
-            }
-          }
-        ]
-      };
-
-      const mockArtists = {
-        artists: [
-          { id: 'artist1', name: 'Artist 1', genres: ['rock', 'indie'] },
-          { id: 'artist2', name: 'Artist 2', genres: ['pop'] },
-          { id: 'artist3', name: 'Artist 3', genres: ['jazz', 'blues'] }
-        ]
-      };
-
-      // Mock the global fetch
-      (global as any).fetch = vi.fn().mockImplementation(async (url) => {
-        if (url.includes('/me/tracks')) {
-          return {
-            ok: true,
-            status: 200,
-            json: async () => ({
-              items: mockTracks.tracks,
-              total: 2
-            })
-          };
-        } else if (url.includes('/artists')) {
-          return {
-            ok: true,
-            status: 200,
-            json: async () => mockArtists
-          };
-        }
-        return { ok: true, status: 200, json: async () => ({}) };
-      });
-
-      const { getTracksWithGenres } = await import('../src/lib/spotify');
-      const result = await getTracksWithGenres('fake-token');
-
-      expect((global as any).fetch).toHaveBeenCalled();
-
-      expect(result.size).toBe(2);
-
-      const track1 = result.get('track1');
-      expect(track1).toBeDefined();
-      expect(track1?.addedAt).toBe('2023-01-01T00:00:00Z');
-      expect(track1?.genres).toEqual(expect.arrayContaining(['rock', 'indie', 'pop']));
-      expect(track1?.genres.length).toBe(3);
-
-      const track2 = result.get('track2');
-      expect(track2).toBeDefined();
-      expect(track2?.addedAt).toBe('2023-01-02T00:00:00Z');
-      expect(track2?.genres).toEqual(expect.arrayContaining(['jazz', 'blues']));
-      expect(track2?.genres.length).toBe(2);
-    });
-
-    it('should handle artists with no genres', async () => {
-      const mockTracks = {
-        tracks: [
-          {
-            added_at: '2023-01-01T00:00:00Z',
-            track: {
-              id: 'track1',
-              name: 'Song 1',
-              artists: [{ id: 'artist1', name: 'Artist 1' }]
-            }
-          }
-        ]
-      };
-
-      const mockArtists = {
-        artists: [
-          { id: 'artist1', name: 'Artist 1', genres: [] }
-        ]
-      };
-
-      (global as any).fetch = vi.fn().mockImplementation(async (url) => {
-        if (url.includes('/me/tracks')) {
-          return {
-            ok: true,
-            status: 200,
-            json: async () => ({
-              items: mockTracks.tracks,
-              total: 1
-            })
-          };
-        } else if (url.includes('/artists')) {
-          return {
-            ok: true,
-            status: 200,
-            json: async () => mockArtists
-          };
-        }
-        return { ok: true, status: 200, json: async () => ({}) };
-      });
-
-      const { getTracksWithGenres } = await import('../src/lib/spotify');
-      const result = await getTracksWithGenres('fake-token');
-
-      const track1 = result.get('track1');
-      expect(track1?.genres).toEqual([]);
-    });
-
-    it('should handle missing artists in the response', async () => {
-      const mockTracks = {
-        tracks: [
-          {
-            added_at: '2023-01-01T00:00:00Z',
-            track: {
-              id: 'track1',
-              name: 'Song 1',
-              artists: [{ id: 'artist1', name: 'Artist 1' }]
-            }
-          }
-        ]
-      };
-
-      const mockArtists = {
-        artists: [] // Artist not found in response
-      };
-
-      (global as any).fetch = vi.fn().mockImplementation(async (url) => {
-        if (url.includes('/me/tracks')) {
-          return {
-            ok: true,
-            status: 200,
-            json: async () => ({
-              items: mockTracks.tracks,
-              total: 1
-            })
-          };
-        } else if (url.includes('/artists')) {
-          return {
-            ok: true,
-            status: 200,
-            json: async () => mockArtists
-          };
-        }
-        return { ok: true, status: 200, json: async () => ({}) };
-      });
-
-      const { getTracksWithGenres } = await import('../src/lib/spotify');
-      const result = await getTracksWithGenres('fake-token');
-
-      const track1 = result.get('track1');
-      expect(track1?.genres).toEqual([]);
-    });
-
-    it('should deduplicate genres from multiple artists on the same track', async () => {
-      const mockTracks = {
-        tracks: [
-          {
-            added_at: '2023-01-01T00:00:00Z',
-            track: {
-              id: 'track1',
-              name: 'Song 1',
-              artists: [{ id: 'artist1', name: 'Artist 1' }, { id: 'artist2', name: 'Artist 2' }]
-            }
-          }
-        ]
-      };
-
-      const mockArtists = {
-        artists: [
-          { id: 'artist1', name: 'Artist 1', genres: ['rock', 'pop'] },
-          { id: 'artist2', name: 'Artist 2', genres: ['pop', 'indie'] }
-        ]
-      };
-
-      (global as any).fetch = vi.fn().mockImplementation(async (url) => {
-        if (url.includes('/me/tracks')) {
-          return {
-            ok: true,
-            status: 200,
-            json: async () => ({
-              items: mockTracks.tracks,
-              total: 1
-            })
-          };
-        } else if (url.includes('/artists')) {
-          return {
-            ok: true,
-            status: 200,
-            json: async () => mockArtists
-          };
-        }
-        return { ok: true, status: 200, json: async () => ({}) };
-      });
-
-      const { getTracksWithGenres } = await import('../src/lib/spotify');
-      const result = await getTracksWithGenres('fake-token');
-
-      const track1 = result.get('track1');
-      expect(track1?.genres).toEqual(expect.arrayContaining(['rock', 'pop', 'indie']));
-      expect(track1?.genres.length).toBe(3); // pop should be deduplicated
-    });
+describe("getTracksWithGenres", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
+  it("should correctly map tracks to their genres", async () => {
+    const mockTracks = {
+      tracks: [
+        {
+          added_at: "2023-01-01T00:00:00Z",
+          track: {
+            id: "track1",
+            name: "Song 1",
+            artists: [
+              { id: "artist1", name: "Artist 1" },
+              { id: "artist2", name: "Artist 2" },
+            ],
+          },
+        },
+        {
+          added_at: "2023-01-02T00:00:00Z",
+          track: {
+            id: "track2",
+            name: "Song 2",
+            artists: [{ id: "artist3", name: "Artist 3" }],
+          },
+        },
+      ],
+    };
 
-  describe('fetchWithRetry', () => {
+    const mockArtists = {
+      artists: [
+        { id: "artist1", name: "Artist 1", genres: ["rock", "indie"] },
+        { id: "artist2", name: "Artist 2", genres: ["pop"] },
+        { id: "artist3", name: "Artist 3", genres: ["jazz", "blues"] },
+      ],
+    };
+
+    // Mock the global fetch
+    (global as any).fetch = vi.fn().mockImplementation(async (url) => {
+      if (url.includes("/me/tracks")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            items: mockTracks.tracks,
+            total: 2,
+          }),
+        };
+      } else if (url.includes("/artists")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => mockArtists,
+        };
+      }
+      return { ok: true, status: 200, json: async () => ({}) };
+    });
+
+    const { getTracksWithGenres } = await import("../src/lib/spotify");
+    const result = await getTracksWithGenres("fake-token");
+
+    expect((global as any).fetch).toHaveBeenCalled();
+
+    expect(result.size).toBe(2);
+
+    const track1 = result.get("track1");
+    expect(track1).toBeDefined();
+    expect(track1?.addedAt).toBe("2023-01-01T00:00:00Z");
+    expect(track1?.genres).toEqual(
+      expect.arrayContaining(["rock", "indie", "pop"]),
+    );
+    expect(track1?.genres.length).toBe(3);
+
+    const track2 = result.get("track2");
+    expect(track2).toBeDefined();
+    expect(track2?.addedAt).toBe("2023-01-02T00:00:00Z");
+    expect(track2?.genres).toEqual(expect.arrayContaining(["jazz", "blues"]));
+    expect(track2?.genres.length).toBe(2);
+  });
+
+  it("should handle artists with no genres", async () => {
+    const mockTracks = {
+      tracks: [
+        {
+          added_at: "2023-01-01T00:00:00Z",
+          track: {
+            id: "track1",
+            name: "Song 1",
+            artists: [{ id: "artist1", name: "Artist 1" }],
+          },
+        },
+      ],
+    };
+
+    const mockArtists = {
+      artists: [{ id: "artist1", name: "Artist 1", genres: [] }],
+    };
+
+    (global as any).fetch = vi.fn().mockImplementation(async (url) => {
+      if (url.includes("/me/tracks")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            items: mockTracks.tracks,
+            total: 1,
+          }),
+        };
+      } else if (url.includes("/artists")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => mockArtists,
+        };
+      }
+      return { ok: true, status: 200, json: async () => ({}) };
+    });
+
+    const { getTracksWithGenres } = await import("../src/lib/spotify");
+    const result = await getTracksWithGenres("fake-token");
+
+    const track1 = result.get("track1");
+    expect(track1?.genres).toEqual([]);
+  });
+
+  it("should handle missing artists in the response", async () => {
+    const mockTracks = {
+      tracks: [
+        {
+          added_at: "2023-01-01T00:00:00Z",
+          track: {
+            id: "track1",
+            name: "Song 1",
+            artists: [{ id: "artist1", name: "Artist 1" }],
+          },
+        },
+      ],
+    };
+
+    const mockArtists = {
+      artists: [], // Artist not found in response
+    };
+
+    (global as any).fetch = vi.fn().mockImplementation(async (url) => {
+      if (url.includes("/me/tracks")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            items: mockTracks.tracks,
+            total: 1,
+          }),
+        };
+      } else if (url.includes("/artists")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => mockArtists,
+        };
+      }
+      return { ok: true, status: 200, json: async () => ({}) };
+    });
+
+    const { getTracksWithGenres } = await import("../src/lib/spotify");
+    const result = await getTracksWithGenres("fake-token");
+
+    const track1 = result.get("track1");
+    expect(track1?.genres).toEqual([]);
+  });
+
+  it("should deduplicate genres from multiple artists on the same track", async () => {
+    const mockTracks = {
+      tracks: [
+        {
+          added_at: "2023-01-01T00:00:00Z",
+          track: {
+            id: "track1",
+            name: "Song 1",
+            artists: [
+              { id: "artist1", name: "Artist 1" },
+              { id: "artist2", name: "Artist 2" },
+            ],
+          },
+        },
+      ],
+    };
+
+    const mockArtists = {
+      artists: [
+        { id: "artist1", name: "Artist 1", genres: ["rock", "pop"] },
+        { id: "artist2", name: "Artist 2", genres: ["pop", "indie"] },
+      ],
+    };
+
+    (global as any).fetch = vi.fn().mockImplementation(async (url) => {
+      if (url.includes("/me/tracks")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            items: mockTracks.tracks,
+            total: 1,
+          }),
+        };
+      } else if (url.includes("/artists")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => mockArtists,
+        };
+      }
+      return { ok: true, status: 200, json: async () => ({}) };
+    });
+
+    const { getTracksWithGenres } = await import("../src/lib/spotify");
+    const result = await getTracksWithGenres("fake-token");
+
+    const track1 = result.get("track1");
+    expect(track1?.genres).toEqual(
+      expect.arrayContaining(["rock", "pop", "indie"]),
+    );
+    expect(track1?.genres.length).toBe(3); // pop should be deduplicated
+  });
+});
+
+describe("fetchWithRetry", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
-  it('should retry on 429 rate limit response', async () => {
+  it("should retry on 429 rate limit response", async () => {
     vi.useFakeTimers();
 
     let attemptCount = 0;
@@ -435,7 +589,7 @@ describe('Artist Chunking', () => {
       if (attemptCount < 3) {
         return {
           status: 429,
-          headers: new Headers({ 'Retry-After': '2' }),
+          headers: new Headers({ "Retry-After": "2" }),
         };
       }
       return {
@@ -444,7 +598,7 @@ describe('Artist Chunking', () => {
       };
     });
 
-    const promise = fetchWithRetry('https://api.spotify.com/v1/me', {});
+    const promise = fetchWithRetry("https://api.spotify.com/v1/me", {});
 
     // First wait
     await vi.advanceTimersByTimeAsync(2000);
@@ -454,10 +608,9 @@ describe('Artist Chunking', () => {
     const res = await promise;
     expect(attemptCount).toBe(3);
     expect(res.status).toBe(200);
+  });
 
-      });
-
-  it('should retry on 5xx server errors', async () => {
+  it("should retry on 5xx server errors", async () => {
     vi.useFakeTimers();
 
     let attemptCount = 0;
@@ -475,7 +628,7 @@ describe('Artist Chunking', () => {
       };
     });
 
-    const promise = fetchWithRetry('https://api.spotify.com/v1/me', {});
+    const promise = fetchWithRetry("https://api.spotify.com/v1/me", {});
 
     // Base delay is 1000ms * 2^0 = 1000ms
     await vi.advanceTimersByTimeAsync(1000);
@@ -483,10 +636,9 @@ describe('Artist Chunking', () => {
     const res = await promise;
     expect(attemptCount).toBe(2);
     expect(res.status).toBe(200);
+  });
 
-      });
-
-  it('should fallback to 2^attempt * BASE_DELAY if Retry-After is missing', async () => {
+  it("should fallback to 2^attempt * BASE_DELAY if Retry-After is missing", async () => {
     vi.useFakeTimers();
 
     let attemptCount = 0;
@@ -504,7 +656,7 @@ describe('Artist Chunking', () => {
       };
     });
 
-    const promise = fetchWithRetry('https://api.spotify.com/v1/me', {});
+    const promise = fetchWithRetry("https://api.spotify.com/v1/me", {});
 
     // Attempt 0 -> delay: 1000 * 2^0 = 1000
     await vi.advanceTimersByTimeAsync(1000);
@@ -515,27 +667,32 @@ describe('Artist Chunking', () => {
     const res = await promise;
     expect(attemptCount).toBe(3);
     expect(res.status).toBe(200);
-
-      });
+  });
 });
 
-describe('refreshSpotifyToken', () => {
+describe("refreshSpotifyToken", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('should throw an error if the fetch to Spotify token endpoint fails due to network error', async () => {
+  it("should throw an error if the fetch to Spotify token endpoint fails due to network error", async () => {
     vi.useFakeTimers();
 
     // Mock the global fetch object to simulate a network error
-    (global as any).fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+    (global as any).fetch = vi
+      .fn()
+      .mockRejectedValue(new Error("Network error"));
 
     // Start the fetch and immediately set up the rejection handler
-    const promise = refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret');
+    const promise = refreshSpotifyToken(
+      "fake-refresh-token",
+      "client-id",
+      "client-secret",
+    );
 
     // Store a reference to catch the rejection (prevents unhandled rejection warning)
     let caughtError: Error | null = null;
-    const catchPromise = promise.catch(err => {
+    const catchPromise = promise.catch((err) => {
       caughtError = err;
     });
 
@@ -548,33 +705,41 @@ describe('refreshSpotifyToken', () => {
     await catchPromise;
 
     expect(caughtError).toBeInstanceOf(Error);
-    expect(caughtError?.message).toBe('Network error');
+    expect(caughtError?.message).toBe("Network error");
+  });
 
-      });
-
-  it('should throw an error if the response is not ok', async () => {
+  it("should throw an error if the response is not ok", async () => {
     // Mock the global fetch object
     (global as any).fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 400,
-      text: async () => 'Bad Request',
-      headers: new Headers()
+      text: async () => "Bad Request",
+      headers: new Headers(),
     });
 
-    await expect(refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret')).rejects.toThrow('Failed to refresh Spotify token');
+    await expect(
+      refreshSpotifyToken("fake-refresh-token", "client-id", "client-secret"),
+    ).rejects.toThrow("Failed to refresh Spotify token");
   });
 
-  it('should successfully refresh the token', async () => {
+  it("should successfully refresh the token", async () => {
     // Mock the global fetch object
     (global as any).fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({ access_token: 'new-access-token', expires_in: 3600 }),
-      headers: new Headers()
+      json: async () => ({
+        access_token: "new-access-token",
+        expires_in: 3600,
+      }),
+      headers: new Headers(),
     });
 
-    const tokens = await refreshSpotifyToken('fake-refresh-token', 'client-id', 'client-secret');
-    expect(tokens.access_token).toBe('new-access-token');
-    expect(tokens.refresh_token).toBe('fake-refresh-token'); // It should preserve the refresh token if not returned
+    const tokens = await refreshSpotifyToken(
+      "fake-refresh-token",
+      "client-id",
+      "client-secret",
+    );
+    expect(tokens.access_token).toBe("new-access-token");
+    expect(tokens.refresh_token).toBe("fake-refresh-token"); // It should preserve the refresh token if not returned
   });
 });

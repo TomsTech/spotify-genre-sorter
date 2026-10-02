@@ -1,0 +1,3 @@
+{"total": {"lines":{"total":207,"covered":123,"skipped":0,"pct":59.42},"statements":{"total":221,"covered":130,"skipped":0,"pct":58.82},"functions":{"total":30,"covered":17,"skipped":0,"pct":56.66},"branches":{"total":77,"covered":41,"skipped":0,"pct":53.24},"branchesTrue":{"total":0,"covered":0,"skipped":0,"pct":"Unknown"}}
+,"/app/src/lib/spotify.ts": {"lines":{"total":207,"covered":123,"skipped":0,"pct":59.42},"functions":{"total":30,"covered":17,"skipped":0,"pct":56.66},"statements":{"total":221,"covered":130,"skipped":0,"pct":58.82},"branches":{"total":77,"covered":41,"skipped":0,"pct":53.24}}
+}
