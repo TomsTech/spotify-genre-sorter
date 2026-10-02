@@ -123,14 +123,13 @@ api.use('/*', async (c, next) => {
   // Emergency cleanup if map grows too large (prevents OOM)
   if (rateLimitMap.size > RATE_LIMIT_MAX_ENTRIES) {
     // Remove oldest 20% of entries
+    // ⚡ Bolt: Leverage Map's insertion order for O(K) eviction without array allocations
     const entriesToRemove = Math.floor(RATE_LIMIT_MAX_ENTRIES * 0.2);
-    const sortedEntries = [];
-    for (const entry of rateLimitMap.entries()) {
-      sortedEntries.push(entry);
-    }
-    sortedEntries.sort((a, b) => a[1].resetAt - b[1].resetAt);
-    for (let i = 0; i < entriesToRemove && i < sortedEntries.length; i++) {
-      rateLimitMap.delete(sortedEntries[i][0]);
+    let removed = 0;
+    for (const key of rateLimitMap.keys()) {
+      if (removed >= entriesToRemove) break;
+      rateLimitMap.delete(key);
+      removed++;
     }
   }
 
