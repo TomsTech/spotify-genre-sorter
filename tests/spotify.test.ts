@@ -62,6 +62,69 @@ describe('Spotify Library', () => {
   });
 
 
+  describe('getLikedTracks', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('should fetch liked tracks successfully', async () => {
+      const mockResponse = {
+        items: [{ track: { id: 'track1', name: 'Track 1', artists: [], album: { name: '', images: [] } }, added_at: '2023-01-01T00:00:00Z' }],
+        total: 1,
+        next: null
+      };
+
+      (global as any).fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+        headers: new Headers()
+      });
+
+      const result = await getLikedTracks('fake-token', 10, 5);
+
+      expect(global.fetch).toHaveBeenCalledWith('https://api.spotify.com/v1/me/tracks?limit=10&offset=5', expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer fake-token',
+          'Content-Type': 'application/json'
+        })
+      }));
+
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should use default limit and offset if not provided', async () => {
+      const mockResponse = {
+        items: [],
+        total: 0,
+        next: null
+      };
+
+      (global as any).fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+        headers: new Headers()
+      });
+
+      await getLikedTracks('fake-token');
+
+      expect(global.fetch).toHaveBeenCalledWith('https://api.spotify.com/v1/me/tracks?limit=50&offset=0', expect.any(Object));
+    });
+
+    it('should throw an error if the fetch fails', async () => {
+      (global as any).fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        text: async () => 'Unauthorized',
+        headers: new Headers()
+      });
+
+      await expect(getLikedTracks('fake-token')).rejects.toThrow('Spotify API error: 401 Unauthorized');
+    });
+  });
+
+
 describe('generateCodeVerifier', () => {
   it('should generate a string of length 43', () => {
     const verifier = generateCodeVerifier();
