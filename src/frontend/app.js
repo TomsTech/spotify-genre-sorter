@@ -1359,27 +1359,13 @@
       }
     }
 
-    // Admin Health Tab - system health monitoring
-    async function loadAdminHealthTab(modal) {
-      const content = modal.querySelector('#admin-tab-content');
-      content.innerHTML = '<div class="admin-loading">Loading health metrics...</div>';
+    function getSystemHealthCardHtml(kvUsage) {
+      const readPct = kvUsage.usage?.readsPercent || 0;
+      const writePct = kvUsage.usage?.writesPercent || 0;
+      const readStatus = readPct > 80 ? '🔴 Critical' : readPct > 50 ? '🟡 Warning' : '🟢 Healthy';
+      const writeStatus = writePct > 80 ? '🔴 Critical' : writePct > 50 ? '🟡 Warning' : '🟢 Healthy';
 
-      try {
-        const [kvUsageRes, analyticsRes] = await Promise.all([
-          fetch('/api/kv-usage'),
-          fetch('/api/analytics')
-        ]);
-
-        const kvUsage = await kvUsageRes.json();
-        const analytics = await analyticsRes.json();
-
-        const readPct = kvUsage.usage?.readsPercent || 0;
-        const writePct = kvUsage.usage?.writesPercent || 0;
-        const readStatus = readPct > 80 ? '🔴 Critical' : readPct > 50 ? '🟡 Warning' : '🟢 Healthy';
-        const writeStatus = writePct > 80 ? '🔴 Critical' : writePct > 50 ? '🟡 Warning' : '🟢 Healthy';
-
-        content.innerHTML = `
-          <div class="admin-grid">
+      return `
             <div class="admin-card">
               <h3>🏥 System Health</h3>
               <div class="admin-stats">
@@ -1400,7 +1386,11 @@
                   <span class="value">${kvUsage.realtime?.cacheHitRate || 0}%</span>
                 </div>
               </div>
-            </div>
+            </div>`;
+    }
+
+    function getDailyLimitsCardHtml(kvUsage) {
+      return `
             <div class="admin-card">
               <h3>📊 Daily Limits</h3>
               <div class="admin-stats">
@@ -1417,7 +1407,11 @@
                   <span class="value">${kvUsage.status || 'ok'}</span>
                 </div>
               </div>
-            </div>
+            </div>`;
+    }
+
+    function getActivityCardHtml(kvUsage) {
+      return `
             <div class="admin-card">
               <h3>⚡ Activity (Today)</h3>
               <div class="admin-stats">
@@ -1438,7 +1432,11 @@
                   <span class="value">${kvUsage.activity?.authFailures || 0}</span>
                 </div>
               </div>
-            </div>
+            </div>`;
+    }
+
+    function getOptimizationsCardHtml() {
+      return `
             <div class="admin-card">
               <h3>💡 Optimizations</h3>
               <div class="admin-stats" style="font-size: 0.85rem;">
@@ -1459,16 +1457,37 @@
                   <span class="value">3 min</span>
                 </div>
               </div>
-            </div>
-          </div>
-          ${kvUsage.recommendations && kvUsage.recommendations.length > 0 ? `
+            </div>`;
+    }
+
+    function getRecommendationsHtml(kvUsage) {
+      if (!kvUsage.recommendations || kvUsage.recommendations.length === 0) return '';
+      return `
             <div class="admin-card" style="margin-top: 1rem; grid-column: 1 / -1;">
               <h3>💡 Recommendations</h3>
               <ul style="margin: 0; padding-left: 1.5rem;">
                 ${kvUsage.recommendations.map(rec => `<li style="margin: 0.5rem 0;">${rec}</li>`).join('')}
               </ul>
-            </div>
-          ` : ''}
+            </div>`;
+    }
+
+    // Admin Health Tab - system health monitoring
+    async function loadAdminHealthTab(modal) {
+      const content = modal.querySelector('#admin-tab-content');
+      content.innerHTML = '<div class="admin-loading">Loading health metrics...</div>';
+
+      try {
+        const kvUsageRes = await fetch('/api/kv-usage');
+        const kvUsage = await kvUsageRes.json();
+
+        content.innerHTML = `
+          <div class="admin-grid">
+            ${getSystemHealthCardHtml(kvUsage)}
+            ${getDailyLimitsCardHtml(kvUsage)}
+            ${getActivityCardHtml(kvUsage)}
+            ${getOptimizationsCardHtml()}
+          </div>
+          ${getRecommendationsHtml(kvUsage)}
         `;
       } catch (err) {
         content.innerHTML = `<div class="admin-error">Failed to load health metrics: ${escapeHtml(err.message)}</div>`;
