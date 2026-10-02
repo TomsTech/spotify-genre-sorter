@@ -2312,13 +2312,8 @@ type AdminUser = {
   hofPosition?: number;
 };
 
-async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
+async function fetchRegularUsers(kv: KVNamespace, seenIds: Set<string>, users: AdminUser[], BATCH_SIZE: number) {
   const userStatsList = await kv.list({ prefix: 'user_stats:', limit: 500 });
-  const users: AdminUser[] = [];
-  const seenIds = new Set<string>();
-
-  // ⚡ Bolt: Chunked parallel reads for KV.get to avoid limits and reduce GC via Array.from over slice().map()
-  const BATCH_SIZE = 40;
   for (let i = 0; i < userStatsList.keys.length; i += BATCH_SIZE) {
     const size = Math.min(BATCH_SIZE, userStatsList.keys.length - i);
     const dataPromises = Array.from({ length: size }, async (_, j) => {
@@ -2355,8 +2350,9 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
       }
     }
   }
+}
 
-  // Also fetch HoF users (pioneers) who might not have user_stats entries
+async function fetchHoFUsers(kv: KVNamespace, seenIds: Set<string>, users: AdminUser[], BATCH_SIZE: number) {
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
   const hofResults: ({ spotifyId: string; spotifyName: string; spotifyAvatar?: string; registeredAt?: string } | null)[] = [];
   for (let i = 0; i < hofKeys.length; i += BATCH_SIZE) {
@@ -2409,6 +2405,17 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
       }
     }
   }
+}
+
+async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
+  const users: AdminUser[] = [];
+  const seenIds = new Set<string>();
+
+  // ⚡ Bolt: Chunked parallel reads for KV.get to avoid limits and reduce GC via Array.from over slice().map()
+  const BATCH_SIZE = 40;
+
+  await fetchRegularUsers(kv, seenIds, users, BATCH_SIZE);
+  await fetchHoFUsers(kv, seenIds, users, BATCH_SIZE);
 
   // Sort by registration date (newest first)
   users.sort((a, b) => {
