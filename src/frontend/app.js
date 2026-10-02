@@ -3310,87 +3310,78 @@
       }
     }
 
-    function renderProgressLoading(message, progress, loaded, total, partialGenres = null, partialStats = null) {
-      // Check if progress bar already exists
-      let progressContainer = document.getElementById('progressive-loading');
+    function createProgressLoadingUI(loaded, total, genreCount, artistCount, progress) {
+      app.innerHTML = \`
+        <div id="progressive-loading" class="progressive-loading-full">
+          <div class="album-art-carousel" id="album-carousel"><div class="album-art-item left placeholder visible">🎵</div><div class="album-art-item center placeholder visible">🎶</div><div class="album-art-item right placeholder visible">🎵</div></div><div class="loading-header">
+            <h2>\${swedishMode ? '🎵 Laddar ditt bibliotek...' : '🎵 Loading your library...'}</h2>
+            <p class="loading-subtitle">\${swedishMode ? 'Du kan redan se dina genrer medan det laddar!' : 'You can already see your genres while loading!'}</p>
+          </div>
 
-      // Calculate partial stats
-      const genreCount = partialGenres?.length || 0;
-      const artistCount = partialStats?.artistCount || 0;
-
-      if (!progressContainer) {
-        // First call - create the full interactive UI
-        app.innerHTML = \`
-          <div id="progressive-loading" class="progressive-loading-full">
-            <div class="album-art-carousel" id="album-carousel"><div class="album-art-item left placeholder visible">🎵</div><div class="album-art-item center placeholder visible">🎶</div><div class="album-art-item right placeholder visible">🎵</div></div><div class="loading-header">
-              <h2>\${swedishMode ? '🎵 Laddar ditt bibliotek...' : '🎵 Loading your library...'}</h2>
-              <p class="loading-subtitle">\${swedishMode ? 'Du kan redan se dina genrer medan det laddar!' : 'You can already see your genres while loading!'}</p>
+          <div class="loading-stats-row">
+            <div class="loading-stat">
+              <div class="loading-stat-value" id="stat-tracks">\${loaded.toLocaleString()}</div>
+              <div class="loading-stat-label">\${swedishMode ? 'låtar' : 'tracks'}</div>
             </div>
-
-            <div class="loading-stats-row">
-              <div class="loading-stat">
-                <div class="loading-stat-value" id="stat-tracks">\${loaded.toLocaleString()}</div>
-                <div class="loading-stat-label">\${swedishMode ? 'låtar' : 'tracks'}</div>
-              </div>
-              <div class="loading-stat">
-                <div class="loading-stat-value" id="stat-genres">\${genreCount}</div>
-                <div class="loading-stat-label">\${swedishMode ? 'genrer' : 'genres'}</div>
-              </div>
-              <div class="loading-stat">
-                <div class="loading-stat-value" id="stat-artists">\${artistCount}</div>
-                <div class="loading-stat-label">\${swedishMode ? 'artister' : 'artists'}</div>
-              </div>
-              <div class="loading-stat">
-                <div class="loading-stat-value" id="stat-progress">\${progress}%</div>
-                <div class="loading-stat-label">\${swedishMode ? 'klart' : 'complete'}</div>
-              </div>
+            <div class="loading-stat">
+              <div class="loading-stat-value" id="stat-genres">\${genreCount}</div>
+              <div class="loading-stat-label">\${swedishMode ? 'genrer' : 'genres'}</div>
             </div>
-
-            <div class="progress-container-full">
-              <div class="progress-bar-full">
-                <div class="progress-fill-full" id="progress-fill" style="width: \${progress}%"></div>
-              </div>
-              <div class="progress-detail" id="progress-detail">
-                \${loaded.toLocaleString()} / \${total.toLocaleString()} \${swedishMode ? 'låtar' : 'tracks'}
-              </div>
+            <div class="loading-stat">
+              <div class="loading-stat-value" id="stat-artists">\${artistCount}</div>
+              <div class="loading-stat-label">\${swedishMode ? 'artister' : 'artists'}</div>
             </div>
-
-            <div class="progress-controls">
-              <button class="btn btn-secondary" id="pause-scan-btn" onclick="pauseProgressiveScan()" title="\${swedishMode ? 'Pausa skanningen' : 'Pause scan'}" aria-label="\${swedishMode ? 'Pausa skanningen' : 'Pause scan'}">
-                ⏸️ \${swedishMode ? 'Pausa' : 'Pause'}
-              </button>
-              <button class="btn btn-primary" id="resume-scan-btn" onclick="resumeProgressiveScan()" style="display: none;" title="\${swedishMode ? 'Återuppta skanningen' : 'Resume scan'}" aria-label="\${swedishMode ? 'Återuppta skanningen' : 'Resume scan'}">
-                ▶️ \${swedishMode ? 'Återuppta' : 'Resume'}
-              </button>
-              <button class="btn btn-ghost" id="stop-scan-btn" onclick="stopProgressiveScan()" title="\${swedishMode ? 'Stoppa skanningen' : 'Stop scan'}" aria-label="\${swedishMode ? 'Stoppa skanningen' : 'Stop scan'}">
-                ⏹️ \${swedishMode ? 'Stoppa' : 'Stop'}
-              </button>
+            <div class="loading-stat">
+              <div class="loading-stat-value" id="stat-progress">\${progress}%</div>
+              <div class="loading-stat-label">\${swedishMode ? 'klart' : 'complete'}</div>
             </div>
+          </div>
 
-            <div class="live-genres-section">
-              <h3>\${swedishMode ? '🎸 Genrer hittade hittills' : '🎸 Genres found so far'}</h3>
-              <div class="live-genres-grid" id="live-genres-grid"></div><div class="live-bar-chart" id="live-bar-chart"><h4>\${swedishMode ? "📊 Topp genrer" : "📊 Top Genres"}</h4><div id="bar-chart-items"></div></div></div></div>
-        \`;
-        progressContainer = document.getElementById('progressive-loading');
+          <div class="progress-container-full">
+            <div class="progress-bar-full">
+              <div class="progress-fill-full" id="progress-fill" style="width: \${progress}%"></div>
+            </div>
+            <div class="progress-detail" id="progress-detail">
+              \${loaded.toLocaleString()} / \${total.toLocaleString()} \${swedishMode ? 'låtar' : 'tracks'}
+            </div>
+          </div>
 
-        // Start album carousel rotation
-        if (!albumCarouselInterval) {
-          albumCarouselInterval = setInterval(rotateAlbumCarousel, 1500);
-        }
-      } else {
-        // Update existing stats with animation
-        animateCounter(document.getElementById('stat-tracks'), loaded.toLocaleString());
-        animateCounter(document.getElementById('stat-genres'), String(genreCount));
-        animateCounter(document.getElementById('stat-artists'), String(artistCount));
-        animateCounter(document.getElementById('stat-progress'), progress + '%');
+          <div class="progress-controls">
+            <button class="btn btn-secondary" id="pause-scan-btn" onclick="pauseProgressiveScan()" title="\${swedishMode ? 'Pausa skanningen' : 'Pause scan'}" aria-label="\${swedishMode ? 'Pausa skanningen' : 'Pause scan'}">
+              ⏸️ \${swedishMode ? 'Pausa' : 'Pause'}
+            </button>
+            <button class="btn btn-primary" id="resume-scan-btn" onclick="resumeProgressiveScan()" style="display: none;" title="\${swedishMode ? 'Återuppta skanningen' : 'Resume scan'}" aria-label="\${swedishMode ? 'Återuppta skanningen' : 'Resume scan'}">
+              ▶️ \${swedishMode ? 'Återuppta' : 'Resume'}
+            </button>
+            <button class="btn btn-ghost" id="stop-scan-btn" onclick="stopProgressiveScan()" title="\${swedishMode ? 'Stoppa skanningen' : 'Stop scan'}" aria-label="\${swedishMode ? 'Stoppa skanningen' : 'Stop scan'}">
+              ⏹️ \${swedishMode ? 'Stoppa' : 'Stop'}
+            </button>
+          </div>
 
-        const fill = document.getElementById('progress-fill');
-        const detail = document.getElementById('progress-detail');
-        if (fill) fill.style.width = \`\${progress}%\`;
-        if (detail) detail.textContent = \`\${loaded.toLocaleString()} / \${total.toLocaleString()} \${swedishMode ? 'låtar' : 'tracks'}\`;
+          <div class="live-genres-section">
+            <h3>\${swedishMode ? '🎸 Genrer hittade hittills' : '🎸 Genres found so far'}</h3>
+            <div class="live-genres-grid" id="live-genres-grid"></div><div class="live-bar-chart" id="live-bar-chart"><h4>\${swedishMode ? "📊 Topp genrer" : "📊 Top Genres"}</h4><div id="bar-chart-items"></div></div></div></div>
+      \`;
+
+      // Start album carousel rotation
+      if (!albumCarouselInterval) {
+        albumCarouselInterval = setInterval(rotateAlbumCarousel, 1500);
       }
+    }
 
-      // Populate album art URLs from partial genres for the carousel
+    function updateProgressLoadingStats(loaded, total, genreCount, artistCount, progress) {
+      animateCounter(document.getElementById('stat-tracks'), loaded.toLocaleString());
+      animateCounter(document.getElementById('stat-genres'), String(genreCount));
+      animateCounter(document.getElementById('stat-artists'), String(artistCount));
+      animateCounter(document.getElementById('stat-progress'), progress + '%');
+
+      const fill = document.getElementById('progress-fill');
+      const detail = document.getElementById('progress-detail');
+      if (fill) fill.style.width = \`\${progress}%\`;
+      if (detail) detail.textContent = \`\${loaded.toLocaleString()} / \${total.toLocaleString()} \${swedishMode ? 'låtar' : 'tracks'}\`;
+    }
+
+    function updateProgressAlbumCarousel(partialGenres) {
       if (partialGenres && partialGenres.length > 0 && albumArtUrls.length === 0) {
         const artUrls = [];
         for (const genre of partialGenres) {
@@ -3405,8 +3396,9 @@
           updateAlbumCarousel(); // Update carousel with real images
         }
       }
+    }
 
-      // Update live genres grid with emojis
+    function updateProgressLiveGenres(partialGenres) {
       if (partialGenres && partialGenres.length > 0) {
         const grid = document.getElementById('live-genres-grid');
         if (grid) {
@@ -3428,6 +3420,30 @@
         // Update bar chart
         updateBarChart(partialGenres);
       }
+    }
+
+    function renderProgressLoading(message, progress, loaded, total, partialGenres = null, partialStats = null) {
+      // Check if progress bar already exists
+      let progressContainer = document.getElementById('progressive-loading');
+
+      // Calculate partial stats
+      const genreCount = partialGenres?.length || 0;
+      const artistCount = partialStats?.artistCount || 0;
+
+      if (!progressContainer) {
+        // First call - create the full interactive UI
+        createProgressLoadingUI(loaded, total, genreCount, artistCount, progress);
+        progressContainer = document.getElementById('progressive-loading');
+      } else {
+        // Update existing stats with animation
+        updateProgressLoadingStats(loaded, total, genreCount, artistCount, progress);
+      }
+
+      // Populate album art URLs from partial genres for the carousel
+      updateProgressAlbumCarousel(partialGenres);
+
+      // Update live genres grid with emojis
+      updateProgressLiveGenres(partialGenres);
     }
 
     // Merge genre data from multiple chunks
