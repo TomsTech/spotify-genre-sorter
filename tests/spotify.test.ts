@@ -242,6 +242,75 @@ describe('Genre Extraction Logic', () => {
 });
 
 describe('Playlist Creation', () => {
+
+  describe('addTracksToPlaylist', () => {
+    it('should chunk track URIs and add them in parallel respecting concurrency limit', async () => {
+      // Mock the global fetch
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ snapshot_id: 'fake-snapshot' })
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const { addTracksToPlaylist } = await import('../src/lib/spotify');
+
+      // Create 250 fake track URIs.
+      // With a limit of 100 per chunk, this creates 3 chunks: 100, 100, and 50.
+      const trackUris = Array.from({ length: 250 }, (_, i) => `spotify:track:track${i}`);
+
+      await addTracksToPlaylist('fake-token', 'playlist-123', trackUris);
+
+      // Verify that fetch was called 3 times (once for each chunk).
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+
+      // Ensure fetch is called with chunked URIs.
+      const calls = fetchMock.mock.calls;
+      expect(JSON.parse(calls[0][1].body).uris.length).toBe(100);
+      expect(JSON.parse(calls[1][1].body).uris.length).toBe(100);
+      expect(JSON.parse(calls[2][1].body).uris.length).toBe(50);
+    });
+
+    it('should handle failures in individual chunks without failing the whole batch', async () => {
+      // Mock fetch where the second chunk fails.
+      // Return 500 continuously for the second chunk so it exhausts retries and fails
+      const fetchMock = vi.fn().mockImplementation(async (url, init) => {
+        const body = JSON.parse(init.body);
+        if (body.uris[0] === 'spotify:track:track100') {
+          return {
+            ok: false,
+            status: 500,
+            headers: new Headers(),
+            text: async () => 'Internal Server Error'
+          };
+        }
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          json: async () => ({ snapshot_id: 'fake-snapshot' })
+        };
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      // Spy on console.error
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const { addTracksToPlaylist } = await import('../src/lib/spotify');
+
+      const trackUris = Array.from({ length: 250 }, (_, i) => `spotify:track:track${i}`);
+
+      // It shouldn't throw an exception to the top level.
+      await expect(addTracksToPlaylist('fake-token', 'playlist-123', trackUris)).resolves.not.toThrow();
+
+      // fetchMock is called 5 times: 3 original requests + 2 retries on the failing chunk (fetchWithRetry default maxRetries is 3)
+      expect(fetchMock).toHaveBeenCalledTimes(5);
+      // Ensure the error was logged for the failed chunk.
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
