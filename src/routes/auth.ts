@@ -161,6 +161,8 @@ async function registerUser(
         spotifyAvatar,
         registeredAt: now,
       }));
+      // Add reverse-lookup index for faster HoF deletion/scans
+      await kv.put(`hof_index:${spotifyId}`, hofKey);
     }
 
     // Initialize user stats for scoreboard - already uses cachedKV

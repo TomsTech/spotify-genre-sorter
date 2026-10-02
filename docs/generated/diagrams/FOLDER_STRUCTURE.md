@@ -165,6 +165,7 @@
 │   ├── now-playing.test.ts
 │   ├── retry.test.ts
 │   ├── session.test.ts
+│   ├── spotify-add-tracks.test.ts
 │   ├── spotify.test.ts
 │   └── user-playlists.test.ts
 ├── .eslintrc.json
@@ -194,7 +195,7 @@
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-31 directories, 157 files
+31 directories, 158 files
 ```
 
 ## Key Directories
