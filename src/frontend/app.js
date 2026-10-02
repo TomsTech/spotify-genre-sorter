@@ -670,6 +670,56 @@
       return analyticsCache;
     }
 
+    function renderAdminStats(data) {
+      const { readStatus, estimatedReads, readPct, writeStatus, estimatedWrites, writePct, kvMetrics, today, totalUsers } = data;
+      return \`
+        <div class="admin-grid">
+          <div class="admin-card">
+            <h3>📊 KV Usage (Today)</h3>
+            <div class="admin-stats">
+              <div class="stat">
+                <span class="label">Reads:</span>
+                <span class="value kv-\${readStatus}">\${estimatedReads} / 100k (\${readPct}%)</span>
+              </div>
+              <div class="stat">
+                <span class="label">Writes:</span>
+                <span class="value kv-\${writeStatus}">\${estimatedWrites} / 1k (\${writePct}%)</span>
+              </div>
+              <div class="stat">
+                <span class="label">Cache Hits:</span>
+                <span class="value">\${kvMetrics.cacheHits || 0} (\${kvMetrics.cacheHitRate || 0}%)</span>
+              </div>
+            </div>
+          </div>
+          <div class="admin-card">
+            <h3>📈 Analytics (Today)</h3>
+            <div class="admin-stats">
+              <div class="stat"><span class="label">Page Views:</span> <span class="value">\${today.pageViews || 0}</span></div>
+              <div class="stat"><span class="label">Sign-ins:</span> <span class="value">\${today.signIns || 0}</span></div>
+              <div class="stat"><span class="label">Playlists:</span> <span class="value">\${today.playlistsCreated || 0}</span></div>
+              <div class="stat"><span class="label">Library Scans:</span> <span class="value">\${today.libraryScans || 0}</span></div>
+            </div>
+          </div>
+          <div class="admin-card">
+            <h3>👥 Users</h3>
+            <div class="admin-stats">
+              <div class="stat"><span class="label">Total Users:</span> <span class="value">\${totalUsers}</span></div>
+              <div class="stat"><span class="label">Unique Artists:</span> <span class="value">\${today.uniqueArtists || 0}</span></div>
+              <div class="stat"><span class="label">Unique Genres:</span> <span class="value">\${today.uniqueGenres || 0}</span></div>
+            </div>
+          </div>
+          <div class="admin-card">
+            <h3>⚡ Realtime (This Worker)</h3>
+            <div class="admin-stats">
+              <div class="stat"><span class="label">KV Reads:</span> <span class="value">\${kvMetrics.reads || 0}</span></div>
+              <div class="stat"><span class="label">KV Writes:</span> <span class="value">\${kvMetrics.writes || 0}</span></div>
+              <div class="stat"><span class="label">Cache Misses:</span> <span class="value">\${kvMetrics.cacheMisses || 0}</span></div>
+            </div>
+          </div>
+        </div>
+      \`;
+    }
+
     async function showAdminPanel() {
       // Gather data from existing caches - NO new API calls for KV/version
       const version = deployStatus?.version || changelogCache?.changelog?.[0]?.version || '?';
@@ -693,6 +743,12 @@
       const readStatus = readPct > 80 ? 'critical' : readPct > 50 ? 'warning' : 'ok';
       const writeStatus = writePct > 80 ? 'critical' : writePct > 50 ? 'warning' : 'ok';
 
+      const statsData = {
+        readStatus, estimatedReads, readPct,
+        writeStatus, estimatedWrites, writePct,
+        kvMetrics, today, totalUsers
+      };
+
       modal.innerHTML = \`
         <div class="modal-content admin-panel">
           <div class="modal-header">
@@ -709,50 +765,7 @@
             <button class="admin-tab" data-tab="users" aria-label="Users">👥 Users</button>
           </div>
           <div class="admin-tab-content" id="admin-tab-content">
-            <div class="admin-grid">
-              <div class="admin-card">
-                <h3>📊 KV Usage (Today)</h3>
-                <div class="admin-stats">
-                  <div class="stat">
-                    <span class="label">Reads:</span>
-                    <span class="value kv-\${readStatus}">\${estimatedReads} / 100k (\${readPct}%)</span>
-                  </div>
-                  <div class="stat">
-                    <span class="label">Writes:</span>
-                    <span class="value kv-\${writeStatus}">\${estimatedWrites} / 1k (\${writePct}%)</span>
-                  </div>
-                  <div class="stat">
-                    <span class="label">Cache Hits:</span>
-                    <span class="value">\${kvMetrics.cacheHits || 0} (\${kvMetrics.cacheHitRate || 0}%)</span>
-                  </div>
-                </div>
-              </div>
-              <div class="admin-card">
-                <h3>📈 Analytics (Today)</h3>
-                <div class="admin-stats">
-                  <div class="stat"><span class="label">Page Views:</span> <span class="value">\${today.pageViews || 0}</span></div>
-                  <div class="stat"><span class="label">Sign-ins:</span> <span class="value">\${today.signIns || 0}</span></div>
-                  <div class="stat"><span class="label">Playlists:</span> <span class="value">\${today.playlistsCreated || 0}</span></div>
-                  <div class="stat"><span class="label">Library Scans:</span> <span class="value">\${today.libraryScans || 0}</span></div>
-                </div>
-              </div>
-              <div class="admin-card">
-                <h3>👥 Users</h3>
-                <div class="admin-stats">
-                  <div class="stat"><span class="label">Total Users:</span> <span class="value">\${totalUsers}</span></div>
-                  <div class="stat"><span class="label">Unique Artists:</span> <span class="value">\${today.uniqueArtists || 0}</span></div>
-                  <div class="stat"><span class="label">Unique Genres:</span> <span class="value">\${today.uniqueGenres || 0}</span></div>
-                </div>
-              </div>
-              <div class="admin-card">
-                <h3>⚡ Realtime (This Worker)</h3>
-                <div class="admin-stats">
-                  <div class="stat"><span class="label">KV Reads:</span> <span class="value">\${kvMetrics.reads || 0}</span></div>
-                  <div class="stat"><span class="label">KV Writes:</span> <span class="value">\${kvMetrics.writes || 0}</span></div>
-                  <div class="stat"><span class="label">Cache Misses:</span> <span class="value">\${kvMetrics.cacheMisses || 0}</span></div>
-                </div>
-              </div>
-            </div>
+            \${renderAdminStats(statsData)}
           </div>
           <div class="admin-footer">
             <small>
@@ -791,52 +804,7 @@
           } else {
             // Reload stats tab content
             const content = modal.querySelector('#admin-tab-content');
-            content.innerHTML = \`
-              <div class="admin-grid">
-                <div class="admin-card">
-                  <h3>📊 KV Usage (Today)</h3>
-                  <div class="admin-stats">
-                    <div class="stat">
-                      <span class="label">Reads:</span>
-                      <span class="value kv-\${readStatus}">\${estimatedReads} / 100k (\${readPct}%)</span>
-                    </div>
-                    <div class="stat">
-                      <span class="label">Writes:</span>
-                      <span class="value kv-\${writeStatus}">\${estimatedWrites} / 1k (\${writePct}%)</span>
-                    </div>
-                    <div class="stat">
-                      <span class="label">Cache Hits:</span>
-                      <span class="value">\${kvMetrics.cacheHits || 0} (\${kvMetrics.cacheHitRate || 0}%)</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="admin-card">
-                  <h3>📈 Analytics (Today)</h3>
-                  <div class="admin-stats">
-                    <div class="stat"><span class="label">Page Views:</span> <span class="value">\${today.pageViews || 0}</span></div>
-                    <div class="stat"><span class="label">Sign-ins:</span> <span class="value">\${today.signIns || 0}</span></div>
-                    <div class="stat"><span class="label">Playlists:</span> <span class="value">\${today.playlistsCreated || 0}</span></div>
-                    <div class="stat"><span class="label">Library Scans:</span> <span class="value">\${today.libraryScans || 0}</span></div>
-                  </div>
-                </div>
-                <div class="admin-card">
-                  <h3>👥 Users</h3>
-                  <div class="admin-stats">
-                    <div class="stat"><span class="label">Total Users:</span> <span class="value">\${totalUsers}</span></div>
-                    <div class="stat"><span class="label">Unique Artists:</span> <span class="value">\${today.uniqueArtists || 0}</span></div>
-                    <div class="stat"><span class="label">Unique Genres:</span> <span class="value">\${today.uniqueGenres || 0}</span></div>
-                  </div>
-                </div>
-                <div class="admin-card">
-                  <h3>⚡ Realtime (This Worker)</h3>
-                  <div class="admin-stats">
-                    <div class="stat"><span class="label">KV Reads:</span> <span class="value">\${kvMetrics.reads || 0}</span></div>
-                    <div class="stat"><span class="label">KV Writes:</span> <span class="value">\${kvMetrics.writes || 0}</span></div>
-                    <div class="stat"><span class="label">Cache Misses:</span> <span class="value">\${kvMetrics.cacheMisses || 0}</span></div>
-                  </div>
-                </div>
-              </div>
-            \`;
+            content.innerHTML = renderAdminStats(statsData);
           }
         };
       });
