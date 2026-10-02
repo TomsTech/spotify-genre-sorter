@@ -2901,7 +2901,9 @@
       await showSourceSelector();
     }
 
-    function renderWelcome(error) {
+    function getWelcomeErrorMessage(error) {
+      if (!error) return '';
+
       const errorMessages = {
         'github_denied': t('errorGithubDenied'),
         'not_allowed': t('errorNotAllowed'),
@@ -2911,18 +2913,28 @@
         'spotify_auth_failed': 'Spotify authentication failed. Please try again.',
       };
 
-      // User counter HTML - now with Swedish translation
-      const userCounterHtml = statsData?.userCount ? \`
+      const message = errorMessages[error] || escapeHtml(error);
+      const requestAccessButton = error === 'not_allowed' ? \`
+        <button onclick="showRequestAccessModal()" class="btn btn-secondary request-access-btn">
+          🔑 \${t('requestAccess')}
+        </button>
+      \` : '';
+
+      return \`<div class="error">\${message}\${requestAccessButton}</div>\`;
+    }
+
+    function getUserCounterHtml() {
+      if (!statsData?.userCount) return '';
+      return \`
         <div class="user-counter">
           <span>\${swedishMode ? '🇸🇪' : '🎵'}</span>
           <span><span class="count">\${statsData.userCount}</span> \${t('musicLoversJoined')}</span>
         </div>
-      \` : '';
+      \`;
+    }
 
-      // Hall of fame removed - now using sidebar Pioneers section
-
-      // Different login button based on mode
-      const loginButton = spotifyOnlyMode ? \`
+    function getLoginButtonHtml() {
+      return spotifyOnlyMode ? \`
         <a href="/auth/spotify" class="btn btn-primary" data-testid="sign-in-button">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 01-.277-1.215c3.809-.87 7.076-.496 9.712 1.115.293.18.386.563.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.972c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.071zm.105-2.835c-3.223-1.914-8.54-2.09-11.618-1.156a.935.935 0 11-.543-1.79c3.533-1.072 9.404-.865 13.115 1.338a.935.935 0 11-.954 1.608z"/>
@@ -2937,16 +2949,10 @@
           <span data-i18n="signInGithub">\${t('signInGithub')}</span>
         </a>
       \`;
+    }
 
-      // Request access button for not_allowed errors
-      const requestAccessButton = error === 'not_allowed' ? \`
-        <button onclick="showRequestAccessModal()" class="btn btn-secondary request-access-btn">
-          🔑 \${t('requestAccess')}
-        </button>
-      \` : '';
-
-      // Privacy explainer HTML - collapsible section
-      const privacyExplainer = \`
+    function getPrivacyExplainerHtml() {
+      return \`
         <details class="privacy-explainer">
           <summary>\${t('privacyTitle')}</summary>
           <div class="privacy-grid">
@@ -2999,15 +3005,10 @@
           </a>
         </details>
       \`;
+    }
 
-      app.innerHTML = \`
-        <div class="welcome">
-          \${error ? \`<div class="error">\${errorMessages[error] || escapeHtml(error)}\${requestAccessButton}</div>\` : ''}
-          \${userCounterHtml}
-          <h2 data-i18n="organiseMusic">\${t('organiseMusic')}</h2>
-          <p data-i18n="organiseDesc">\${t('organiseDesc')}</p>
-          \${privacyExplainer}
-          \${loginButton}
+    function getFooterBadgesHtml() {
+      return \`
           <div class="footer-badges">
             <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank" rel="noopener noreferrer" class="github-star-badge" title="\${swedishMode ? 'Gillar du det? Stjärnmärk oss! ⭐' : 'Love this? Star us! ⭐'}">
               <img src="https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=for-the-badge&logo=github&logoColor=white&label=Star&color=1DB954&labelColor=191414" alt="Star on GitHub" loading="lazy" onerror="this.style.display='none'">
@@ -3016,6 +3017,19 @@
               <img src="https://img.shields.io/website?url=https%3A%2F%2Fspotify.houstons.tech&style=for-the-badge&logo=spotify&logoColor=white&label=Status&up_color=1DB954&down_color=e74c3c&labelColor=191414" alt="Service Status" loading="lazy" onerror="this.style.display='none'">
             </a>
           </div>
+      \`;
+    }
+
+    function renderWelcome(error) {
+      app.innerHTML = \`
+        <div class="welcome">
+          \${getWelcomeErrorMessage(error)}
+          \${getUserCounterHtml()}
+          <h2 data-i18n="organiseMusic">\${t('organiseMusic')}</h2>
+          <p data-i18n="organiseDesc">\${t('organiseDesc')}</p>
+          \${getPrivacyExplainerHtml()}
+          \${getLoginButtonHtml()}
+          \${getFooterBadgesHtml()}
         </div>
       \`;
     }
