@@ -99,12 +99,15 @@ api.use('/*', async (c, next) => {
   if (rateData) {
     if (now > rateData.resetAt) {
       // Window expired, reset
+      rateLimitMap.delete(clientIP); // Delete first to move to back of insertion order
       rateLimitMap.set(clientIP, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
     } else if (rateData.count >= RATE_LIMIT_MAX_REQUESTS) {
       c.header('Retry-After', String(Math.ceil((rateData.resetAt - now) / 1000)));
       return c.json({ error: 'Rate limit exceeded. Please try again later.' }, 429);
     } else {
       rateData.count++;
+      // Note: we don't delete/re-set on every hit to save operations,
+      // as the resetAt time hasn't changed.
     }
   } else {
     rateLimitMap.set(clientIP, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
@@ -122,15 +125,15 @@ api.use('/*', async (c, next) => {
 
   // Emergency cleanup if map grows too large (prevents OOM)
   if (rateLimitMap.size > RATE_LIMIT_MAX_ENTRIES) {
-    // Remove oldest 20% of entries
+    // ⚡ BOLT OPTIMIZATION: Avoid intermediate array allocation and sorting
+    // Map iterators yield elements in insertion order. By deleting from the
+    // front of the map, we get O(K) eviction without allocating an array.
     const entriesToRemove = Math.floor(RATE_LIMIT_MAX_ENTRIES * 0.2);
-    const sortedEntries = [];
-    for (const entry of rateLimitMap.entries()) {
-      sortedEntries.push(entry);
-    }
-    sortedEntries.sort((a, b) => a[1].resetAt - b[1].resetAt);
-    for (let i = 0; i < entriesToRemove && i < sortedEntries.length; i++) {
-      rateLimitMap.delete(sortedEntries[i][0]);
+    let i = 0;
+    for (const key of rateLimitMap.keys()) {
+      if (i >= entriesToRemove) break;
+      rateLimitMap.delete(key);
+      i++;
     }
   }
 

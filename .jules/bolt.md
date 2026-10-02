@@ -155,3 +155,6 @@
 ## 2025-02-14 - Optimize promise arrays for memory efficiency
 **Learning:** Initializing intermediate arrays for `Promise.all` can increase garbage collector pressure due to unnecessary inner-loop closures and dynamic `.push()` allocations, especially in large iterations.
 **Action:** Used `Array.from()` to construct array iterations optimally in parallel map tasks in `src/routes/api.ts`, and appending `.catch(() => null)` to handle rejected promises silently across array processing iterations.
+## 2026-10-02 - Optimize rate limit eviction
+**Learning:** When evicting the oldest entries from a Map (like for a rate limiter), avoid converting the Map to an array for sorting.
+**Action:** Leverage the fact that JavaScript Map iterators yield elements in insertion order (FIFO) by directly iterating over map.keys() and deleting the required number of entries.
