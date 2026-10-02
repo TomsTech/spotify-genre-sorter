@@ -7939,18 +7939,7 @@
       ]
     };
 
-    function showGenreWrapped() {
-      // Get current genre data from the app state
-      const genres = window.currentGenres || [];
-      if (genres.length === 0) {
-        alert(swedishMode ? 'Analysera dina låtar först!' : 'Analyze your tracks first!');
-        return;
-      }
-
-      const existing = document.querySelector('.wrapped-overlay');
-      if (existing) existing.remove();
-
-      // Calculate stats - use actual track count, not genre assignment sum
+    function getWrappedStats(genres) {
       const totalTracks = genreData?.totalTracks || window.totalTracks || genres.length;
       const topGenres = genres.slice(0, 5);
       const topFamily = getGenreFamily(topGenres[0]?.name || '');
@@ -7959,11 +7948,8 @@
       const lang = swedishMode ? 'sv' : 'en';
       const gradient = swedishMode ? GENRE_GRADIENTS.swedish : (GENRE_GRADIENTS[topFamily] || GENRE_GRADIENTS.other);
       const reading = getRandomReading(topFamily, lang);
-
-      // Get unique artists count from actual data or estimate
       const uniqueArtists = genreData?.totalArtists || Math.round(totalTracks * 0.6);
 
-      // Random fun fact
       const facts = WRAPPED_FACTS[lang];
       const fact = facts[Math.floor(getSecureRandom() * facts.length)]
         .replace('{pct}', Math.max(5, 100 - diversityScore))
@@ -7971,9 +7957,15 @@
         .replace('{artists}', uniqueArtists)
         .replace('{genres}', genres.length);
 
-      // Build top genres bars
-      const maxCount = topGenres[0]?.count || 1;
-      const genreBars = topGenres.map((g, i) => {
+      return {
+        totalTracks, topGenres, diversityScore, personality, lang,
+        gradient, reading, fact, genresCount: genres.length
+      };
+    }
+
+    function buildWrappedHTML(stats) {
+      const maxCount = stats.topGenres[0]?.count || 1;
+      const genreBars = stats.topGenres.map((g, i) => {
         const pct = Math.round((g.count / maxCount) * 100);
         const delay = i * 0.1;
         return '<div class="wrapped-genre-bar" style="animation-delay: ' + delay + 's">' +
@@ -7985,16 +7977,13 @@
                '</div>';
       }).join('');
 
-      // Get user info
       const userName = window.currentUser?.display_name || 'Music Lover';
       const userAvatar = window.currentUser?.images?.[0]?.url || '';
 
-      const modal = document.createElement('div');
-      modal.className = 'wrapped-overlay';
-      modal.innerHTML = [
+      return [
         '<div class="wrapped-container">',
         '  <button class="wrapped-close" onclick="this.closest(\'.wrapped-overlay\').remove()" aria-label="Close">&times;</button>',
-        '  <div class="wrapped-card" id="wrapped-card" style="background: ' + gradient + '">',
+        '  <div class="wrapped-card" id="wrapped-card" style="background: ' + stats.gradient + '">',
         '    <div class="wrapped-header">',
         '      <div class="wrapped-logo">',
         '        <span class="wrapped-logo-icon">🧞</span>',
@@ -8003,22 +7992,22 @@
         userAvatar ? '      <img src="' + getSafeUrl(userAvatar) + '" class="wrapped-avatar" alt="' + escapeHtml(userName) + '" />' : '',
         '    </div>',
         '    <div class="wrapped-personality">',
-        '      <span class="wrapped-emoji">' + personality[lang].emoji + '</span>',
-        '      <h2 class="wrapped-title">' + personality[lang].title + '</h2>',
-        '      <p class="wrapped-desc">' + personality[lang].desc + '</p>',
-        '      <p class="wrapped-reading">"' + reading + '"</p>',
+        '      <span class="wrapped-emoji">' + stats.personality[stats.lang].emoji + '</span>',
+        '      <h2 class="wrapped-title">' + stats.personality[stats.lang].title + '</h2>',
+        '      <p class="wrapped-desc">' + stats.personality[stats.lang].desc + '</p>',
+        '      <p class="wrapped-reading">"' + stats.reading + '"</p>',
         '    </div>',
         '    <div class="wrapped-stats">',
         '      <div class="wrapped-stat">',
-        '        <span class="wrapped-stat-value">' + totalTracks + '</span>',
+        '        <span class="wrapped-stat-value">' + stats.totalTracks + '</span>',
         '        <span class="wrapped-stat-label">' + (swedishMode ? 'Låtar' : 'Tracks') + '</span>',
         '      </div>',
         '      <div class="wrapped-stat">',
-        '        <span class="wrapped-stat-value">' + genres.length + '</span>',
+        '        <span class="wrapped-stat-value">' + stats.genresCount + '</span>',
         '        <span class="wrapped-stat-label">' + (swedishMode ? 'Genrer' : 'Genres') + '</span>',
         '      </div>',
         '      <div class="wrapped-stat">',
-        '        <span class="wrapped-stat-value">' + diversityScore + '%</span>',
+        '        <span class="wrapped-stat-value">' + stats.diversityScore + '%</span>',
         '        <span class="wrapped-stat-label">' + (swedishMode ? 'Mångfald' : 'Diversity') + '</span>',
         '      </div>',
         '    </div>',
@@ -8027,7 +8016,7 @@
         '      ' + genreBars,
         '    </div>',
         '    <div class="wrapped-fact">',
-        '      <p>"' + fact + '"</p>',
+        '      <p>"' + stats.fact + '"</p>',
         '    </div>',
         '    <div class="wrapped-footer">',
         '      <span class="wrapped-user">' + escapeHtml(userName) + '</span>',
@@ -8047,6 +8036,25 @@
         '  </div>',
         '</div>'
       ].join('');
+    }
+
+    function showGenreWrapped() {
+      // Get current genre data from the app state
+      const genres = window.currentGenres || [];
+      if (genres.length === 0) {
+        alert(swedishMode ? 'Analysera dina låtar först!' : 'Analyze your tracks first!');
+        return;
+      }
+
+      const existing = document.querySelector('.wrapped-overlay');
+      if (existing) existing.remove();
+
+      const stats = getWrappedStats(genres);
+      const htmlContent = buildWrappedHTML(stats);
+
+      const modal = document.createElement('div');
+      modal.className = 'wrapped-overlay';
+      modal.innerHTML = htmlContent;
 
       document.body.appendChild(modal);
       modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
