@@ -40,9 +40,15 @@ export function sendLog(
     if (entry.level === 'error') {
       // eslint-disable-next-line no-console
       console.error(`[${entry.level.toUpperCase()}] ${entry.message}`, entry.error ? '\n' + entry.error : '', entry.stack ? '\n' + entry.stack : '');
+    } else if (entry.level === 'warn') {
+      // eslint-disable-next-line no-console
+      console.warn(`[${entry.level.toUpperCase()}] ${entry.message}`);
+    } else if (entry.level === 'debug') {
+      // eslint-disable-next-line no-console
+      console.debug(`[${entry.level.toUpperCase()}] ${entry.message}`);
     } else {
       // eslint-disable-next-line no-console
-      console.log(`[${entry.level.toUpperCase()}] ${entry.message}`);
+      console.info(`[${entry.level.toUpperCase()}] ${entry.message}`);
     }
     return;
   }
