@@ -2413,7 +2413,7 @@
 
           // Set up click to open in Spotify
           if (data.track.url) {
-            widget.onclick = () => window.open(data.track.url, '_blank');
+            widget.onclick = () => window.open(getSafeUrl(data.track.url), '_blank');
             widget.style.cursor = 'pointer';
             widget.title = t('openInSpotify');
           }

@@ -106,3 +106,7 @@
 **Vulnerability:** The custom prompt function `showPrompt` in `src/frontend/app.js` constructed a modal's HTML string using direct concatenation of the `message` parameter (`'<p class="prompt-message">' + message + '</p>'`). If the `message` originated from untrusted input, this would lead to DOM-based Cross-Site Scripting (XSS).
 **Learning:** Even internal utility functions like custom prompts must escape all arguments injected into DOM via `innerHTML`, especially in applications handling external user data (like Spotify API data).
 **Prevention:** Always use safe DOM APIs (like `textContent`) or sanitize strings with HTML escaping (like `escapeForHtml`) before interpolating them into HTML strings for `innerHTML`.
+## 2024-10-24 - DOM XSS via window.open()
+**Vulnerability:** The application passed `data.track.url` directly to `window.open(data.track.url, '_blank')` in `src/frontend/app.js` without any validation or sanitization.
+**Learning:** `escapeHtml` only escapes HTML entities, which is insufficient for preventing DOM XSS when a variable is placed in a navigation sink like `window.open()` or assigned to properties like `element.href`. If an attacker were able to supply a `javascript:` URL, it would be executed when the user clicked the element.
+**Prevention:** Always wrap variables representing URLs with a validation function like `getSafeUrl()` before using them in navigation sinks or assigning them to `href`/`src` DOM properties.
