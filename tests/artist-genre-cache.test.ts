@@ -5,7 +5,7 @@
  * Note: These are demonstration tests. Full E2E tests would require KV namespace setup.
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   getCachedArtistGenres,
   cacheArtistGenres,
@@ -14,7 +14,8 @@ import {
   getCachedArtistCount,
   clearAllArtistGenreCache,
   cleanupOldArtistGenreCache,
-  invalidateArtistGenreCache
+  invalidateArtistGenreCache,
+  getCachedArtistGenresBatch
 } from '../src/lib/artist-genre-cache';
 import { cachedKV } from '../src/lib/kv-cache';
 
@@ -282,5 +283,81 @@ describe('Artist Genre Cache - Error Handling', () => {
 
     consoleSpy.mockRestore();
     vi.restoreAllMocks();
+  });
+});
+
+
+describe('getCachedArtistGenresBatch', () => {
+  let getSpy: any;
+  let consoleSpy: any;
+
+  beforeEach(() => {
+    getSpy = vi.spyOn(cachedKV, 'get');
+    consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    getSpy.mockRestore();
+    consoleSpy.mockRestore();
+  });
+
+  it('should return a map of cached genres for multiple artists with partial hits', async () => {
+    const mockKv = {} as any;
+    const artistIds = ['artist1', 'artist2', 'artist3'];
+
+    getSpy.mockImplementation(async (kv: any, key: string) => {
+      if (key === 'artist_genre:artist1') return { genres: ['rock'] };
+      if (key === 'artist_genre:artist2') return { genres: ['pop'] };
+      return null;
+    });
+
+    const result = await getCachedArtistGenresBatch(mockKv, artistIds);
+
+    expect(result).toBeInstanceOf(Map);
+    expect(result.size).toBe(2);
+    expect(result.get('artist1')).toEqual(['rock']);
+    expect(result.get('artist2')).toEqual(['pop']);
+    expect(result.has('artist3')).toBe(false);
+    expect(getSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it('should process artists in chunks of 40', async () => {
+    const mockKv = {} as any;
+    const artistIds = Array.from({ length: 100 }, (_, i) => `artist_${i}`);
+
+    getSpy.mockImplementation(async () => {
+      return { genres: ['genre'] };
+    });
+
+    const result = await getCachedArtistGenresBatch(mockKv, artistIds);
+
+    expect(result.size).toBe(100);
+    expect(getSpy).toHaveBeenCalledTimes(100);
+  });
+
+  it('should handle errors gracefully without failing the entire batch', async () => {
+    const mockKv = {} as any;
+    const artistIds = ['artist1', 'error_artist', 'artist3'];
+
+    getSpy.mockImplementation(async (kv: any, key: string) => {
+      if (key === 'artist_genre:error_artist') throw new Error('KV Error');
+      return { genres: ['genre'] };
+    });
+
+    const result = await getCachedArtistGenresBatch(mockKv, artistIds);
+
+    expect(result.size).toBe(2);
+    expect(result.get('artist1')).toEqual(['genre']);
+    expect(result.get('artist3')).toEqual(['genre']);
+    expect(consoleSpy).toHaveBeenCalledWith(`Error fetching cached genres for artist error_artist:`, expect.any(Error));
+  });
+
+  it('should handle empty input array', async () => {
+    const mockKv = {} as any;
+    const result = await getCachedArtistGenresBatch(mockKv, []);
+
+    expect(result).toBeInstanceOf(Map);
+    expect(result.size).toBe(0);
+    expect(getSpy).not.toHaveBeenCalled();
   });
 });
