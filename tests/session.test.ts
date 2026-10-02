@@ -123,7 +123,7 @@ describe('State Management', () => {
   });
 });
 
-import { getScoreboard, cachedKV } from '../src/lib/session';
+import { getScoreboard, cachedKV, getScanProgress } from '../src/lib/session';
 
 import { buildScoreboard } from '../src/lib/session';
 
@@ -183,6 +183,48 @@ describe('getScoreboard', () => {
     }
 
     // restore
+    cachedKV.get = originalGet;
+  });
+});
+describe('getScanProgress', () => {
+  it('should call cachedKV.get with correct key and ttl', async () => {
+    const originalGet = cachedKV.get;
+
+    // Create mock progress data
+    const mockProgress = {
+      totalArtistCount: 10,
+      partialArtistCount: 5,
+      partialTrackCount: 20,
+      startedAt: new Date().toISOString(),
+      lastUpdatedAt: new Date().toISOString(),
+      status: 'in_progress' as const
+    };
+
+    cachedKV.get = vi.fn().mockResolvedValue(mockProgress);
+
+    const mockKv = {} as any;
+    const userId = 'test-user-123';
+
+    const result = await getScanProgress(mockKv, userId);
+
+    expect(cachedKV.get).toHaveBeenCalledWith(mockKv, 'scan_progress:test-user-123', { cacheTtlMs: 60000 });
+    expect(result).toEqual(mockProgress);
+
+    cachedKV.get = originalGet;
+  });
+
+  it('should return null when not found', async () => {
+    const originalGet = cachedKV.get;
+    cachedKV.get = vi.fn().mockResolvedValue(null);
+
+    const mockKv = {} as any;
+    const userId = 'test-user-456';
+
+    const result = await getScanProgress(mockKv, userId);
+
+    expect(cachedKV.get).toHaveBeenCalledWith(mockKv, 'scan_progress:test-user-456', { cacheTtlMs: 60000 });
+    expect(result).toBeNull();
+
     cachedKV.get = originalGet;
   });
 });
