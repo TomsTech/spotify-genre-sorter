@@ -123,14 +123,13 @@ api.use('/*', async (c, next) => {
   // Emergency cleanup if map grows too large (prevents OOM)
   if (rateLimitMap.size > RATE_LIMIT_MAX_ENTRIES) {
     // Remove oldest 20% of entries
+    // ⚡ Bolt: Leverage Map's insertion order for O(K) eviction without array allocations
     const entriesToRemove = Math.floor(RATE_LIMIT_MAX_ENTRIES * 0.2);
-    const sortedEntries = [];
-    for (const entry of rateLimitMap.entries()) {
-      sortedEntries.push(entry);
-    }
-    sortedEntries.sort((a, b) => a[1].resetAt - b[1].resetAt);
-    for (let i = 0; i < entriesToRemove && i < sortedEntries.length; i++) {
-      rateLimitMap.delete(sortedEntries[i][0]);
+    let removed = 0;
+    for (const key of rateLimitMap.keys()) {
+      if (removed >= entriesToRemove) break;
+      rateLimitMap.delete(key);
+      removed++;
     }
   }
 
@@ -1561,10 +1560,12 @@ api.get('/listening', async (c) => {
     }
 
     const listeners: ListeningEntry[] = [];
+    // ⚡ Bolt: Chunked parallel reads for KV.get to avoid limits and reduce GC via Array.from over slice().map()
     const BATCH_SIZE = 40;
     for (let i = 0; i < list.keys.length; i += BATCH_SIZE) {
-      const chunk = list.keys.slice(i, i + BATCH_SIZE);
-      const dataPromises = chunk.map(async key => {
+      const size = Math.min(BATCH_SIZE, list.keys.length - i);
+      const dataPromises = Array.from({ length: size }, async (_, j) => {
+        const key = list.keys[i + j];
         try {
           const data = await kv.get(key.name);
           if (data) {
