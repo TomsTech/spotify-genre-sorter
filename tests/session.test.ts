@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateState } from '../src/lib/session';
+import { generateState, getUserStats } from '../src/lib/session';
 
 describe('Session Management', () => {
   describe('generateState', () => {
@@ -123,7 +123,7 @@ describe('State Management', () => {
   });
 });
 
-import { getScoreboard, cachedKV } from '../src/lib/session';
+import { getScoreboard, cachedKV, getScanProgress } from '../src/lib/session';
 
 import { buildScoreboard } from '../src/lib/session';
 
@@ -186,6 +186,48 @@ describe('getScoreboard', () => {
     cachedKV.get = originalGet;
   });
 });
+describe('getScanProgress', () => {
+  it('should call cachedKV.get with correct key and ttl', async () => {
+    const originalGet = cachedKV.get;
+
+    // Create mock progress data
+    const mockProgress = {
+      totalArtistCount: 10,
+      partialArtistCount: 5,
+      partialTrackCount: 20,
+      startedAt: new Date().toISOString(),
+      lastUpdatedAt: new Date().toISOString(),
+      status: 'in_progress' as const
+    };
+
+    cachedKV.get = vi.fn().mockResolvedValue(mockProgress);
+
+    const mockKv = {} as any;
+    const userId = 'test-user-123';
+
+    const result = await getScanProgress(mockKv, userId);
+
+    expect(cachedKV.get).toHaveBeenCalledWith(mockKv, 'scan_progress:test-user-123', { cacheTtlMs: 60000 });
+    expect(result).toEqual(mockProgress);
+
+    cachedKV.get = originalGet;
+  });
+
+  it('should return null when not found', async () => {
+    const originalGet = cachedKV.get;
+    cachedKV.get = vi.fn().mockResolvedValue(null);
+
+    const mockKv = {} as any;
+    const userId = 'test-user-456';
+
+    const result = await getScanProgress(mockKv, userId);
+
+    expect(cachedKV.get).toHaveBeenCalledWith(mockKv, 'scan_progress:test-user-456', { cacheTtlMs: 60000 });
+    expect(result).toBeNull();
+
+    cachedKV.get = originalGet;
+  });
+});
 
 describe('deleteScanProgress', () => {
   it('should call cachedKV.delete with correct key', async () => {
@@ -213,5 +255,51 @@ describe('deleteScanProgress', () => {
     await expect(deleteScanProgress(mockKv, userId)).rejects.toThrow('KV Error');
 
     cachedKV.delete = originalDelete;
+  });
+});
+
+describe('getUserStats', () => {
+  it('should fetch user stats using cachedKV.get with correct parameters', async () => {
+    const originalGet = cachedKV.get;
+
+    const mockUserStats = {
+      totalGenresDiscovered: 10,
+      totalArtistsDiscovered: 5,
+      totalTracksAnalysed: 20,
+      playlistsCreated: 1,
+      totalTracksInPlaylists: 15,
+      firstSeen: '2023-01-01',
+      lastActive: '2023-01-02',
+      createdPlaylistIds: ['playlist-1']
+    };
+
+    cachedKV.get = vi.fn().mockResolvedValue(mockUserStats);
+
+    const mockKv = {} as any;
+    const spotifyId = 'test-spotify-id';
+
+    const result = await getUserStats(mockKv, spotifyId);
+
+    expect(result).toEqual(mockUserStats);
+    expect(cachedKV.get).toHaveBeenCalledWith(
+      mockKv,
+      `user_stats:${spotifyId}`,
+      { cacheTtlMs: 300000 } // CACHE_TTL.USER_STATS is 300000
+    );
+
+    cachedKV.get = originalGet;
+  });
+
+  it('should propagate errors from cachedKV.get', async () => {
+    const originalGet = cachedKV.get;
+
+    cachedKV.get = vi.fn().mockRejectedValue(new Error('KV Error'));
+
+    const mockKv = {} as any;
+    const spotifyId = 'test-spotify-id';
+
+    await expect(getUserStats(mockKv, spotifyId)).rejects.toThrow('KV Error');
+
+    cachedKV.get = originalGet;
   });
 });

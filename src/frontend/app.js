@@ -125,7 +125,7 @@
 
         modal.innerHTML = [
           '<h3 id="prompt-title">' + (swedishMode ? '📝 Ange namn' : '📝 Enter name') + '</h3>',
-          '<p class="prompt-message">' + message + '</p>',
+          '<p class="prompt-message">' + escapeForHtml(message) + '</p>',
           '<label for="prompt-input" class="sr-only">' + (swedishMode ? 'Ange namn' : 'Enter name') + '</label>',
           '<input type="text" class="prompt-input" id="prompt-input" value="' + escapeForHtml(defaultValue) + '" maxlength="100" aria-label="' + (swedishMode ? 'Ange namn' : 'Enter name') + '">',
           '<div class="prompt-buttons">',
@@ -670,6 +670,56 @@
       return analyticsCache;
     }
 
+    function renderAdminStats(data) {
+      const { readStatus, estimatedReads, readPct, writeStatus, estimatedWrites, writePct, kvMetrics, today, totalUsers } = data;
+      return \`
+        <div class="admin-grid">
+          <div class="admin-card">
+            <h3>📊 KV Usage (Today)</h3>
+            <div class="admin-stats">
+              <div class="stat">
+                <span class="label">Reads:</span>
+                <span class="value kv-\${readStatus}">\${estimatedReads} / 100k (\${readPct}%)</span>
+              </div>
+              <div class="stat">
+                <span class="label">Writes:</span>
+                <span class="value kv-\${writeStatus}">\${estimatedWrites} / 1k (\${writePct}%)</span>
+              </div>
+              <div class="stat">
+                <span class="label">Cache Hits:</span>
+                <span class="value">\${kvMetrics.cacheHits || 0} (\${kvMetrics.cacheHitRate || 0}%)</span>
+              </div>
+            </div>
+          </div>
+          <div class="admin-card">
+            <h3>📈 Analytics (Today)</h3>
+            <div class="admin-stats">
+              <div class="stat"><span class="label">Page Views:</span> <span class="value">\${today.pageViews || 0}</span></div>
+              <div class="stat"><span class="label">Sign-ins:</span> <span class="value">\${today.signIns || 0}</span></div>
+              <div class="stat"><span class="label">Playlists:</span> <span class="value">\${today.playlistsCreated || 0}</span></div>
+              <div class="stat"><span class="label">Library Scans:</span> <span class="value">\${today.libraryScans || 0}</span></div>
+            </div>
+          </div>
+          <div class="admin-card">
+            <h3>👥 Users</h3>
+            <div class="admin-stats">
+              <div class="stat"><span class="label">Total Users:</span> <span class="value">\${totalUsers}</span></div>
+              <div class="stat"><span class="label">Unique Artists:</span> <span class="value">\${today.uniqueArtists || 0}</span></div>
+              <div class="stat"><span class="label">Unique Genres:</span> <span class="value">\${today.uniqueGenres || 0}</span></div>
+            </div>
+          </div>
+          <div class="admin-card">
+            <h3>⚡ Realtime (This Worker)</h3>
+            <div class="admin-stats">
+              <div class="stat"><span class="label">KV Reads:</span> <span class="value">\${kvMetrics.reads || 0}</span></div>
+              <div class="stat"><span class="label">KV Writes:</span> <span class="value">\${kvMetrics.writes || 0}</span></div>
+              <div class="stat"><span class="label">Cache Misses:</span> <span class="value">\${kvMetrics.cacheMisses || 0}</span></div>
+            </div>
+          </div>
+        </div>
+      \`;
+    }
+
     async function showAdminPanel() {
       // Gather data from existing caches - NO new API calls for KV/version
       const version = deployStatus?.version || changelogCache?.changelog?.[0]?.version || '?';
@@ -693,6 +743,12 @@
       const readStatus = readPct > 80 ? 'critical' : readPct > 50 ? 'warning' : 'ok';
       const writeStatus = writePct > 80 ? 'critical' : writePct > 50 ? 'warning' : 'ok';
 
+      const statsData = {
+        readStatus, estimatedReads, readPct,
+        writeStatus, estimatedWrites, writePct,
+        kvMetrics, today, totalUsers
+      };
+
       modal.innerHTML = \`
         <div class="modal-content admin-panel">
           <div class="modal-header">
@@ -709,50 +765,7 @@
             <button class="admin-tab" data-tab="users" aria-label="Users">👥 Users</button>
           </div>
           <div class="admin-tab-content" id="admin-tab-content">
-            <div class="admin-grid">
-              <div class="admin-card">
-                <h3>📊 KV Usage (Today)</h3>
-                <div class="admin-stats">
-                  <div class="stat">
-                    <span class="label">Reads:</span>
-                    <span class="value kv-\${readStatus}">\${estimatedReads} / 100k (\${readPct}%)</span>
-                  </div>
-                  <div class="stat">
-                    <span class="label">Writes:</span>
-                    <span class="value kv-\${writeStatus}">\${estimatedWrites} / 1k (\${writePct}%)</span>
-                  </div>
-                  <div class="stat">
-                    <span class="label">Cache Hits:</span>
-                    <span class="value">\${kvMetrics.cacheHits || 0} (\${kvMetrics.cacheHitRate || 0}%)</span>
-                  </div>
-                </div>
-              </div>
-              <div class="admin-card">
-                <h3>📈 Analytics (Today)</h3>
-                <div class="admin-stats">
-                  <div class="stat"><span class="label">Page Views:</span> <span class="value">\${today.pageViews || 0}</span></div>
-                  <div class="stat"><span class="label">Sign-ins:</span> <span class="value">\${today.signIns || 0}</span></div>
-                  <div class="stat"><span class="label">Playlists:</span> <span class="value">\${today.playlistsCreated || 0}</span></div>
-                  <div class="stat"><span class="label">Library Scans:</span> <span class="value">\${today.libraryScans || 0}</span></div>
-                </div>
-              </div>
-              <div class="admin-card">
-                <h3>👥 Users</h3>
-                <div class="admin-stats">
-                  <div class="stat"><span class="label">Total Users:</span> <span class="value">\${totalUsers}</span></div>
-                  <div class="stat"><span class="label">Unique Artists:</span> <span class="value">\${today.uniqueArtists || 0}</span></div>
-                  <div class="stat"><span class="label">Unique Genres:</span> <span class="value">\${today.uniqueGenres || 0}</span></div>
-                </div>
-              </div>
-              <div class="admin-card">
-                <h3>⚡ Realtime (This Worker)</h3>
-                <div class="admin-stats">
-                  <div class="stat"><span class="label">KV Reads:</span> <span class="value">\${kvMetrics.reads || 0}</span></div>
-                  <div class="stat"><span class="label">KV Writes:</span> <span class="value">\${kvMetrics.writes || 0}</span></div>
-                  <div class="stat"><span class="label">Cache Misses:</span> <span class="value">\${kvMetrics.cacheMisses || 0}</span></div>
-                </div>
-              </div>
-            </div>
+            \${renderAdminStats(statsData)}
           </div>
           <div class="admin-footer">
             <small>
@@ -791,52 +804,7 @@
           } else {
             // Reload stats tab content
             const content = modal.querySelector('#admin-tab-content');
-            content.innerHTML = \`
-              <div class="admin-grid">
-                <div class="admin-card">
-                  <h3>📊 KV Usage (Today)</h3>
-                  <div class="admin-stats">
-                    <div class="stat">
-                      <span class="label">Reads:</span>
-                      <span class="value kv-\${readStatus}">\${estimatedReads} / 100k (\${readPct}%)</span>
-                    </div>
-                    <div class="stat">
-                      <span class="label">Writes:</span>
-                      <span class="value kv-\${writeStatus}">\${estimatedWrites} / 1k (\${writePct}%)</span>
-                    </div>
-                    <div class="stat">
-                      <span class="label">Cache Hits:</span>
-                      <span class="value">\${kvMetrics.cacheHits || 0} (\${kvMetrics.cacheHitRate || 0}%)</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="admin-card">
-                  <h3>📈 Analytics (Today)</h3>
-                  <div class="admin-stats">
-                    <div class="stat"><span class="label">Page Views:</span> <span class="value">\${today.pageViews || 0}</span></div>
-                    <div class="stat"><span class="label">Sign-ins:</span> <span class="value">\${today.signIns || 0}</span></div>
-                    <div class="stat"><span class="label">Playlists:</span> <span class="value">\${today.playlistsCreated || 0}</span></div>
-                    <div class="stat"><span class="label">Library Scans:</span> <span class="value">\${today.libraryScans || 0}</span></div>
-                  </div>
-                </div>
-                <div class="admin-card">
-                  <h3>👥 Users</h3>
-                  <div class="admin-stats">
-                    <div class="stat"><span class="label">Total Users:</span> <span class="value">\${totalUsers}</span></div>
-                    <div class="stat"><span class="label">Unique Artists:</span> <span class="value">\${today.uniqueArtists || 0}</span></div>
-                    <div class="stat"><span class="label">Unique Genres:</span> <span class="value">\${today.uniqueGenres || 0}</span></div>
-                  </div>
-                </div>
-                <div class="admin-card">
-                  <h3>⚡ Realtime (This Worker)</h3>
-                  <div class="admin-stats">
-                    <div class="stat"><span class="label">KV Reads:</span> <span class="value">\${kvMetrics.reads || 0}</span></div>
-                    <div class="stat"><span class="label">KV Writes:</span> <span class="value">\${kvMetrics.writes || 0}</span></div>
-                    <div class="stat"><span class="label">Cache Misses:</span> <span class="value">\${kvMetrics.cacheMisses || 0}</span></div>
-                  </div>
-                </div>
-              </div>
-            \`;
+            content.innerHTML = renderAdminStats(statsData);
           }
         };
       });
@@ -927,6 +895,176 @@
 
     window.confirmDeleteUser = confirmDeleteUser;
 
+
+    // Helper to render KV Summary card
+    function renderAdminKVSummary(summary) {
+      return `
+        <div class="admin-card">
+          <h3>📊 KV Summary</h3>
+          <div class="admin-stats">
+            <div class="stat">
+              <span class="label">Total Keys:</span>
+              <span class="value">${summary.totalKeys.toLocaleString()}</span>
+            </div>
+            <div class="stat">
+              <span class="label">Total Size:</span>
+              <span class="value">${(summary.totalSize / 1024).toFixed(2)} KB</span>
+            </div>
+            <div class="stat">
+              <span class="label">Avg Key Size:</span>
+              <span class="value">${summary.avgKeySize} bytes</span>
+            </div>
+            <div class="stat">
+              <span class="label">Namespaces:</span>
+              <span class="value">${summary.namespaceCount}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Helper to render KV Real-Time Operations card
+    function renderAdminKVRealTime(realTimeMetrics, limits, readHealth, writeHealth) {
+      return `
+        <div class="admin-card">
+          <h3>⚡ Real-Time Operations</h3>
+          <div class="admin-stats">
+            <div class="stat">
+              <span class="label">KV Reads:</span>
+              <span class="value ${readHealth.class}">${realTimeMetrics.reads} / ${limits.dailyReads.toLocaleString()}</span>
+            </div>
+            <div class="stat">
+              <span class="label">KV Writes:</span>
+              <span class="value ${writeHealth.class}">${realTimeMetrics.writes} / ${limits.dailyWrites.toLocaleString()}</span>
+            </div>
+            <div class="stat">
+              <span class="label">KV Deletes:</span>
+              <span class="value">${realTimeMetrics.deletes}</span>
+            </div>
+            <div class="stat">
+              <span class="label">Status:</span>
+              <span class="value">${readHealth.icon} ${readHealth.text}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Helper to render KV Cache Performance card
+    function renderAdminKVCachePerformance(realTimeMetrics) {
+      return `
+        <div class="admin-card">
+          <h3>💾 Cache Performance</h3>
+          <div class="admin-stats">
+            <div class="stat">
+              <span class="label">Cache Hits:</span>
+              <span class="value">${realTimeMetrics.cacheHits.toLocaleString()}</span>
+            </div>
+            <div class="stat">
+              <span class="label">Cache Misses:</span>
+              <span class="value">${realTimeMetrics.cacheMisses.toLocaleString()}</span>
+            </div>
+            <div class="stat">
+              <span class="label">Hit Rate:</span>
+              <span class="value">${realTimeMetrics.cacheHitRate}%</span>
+            </div>
+            <div class="stat">
+              <span class="label">KV Reads Saved:</span>
+              <span class="value">${realTimeMetrics.cacheHits.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Helper to render KV Usage & Limits card
+    function renderAdminKVUsageLimits(limits, realTimeMetrics) {
+      return `
+        <div class="admin-card">
+          <h3>📈 Usage & Limits</h3>
+          <div class="admin-stats">
+            <div class="stat">
+              <span class="label">Daily Read Limit:</span>
+              <span class="value">${limits.dailyReads.toLocaleString()}</span>
+            </div>
+            <div class="stat">
+              <span class="label">Daily Write Limit:</span>
+              <span class="value">${limits.dailyWrites.toLocaleString()}</span>
+            </div>
+            <div class="stat">
+              <span class="label">Max Value Size:</span>
+              <span class="value">${(limits.maxValueSize / 1024 / 1024).toFixed(0)} MB</span>
+            </div>
+            <div class="stat">
+              <span class="label">Last Reset:</span>
+              <span class="value">${new Date(realTimeMetrics.lastReset).toLocaleTimeString()}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Helper to render KV Namespace Breakdown table
+    function renderAdminKVNamespaces(namespaces) {
+      return `
+        <div class="admin-card" style="margin-top: 1rem;">
+          <h3>🗄️ Namespace Breakdown</h3>
+          <div class="kv-namespace-table">
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 2px solid var(--border); text-align: left;">
+                  <th style="padding: 0.75rem;">Namespace</th>
+                  <th style="padding: 0.75rem;">Keys</th>
+                  <th style="padding: 0.75rem;">Total Size</th>
+                  <th style="padding: 0.75rem;">Avg Size</th>
+                  <th style="padding: 0.75rem;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${namespaces.map(ns => `
+                  <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 0.75rem;">
+                      <strong>${ns.name}</strong>
+                      <br>
+                      <small style="color: var(--text-muted);">${ns.description}</small>
+                      ${ns.truncated ? '<br><small style="color: orange;">⚠️ Truncated (1000+ keys)</small>' : ''}
+                    </td>
+                    <td style="padding: 0.75rem;">${ns.keyCount.toLocaleString()}</td>
+                    <td style="padding: 0.75rem;">${(ns.totalSize / 1024).toFixed(2)} KB</td>
+                    <td style="padding: 0.75rem;">${ns.avgSize} bytes</td>
+                    <td style="padding: 0.75rem;">
+                      <button class="btn btn-ghost btn-sm" onclick="browseKVKeys('${ns.prefix}', '${ns.name}')">
+                        🔍 Browse
+                      </button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // Helper to render KV Quota Warning
+    function renderAdminKVQuotaWarning(readPercent, writePercent) {
+      if (readPercent <= 80 && writePercent <= 80) return '';
+      return `
+        <div class="admin-card" style="margin-top: 1rem; border-color: #ff4444; background: rgba(255, 68, 68, 0.1);">
+          <h3>⚠️ Quota Warning</h3>
+          <p style="margin: 0; color: var(--text);">
+            You are approaching your daily KV quota limits. Consider:
+          </p>
+          <ul style="margin: 0.5rem 0 0 1.5rem; color: var(--text);">
+            <li>Increasing cache TTLs to reduce reads</li>
+            <li>Batching write operations</li>
+            <li>Clearing unnecessary cached data</li>
+            <li>Upgrading to a paid Workers plan for higher limits</li>
+          </ul>
+        </div>
+      `;
+    }
+
     // Admin KV Monitor Tab - comprehensive KV namespace monitoring
     async function loadAdminKVMonitorTab(modal) {
       const content = modal.querySelector('#admin-tab-content');
@@ -960,146 +1098,13 @@
 
         content.innerHTML = \`
           <div class="admin-grid">
-            <div class="admin-card">
-              <h3>📊 KV Summary</h3>
-              <div class="admin-stats">
-                <div class="stat">
-                  <span class="label">Total Keys:</span>
-                  <span class="value">\${summary.totalKeys.toLocaleString()}</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Total Size:</span>
-                  <span class="value">\${(summary.totalSize / 1024).toFixed(2)} KB</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Avg Key Size:</span>
-                  <span class="value">\${summary.avgKeySize} bytes</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Namespaces:</span>
-                  <span class="value">\${summary.namespaceCount}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="admin-card">
-              <h3>⚡ Real-Time Operations</h3>
-              <div class="admin-stats">
-                <div class="stat">
-                  <span class="label">KV Reads:</span>
-                  <span class="value \${readHealth.class}">\${realTimeMetrics.reads} / \${limits.dailyReads.toLocaleString()}</span>
-                </div>
-                <div class="stat">
-                  <span class="label">KV Writes:</span>
-                  <span class="value \${writeHealth.class}">\${realTimeMetrics.writes} / \${limits.dailyWrites.toLocaleString()}</span>
-                </div>
-                <div class="stat">
-                  <span class="label">KV Deletes:</span>
-                  <span class="value">\${realTimeMetrics.deletes}</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Status:</span>
-                  <span class="value">\${readHealth.icon} \${readHealth.text}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="admin-card">
-              <h3>💾 Cache Performance</h3>
-              <div class="admin-stats">
-                <div class="stat">
-                  <span class="label">Cache Hits:</span>
-                  <span class="value">\${realTimeMetrics.cacheHits.toLocaleString()}</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Cache Misses:</span>
-                  <span class="value">\${realTimeMetrics.cacheMisses.toLocaleString()}</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Hit Rate:</span>
-                  <span class="value">\${realTimeMetrics.cacheHitRate}%</span>
-                </div>
-                <div class="stat">
-                  <span class="label">KV Reads Saved:</span>
-                  <span class="value">\${realTimeMetrics.cacheHits.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="admin-card">
-              <h3>📈 Usage & Limits</h3>
-              <div class="admin-stats">
-                <div class="stat">
-                  <span class="label">Daily Read Limit:</span>
-                  <span class="value">\${limits.dailyReads.toLocaleString()}</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Daily Write Limit:</span>
-                  <span class="value">\${limits.dailyWrites.toLocaleString()}</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Max Value Size:</span>
-                  <span class="value">\${(limits.maxValueSize / 1024 / 1024).toFixed(0)} MB</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Last Reset:</span>
-                  <span class="value">\${new Date(realTimeMetrics.lastReset).toLocaleTimeString()}</span>
-                </div>
-              </div>
-            </div>
+            \${renderAdminKVSummary(summary)}
+            \${renderAdminKVRealTime(realTimeMetrics, limits, readHealth, writeHealth)}
+            \${renderAdminKVCachePerformance(realTimeMetrics)}
+            \${renderAdminKVUsageLimits(limits, realTimeMetrics)}
           </div>
-
-          <div class="admin-card" style="margin-top: 1rem;">
-            <h3>🗄️ Namespace Breakdown</h3>
-            <div class="kv-namespace-table">
-              <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                  <tr style="border-bottom: 2px solid var(--border); text-align: left;">
-                    <th style="padding: 0.75rem;">Namespace</th>
-                    <th style="padding: 0.75rem;">Keys</th>
-                    <th style="padding: 0.75rem;">Total Size</th>
-                    <th style="padding: 0.75rem;">Avg Size</th>
-                    <th style="padding: 0.75rem;">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  \${namespaces.map(ns => \`
-                    <tr style="border-bottom: 1px solid var(--border);">
-                      <td style="padding: 0.75rem;">
-                        <strong>\${ns.name}</strong>
-                        <br>
-                        <small style="color: var(--text-muted);">\${ns.description}</small>
-                        \${ns.truncated ? '<br><small style="color: orange;">⚠️ Truncated (1000+ keys)</small>' : ''}
-                      </td>
-                      <td style="padding: 0.75rem;">\${ns.keyCount.toLocaleString()}</td>
-                      <td style="padding: 0.75rem;">\${(ns.totalSize / 1024).toFixed(2)} KB</td>
-                      <td style="padding: 0.75rem;">\${ns.avgSize} bytes</td>
-                      <td style="padding: 0.75rem;">
-                        <button class="btn btn-ghost btn-sm" onclick="browseKVKeys('\${ns.prefix}', '\${ns.name}')">
-                          🔍 Browse
-                        </button>
-                      </td>
-                    </tr>
-                  \`).join('')}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          \${readPercent > 80 || writePercent > 80 ? \`
-            <div class="admin-card" style="margin-top: 1rem; border-color: #ff4444; background: rgba(255, 68, 68, 0.1);">
-              <h3>⚠️ Quota Warning</h3>
-              <p style="margin: 0; color: var(--text);">
-                You are approaching your daily KV quota limits. Consider:
-              </p>
-              <ul style="margin: 0.5rem 0 0 1.5rem; color: var(--text);">
-                <li>Increasing cache TTLs to reduce reads</li>
-                <li>Batching write operations</li>
-                <li>Clearing unnecessary cached data</li>
-                <li>Upgrading to a paid Workers plan for higher limits</li>
-              </ul>
-            </div>
-          \` : ''}
+          \${renderAdminKVNamespaces(namespaces)}
+          \${renderAdminKVQuotaWarning(readPercent, writePercent)}
         \`;
       } catch (err) {
         console.error('Failed to load KV monitor:', err);
@@ -1359,27 +1364,13 @@
       }
     }
 
-    // Admin Health Tab - system health monitoring
-    async function loadAdminHealthTab(modal) {
-      const content = modal.querySelector('#admin-tab-content');
-      content.innerHTML = '<div class="admin-loading">Loading health metrics...</div>';
+    function getSystemHealthCardHtml(kvUsage) {
+      const readPct = kvUsage.usage?.readsPercent || 0;
+      const writePct = kvUsage.usage?.writesPercent || 0;
+      const readStatus = readPct > 80 ? '🔴 Critical' : readPct > 50 ? '🟡 Warning' : '🟢 Healthy';
+      const writeStatus = writePct > 80 ? '🔴 Critical' : writePct > 50 ? '🟡 Warning' : '🟢 Healthy';
 
-      try {
-        const [kvUsageRes, analyticsRes] = await Promise.all([
-          fetch('/api/kv-usage'),
-          fetch('/api/analytics')
-        ]);
-
-        const kvUsage = await kvUsageRes.json();
-        const analytics = await analyticsRes.json();
-
-        const readPct = kvUsage.usage?.readsPercent || 0;
-        const writePct = kvUsage.usage?.writesPercent || 0;
-        const readStatus = readPct > 80 ? '🔴 Critical' : readPct > 50 ? '🟡 Warning' : '🟢 Healthy';
-        const writeStatus = writePct > 80 ? '🔴 Critical' : writePct > 50 ? '🟡 Warning' : '🟢 Healthy';
-
-        content.innerHTML = `
-          <div class="admin-grid">
+      return `
             <div class="admin-card">
               <h3>🏥 System Health</h3>
               <div class="admin-stats">
@@ -1400,7 +1391,11 @@
                   <span class="value">${kvUsage.realtime?.cacheHitRate || 0}%</span>
                 </div>
               </div>
-            </div>
+            </div>`;
+    }
+
+    function getDailyLimitsCardHtml(kvUsage) {
+      return `
             <div class="admin-card">
               <h3>📊 Daily Limits</h3>
               <div class="admin-stats">
@@ -1417,7 +1412,11 @@
                   <span class="value">${kvUsage.status || 'ok'}</span>
                 </div>
               </div>
-            </div>
+            </div>`;
+    }
+
+    function getActivityCardHtml(kvUsage) {
+      return `
             <div class="admin-card">
               <h3>⚡ Activity (Today)</h3>
               <div class="admin-stats">
@@ -1438,7 +1437,11 @@
                   <span class="value">${kvUsage.activity?.authFailures || 0}</span>
                 </div>
               </div>
-            </div>
+            </div>`;
+    }
+
+    function getOptimizationsCardHtml() {
+      return `
             <div class="admin-card">
               <h3>💡 Optimizations</h3>
               <div class="admin-stats" style="font-size: 0.85rem;">
@@ -1459,16 +1462,37 @@
                   <span class="value">3 min</span>
                 </div>
               </div>
-            </div>
-          </div>
-          ${kvUsage.recommendations && kvUsage.recommendations.length > 0 ? `
+            </div>`;
+    }
+
+    function getRecommendationsHtml(kvUsage) {
+      if (!kvUsage.recommendations || kvUsage.recommendations.length === 0) return '';
+      return `
             <div class="admin-card" style="margin-top: 1rem; grid-column: 1 / -1;">
               <h3>💡 Recommendations</h3>
               <ul style="margin: 0; padding-left: 1.5rem;">
                 ${kvUsage.recommendations.map(rec => `<li style="margin: 0.5rem 0;">${rec}</li>`).join('')}
               </ul>
-            </div>
-          ` : ''}
+            </div>`;
+    }
+
+    // Admin Health Tab - system health monitoring
+    async function loadAdminHealthTab(modal) {
+      const content = modal.querySelector('#admin-tab-content');
+      content.innerHTML = '<div class="admin-loading">Loading health metrics...</div>';
+
+      try {
+        const kvUsageRes = await fetch('/api/kv-usage');
+        const kvUsage = await kvUsageRes.json();
+
+        content.innerHTML = `
+          <div class="admin-grid">
+            ${getSystemHealthCardHtml(kvUsage)}
+            ${getDailyLimitsCardHtml(kvUsage)}
+            ${getActivityCardHtml(kvUsage)}
+            ${getOptimizationsCardHtml()}
+          </div>
+          ${getRecommendationsHtml(kvUsage)}
         `;
       } catch (err) {
         content.innerHTML = `<div class="admin-error">Failed to load health metrics: ${escapeHtml(err.message)}</div>`;
@@ -2413,7 +2437,7 @@
 
           // Set up click to open in Spotify
           if (data.track.url) {
-            widget.onclick = () => window.open(data.track.url, '_blank');
+            widget.onclick = () => window.open(getSafeUrl(data.track.url), '_blank');
             widget.style.cursor = 'pointer';
             widget.title = t('openInSpotify');
           }
@@ -2901,7 +2925,9 @@
       await showSourceSelector();
     }
 
-    function renderWelcome(error) {
+    function getWelcomeErrorMessage(error) {
+      if (!error) return '';
+
       const errorMessages = {
         'github_denied': t('errorGithubDenied'),
         'not_allowed': t('errorNotAllowed'),
@@ -2911,18 +2937,28 @@
         'spotify_auth_failed': 'Spotify authentication failed. Please try again.',
       };
 
-      // User counter HTML - now with Swedish translation
-      const userCounterHtml = statsData?.userCount ? \`
+      const message = errorMessages[error] || escapeHtml(error);
+      const requestAccessButton = error === 'not_allowed' ? \`
+        <button onclick="showRequestAccessModal()" class="btn btn-secondary request-access-btn">
+          🔑 \${t('requestAccess')}
+        </button>
+      \` : '';
+
+      return \`<div class="error">\${message}\${requestAccessButton}</div>\`;
+    }
+
+    function getUserCounterHtml() {
+      if (!statsData?.userCount) return '';
+      return \`
         <div class="user-counter">
           <span>\${swedishMode ? '🇸🇪' : '🎵'}</span>
           <span><span class="count">\${statsData.userCount}</span> \${t('musicLoversJoined')}</span>
         </div>
-      \` : '';
+      \`;
+    }
 
-      // Hall of fame removed - now using sidebar Pioneers section
-
-      // Different login button based on mode
-      const loginButton = spotifyOnlyMode ? \`
+    function getLoginButtonHtml() {
+      return spotifyOnlyMode ? \`
         <a href="/auth/spotify" class="btn btn-primary" data-testid="sign-in-button">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 01-.277-1.215c3.809-.87 7.076-.496 9.712 1.115.293.18.386.563.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.972c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.071zm.105-2.835c-3.223-1.914-8.54-2.09-11.618-1.156a.935.935 0 11-.543-1.79c3.533-1.072 9.404-.865 13.115 1.338a.935.935 0 11-.954 1.608z"/>
@@ -2937,16 +2973,10 @@
           <span data-i18n="signInGithub">\${t('signInGithub')}</span>
         </a>
       \`;
+    }
 
-      // Request access button for not_allowed errors
-      const requestAccessButton = error === 'not_allowed' ? \`
-        <button onclick="showRequestAccessModal()" class="btn btn-secondary request-access-btn">
-          🔑 \${t('requestAccess')}
-        </button>
-      \` : '';
-
-      // Privacy explainer HTML - collapsible section
-      const privacyExplainer = \`
+    function getPrivacyExplainerHtml() {
+      return \`
         <details class="privacy-explainer">
           <summary>\${t('privacyTitle')}</summary>
           <div class="privacy-grid">
@@ -2999,15 +3029,10 @@
           </a>
         </details>
       \`;
+    }
 
-      app.innerHTML = \`
-        <div class="welcome">
-          \${error ? \`<div class="error">\${errorMessages[error] || escapeHtml(error)}\${requestAccessButton}</div>\` : ''}
-          \${userCounterHtml}
-          <h2 data-i18n="organiseMusic">\${t('organiseMusic')}</h2>
-          <p data-i18n="organiseDesc">\${t('organiseDesc')}</p>
-          \${privacyExplainer}
-          \${loginButton}
+    function getFooterBadgesHtml() {
+      return \`
           <div class="footer-badges">
             <a href="https://github.com/TomsTech/spotify-genre-sorter" target="_blank" rel="noopener noreferrer" class="github-star-badge" title="\${swedishMode ? 'Gillar du det? Stjärnmärk oss! ⭐' : 'Love this? Star us! ⭐'}">
               <img src="https://img.shields.io/github/stars/TomsTech/spotify-genre-sorter?style=for-the-badge&logo=github&logoColor=white&label=Star&color=1DB954&labelColor=191414" alt="Star on GitHub" loading="lazy" onerror="this.style.display='none'">
@@ -3016,6 +3041,19 @@
               <img src="https://img.shields.io/website?url=https%3A%2F%2Fspotify.houstons.tech&style=for-the-badge&logo=spotify&logoColor=white&label=Status&up_color=1DB954&down_color=e74c3c&labelColor=191414" alt="Service Status" loading="lazy" onerror="this.style.display='none'">
             </a>
           </div>
+      \`;
+    }
+
+    function renderWelcome(error) {
+      app.innerHTML = \`
+        <div class="welcome">
+          \${getWelcomeErrorMessage(error)}
+          \${getUserCounterHtml()}
+          <h2 data-i18n="organiseMusic">\${t('organiseMusic')}</h2>
+          <p data-i18n="organiseDesc">\${t('organiseDesc')}</p>
+          \${getPrivacyExplainerHtml()}
+          \${getLoginButtonHtml()}
+          \${getFooterBadgesHtml()}
         </div>
       \`;
     }
@@ -3310,87 +3348,78 @@
       }
     }
 
-    function renderProgressLoading(message, progress, loaded, total, partialGenres = null, partialStats = null) {
-      // Check if progress bar already exists
-      let progressContainer = document.getElementById('progressive-loading');
+    function createProgressLoadingUI(loaded, total, genreCount, artistCount, progress) {
+      app.innerHTML = \`
+        <div id="progressive-loading" class="progressive-loading-full">
+          <div class="album-art-carousel" id="album-carousel"><div class="album-art-item left placeholder visible">🎵</div><div class="album-art-item center placeholder visible">🎶</div><div class="album-art-item right placeholder visible">🎵</div></div><div class="loading-header">
+            <h2>\${swedishMode ? '🎵 Laddar ditt bibliotek...' : '🎵 Loading your library...'}</h2>
+            <p class="loading-subtitle">\${swedishMode ? 'Du kan redan se dina genrer medan det laddar!' : 'You can already see your genres while loading!'}</p>
+          </div>
 
-      // Calculate partial stats
-      const genreCount = partialGenres?.length || 0;
-      const artistCount = partialStats?.artistCount || 0;
-
-      if (!progressContainer) {
-        // First call - create the full interactive UI
-        app.innerHTML = \`
-          <div id="progressive-loading" class="progressive-loading-full">
-            <div class="album-art-carousel" id="album-carousel"><div class="album-art-item left placeholder visible">🎵</div><div class="album-art-item center placeholder visible">🎶</div><div class="album-art-item right placeholder visible">🎵</div></div><div class="loading-header">
-              <h2>\${swedishMode ? '🎵 Laddar ditt bibliotek...' : '🎵 Loading your library...'}</h2>
-              <p class="loading-subtitle">\${swedishMode ? 'Du kan redan se dina genrer medan det laddar!' : 'You can already see your genres while loading!'}</p>
+          <div class="loading-stats-row">
+            <div class="loading-stat">
+              <div class="loading-stat-value" id="stat-tracks">\${loaded.toLocaleString()}</div>
+              <div class="loading-stat-label">\${swedishMode ? 'låtar' : 'tracks'}</div>
             </div>
-
-            <div class="loading-stats-row">
-              <div class="loading-stat">
-                <div class="loading-stat-value" id="stat-tracks">\${loaded.toLocaleString()}</div>
-                <div class="loading-stat-label">\${swedishMode ? 'låtar' : 'tracks'}</div>
-              </div>
-              <div class="loading-stat">
-                <div class="loading-stat-value" id="stat-genres">\${genreCount}</div>
-                <div class="loading-stat-label">\${swedishMode ? 'genrer' : 'genres'}</div>
-              </div>
-              <div class="loading-stat">
-                <div class="loading-stat-value" id="stat-artists">\${artistCount}</div>
-                <div class="loading-stat-label">\${swedishMode ? 'artister' : 'artists'}</div>
-              </div>
-              <div class="loading-stat">
-                <div class="loading-stat-value" id="stat-progress">\${progress}%</div>
-                <div class="loading-stat-label">\${swedishMode ? 'klart' : 'complete'}</div>
-              </div>
+            <div class="loading-stat">
+              <div class="loading-stat-value" id="stat-genres">\${genreCount}</div>
+              <div class="loading-stat-label">\${swedishMode ? 'genrer' : 'genres'}</div>
             </div>
-
-            <div class="progress-container-full">
-              <div class="progress-bar-full">
-                <div class="progress-fill-full" id="progress-fill" style="width: \${progress}%"></div>
-              </div>
-              <div class="progress-detail" id="progress-detail">
-                \${loaded.toLocaleString()} / \${total.toLocaleString()} \${swedishMode ? 'låtar' : 'tracks'}
-              </div>
+            <div class="loading-stat">
+              <div class="loading-stat-value" id="stat-artists">\${artistCount}</div>
+              <div class="loading-stat-label">\${swedishMode ? 'artister' : 'artists'}</div>
             </div>
-
-            <div class="progress-controls">
-              <button class="btn btn-secondary" id="pause-scan-btn" onclick="pauseProgressiveScan()" title="\${swedishMode ? 'Pausa skanningen' : 'Pause scan'}" aria-label="\${swedishMode ? 'Pausa skanningen' : 'Pause scan'}">
-                ⏸️ \${swedishMode ? 'Pausa' : 'Pause'}
-              </button>
-              <button class="btn btn-primary" id="resume-scan-btn" onclick="resumeProgressiveScan()" style="display: none;" title="\${swedishMode ? 'Återuppta skanningen' : 'Resume scan'}" aria-label="\${swedishMode ? 'Återuppta skanningen' : 'Resume scan'}">
-                ▶️ \${swedishMode ? 'Återuppta' : 'Resume'}
-              </button>
-              <button class="btn btn-ghost" id="stop-scan-btn" onclick="stopProgressiveScan()" title="\${swedishMode ? 'Stoppa skanningen' : 'Stop scan'}" aria-label="\${swedishMode ? 'Stoppa skanningen' : 'Stop scan'}">
-                ⏹️ \${swedishMode ? 'Stoppa' : 'Stop'}
-              </button>
+            <div class="loading-stat">
+              <div class="loading-stat-value" id="stat-progress">\${progress}%</div>
+              <div class="loading-stat-label">\${swedishMode ? 'klart' : 'complete'}</div>
             </div>
+          </div>
 
-            <div class="live-genres-section">
-              <h3>\${swedishMode ? '🎸 Genrer hittade hittills' : '🎸 Genres found so far'}</h3>
-              <div class="live-genres-grid" id="live-genres-grid"></div><div class="live-bar-chart" id="live-bar-chart"><h4>\${swedishMode ? "📊 Topp genrer" : "📊 Top Genres"}</h4><div id="bar-chart-items"></div></div></div></div>
-        \`;
-        progressContainer = document.getElementById('progressive-loading');
+          <div class="progress-container-full">
+            <div class="progress-bar-full">
+              <div class="progress-fill-full" id="progress-fill" style="width: \${progress}%"></div>
+            </div>
+            <div class="progress-detail" id="progress-detail">
+              \${loaded.toLocaleString()} / \${total.toLocaleString()} \${swedishMode ? 'låtar' : 'tracks'}
+            </div>
+          </div>
 
-        // Start album carousel rotation
-        if (!albumCarouselInterval) {
-          albumCarouselInterval = setInterval(rotateAlbumCarousel, 1500);
-        }
-      } else {
-        // Update existing stats with animation
-        animateCounter(document.getElementById('stat-tracks'), loaded.toLocaleString());
-        animateCounter(document.getElementById('stat-genres'), String(genreCount));
-        animateCounter(document.getElementById('stat-artists'), String(artistCount));
-        animateCounter(document.getElementById('stat-progress'), progress + '%');
+          <div class="progress-controls">
+            <button class="btn btn-secondary" id="pause-scan-btn" onclick="pauseProgressiveScan()" title="\${swedishMode ? 'Pausa skanningen' : 'Pause scan'}" aria-label="\${swedishMode ? 'Pausa skanningen' : 'Pause scan'}">
+              ⏸️ \${swedishMode ? 'Pausa' : 'Pause'}
+            </button>
+            <button class="btn btn-primary" id="resume-scan-btn" onclick="resumeProgressiveScan()" style="display: none;" title="\${swedishMode ? 'Återuppta skanningen' : 'Resume scan'}" aria-label="\${swedishMode ? 'Återuppta skanningen' : 'Resume scan'}">
+              ▶️ \${swedishMode ? 'Återuppta' : 'Resume'}
+            </button>
+            <button class="btn btn-ghost" id="stop-scan-btn" onclick="stopProgressiveScan()" title="\${swedishMode ? 'Stoppa skanningen' : 'Stop scan'}" aria-label="\${swedishMode ? 'Stoppa skanningen' : 'Stop scan'}">
+              ⏹️ \${swedishMode ? 'Stoppa' : 'Stop'}
+            </button>
+          </div>
 
-        const fill = document.getElementById('progress-fill');
-        const detail = document.getElementById('progress-detail');
-        if (fill) fill.style.width = \`\${progress}%\`;
-        if (detail) detail.textContent = \`\${loaded.toLocaleString()} / \${total.toLocaleString()} \${swedishMode ? 'låtar' : 'tracks'}\`;
+          <div class="live-genres-section">
+            <h3>\${swedishMode ? '🎸 Genrer hittade hittills' : '🎸 Genres found so far'}</h3>
+            <div class="live-genres-grid" id="live-genres-grid"></div><div class="live-bar-chart" id="live-bar-chart"><h4>\${swedishMode ? "📊 Topp genrer" : "📊 Top Genres"}</h4><div id="bar-chart-items"></div></div></div></div>
+      \`;
+
+      // Start album carousel rotation
+      if (!albumCarouselInterval) {
+        albumCarouselInterval = setInterval(rotateAlbumCarousel, 1500);
       }
+    }
 
-      // Populate album art URLs from partial genres for the carousel
+    function updateProgressLoadingStats(loaded, total, genreCount, artistCount, progress) {
+      animateCounter(document.getElementById('stat-tracks'), loaded.toLocaleString());
+      animateCounter(document.getElementById('stat-genres'), String(genreCount));
+      animateCounter(document.getElementById('stat-artists'), String(artistCount));
+      animateCounter(document.getElementById('stat-progress'), progress + '%');
+
+      const fill = document.getElementById('progress-fill');
+      const detail = document.getElementById('progress-detail');
+      if (fill) fill.style.width = \`\${progress}%\`;
+      if (detail) detail.textContent = \`\${loaded.toLocaleString()} / \${total.toLocaleString()} \${swedishMode ? 'låtar' : 'tracks'}\`;
+    }
+
+    function updateProgressAlbumCarousel(partialGenres) {
       if (partialGenres && partialGenres.length > 0 && albumArtUrls.length === 0) {
         const artUrls = [];
         for (const genre of partialGenres) {
@@ -3405,8 +3434,9 @@
           updateAlbumCarousel(); // Update carousel with real images
         }
       }
+    }
 
-      // Update live genres grid with emojis
+    function updateProgressLiveGenres(partialGenres) {
       if (partialGenres && partialGenres.length > 0) {
         const grid = document.getElementById('live-genres-grid');
         if (grid) {
@@ -3428,6 +3458,30 @@
         // Update bar chart
         updateBarChart(partialGenres);
       }
+    }
+
+    function renderProgressLoading(message, progress, loaded, total, partialGenres = null, partialStats = null) {
+      // Check if progress bar already exists
+      let progressContainer = document.getElementById('progressive-loading');
+
+      // Calculate partial stats
+      const genreCount = partialGenres?.length || 0;
+      const artistCount = partialStats?.artistCount || 0;
+
+      if (!progressContainer) {
+        // First call - create the full interactive UI
+        createProgressLoadingUI(loaded, total, genreCount, artistCount, progress);
+        progressContainer = document.getElementById('progressive-loading');
+      } else {
+        // Update existing stats with animation
+        updateProgressLoadingStats(loaded, total, genreCount, artistCount, progress);
+      }
+
+      // Populate album art URLs from partial genres for the carousel
+      updateProgressAlbumCarousel(partialGenres);
+
+      // Update live genres grid with emojis
+      updateProgressLiveGenres(partialGenres);
     }
 
     // Merge genre data from multiple chunks
@@ -3483,25 +3537,8 @@
       playlists: [] // Array of playlist IDs to include
     };
 
-    // Show source selector modal before scanning
-    async function showSourceSelector() {
-      try {
-        // Fetch user's playlists
-        const response = await fetch('/api/user-playlists');
-        if (!response.ok) {
-          // If we can't fetch playlists, just proceed with liked songs only
-          console.warn('Could not fetch playlists, using liked songs only');
-          selectedSources = { likedSongs: true, playlists: [] };
-          await loadGenres();
-          return;
-        }
-        const data = await response.json();
-        const playlists = data.playlists || [];
-
-        // Create modal
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay source-selector-modal';
-        modal.innerHTML = \`
+    function createSourceSelectorHTML(playlists) {
+      return \`
           <div class="modal-content" style="max-width: 500px; max-height: 80vh; overflow-y: auto;">
             <h2>\${swedishMode ? '🎵 Välj musikkällor' : '🎵 Select Music Sources'}</h2>
             <p style="color: var(--text-muted); margin-bottom: 1rem;">
@@ -3543,42 +3580,63 @@
               </button>
             </div>
           </div>
-        \`;
+      \`;
+    }
+
+    function bindSourceSelectorEvents(modal) {
+      modal.querySelector('#source-cancel').addEventListener('click', () => {
+        modal.remove();
+      });
+
+      modal.querySelector('#source-confirm').addEventListener('click', async () => {
+        const likedChecked = modal.querySelector('#source-liked').checked;
+        const playlistCheckboxes = modal.querySelectorAll('input[data-playlist-id]:checked');
+        const selectedPlaylistIds = Array.from(playlistCheckboxes).map(cb => cb.dataset.playlistId);
+
+        if (!likedChecked && selectedPlaylistIds.length === 0) {
+          showNotification(
+            swedishMode ? 'Välj minst en källa!' : 'Select at least one source!',
+            'warning'
+          );
+          return;
+        }
+
+        selectedSources = {
+          likedSongs: likedChecked,
+          playlists: selectedPlaylistIds
+        };
+
+        modal.remove();
+        await loadGenres();
+      });
+
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+      });
+    }
+
+    // Show source selector modal before scanning
+    async function showSourceSelector() {
+      try {
+        // Fetch user's playlists
+        const response = await fetch('/api/user-playlists');
+        if (!response.ok) {
+          // If we can't fetch playlists, just proceed with liked songs only
+          console.warn('Could not fetch playlists, using liked songs only');
+          selectedSources = { likedSongs: true, playlists: [] };
+          await loadGenres();
+          return;
+        }
+        const data = await response.json();
+        const playlists = data.playlists || [];
+
+        // Create modal
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay source-selector-modal';
+        modal.innerHTML = createSourceSelectorHTML(playlists);
 
         document.body.appendChild(modal);
-
-        // Handle cancel
-        modal.querySelector('#source-cancel').addEventListener('click', () => {
-          modal.remove();
-        });
-
-        // Handle confirm
-        modal.querySelector('#source-confirm').addEventListener('click', async () => {
-          const likedChecked = modal.querySelector('#source-liked').checked;
-          const playlistCheckboxes = modal.querySelectorAll('input[data-playlist-id]:checked');
-          const selectedPlaylistIds = Array.from(playlistCheckboxes).map(cb => cb.dataset.playlistId);
-
-          if (!likedChecked && selectedPlaylistIds.length === 0) {
-            showNotification(
-              swedishMode ? 'Välj minst en källa!' : 'Select at least one source!',
-              'warning'
-            );
-            return;
-          }
-
-          selectedSources = {
-            likedSongs: likedChecked,
-            playlists: selectedPlaylistIds
-          };
-
-          modal.remove();
-          await loadGenres();
-        });
-
-        // Close on backdrop click
-        modal.addEventListener('click', (e) => {
-          if (e.target === modal) modal.remove();
-        });
+        bindSourceSelectorEvents(modal);
 
       } catch (err) {
         console.error('Error showing source selector:', err);
@@ -4162,109 +4220,127 @@
       return swedishMode ? 'Mycket fokuserad' : 'Very focused';
     }
 
+    // Fun Spotify Wrapped-style quotes mapping based on diversity score
+    const DIVERSITY_QUOTES_MAP = {
+      high: {
+        sv: [
+          'Din musiksmak? Omöjlig att sätta i ett fack. Du är en genre-anomali!',
+          'Du lyssnar på allt från ABBA till death metal. Respekt.',
+          'Dina spellistor ger Spotify-algoritmerna existentiell kris.',
+          'Du är typ den där personen som DJ:ar på fester med "vänta, ni MÅSTE höra den här".',
+          'Musikalisk kameleont med oförutsägbar nästa låt.',
+          'Du har sagt "jag gillar typ allt" och faktiskt menat det.',
+          'Din shuffle är en berg-och-dalbana ingen bad om men alla behöver.',
+          'Genre? Aldrig hört talas om henne.',
+        ],
+        en: [
+          'Your music taste? Impossible to pigeonhole. You are a genre anomaly.',
+          'You listen to everything from ABBA to death metal. Respect.',
+          'Your playlists give Spotify algorithms an existential crisis.',
+          'You are that person who DJs at parties with "wait, you HAVE to hear this one".',
+          'Musical chameleon with an unpredictable next track.',
+          'You have said "I like basically everything" and actually meant it.',
+          'Your shuffle is a rollercoaster nobody asked for but everyone needs.',
+          'Genre? Never heard of her.',
+        ]
+      },
+      diverse: {
+        sv: [
+          'Du gillar variation! Dina öron är nyfikna äventyrare.',
+          'Bra blandning! Du vet vad du gillar men är öppen för överraskningar.',
+          'Din musiksmak är som en välkryddad måltid - lite av varje.',
+          'Du har en bred smak men det är inte kaotiskt. Organiserat eklektiskt.',
+          'Du växlar mellan stämningar som en proffs.',
+          'Mångsidighet är ditt mellannamn. Eller borde vara.',
+          'Du är den vännen alla frågar om musikrekommendationer.',
+        ],
+        en: [
+          'You like variety! Your ears are curious adventurers.',
+          'Nice mix! You know what you like but stay open to surprises.',
+          'Your music taste is like a well-seasoned meal - a bit of everything.',
+          'You have broad taste but it is not chaotic. Organised eclectic.',
+          'You switch between moods like a pro.',
+          'Versatility is your middle name. Or should be.',
+          'You are the friend everyone asks for music recommendations.',
+        ]
+      },
+      moderate: {
+        sv: [
+          'Du har hittat din groove och du äger den!',
+          'Bekväm i dina favoritgenrer, men du tar ibland en omväg.',
+          'Solid grund med plats för utforskning när stämningen stämmer.',
+          'Du vet vad du gillar - ingen skam i det spelet.',
+          'Din musiksmak har en tydlig identitet och det är vackert.',
+          'Balanserad som en bra playlist. Lagom är bäst.',
+          'Du har dina go-to-genrer och det är helt rätt.',
+        ],
+        en: [
+          'You have found your groove and you own it!',
+          'Comfortable in your favourite genres, but you take a detour sometimes.',
+          'Solid foundation with room for exploration when the mood strikes.',
+          'You know what you like - no shame in that game.',
+          'Your music taste has a clear identity and that is beautiful.',
+          'Balanced like a good playlist. Goldilocks approved.',
+          'You have your go-to genres and that is perfectly valid.',
+        ]
+      },
+      focused: {
+        sv: [
+          'Du har en typ och du håller dig till den. Konsekvent legend.',
+          'Dedikerad lyssnare alert! Du vet exakt vad du vill ha.',
+          'Låt ingen säga att du inte är engagerad.',
+          'Genre-specialist! Du har valt din bana och du kör hårt.',
+          'Djup kunskap > bred kunskap. Du gräver djupt.',
+          'Du är den där vännen som vet ALLT om en specifik genre.',
+          'Fokuserad energi. Inga distraktioner. Ren musiksmak.',
+        ],
+        en: [
+          'You have a type and you stick with it. Consistent legend.',
+          'Dedicated listener alert! You know exactly what you want.',
+          'Let nobody say you are not committed.',
+          'Genre specialist! You picked your lane and you are thriving.',
+          'Deep knowledge > broad knowledge. You dig deep.',
+          'You are that friend who knows EVERYTHING about one specific genre.',
+          'Focused energy. No distractions. Pure music taste.',
+        ]
+      },
+      veryFocused: {
+        sv: [
+          'En genre att styra dem alla! Du är fullt dedikerad.',
+          'Du har hittat DET ljudet och du släpper det inte.',
+          'Laser-fokuserad musiksmak. Ingen ifrågasätter din dedikation.',
+          'Du vet vad du gillar och du äger det. Absolut inga ursäkter.',
+          'Genremästare! 100% koncentrerad passion.',
+          'När du gillar något, gillar du det PÅ RIKTIGT.',
+          'Din musikbibliotek har en estetik och den är tight.',
+          'Dedikation nivå: Expert. Du har valt din grej.',
+        ],
+        en: [
+          'One genre to rule them all! You are fully committed.',
+          'You found THE sound and you are not letting go.',
+          'Laser-focused music taste. Nobody questions your dedication.',
+          'You know what you like and you own it. Zero apologies.',
+          'Genre master! 100% concentrated passion.',
+          'When you like something, you REALLY like it.',
+          'Your music library has an aesthetic and it is tight.',
+          'Dedication level: Expert. You picked your thing.',
+        ]
+      }
+    };
+
+    function getDiversityQuoteCategory(score) {
+      if (score >= 80) return 'high';
+      if (score >= 60) return 'diverse';
+      if (score >= 40) return 'moderate';
+      if (score >= 20) return 'focused';
+      return 'veryFocused';
+    }
+
     // Fun Spotify Wrapped-style quotes based on diversity score
     function getDiversityQuote(score) {
-      const highDiversityQuotes = swedishMode ? [
-        'Din musiksmak? Omöjlig att sätta i ett fack. Du är en genre-anomali!',
-        'Du lyssnar på allt från ABBA till death metal. Respekt.',
-        'Dina spellistor ger Spotify-algoritmerna existentiell kris.',
-        'Du är typ den där personen som DJ:ar på fester med "vänta, ni MÅSTE höra den här".',
-        'Musikalisk kameleont med oförutsägbar nästa låt.',
-        'Du har sagt "jag gillar typ allt" och faktiskt menat det.',
-        'Din shuffle är en berg-och-dalbana ingen bad om men alla behöver.',
-        'Genre? Aldrig hört talas om henne.',
-      ] : [
-        'Your music taste? Impossible to pigeonhole. You are a genre anomaly.',
-        'You listen to everything from ABBA to death metal. Respect.',
-        'Your playlists give Spotify algorithms an existential crisis.',
-        'You are that person who DJs at parties with "wait, you HAVE to hear this one".',
-        'Musical chameleon with an unpredictable next track.',
-        'You have said "I like basically everything" and actually meant it.',
-        'Your shuffle is a rollercoaster nobody asked for but everyone needs.',
-        'Genre? Never heard of her.',
-      ];
-
-      const diverseQuotes = swedishMode ? [
-        'Du gillar variation! Dina öron är nyfikna äventyrare.',
-        'Bra blandning! Du vet vad du gillar men är öppen för överraskningar.',
-        'Din musiksmak är som en välkryddad måltid - lite av varje.',
-        'Du har en bred smak men det är inte kaotiskt. Organiserat eklektiskt.',
-        'Du växlar mellan stämningar som en proffs.',
-        'Mångsidighet är ditt mellannamn. Eller borde vara.',
-        'Du är den vännen alla frågar om musikrekommendationer.',
-      ] : [
-        'You like variety! Your ears are curious adventurers.',
-        'Nice mix! You know what you like but stay open to surprises.',
-        'Your music taste is like a well-seasoned meal - a bit of everything.',
-        'You have broad taste but it is not chaotic. Organised eclectic.',
-        'You switch between moods like a pro.',
-        'Versatility is your middle name. Or should be.',
-        'You are the friend everyone asks for music recommendations.',
-      ];
-
-      const moderateQuotes = swedishMode ? [
-        'Du har hittat din groove och du äger den!',
-        'Bekväm i dina favoritgenrer, men du tar ibland en omväg.',
-        'Solid grund med plats för utforskning när stämningen stämmer.',
-        'Du vet vad du gillar - ingen skam i det spelet.',
-        'Din musiksmak har en tydlig identitet och det är vackert.',
-        'Balanserad som en bra playlist. Lagom är bäst.',
-        'Du har dina go-to-genrer och det är helt rätt.',
-      ] : [
-        'You have found your groove and you own it!',
-        'Comfortable in your favourite genres, but you take a detour sometimes.',
-        'Solid foundation with room for exploration when the mood strikes.',
-        'You know what you like - no shame in that game.',
-        'Your music taste has a clear identity and that is beautiful.',
-        'Balanced like a good playlist. Goldilocks approved.',
-        'You have your go-to genres and that is perfectly valid.',
-      ];
-
-      const focusedQuotes = swedishMode ? [
-        'Du har en typ och du håller dig till den. Konsekvent legend.',
-        'Dedikerad lyssnare alert! Du vet exakt vad du vill ha.',
-        'Låt ingen säga att du inte är engagerad.',
-        'Genre-specialist! Du har valt din bana och du kör hårt.',
-        'Djup kunskap > bred kunskap. Du gräver djupt.',
-        'Du är den där vännen som vet ALLT om en specifik genre.',
-        'Fokuserad energi. Inga distraktioner. Ren musiksmak.',
-      ] : [
-        'You have a type and you stick with it. Consistent legend.',
-        'Dedicated listener alert! You know exactly what you want.',
-        'Let nobody say you are not committed.',
-        'Genre specialist! You picked your lane and you are thriving.',
-        'Deep knowledge > broad knowledge. You dig deep.',
-        'You are that friend who knows EVERYTHING about one specific genre.',
-        'Focused energy. No distractions. Pure music taste.',
-      ];
-
-      const veryFocusedQuotes = swedishMode ? [
-        'En genre att styra dem alla! Du är fullt dedikerad.',
-        'Du har hittat DET ljudet och du släpper det inte.',
-        'Laser-fokuserad musiksmak. Ingen ifrågasätter din dedikation.',
-        'Du vet vad du gillar och du äger det. Absolut inga ursäkter.',
-        'Genremästare! 100% koncentrerad passion.',
-        'När du gillar något, gillar du det PÅ RIKTIGT.',
-        'Din musikbibliotek har en estetik och den är tight.',
-        'Dedikation nivå: Expert. Du har valt din grej.',
-      ] : [
-        'One genre to rule them all! You are fully committed.',
-        'You found THE sound and you are not letting go.',
-        'Laser-focused music taste. Nobody questions your dedication.',
-        'You know what you like and you own it. Zero apologies.',
-        'Genre master! 100% concentrated passion.',
-        'When you like something, you REALLY like it.',
-        'Your music library has an aesthetic and it is tight.',
-        'Dedication level: Expert. You picked your thing.',
-      ];
-
-      let quotes;
-      if (score >= 80) quotes = highDiversityQuotes;
-      else if (score >= 60) quotes = diverseQuotes;
-      else if (score >= 40) quotes = moderateQuotes;
-      else if (score >= 20) quotes = focusedQuotes;
-      else quotes = veryFocusedQuotes;
-
+      const category = getDiversityQuoteCategory(score);
+      const lang = swedishMode ? 'sv' : 'en';
+      const quotes = DIVERSITY_QUOTES_MAP[category][lang];
       return quotes[Math.floor(getSecureRandom() * quotes.length)];
     }
 
@@ -7939,18 +8015,7 @@
       ]
     };
 
-    function showGenreWrapped() {
-      // Get current genre data from the app state
-      const genres = window.currentGenres || [];
-      if (genres.length === 0) {
-        alert(swedishMode ? 'Analysera dina låtar först!' : 'Analyze your tracks first!');
-        return;
-      }
-
-      const existing = document.querySelector('.wrapped-overlay');
-      if (existing) existing.remove();
-
-      // Calculate stats - use actual track count, not genre assignment sum
+    function getWrappedStats(genres) {
       const totalTracks = genreData?.totalTracks || window.totalTracks || genres.length;
       const topGenres = genres.slice(0, 5);
       const topFamily = getGenreFamily(topGenres[0]?.name || '');
@@ -7959,11 +8024,8 @@
       const lang = swedishMode ? 'sv' : 'en';
       const gradient = swedishMode ? GENRE_GRADIENTS.swedish : (GENRE_GRADIENTS[topFamily] || GENRE_GRADIENTS.other);
       const reading = getRandomReading(topFamily, lang);
-
-      // Get unique artists count from actual data or estimate
       const uniqueArtists = genreData?.totalArtists || Math.round(totalTracks * 0.6);
 
-      // Random fun fact
       const facts = WRAPPED_FACTS[lang];
       const fact = facts[Math.floor(getSecureRandom() * facts.length)]
         .replace('{pct}', Math.max(5, 100 - diversityScore))
@@ -7971,9 +8033,15 @@
         .replace('{artists}', uniqueArtists)
         .replace('{genres}', genres.length);
 
-      // Build top genres bars
-      const maxCount = topGenres[0]?.count || 1;
-      const genreBars = topGenres.map((g, i) => {
+      return {
+        totalTracks, topGenres, diversityScore, personality, lang,
+        gradient, reading, fact, genresCount: genres.length
+      };
+    }
+
+    function buildWrappedHTML(stats) {
+      const maxCount = stats.topGenres[0]?.count || 1;
+      const genreBars = stats.topGenres.map((g, i) => {
         const pct = Math.round((g.count / maxCount) * 100);
         const delay = i * 0.1;
         return '<div class="wrapped-genre-bar" style="animation-delay: ' + delay + 's">' +
@@ -7985,16 +8053,13 @@
                '</div>';
       }).join('');
 
-      // Get user info
       const userName = window.currentUser?.display_name || 'Music Lover';
       const userAvatar = window.currentUser?.images?.[0]?.url || '';
 
-      const modal = document.createElement('div');
-      modal.className = 'wrapped-overlay';
-      modal.innerHTML = [
+      return [
         '<div class="wrapped-container">',
         '  <button class="wrapped-close" onclick="this.closest(\'.wrapped-overlay\').remove()" aria-label="Close">&times;</button>',
-        '  <div class="wrapped-card" id="wrapped-card" style="background: ' + gradient + '">',
+        '  <div class="wrapped-card" id="wrapped-card" style="background: ' + stats.gradient + '">',
         '    <div class="wrapped-header">',
         '      <div class="wrapped-logo">',
         '        <span class="wrapped-logo-icon">🧞</span>',
@@ -8003,22 +8068,22 @@
         userAvatar ? '      <img src="' + getSafeUrl(userAvatar) + '" class="wrapped-avatar" alt="' + escapeHtml(userName) + '" />' : '',
         '    </div>',
         '    <div class="wrapped-personality">',
-        '      <span class="wrapped-emoji">' + personality[lang].emoji + '</span>',
-        '      <h2 class="wrapped-title">' + personality[lang].title + '</h2>',
-        '      <p class="wrapped-desc">' + personality[lang].desc + '</p>',
-        '      <p class="wrapped-reading">"' + reading + '"</p>',
+        '      <span class="wrapped-emoji">' + stats.personality[stats.lang].emoji + '</span>',
+        '      <h2 class="wrapped-title">' + stats.personality[stats.lang].title + '</h2>',
+        '      <p class="wrapped-desc">' + stats.personality[stats.lang].desc + '</p>',
+        '      <p class="wrapped-reading">"' + stats.reading + '"</p>',
         '    </div>',
         '    <div class="wrapped-stats">',
         '      <div class="wrapped-stat">',
-        '        <span class="wrapped-stat-value">' + totalTracks + '</span>',
+        '        <span class="wrapped-stat-value">' + stats.totalTracks + '</span>',
         '        <span class="wrapped-stat-label">' + (swedishMode ? 'Låtar' : 'Tracks') + '</span>',
         '      </div>',
         '      <div class="wrapped-stat">',
-        '        <span class="wrapped-stat-value">' + genres.length + '</span>',
+        '        <span class="wrapped-stat-value">' + stats.genresCount + '</span>',
         '        <span class="wrapped-stat-label">' + (swedishMode ? 'Genrer' : 'Genres') + '</span>',
         '      </div>',
         '      <div class="wrapped-stat">',
-        '        <span class="wrapped-stat-value">' + diversityScore + '%</span>',
+        '        <span class="wrapped-stat-value">' + stats.diversityScore + '%</span>',
         '        <span class="wrapped-stat-label">' + (swedishMode ? 'Mångfald' : 'Diversity') + '</span>',
         '      </div>',
         '    </div>',
@@ -8027,7 +8092,7 @@
         '      ' + genreBars,
         '    </div>',
         '    <div class="wrapped-fact">',
-        '      <p>"' + fact + '"</p>',
+        '      <p>"' + stats.fact + '"</p>',
         '    </div>',
         '    <div class="wrapped-footer">',
         '      <span class="wrapped-user">' + escapeHtml(userName) + '</span>',
@@ -8047,6 +8112,25 @@
         '  </div>',
         '</div>'
       ].join('');
+    }
+
+    function showGenreWrapped() {
+      // Get current genre data from the app state
+      const genres = window.currentGenres || [];
+      if (genres.length === 0) {
+        alert(swedishMode ? 'Analysera dina låtar först!' : 'Analyze your tracks first!');
+        return;
+      }
+
+      const existing = document.querySelector('.wrapped-overlay');
+      if (existing) existing.remove();
+
+      const stats = getWrappedStats(genres);
+      const htmlContent = buildWrappedHTML(stats);
+
+      const modal = document.createElement('div');
+      modal.className = 'wrapped-overlay';
+      modal.innerHTML = htmlContent;
 
       document.body.appendChild(modal);
       modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });

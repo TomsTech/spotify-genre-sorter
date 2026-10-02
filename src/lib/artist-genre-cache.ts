@@ -120,6 +120,7 @@ export async function cacheArtistGenres(
     // Use batched write (non-critical data)
     await cachedKV.put(kv, cacheKey, JSON.stringify(entry), {
       expirationTtl: ARTIST_GENRE_CACHE_TTL,
+      metadata: { cachedAt: entry.cachedAt },
     });
   } catch (err) {
     console.error(`Error caching genres for artist ${artistId}:`, err);
@@ -134,7 +135,7 @@ export async function cacheArtistGenresBatch(
   kv: KVNamespace,
   artistGenreMap: Map<string, string[]>
 ): Promise<void> {
-  const entries = [];
+  const entries: [string, string[]][] = [];
   for (const entry of artistGenreMap.entries()) {
     entries.push(entry);
   }
@@ -142,10 +143,12 @@ export async function cacheArtistGenresBatch(
 
   // Process in chunks to avoid Cloudflare Worker subrequest limits
   for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
-    const chunk = entries.slice(i, i + CHUNK_SIZE);
-    const cachePromises = chunk.map(([artistId, genres]) =>
-      cacheArtistGenres(kv, artistId, genres)
-    );
+    // ⚡ Bolt: Avoid intermediate array allocation from slice().map() by using Array.from()
+    const size = Math.min(CHUNK_SIZE, entries.length - i);
+    const cachePromises = Array.from({ length: size }, (_, j) => {
+      const [artistId, genres] = entries[i + j];
+      return cacheArtistGenres(kv, artistId, genres);
+    });
     await Promise.all(cachePromises);
   }
 }
@@ -250,8 +253,10 @@ export async function invalidateArtistGenreCache(
   // Delete specified artist caches in chunks to respect Cloudflare limits
   const CHUNK_SIZE = 40;
   for (let i = 0; i < artistIds.length; i += CHUNK_SIZE) {
-    const chunk = artistIds.slice(i, i + CHUNK_SIZE);
-    const deletePromises = chunk.map(async (artistId) => {
+    // ⚡ Bolt: Avoid intermediate array allocation from slice().map() by using Array.from()
+    const size = Math.min(CHUNK_SIZE, artistIds.length - i);
+    const deletePromises = Array.from({ length: size }, async (_, j) => {
+      const artistId = artistIds[i + j];
       const cacheKey = `${ARTIST_GENRE_CACHE_PREFIX}${artistId}`;
       await cachedKV.delete(kv, cacheKey);
       deletedCount++;
@@ -283,8 +288,11 @@ export async function clearAllArtistGenreCache(kv: KVNamespace): Promise<number>
 
       // Delete in parallel batches, chunked to respect Cloudflare Workers 50 subrequests limit
       for (let i = 0; i < list.keys.length; i += 40) {
-        const chunk = list.keys.slice(i, i + 40);
-        const deletePromises = chunk.map((key) => cachedKV.delete(kv, key.name));
+        // ⚡ Bolt: Avoid intermediate array allocation from slice().map() by using Array.from()
+        const size = Math.min(40, list.keys.length - i);
+        const deletePromises = Array.from({ length: size }, (_, j) =>
+          cachedKV.delete(kv, list.keys[i + j].name)
+        );
         await Promise.all(deletePromises);
       }
 
@@ -335,9 +343,19 @@ export async function cleanupOldArtistGenreCache(
         const end = Math.min(i + CHUNK_SIZE, list.keys.length);
         const checkPromises: Promise<number>[] = [];
 
-        // ⚡ Bolt: Eliminate intermediate arrays and reduce() overhead
+        // ⚡ Bolt: Use expirationTtl/metadata for eviction, avoiding N KV reads.
         for (let j = i; j < end; j++) {
           const key = list.keys[j];
+
+          // If metadata exists, check it directly
+          if (key.metadata && typeof (key.metadata as Record<string, unknown>).cachedAt === 'number') {
+             if ((key.metadata as Record<string, unknown>).cachedAt as number < cutoffTime) {
+                checkPromises.push(cachedKV.delete(kv, key.name).then(() => 1).catch(() => 0));
+             }
+             continue;
+          }
+
+          // Fallback if no metadata is available (legacy entries)
           checkPromises.push((async () => {
             try {
               const entry = await cachedKV.get<ArtistGenreCacheEntry>(kv, key.name);
