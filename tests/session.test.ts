@@ -215,3 +215,49 @@ describe('deleteScanProgress', () => {
     cachedKV.delete = originalDelete;
   });
 });
+
+
+describe('saveScanProgress', () => {
+  it('should call cachedKV.put with correct key, value, and TTL', async () => {
+    const originalPut = cachedKV.put;
+    cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    const mockKv = {} as any;
+    const progress = {
+      userId: 'test-user',
+      totalTracks: 100,
+      processedTracks: 50,
+      status: 'in-progress',
+    } as any;
+
+    const { saveScanProgress } = await import('../src/lib/session');
+
+    await saveScanProgress(mockKv, progress);
+
+    expect(cachedKV.put).toHaveBeenCalledWith(
+      mockKv,
+      'scan_progress:test-user',
+      JSON.stringify(progress),
+      { expirationTtl: 3600, immediate: true }
+    );
+
+    cachedKV.put = originalPut;
+  });
+
+  it('should propagate errors from cachedKV.put', async () => {
+    const originalPut = cachedKV.put;
+    const error = new Error('KV Put Error');
+    cachedKV.put = vi.fn().mockRejectedValue(error);
+
+    const mockKv = {} as any;
+    const progress = {
+      userId: 'test-user',
+    } as any;
+
+    const { saveScanProgress } = await import('../src/lib/session');
+
+    await expect(saveScanProgress(mockKv, progress)).rejects.toThrow('KV Put Error');
+
+    cachedKV.put = originalPut;
+  });
+});

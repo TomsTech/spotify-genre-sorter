@@ -1,0 +1,5 @@
+test: add tests for saveScanProgress
+
+🎯 What: Added missing unit tests for saveScanProgress in tests/session.test.ts.
+📊 Coverage: Covered happy path (correct parameters passed to cachedKV.put) and failure path (propagating KV errors).
+✨ Result: Increased test coverage and confidence for session state management.

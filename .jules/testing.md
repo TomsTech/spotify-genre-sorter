@@ -9,3 +9,8 @@
 ## 2024-05-18 - Testing error retries with fake timers
 **Learning:** Testing logic involving `setTimeout` (like exponential backoffs in a retry utility) requires `vi.useFakeTimers()` to fast-forward delays deterministically. When verifying the rejection of an async operation that is manually advanced using `vi.runAllTimersAsync()`, attaching a `.catch(() => {})` handler to the pending promise prevents unhandled promise rejection warnings in Vitest before the promise is formally evaluated with `await expect(promise).rejects...`
 **Action:** Always use fake timers combined with `.catch()` sinkholes for testing complex async retry flows to ensure swift, clean test output free of false-positive warnings.
+## 2024-10-02 - Testing KV namespace interactions
+
+**Learning:** When testing functions that interact with a KV namespace using a wrapper like `cachedKV`, it's simpler and more robust to mock the wrapper's methods directly (e.g., `cachedKV.put = vi.fn()`) rather than attempting to mock the entire KV namespace implementation. This isolates the test to the logic of the function under test (verifying parameters and error handling) without depending on the internal workings of the cache wrapper.
+
+**Action:** Prefer mocking dependency wrappers directly (like `cachedKV.put`) and asserting on the arguments passed to them, rather than mocking complex underlying implementations, to ensure tests remain focused and resilient to internal changes in the wrapper.
