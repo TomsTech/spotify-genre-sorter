@@ -32,12 +32,20 @@ class MemoryCache {
 
     // Update last accessed for LRU
     entry.lastAccessed = Date.now();
+
+    // PERF-026 FIX: Re-insert to update Map order for O(1) LRU eviction
+    // Impact: Allows evictOldest to be O(1) instead of O(N)
+    this.cache.delete(key);
+    this.cache.set(key, entry);
+
     return entry.value as T;
   }
 
   set<T>(key: string, value: T, ttlMs: number = MEMORY_CACHE_DEFAULT_TTL): void {
-    // Evict oldest entries if at capacity
-    if (this.cache.size >= MEMORY_CACHE_MAX_SIZE) {
+    // If key exists, delete it first so setting it moves it to the end (newest)
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    } else if (this.cache.size >= MEMORY_CACHE_MAX_SIZE) {
       this.evictOldest();
     }
 
@@ -53,17 +61,11 @@ class MemoryCache {
   }
 
   private evictOldest(): void {
-    let oldestKey: string | null = null;
-    let oldestTime = Infinity;
-
-    for (const [key, entry] of this.cache.entries()) {
-      if (entry.lastAccessed < oldestTime) {
-        oldestTime = entry.lastAccessed;
-        oldestKey = key;
-      }
-    }
-
-    if (oldestKey) {
+    // PERF-026 FIX: O(1) LRU eviction by taking the first item in the Map
+    // Map insertion order guarantees the first item is the oldest (LRU)
+    // Impact: Eviction time drops from O(N) to O(1)
+    const oldestKey = this.cache.keys().next().value;
+    if (oldestKey !== undefined) {
       this.cache.delete(oldestKey);
     }
   }
@@ -119,6 +121,7 @@ interface WriteQueueEntry {
   key: string;
   value: string;
   expirationTtl?: number;
+  metadata?: Record<string, unknown>;
   addedAt: number;
 }
 
@@ -136,7 +139,11 @@ async function flushWriteQueue(kv: KVNamespace): Promise<void> {
   // Impact: Reduces flush time from O(N) to O(1) regarding network latency.
   const writePromises = batch.map(async (entry) => {
     try {
-      await kv.put(entry.key, entry.value, entry.expirationTtl ? { expirationTtl: entry.expirationTtl } : undefined);
+      const putOptions = {
+        ...(entry.expirationTtl ? { expirationTtl: entry.expirationTtl } : {}),
+        ...(entry.metadata ? { metadata: entry.metadata } : {})
+      };
+      await kv.put(entry.key, entry.value, Object.keys(putOptions).length > 0 ? putOptions : undefined);
       metrics.writes++;
     } catch (err) {
       console.error(`KV write failed for key ${entry.key}:`, err);
@@ -202,12 +209,7 @@ export const cachedKV = {
     const cached = memoryCache.get<unknown>(key);
     if (cached !== null) {
       metrics.cacheHits++;
-      // If cached value is an object (from put()), stringify it back
-      // This handles the case where put() parsed JSON and cached the object
-      if (typeof cached === 'object') {
-        return JSON.stringify(cached);
-      }
-      return cached as string;
+      return typeof cached === 'string' ? cached : JSON.stringify(cached);
     }
 
     metrics.cacheMisses++;
@@ -227,7 +229,7 @@ export const cachedKV = {
     kv: KVNamespace,
     key: string,
     value: string,
-    options?: { expirationTtl?: number; immediate?: boolean }
+    options?: { expirationTtl?: number; immediate?: boolean; metadata?: Record<string, unknown> }
   ): Promise<void> {
     checkMetricsReset();
 
@@ -241,7 +243,11 @@ export const cachedKV = {
 
     if (options?.immediate) {
       // Write immediately
-      await kv.put(key, value, options.expirationTtl ? { expirationTtl: options.expirationTtl } : undefined);
+      const putOptions = {
+        ...(options.expirationTtl ? { expirationTtl: options.expirationTtl } : {}),
+        ...(options.metadata ? { metadata: options.metadata } : {})
+      };
+      await kv.put(key, value, Object.keys(putOptions).length > 0 ? putOptions : undefined);
       metrics.writes++;
     } else {
       // Add to write queue
@@ -249,6 +255,7 @@ export const cachedKV = {
         key,
         value,
         expirationTtl: options?.expirationTtl,
+        metadata: options?.metadata,
         addedAt: Date.now(),
       });
 

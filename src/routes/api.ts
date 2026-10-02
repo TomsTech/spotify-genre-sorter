@@ -123,14 +123,13 @@ api.use('/*', async (c, next) => {
   // Emergency cleanup if map grows too large (prevents OOM)
   if (rateLimitMap.size > RATE_LIMIT_MAX_ENTRIES) {
     // Remove oldest 20% of entries
+    // ⚡ Bolt: Leverage Map's insertion order for O(K) eviction without array allocations
     const entriesToRemove = Math.floor(RATE_LIMIT_MAX_ENTRIES * 0.2);
-    const sortedEntries = [];
-    for (const entry of rateLimitMap.entries()) {
-      sortedEntries.push(entry);
-    }
-    sortedEntries.sort((a, b) => a[1].resetAt - b[1].resetAt);
-    for (let i = 0; i < entriesToRemove && i < sortedEntries.length; i++) {
-      rateLimitMap.delete(sortedEntries[i][0]);
+    let removed = 0;
+    for (const key of rateLimitMap.keys()) {
+      if (removed >= entriesToRemove) break;
+      rateLimitMap.delete(key);
+      removed++;
     }
   }
 
@@ -340,8 +339,11 @@ api.get('/user-playlists', async (c) => {
   try {
     // Refresh token if needed
     if (session.spotifyExpiresAt && Date.now() > session.spotifyExpiresAt - 60000) {
+      if (!session.spotifyRefreshToken) {
+        return c.json({ error: 'Missing refresh token' }, 401);
+      }
       const newTokens = await refreshSpotifyToken(
-        session.spotifyRefreshToken!,
+        session.spotifyRefreshToken,
         c.env.SPOTIFY_CLIENT_ID,
         c.env.SPOTIFY_CLIENT_SECRET
       );
@@ -463,7 +465,8 @@ api.get('/genres', async (c) => {
     // Pass KV namespace to enable persistent caching (#74)
     let artists;
     try {
-      const artistResult = await getArtists(session.spotifyAccessToken, [...artistIds], undefined, c.env.SESSIONS);
+      // ⚡ Bolt: Use Array.from() instead of [...set] to avoid intermediate allocations and dynamic resizing
+      const artistResult = await getArtists(session.spotifyAccessToken, Array.from(artistIds), undefined, c.env.SESSIONS);
       artists = artistResult.artists;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -725,7 +728,8 @@ api.get('/genres/progressive', async (c) => {
       }
     }
 
-    const { artists } = await getArtists(session.spotifyAccessToken, [...artistIds], undefined, c.env.SESSIONS);
+    // ⚡ Bolt: Use Array.from() instead of [...set] to avoid intermediate allocations and dynamic resizing
+    const { artists } = await getArtists(session.spotifyAccessToken, Array.from(artistIds), undefined, c.env.SESSIONS);
     const artistGenreMap = new Map<string, string[]>();
     for (const artist of artists) {
       artistGenreMap.set(artist.id, artist.genres);
@@ -957,7 +961,8 @@ api.get('/genres/chunk', async (c) => {
 
     // Fetch artists (stay under subrequest limit)
     // Pass KV namespace to enable persistent caching (#74)
-    const artistIdArray = [...artistIds].slice(0, MAX_ARTIST_REQUESTS_PER_CHUNK * 50);
+    // ⚡ Bolt: Use Array.from() instead of [...set] to avoid intermediate allocations and dynamic resizing
+    const artistIdArray = Array.from(artistIds).slice(0, MAX_ARTIST_REQUESTS_PER_CHUNK * 50);
     const { artists } = await getArtists(session.spotifyAccessToken, artistIdArray, undefined, c.env.SESSIONS);
 
     const artistGenreMap = new Map<string, string[]>();
@@ -1558,10 +1563,12 @@ api.get('/listening', async (c) => {
     }
 
     const listeners: ListeningEntry[] = [];
+    // ⚡ Bolt: Chunked parallel reads for KV.get to avoid limits and reduce GC via Array.from over slice().map()
     const BATCH_SIZE = 40;
     for (let i = 0; i < list.keys.length; i += BATCH_SIZE) {
-      const chunk = list.keys.slice(i, i + BATCH_SIZE);
-      const dataPromises = chunk.map(async key => {
+      const size = Math.min(BATCH_SIZE, list.keys.length - i);
+      const dataPromises = Array.from({ length: size }, async (_, j) => {
+        const key = list.keys[i + j];
         try {
           const data = await kv.get(key.name);
           if (data) {
@@ -2308,13 +2315,8 @@ type AdminUser = {
   hofPosition?: number;
 };
 
-async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
+async function fetchRegularUsers(kv: KVNamespace, seenIds: Set<string>, users: AdminUser[], BATCH_SIZE: number) {
   const userStatsList = await kv.list({ prefix: 'user_stats:', limit: 500 });
-  const users: AdminUser[] = [];
-  const seenIds = new Set<string>();
-
-  // ⚡ Bolt: Chunked parallel reads for KV.get to avoid limits and reduce GC via Array.from over slice().map()
-  const BATCH_SIZE = 40;
   for (let i = 0; i < userStatsList.keys.length; i += BATCH_SIZE) {
     const size = Math.min(BATCH_SIZE, userStatsList.keys.length - i);
     const dataPromises = Array.from({ length: size }, async (_, j) => {
@@ -2351,8 +2353,9 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
       }
     }
   }
+}
 
-  // Also fetch HoF users (pioneers) who might not have user_stats entries
+async function fetchHoFUsers(kv: KVNamespace, seenIds: Set<string>, users: AdminUser[], BATCH_SIZE: number) {
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
   const hofResults: ({ spotifyId: string; spotifyName: string; spotifyAvatar?: string; registeredAt?: string } | null)[] = [];
   for (let i = 0; i < hofKeys.length; i += BATCH_SIZE) {
@@ -2405,6 +2408,17 @@ async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
       }
     }
   }
+}
+
+async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
+  const users: AdminUser[] = [];
+  const seenIds = new Set<string>();
+
+  // ⚡ Bolt: Chunked parallel reads for KV.get to avoid limits and reduce GC via Array.from over slice().map()
+  const BATCH_SIZE = 40;
+
+  await fetchRegularUsers(kv, seenIds, users, BATCH_SIZE);
+  await fetchHoFUsers(kv, seenIds, users, BATCH_SIZE);
 
   // Sort by registration date (newest first)
   users.sort((a, b) => {
