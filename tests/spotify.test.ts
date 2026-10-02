@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry, createPlaylist } from '../src/lib/spotify';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { getPlaylistTracks, getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry, createPlaylist } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
@@ -577,4 +577,165 @@ describe('refreshSpotifyToken', () => {
     expect(tokens.access_token).toBe('new-access-token');
     expect(tokens.refresh_token).toBe('fake-refresh-token'); // It should preserve the refresh token if not returned
   });
+
+describe('getPlaylistTracks', () => {
+  let originalFetch: typeof fetch;
+
+  beforeEach(() => {
+    originalFetch = global.fetch;
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  it('should fetch a single page of tracks when total is less than limit', async () => {
+    const mockTracks = [
+      { track: { id: 'track1', name: 'Track 1', artists: [] }, added_at: '2023-01-01' },
+      { track: { id: 'track2', name: 'Track 2', artists: [] }, added_at: '2023-01-02' }
+    ];
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: mockTracks,
+        total: 2,
+        next: null
+      }),
+      headers: new Headers()
+    }) as any;
+
+    const result = await getPlaylistTracks('fake-token', 'playlist-id', 100);
+
+    expect(result).toHaveLength(2);
+    expect(result[0].track?.id).toBe('track1');
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('should fetch multiple pages concurrently when total exceeds page limit', async () => {
+    const mockPage1 = Array.from({ length: 50 }, (_, i) => ({
+      track: { id: `track${i}`, name: `Track ${i}`, artists: [] },
+      added_at: '2023-01-01'
+    }));
+
+    const mockPage2 = Array.from({ length: 25 }, (_, i) => ({
+      track: { id: `track${i + 50}`, name: `Track ${i + 50}`, artists: [] },
+      added_at: '2023-01-01'
+    }));
+
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: mockPage1,
+          total: 75,
+          next: 'https://api.spotify.com/v1/playlists/playlist-id/tracks?offset=50&limit=50'
+        }),
+        headers: new Headers()
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: mockPage2,
+          total: 75,
+          next: null
+        }),
+        headers: new Headers()
+      }) as any;
+
+    const result = await getPlaylistTracks('fake-token', 'playlist-id', 100);
+
+    expect(result).toHaveLength(75);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+
+
+
+  it('should propagate errors when the fetch fails', async () => {
+    vi.useFakeTimers();
+    global.fetch = vi.fn().mockRejectedValue(new Error('Network Error')) as any;
+
+    const promise = getPlaylistTracks('fake-token', 'playlist-id', 100);
+
+    // Catch it immediately to prevent Unhandled Rejection
+    let caughtError: Error | null = null;
+    const catchPromise = promise.catch(err => {
+      caughtError = err;
+    });
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(4000);
+
+    await catchPromise;
+
+    expect(caughtError).toBeInstanceOf(Error);
+    expect(caughtError?.message).toBe('Network Error');
+
+    vi.useRealTimers();
+  });
+
+
+
+  it('should propagate API error responses correctly', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      text: async () => 'Invalid token',
+      headers: new Headers()
+    }) as any;
+
+    await expect(getPlaylistTracks('fake-token', 'playlist-id', 100))
+      .rejects
+      .toThrow();
+  });
+
+  it('should truncate results when total exceeds the overall limit parameter', async () => {
+    const mockPage1 = Array.from({ length: 50 }, (_, i) => ({
+      track: { id: `track${i}`, name: `Track ${i}`, artists: [] },
+      added_at: '2023-01-01'
+    }));
+    const mockPage2 = Array.from({ length: 50 }, (_, i) => ({
+      track: { id: `track${i + 50}`, name: `Track ${i + 50}`, artists: [] },
+      added_at: '2023-01-01'
+    }));
+
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: mockPage1,
+          total: 150, // More than limit
+          next: 'https://api.spotify.com/v1/playlists/playlist-id/tracks?offset=50&limit=50'
+        }),
+        headers: new Headers()
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: mockPage2,
+          total: 150,
+          next: 'https://api.spotify.com/v1/playlists/playlist-id/tracks?offset=100&limit=50'
+        }),
+        headers: new Headers()
+      }) as any;
+
+    // Set limit to 80
+    const result = await getPlaylistTracks('fake-token', 'playlist-id', 80);
+
+    // It fetches offset=0 (50 tracks) and offset=50 (50 tracks)
+    // Then slices to 80
+    expect(result).toHaveLength(80);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+});
+
 });
