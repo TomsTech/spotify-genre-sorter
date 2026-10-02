@@ -1,8 +1,66 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry, createPlaylist } from '../src/lib/spotify';
+import { getSpotifyAuthUrl, refreshSpotifyToken, generateCodeVerifier, fetchWithRetry, createPlaylist, getLikedTracks } from '../src/lib/spotify';
 
 
 describe('Spotify Library', () => {
+  describe('getLikedTracks', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('should fetch liked tracks successfully', async () => {
+      const mockData = {
+        items: [
+          { track: { id: '1', name: 'Track 1' } },
+          { track: { id: '2', name: 'Track 2' } },
+        ],
+        total: 2,
+        next: null
+      };
+
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockData
+      }));
+
+      const result = await getLikedTracks('fake-token', 50, 0);
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/me/tracks?limit=50&offset=0'),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer fake-token'
+          })
+        })
+      );
+      expect(result).toEqual(mockData);
+    });
+
+    it('should pass custom limit and offset to API', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ items: [], total: 0, next: null })
+      }));
+
+      await getLikedTracks('fake-token', 10, 20);
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/me/tracks?limit=10&offset=20'),
+        expect.any(Object)
+      );
+    });
+
+    it('should throw error when API responds with an error status', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        text: async () => 'Unauthorized'
+      }));
+
+      await expect(getLikedTracks('fake-token')).rejects.toThrow('Spotify API error: 401 Unauthorized');
+    });
+  });
+
 
 describe('generateCodeVerifier', () => {
   it('should generate a string of length 43', () => {
