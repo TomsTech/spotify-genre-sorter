@@ -9483,6 +9483,176 @@ export function getHtml(nonce: string): string {
 
     window.confirmDeleteUser = confirmDeleteUser;
 
+
+    // Helper to render KV Summary card
+    function renderAdminKVSummary(summary) {
+      return \`
+        <div class="admin-card">
+          <h3>📊 KV Summary</h3>
+          <div class="admin-stats">
+            <div class="stat">
+              <span class="label">Total Keys:</span>
+              <span class="value">\${summary.totalKeys.toLocaleString()}</span>
+            </div>
+            <div class="stat">
+              <span class="label">Total Size:</span>
+              <span class="value">\${(summary.totalSize / 1024).toFixed(2)} KB</span>
+            </div>
+            <div class="stat">
+              <span class="label">Avg Key Size:</span>
+              <span class="value">\${summary.avgKeySize} bytes</span>
+            </div>
+            <div class="stat">
+              <span class="label">Namespaces:</span>
+              <span class="value">\${summary.namespaceCount}</span>
+            </div>
+          </div>
+        </div>
+      \`;
+    }
+
+    // Helper to render KV Real-Time Operations card
+    function renderAdminKVRealTime(realTimeMetrics, limits, readHealth, writeHealth) {
+      return \`
+        <div class="admin-card">
+          <h3>⚡ Real-Time Operations</h3>
+          <div class="admin-stats">
+            <div class="stat">
+              <span class="label">KV Reads:</span>
+              <span class="value \${readHealth.class}">\${realTimeMetrics.reads} / \${limits.dailyReads.toLocaleString()}</span>
+            </div>
+            <div class="stat">
+              <span class="label">KV Writes:</span>
+              <span class="value \${writeHealth.class}">\${realTimeMetrics.writes} / \${limits.dailyWrites.toLocaleString()}</span>
+            </div>
+            <div class="stat">
+              <span class="label">KV Deletes:</span>
+              <span class="value">\${realTimeMetrics.deletes}</span>
+            </div>
+            <div class="stat">
+              <span class="label">Status:</span>
+              <span class="value">\${readHealth.icon} \${readHealth.text}</span>
+            </div>
+          </div>
+        </div>
+      \`;
+    }
+
+    // Helper to render KV Cache Performance card
+    function renderAdminKVCachePerformance(realTimeMetrics) {
+      return \`
+        <div class="admin-card">
+          <h3>💾 Cache Performance</h3>
+          <div class="admin-stats">
+            <div class="stat">
+              <span class="label">Cache Hits:</span>
+              <span class="value">\${realTimeMetrics.cacheHits.toLocaleString()}</span>
+            </div>
+            <div class="stat">
+              <span class="label">Cache Misses:</span>
+              <span class="value">\${realTimeMetrics.cacheMisses.toLocaleString()}</span>
+            </div>
+            <div class="stat">
+              <span class="label">Hit Rate:</span>
+              <span class="value">\${realTimeMetrics.cacheHitRate}%</span>
+            </div>
+            <div class="stat">
+              <span class="label">KV Reads Saved:</span>
+              <span class="value">\${realTimeMetrics.cacheHits.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      \`;
+    }
+
+    // Helper to render KV Usage & Limits card
+    function renderAdminKVUsageLimits(limits, realTimeMetrics) {
+      return \`
+        <div class="admin-card">
+          <h3>📈 Usage & Limits</h3>
+          <div class="admin-stats">
+            <div class="stat">
+              <span class="label">Daily Read Limit:</span>
+              <span class="value">\${limits.dailyReads.toLocaleString()}</span>
+            </div>
+            <div class="stat">
+              <span class="label">Daily Write Limit:</span>
+              <span class="value">\${limits.dailyWrites.toLocaleString()}</span>
+            </div>
+            <div class="stat">
+              <span class="label">Max Value Size:</span>
+              <span class="value">\${(limits.maxValueSize / 1024 / 1024).toFixed(0)} MB</span>
+            </div>
+            <div class="stat">
+              <span class="label">Last Reset:</span>
+              <span class="value">\${new Date(realTimeMetrics.lastReset).toLocaleTimeString()}</span>
+            </div>
+          </div>
+        </div>
+      \`;
+    }
+
+    // Helper to render KV Namespace Breakdown table
+    function renderAdminKVNamespaces(namespaces) {
+      return \`
+        <div class="admin-card" style="margin-top: 1rem;">
+          <h3>🗄️ Namespace Breakdown</h3>
+          <div class="kv-namespace-table">
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 2px solid var(--border); text-align: left;">
+                  <th style="padding: 0.75rem;">Namespace</th>
+                  <th style="padding: 0.75rem;">Keys</th>
+                  <th style="padding: 0.75rem;">Total Size</th>
+                  <th style="padding: 0.75rem;">Avg Size</th>
+                  <th style="padding: 0.75rem;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                \${namespaces.map(ns => \`
+                  <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 0.75rem;">
+                      <strong>\${ns.name}</strong>
+                      <br>
+                      <small style="color: var(--text-muted);">\${ns.description}</small>
+                      \${ns.truncated ? '<br><small style="color: orange;">⚠️ Truncated (1000+ keys)</small>' : ''}
+                    </td>
+                    <td style="padding: 0.75rem;">\${ns.keyCount.toLocaleString()}</td>
+                    <td style="padding: 0.75rem;">\${(ns.totalSize / 1024).toFixed(2)} KB</td>
+                    <td style="padding: 0.75rem;">\${ns.avgSize} bytes</td>
+                    <td style="padding: 0.75rem;">
+                      <button class="btn btn-ghost btn-sm" onclick="browseKVKeys('\${ns.prefix}', '\${ns.name}')">
+                        🔍 Browse
+                      </button>
+                    </td>
+                  </tr>
+                \`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      \`;
+    }
+
+    // Helper to render KV Quota Warning
+    function renderAdminKVQuotaWarning(readPercent, writePercent) {
+      if (readPercent <= 80 && writePercent <= 80) return '';
+      return \`
+        <div class="admin-card" style="margin-top: 1rem; border-color: #ff4444; background: rgba(255, 68, 68, 0.1);">
+          <h3>⚠️ Quota Warning</h3>
+          <p style="margin: 0; color: var(--text);">
+            You are approaching your daily KV quota limits. Consider:
+          </p>
+          <ul style="margin: 0.5rem 0 0 1.5rem; color: var(--text);">
+            <li>Increasing cache TTLs to reduce reads</li>
+            <li>Batching write operations</li>
+            <li>Clearing unnecessary cached data</li>
+            <li>Upgrading to a paid Workers plan for higher limits</li>
+          </ul>
+        </div>
+      \`;
+    }
+
     // Admin KV Monitor Tab - comprehensive KV namespace monitoring
     async function loadAdminKVMonitorTab(modal) {
       const content = modal.querySelector('#admin-tab-content');
@@ -9516,146 +9686,13 @@ export function getHtml(nonce: string): string {
 
         content.innerHTML = \`
           <div class="admin-grid">
-            <div class="admin-card">
-              <h3>📊 KV Summary</h3>
-              <div class="admin-stats">
-                <div class="stat">
-                  <span class="label">Total Keys:</span>
-                  <span class="value">\${summary.totalKeys.toLocaleString()}</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Total Size:</span>
-                  <span class="value">\${(summary.totalSize / 1024).toFixed(2)} KB</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Avg Key Size:</span>
-                  <span class="value">\${summary.avgKeySize} bytes</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Namespaces:</span>
-                  <span class="value">\${summary.namespaceCount}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="admin-card">
-              <h3>⚡ Real-Time Operations</h3>
-              <div class="admin-stats">
-                <div class="stat">
-                  <span class="label">KV Reads:</span>
-                  <span class="value \${readHealth.class}">\${realTimeMetrics.reads} / \${limits.dailyReads.toLocaleString()}</span>
-                </div>
-                <div class="stat">
-                  <span class="label">KV Writes:</span>
-                  <span class="value \${writeHealth.class}">\${realTimeMetrics.writes} / \${limits.dailyWrites.toLocaleString()}</span>
-                </div>
-                <div class="stat">
-                  <span class="label">KV Deletes:</span>
-                  <span class="value">\${realTimeMetrics.deletes}</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Status:</span>
-                  <span class="value">\${readHealth.icon} \${readHealth.text}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="admin-card">
-              <h3>💾 Cache Performance</h3>
-              <div class="admin-stats">
-                <div class="stat">
-                  <span class="label">Cache Hits:</span>
-                  <span class="value">\${realTimeMetrics.cacheHits.toLocaleString()}</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Cache Misses:</span>
-                  <span class="value">\${realTimeMetrics.cacheMisses.toLocaleString()}</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Hit Rate:</span>
-                  <span class="value">\${realTimeMetrics.cacheHitRate}%</span>
-                </div>
-                <div class="stat">
-                  <span class="label">KV Reads Saved:</span>
-                  <span class="value">\${realTimeMetrics.cacheHits.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="admin-card">
-              <h3>📈 Usage & Limits</h3>
-              <div class="admin-stats">
-                <div class="stat">
-                  <span class="label">Daily Read Limit:</span>
-                  <span class="value">\${limits.dailyReads.toLocaleString()}</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Daily Write Limit:</span>
-                  <span class="value">\${limits.dailyWrites.toLocaleString()}</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Max Value Size:</span>
-                  <span class="value">\${(limits.maxValueSize / 1024 / 1024).toFixed(0)} MB</span>
-                </div>
-                <div class="stat">
-                  <span class="label">Last Reset:</span>
-                  <span class="value">\${new Date(realTimeMetrics.lastReset).toLocaleTimeString()}</span>
-                </div>
-              </div>
-            </div>
+            \${renderAdminKVSummary(summary)}
+            \${renderAdminKVRealTime(realTimeMetrics, limits, readHealth, writeHealth)}
+            \${renderAdminKVCachePerformance(realTimeMetrics)}
+            \${renderAdminKVUsageLimits(limits, realTimeMetrics)}
           </div>
-
-          <div class="admin-card" style="margin-top: 1rem;">
-            <h3>🗄️ Namespace Breakdown</h3>
-            <div class="kv-namespace-table">
-              <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                  <tr style="border-bottom: 2px solid var(--border); text-align: left;">
-                    <th style="padding: 0.75rem;">Namespace</th>
-                    <th style="padding: 0.75rem;">Keys</th>
-                    <th style="padding: 0.75rem;">Total Size</th>
-                    <th style="padding: 0.75rem;">Avg Size</th>
-                    <th style="padding: 0.75rem;">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  \${namespaces.map(ns => \`
-                    <tr style="border-bottom: 1px solid var(--border);">
-                      <td style="padding: 0.75rem;">
-                        <strong>\${ns.name}</strong>
-                        <br>
-                        <small style="color: var(--text-muted);">\${ns.description}</small>
-                        \${ns.truncated ? '<br><small style="color: orange;">⚠️ Truncated (1000+ keys)</small>' : ''}
-                      </td>
-                      <td style="padding: 0.75rem;">\${ns.keyCount.toLocaleString()}</td>
-                      <td style="padding: 0.75rem;">\${(ns.totalSize / 1024).toFixed(2)} KB</td>
-                      <td style="padding: 0.75rem;">\${ns.avgSize} bytes</td>
-                      <td style="padding: 0.75rem;">
-                        <button class="btn btn-ghost btn-sm" onclick="browseKVKeys('\${ns.prefix}', '\${ns.name}')">
-                          🔍 Browse
-                        </button>
-                      </td>
-                    </tr>
-                  \`).join('')}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          \${readPercent > 80 || writePercent > 80 ? \`
-            <div class="admin-card" style="margin-top: 1rem; border-color: #ff4444; background: rgba(255, 68, 68, 0.1);">
-              <h3>⚠️ Quota Warning</h3>
-              <p style="margin: 0; color: var(--text);">
-                You are approaching your daily KV quota limits. Consider:
-              </p>
-              <ul style="margin: 0.5rem 0 0 1.5rem; color: var(--text);">
-                <li>Increasing cache TTLs to reduce reads</li>
-                <li>Batching write operations</li>
-                <li>Clearing unnecessary cached data</li>
-                <li>Upgrading to a paid Workers plan for higher limits</li>
-              </ul>
-            </div>
-          \` : ''}
+          \${renderAdminKVNamespaces(namespaces)}
+          \${renderAdminKVQuotaWarning(readPercent, writePercent)}
         \`;
       } catch (err) {
         console.error('Failed to load KV monitor:', err);
