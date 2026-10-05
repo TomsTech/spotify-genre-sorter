@@ -350,18 +350,27 @@ export async function processBatch<T, R>(
 
   // Process in chunks to avoid overwhelming the system
   for (let i = 0; i < items.length; i += maxConcurrent) {
-    const chunk = items.slice(i, i + maxConcurrent);
+    const size = Math.min(maxConcurrent, items.length - i);
+
+    // ⚡ Bolt: Using Array.from avoids intermediate array allocations from slice().map()
     const results = await Promise.allSettled(
-      chunk.map(item => processor(item).then(result => ({ item, result })))
+      Array.from({ length: size }, (_, j) => {
+        const item = items[i + j];
+        return processor(item).then(result => ({ item, result }));
+      })
     );
 
-    for (const result of results) {
+    for (let j = 0; j < results.length; j++) {
+      const result = results[j];
       if (result.status === 'fulfilled') {
         successful.push(result.value);
       } else {
         const error = classifyError(result.reason);
+
+        // ⚡ Bolt: Direct index addressing (items[i + j]) avoids an O(N^2) lookup
+        // previously caused by chunk[results.indexOf(result)].
         failed.push({
-          item: chunk[results.indexOf(result)],
+          item: items[i + j],
           error,
         });
 
