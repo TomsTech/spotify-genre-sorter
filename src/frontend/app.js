@@ -3954,7 +3954,7 @@
           app.innerHTML = \`
             <div class="error">
               <strong>Error \${stepLabels[step] || ''}</strong>
-              <p>\${errorDetail}</p>
+              <p>\${escapeHtml(errorDetail)}</p>
               \${data.tracksFound ? \`<p class="error-detail">Tracks found: \${data.tracksFound}</p>\` : ''}
               \${data.artistsToFetch ? \`<p class="error-detail">Artists to fetch: \${data.artistsToFetch}</p>\` : ''}
             </div>
@@ -4007,7 +4007,7 @@
           <div class="error">
             <strong>Connection Error</strong>
             <p>Could not connect to the server. Please check your internet connection.</p>
-            <p class="error-detail">\${error.message || 'Unknown error'}</p>
+            <p class="error-detail">\${escapeHtml(error.message || 'Unknown error')}</p>
           </div>
           <button onclick="loadGenres()" class="btn btn-secondary">Try Again</button>
         \`;

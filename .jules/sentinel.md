@@ -110,3 +110,5 @@
 **Vulnerability:** The application passed `data.track.url` directly to `window.open(data.track.url, '_blank')` in `src/frontend/app.js` without any validation or sanitization.
 **Learning:** `escapeHtml` only escapes HTML entities, which is insufficient for preventing DOM XSS when a variable is placed in a navigation sink like `window.open()` or assigned to properties like `element.href`. If an attacker were able to supply a `javascript:` URL, it would be executed when the user clicked the element.
 **Prevention:** Always wrap variables representing URLs with a validation function like `getSafeUrl()` before using them in navigation sinks or assigning them to `href`/`src` DOM properties.
+
+## YYYY-MM-DD - [Fix XSS in Error Rendering] **Vulnerability:** [Unescaped API error details and client error messages rendered directly into DOM via innerHTML in app.js.] **Learning:** [Error messages from API responses or exceptions can contain untrusted data and must be sanitized before rendering into HTML templates.] **Prevention:** [Always wrap dynamic string interpolation with escapeHtml() when building HTML strings for innerHTML assignments.]
