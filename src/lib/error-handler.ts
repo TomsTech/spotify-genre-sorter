@@ -350,18 +350,20 @@ export async function processBatch<T, R>(
 
   // Process in chunks to avoid overwhelming the system
   for (let i = 0; i < items.length; i += maxConcurrent) {
-    const chunk = items.slice(i, i + maxConcurrent);
+    // ⚡ Bolt: Eliminate intermediate arrays and O(N^2) indexOf
+    const size = Math.min(maxConcurrent, items.length - i);
     const results = await Promise.allSettled(
-      chunk.map(item => processor(item).then(result => ({ item, result })))
+      Array.from({ length: size }, (_, j) => processor(items[i + j]).then(result => ({ item: items[i + j], result })))
     );
 
-    for (const result of results) {
+    for (let j = 0; j < results.length; j++) {
+      const result = results[j];
       if (result.status === 'fulfilled') {
         successful.push(result.value);
       } else {
         const error = classifyError(result.reason);
         failed.push({
-          item: chunk[results.indexOf(result)],
+          item: items[i + j],
           error,
         });
 
