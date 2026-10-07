@@ -1127,14 +1127,14 @@
         content.innerHTML = \`
           <div class="admin-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-              <h3>🗄️ Keys in "\${namespaceName}"</h3>
+              <h3>🗄️ Keys in "\${escapeHtml(namespaceName)}"</h3>
               <button class="btn btn-ghost btn-sm" onclick="document.querySelector('[data-tab=kv]').click()">
                 ← Back to KV Monitor
               </button>
             </div>
 
             <div style="margin-bottom: 1rem;">
-              <strong>Prefix:</strong> <code style="background: var(--surface-2); padding: 0.25rem 0.5rem; border-radius: 4px;">\${prefix}</code>
+              <strong>Prefix:</strong> <code style="background: var(--surface-2); padding: 0.25rem 0.5rem; border-radius: 4px;">\${escapeHtml(prefix)}</code>
               <br>
               <strong>Keys Found:</strong> \${data.total} \${data.list_complete ? '' : '(showing first 50)'}
             </div>
