@@ -384,19 +384,28 @@ app.get('/stats', async (c) => {
     const count = countStr ? parseInt(countStr, 10) : 0;
 
     // Get hall of fame (first 10 users for display)
-    const hallOfFame: { position: number; spotifyName: string; registeredAt: string }[] = [];
+    const hofPromises: Promise<{ position: number; spotifyName: string; registeredAt: string } | null>[] = [];
     for (let i = 1; i <= Math.min(count, 10); i++) {
       const hofKey = `hof:${String(i).padStart(3, '0')}`;
-      const data = await cachedKV.getString(c.env.SESSIONS, hofKey);
-      if (data) {
-        const entry = JSON.parse(data) as { position: number; spotifyName: string; registeredAt: string };
-        hallOfFame.push({
-          position: entry.position,
-          spotifyName: entry.spotifyName,
-          registeredAt: entry.registeredAt,
-        });
-      }
+      hofPromises.push(
+        cachedKV.getString(c.env.SESSIONS, hofKey).then(data => {
+          if (data) {
+            const entry = JSON.parse(data) as { position: number; spotifyName: string; registeredAt: string };
+            return {
+              position: entry.position,
+              spotifyName: entry.spotifyName,
+              registeredAt: entry.registeredAt,
+            };
+          }
+          return null;
+        })
+      );
     }
+
+    // Fetch all entries concurrently and filter out missing ones
+    // Promise.all preserves the array order
+    const hallOfFameResults = await Promise.all(hofPromises);
+    const hallOfFame = hallOfFameResults.filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 
     return c.json({
       userCount: count,
