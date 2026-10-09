@@ -254,7 +254,7 @@ export async function getAllLikedTracks(
   const limit = 50;
   const trackLimit = maxTracks || MAX_TRACKS_FREE_TIER;
 
-  // PERF-FIX: Fetch first page to get total item count, then fetch remaining in parallel
+  // PERF-FIX-IMPLEMENTED: Fetch first page to get total item count, then fetch remaining in parallel
   const initialResponse = await getLikedTracks(accessToken, limit, 0);
   allTracks.push(...initialResponse.items);
   const totalInLibrary = initialResponse.total;
@@ -271,7 +271,7 @@ export async function getAllLikedTracks(
       requestCount++;
     }
 
-    // PERF-FIX: Batch parallel requests to prevent Cloudflare Worker 50 subrequest limit errors
+    // PERF-FIX-IMPLEMENTED: Batch parallel requests to prevent Cloudflare Worker 50 subrequest limit errors
     // while preserving order and progress updates
     let loadedCount = allTracks.length;
     const responses = [];
@@ -521,7 +521,7 @@ export async function getUserPlaylists(
       remainingOffsets.push(offset);
     }
 
-    // PERF-FIX: Batch parallel requests to prevent Cloudflare Worker 50 subrequest limit errors
+    // PERF-FIX-IMPLEMENTED: Batch parallel requests to prevent Cloudflare Worker 50 subrequest limit errors
     if (remainingOffsets.length > 0) {
       const BATCH_SIZE = 5;
       for (let i = 0; i < remainingOffsets.length; i += BATCH_SIZE) {
@@ -576,7 +576,7 @@ export async function getPlaylistTracks(
     }
 
     // Fetch remaining pages concurrently
-    // PERF-FIX: Batch parallel requests to prevent Cloudflare Worker 50 subrequest limit errors
+    // PERF-FIX-IMPLEMENTED: Batch parallel requests to prevent Cloudflare Worker 50 subrequest limit errors
     if (remainingOffsets.length > 0) {
       const BATCH_SIZE = 5;
       for (let i = 0; i < remainingOffsets.length; i += BATCH_SIZE) {

@@ -757,7 +757,7 @@ api.get('/genres/progressive', async (c) => {
       };
     }
     progress.partialTrackCount += allChunkTracks.length;
-    // PERF-FIX: Eliminate intermediate arrays created by flatMap and spread syntax
+    // PERF-FIX-IMPLEMENTED: Eliminate intermediate arrays created by flatMap and spread syntax
     // By iterating manually and adding to a Set, we reduce memory allocations and GC pressure.
     const uniqueTrackIds = new Set<string>();
     for (const g of progress.partialGenres) {
@@ -1681,7 +1681,7 @@ api.get('/scan-playlist/:playlistId', async (c) => {
 
     for (const item of tracks) {
       if (item.track && item.track.id) {
-        // PERF-FIX: Eliminate intermediate arrays created by .map() and .forEach()
+        // PERF-FIX-IMPLEMENTED: Eliminate intermediate arrays created by .map() and .forEach()
         // Iterating in a single loop avoids unnecessary allocations and improves performance.
         const artistIdsForTrack: string[] = [];
         for (let i = 0; i < item.track.artists.length; i++) {
