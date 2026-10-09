@@ -1681,7 +1681,7 @@ api.get('/scan-playlist/:playlistId', async (c) => {
 
     for (const item of tracks) {
       if (item.track && item.track.id) {
-        const artistIdsForTrack: string[] = new Array(item.track.artists.length);
+        const artistIdsForTrack: string[] = new Array<string>(item.track.artists.length);
         for (let i = 0; i < item.track.artists.length; i++) {
           const id = item.track.artists[i].id;
           artistIdsForTrack[i] = id;
