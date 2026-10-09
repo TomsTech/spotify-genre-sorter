@@ -13978,12 +13978,12 @@ export function getHtml(nonce: string): string {
             <div class="results">
               \${result.results.map(r => \`
                 <div class="result-item">
-                  <span>\${r.genre}</span>
+                  <span>\${escapeHtml(r.genre)}</span>
                   \${r.success
                     ? \`<a href="\${getSafeUrl(r.url)}" target="_blank" rel="noopener noreferrer" class="result-success" data-i18n="openSpotify">\${t('openSpotify')}</a>\`
                     : r.skipped
                       ? \`<span class="result-skipped">\${swedishMode ? 'Finns redan' : 'Already exists'}</span>\`
-                      : \`<span class="result-error">\${r.error}</span>\`
+                      : \`<span class="result-error">\${escapeHtml(r.error)}</span>\`
                   }
                 </div>
               \`).join('')}
