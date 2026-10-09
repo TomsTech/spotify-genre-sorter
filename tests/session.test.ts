@@ -303,3 +303,63 @@ describe('getUserStats', () => {
     cachedKV.get = originalGet;
   });
 });
+
+describe('createSession', () => {
+  it('should generate UUID, CSRF token, store in KV, and set cookie', async () => {
+    const mockUUID = '123e4567-e89b-12d3-a456-426614174000';
+    const originalRandomUUID = crypto.randomUUID;
+    crypto.randomUUID = vi.fn().mockReturnValue(mockUUID);
+
+    vi.resetModules();
+
+    vi.doMock('hono/cookie', () => ({
+      getCookie: vi.fn(),
+      setCookie: vi.fn(),
+      deleteCookie: vi.fn(),
+    }));
+
+    vi.doMock('../src/lib/csrf', () => ({
+      generateCsrfToken: vi.fn().mockReturnValue('mock-csrf-token'),
+    }));
+
+    const { createSession } = await import('../src/lib/session');
+    const { setCookie } = await import('hono/cookie');
+    const { cachedKV: dynamicCachedKV } = await import('../src/lib/kv-cache');
+    const { generateCsrfToken } = await import('../src/lib/csrf');
+
+    const originalPut = dynamicCachedKV.put;
+    dynamicCachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    const mockContext = {
+      env: { SESSIONS: {} as any },
+    } as any;
+
+    const sessionData = { githubUser: 'testuser' };
+
+    const result = await createSession(mockContext, sessionData as any);
+
+    expect(crypto.randomUUID).toHaveBeenCalled();
+    expect(result).toBe(mockUUID);
+    expect(generateCsrfToken).toHaveBeenCalled();
+
+    expect(dynamicCachedKV.put).toHaveBeenCalledWith(
+      mockContext.env.SESSIONS,
+      `session:${mockUUID}`,
+      JSON.stringify({ ...sessionData, csrfToken: 'mock-csrf-token' }),
+      { expirationTtl: 60 * 60 * 24 * 7, immediate: true }
+    );
+
+    expect(setCookie).toHaveBeenCalledWith(mockContext, 'session_id', mockUUID, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    });
+
+    crypto.randomUUID = originalRandomUUID;
+    dynamicCachedKV.put = originalPut;
+    vi.doUnmock('hono/cookie');
+    vi.doUnmock('../src/lib/csrf');
+  });
+});
