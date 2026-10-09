@@ -10742,8 +10742,7 @@ export function getHtml(nonce: string): string {
     // KV Status Monitoring
     // =====================================
     let kvUsageCache = null;
-    // PERF-006 FIX: Reduced polling frequencies to save API calls
-    const KV_POLL_INTERVAL = 300000; // Poll every 5 minutes (was 1 min)
+    const KV_POLL_INTERVAL = 300000; // Poll every 5 minutes
 
     async function checkKVUsage() {
       // Fetch KV usage for all users (needed for rate limit banner)
@@ -10961,19 +10960,18 @@ export function getHtml(nonce: string): string {
     window.showKVStatusModal = showKVStatusModal;
     window.closeKVModal = closeKVModal;
 
-    // PERF-006 FIX: Track all polling intervals for visibility API cleanup
+    // Track all polling intervals for visibility API cleanup
     let kvPollInterval = null;
 
     // Start deployment and KV status polling
     function startDeployMonitor() {
       checkDeployStatus();
       checkKVUsage(); // Also check KV status
-      // PERF-006 FIX: Reduced deploy polling from 10s to 60s
-      deployPollInterval = setInterval(checkDeployStatus, 60000); // Poll every 60s (was 10s)
+      deployPollInterval = setInterval(checkDeployStatus, 60000); // Poll every 60s
       kvPollInterval = setInterval(checkKVUsage, KV_POLL_INTERVAL); // Poll KV usage every 5 min
     }
 
-    // PERF-006 FIX: Stop polling intervals
+    // Stop polling intervals
     function stopDeployMonitor() {
       if (deployPollInterval) {
         clearInterval(deployPollInterval);
@@ -11083,8 +11081,7 @@ export function getHtml(nonce: string): string {
     function startNowPlayingMonitor() {
       // Initial fetch
       updateNowPlaying();
-      // PERF-006 FIX: Reduced polling from 10s to 30s
-      nowPlayingInterval = setInterval(updateNowPlaying, 30000); // Poll every 30s (was 10s)
+      nowPlayingInterval = setInterval(updateNowPlaying, 30000); // Poll every 30s
 
       // Add dismiss button handler
       const dismissBtn = document.getElementById('now-playing-dismiss');
@@ -15937,17 +15934,16 @@ export function getHtml(nonce: string): string {
       showNotification(details.join(' | '), healthStatus.ok ? 'success' : 'warning');
     }
 
-    // PERF-006 FIX: Track health check interval for visibility API
+    // Track health check interval for visibility API
     let healthCheckInterval = null;
 
     // Check health on load and periodically
     document.addEventListener('DOMContentLoaded', () => {
       setTimeout(checkHealth, 3000); // Initial check after 3s
-      // PERF-006 FIX: Reduced from 60s to 5 minutes
-      healthCheckInterval = setInterval(checkHealth, 300000); // Then every 5 min (was 1 min)
+      healthCheckInterval = setInterval(checkHealth, 300000); // Then every 5 min
     });
 
-    // PERF-006 FIX: Master visibility handler to stop ALL polling when tab is hidden
+    // Master visibility handler to stop ALL polling when tab is hidden
     // This saves significant API calls when user switches tabs
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
