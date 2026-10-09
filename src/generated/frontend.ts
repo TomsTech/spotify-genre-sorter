@@ -10798,6 +10798,141 @@ export function getHtml(nonce: string): string {
       indicator.title = \`KV Free Tier Usage Today: \${readPercent}% reads, \${writePercent}% writes (click for details)\`;
     }
 
+
+    function getKVStatusHeaderHTML() {
+      return \`
+        <div class="changelog-header">
+          <h3>\${swedishMode ? '📊 KV Lagring Status' : '📊 KV Storage Status'}</h3>
+          <button class="changelog-close kv-modal-close" aria-label="Close KV status">&times;</button>
+        </div>
+      \`;
+    }
+
+    function getKVStatusSummaryHTML(data, statusEmoji, statusText) {
+      return \`
+        <div class="kv-status-summary">
+          <div class="kv-status-badge \${data.status}">\${statusEmoji} \${statusText}</div>
+          <div class="kv-status-date">\${data.date}</div>
+        </div>
+      \`;
+    }
+
+    function getKVUsageBarsHTML(data) {
+      return \`
+        <div class="kv-usage-bars">
+          <div class="kv-bar-section">
+            <div class="kv-bar-label">\${swedishMode ? 'Läsningar' : 'Reads'} (\${data.estimated?.reads?.toLocaleString() || 0} / \${data.limits?.reads?.toLocaleString() || '100,000'})</div>
+            <div class="kv-bar-container">
+              <div class="kv-bar kv-bar-reads" style="width: \${Math.min(data.usage?.readsPercent || 0, 100)}%"></div>
+            </div>
+            <div class="kv-bar-percent">\${data.usage?.readsPercent || 0}%</div>
+          </div>
+          <div class="kv-bar-section">
+            <div class="kv-bar-label">\${swedishMode ? 'Skrivningar' : 'Writes'} (\${data.estimated?.writes?.toLocaleString() || 0} / \${data.limits?.writes?.toLocaleString() || '1,000'})</div>
+            <div class="kv-bar-container">
+              <div class="kv-bar kv-bar-writes" style="width: \${Math.min(data.usage?.writesPercent || 0, 100)}%"></div>
+            </div>
+            <div class="kv-bar-percent">\${data.usage?.writesPercent || 0}%</div>
+          </div>
+        </div>
+      \`;
+    }
+
+    function getKVBreakdownHTML(data) {
+      return \`
+        <div class="kv-breakdown">
+          <h4>\${swedishMode ? 'Nedbrytning per kategori' : 'Usage by Category'}</h4>
+          <table class="kv-breakdown-table">
+            <thead>
+              <tr>
+                <th>\${swedishMode ? 'Kategori' : 'Category'}</th>
+                <th>\${swedishMode ? 'Läsningar' : 'Reads'}</th>
+                <th>\${swedishMode ? 'Skrivningar' : 'Writes'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              \${Object.entries(data.breakdown || {}).map(([key, val]) => \`
+                <tr>
+                  <td>\${key}</td>
+                  <td>\${val.reads?.toLocaleString() || 0}</td>
+                  <td>\${val.writes?.toLocaleString() || 0}</td>
+                </tr>
+              \`).join('')}
+            </tbody>
+          </table>
+        </div>
+      \`;
+    }
+
+    function getKVRealtimeHTML(data) {
+      if (!data.realtime) return '';
+      return \`
+        <div class="kv-realtime">
+          <h4>\${swedishMode ? 'Realtidsstatistik (denna worker)' : 'Realtime Stats (this worker)'}</h4>
+          <div class="kv-realtime-grid">
+            <div class="kv-stat">
+              <span class="kv-stat-value">\${data.realtime.reads}</span>
+              <span class="kv-stat-label">\${swedishMode ? 'Läsningar' : 'Reads'}</span>
+            </div>
+            <div class="kv-stat">
+              <span class="kv-stat-value">\${data.realtime.writes}</span>
+              <span class="kv-stat-label">\${swedishMode ? 'Skrivningar' : 'Writes'}</span>
+            </div>
+            <div class="kv-stat">
+              <span class="kv-stat-value">\${data.realtime.cacheHitRate}%</span>
+              <span class="kv-stat-label">\${swedishMode ? 'Cache träff' : 'Cache Hit Rate'}</span>
+            </div>
+            <div class="kv-stat">
+              <span class="kv-stat-value">\${data.realtime.cacheHits}</span>
+              <span class="kv-stat-label">\${swedishMode ? 'Cache träffar' : 'Cache Hits'}</span>
+            </div>
+          </div>
+        </div>
+      \`;
+    }
+
+    function getKVTrendAndRecommendationsHTML(data) {
+      const recommendationsHTML = data.recommendations && data.recommendations.length > 0 ? \`
+        <div class="kv-recommendations">
+          <h4>\${swedishMode ? '💡 Rekommendationer' : '💡 Recommendations'}</h4>
+          <ul>
+            \${data.recommendations.map(r => \`<li>\${r}</li>\`).join('')}
+          </ul>
+        </div>
+      \` : '';
+
+      return \`
+        <div class="kv-trend">
+          <h4>\${swedishMode ? 'Trend' : 'Trend'}</h4>
+          <p>\${swedishMode ? 'Riktning' : 'Direction'}: <strong>\${data.trend?.direction || 'stable'}</strong></p>
+          <p>\${swedishMode ? 'Idag vs genomsnitt' : 'Today vs Average'}: \${data.trend?.todayVsAvg || 'N/A'}</p>
+        </div>
+        \${recommendationsHTML}
+      \`;
+    }
+
+    function getKVActivityHTML(data) {
+      return \`
+        <div class="kv-activity">
+          <h4>\${swedishMode ? 'Dagens aktivitet' : 'Today\\'s Activity'}</h4>
+          <div class="kv-activity-grid">
+            <div class="kv-activity-item">
+              <span class="kv-activity-num">\${data.activity?.signIns || 0}</span>
+              <span class="kv-activity-label">\${swedishMode ? 'Inloggningar' : 'Sign-ins'}</span>
+            </div>
+            <div class="kv-activity-item">
+              <span class="kv-activity-num">\${data.activity?.libraryScans || 0}</span>
+              <span class="kv-activity-label">\${swedishMode ? 'Skanningar' : 'Scans'}</span>
+            </div>
+            <div class="kv-activity-item">
+              <span class="kv-activity-num">\${data.activity?.playlistsCreated || 0}</span>
+              <span class="kv-activity-label">\${swedishMode ? 'Spellistor' : 'Playlists'}</span>
+            </div>
+          </div>
+        </div>
+      \`;
+    }
+
     async function showKVStatusModal() {
       // Fetch fresh data
       try {
@@ -10827,111 +10962,14 @@ export function getHtml(nonce: string): string {
                          (swedishMode ? 'Kritisk' : 'Critical');
 
       panel.innerHTML = \`
-        <div class="changelog-header">
-          <h3>\${swedishMode ? '📊 KV Lagring Status' : '📊 KV Storage Status'}</h3>
-          <button class="changelog-close kv-modal-close" aria-label="Close KV status">&times;</button>
-        </div>
+        \${getKVStatusHeaderHTML()}
         <div class="kv-status-content">
-          <div class="kv-status-summary">
-            <div class="kv-status-badge \${data.status}">\${statusEmoji} \${statusText}</div>
-            <div class="kv-status-date">\${data.date}</div>
-          </div>
-
-          <div class="kv-usage-bars">
-            <div class="kv-bar-section">
-              <div class="kv-bar-label">\${swedishMode ? 'Läsningar' : 'Reads'} (\${data.estimated?.reads?.toLocaleString() || 0} / \${data.limits?.reads?.toLocaleString() || '100,000'})</div>
-              <div class="kv-bar-container">
-                <div class="kv-bar kv-bar-reads" style="width: \${Math.min(data.usage?.readsPercent || 0, 100)}%"></div>
-              </div>
-              <div class="kv-bar-percent">\${data.usage?.readsPercent || 0}%</div>
-            </div>
-            <div class="kv-bar-section">
-              <div class="kv-bar-label">\${swedishMode ? 'Skrivningar' : 'Writes'} (\${data.estimated?.writes?.toLocaleString() || 0} / \${data.limits?.writes?.toLocaleString() || '1,000'})</div>
-              <div class="kv-bar-container">
-                <div class="kv-bar kv-bar-writes" style="width: \${Math.min(data.usage?.writesPercent || 0, 100)}%"></div>
-              </div>
-              <div class="kv-bar-percent">\${data.usage?.writesPercent || 0}%</div>
-            </div>
-          </div>
-
-          <div class="kv-breakdown">
-            <h4>\${swedishMode ? 'Nedbrytning per kategori' : 'Usage by Category'}</h4>
-            <table class="kv-breakdown-table">
-              <thead>
-                <tr>
-                  <th>\${swedishMode ? 'Kategori' : 'Category'}</th>
-                  <th>\${swedishMode ? 'Läsningar' : 'Reads'}</th>
-                  <th>\${swedishMode ? 'Skrivningar' : 'Writes'}</th>
-                </tr>
-              </thead>
-              <tbody>
-                \${Object.entries(data.breakdown || {}).map(([key, val]) => \`
-                  <tr>
-                    <td>\${key}</td>
-                    <td>\${val.reads?.toLocaleString() || 0}</td>
-                    <td>\${val.writes?.toLocaleString() || 0}</td>
-                  </tr>
-                \`).join('')}
-              </tbody>
-            </table>
-          </div>
-
-          \${data.realtime ? \`
-          <div class="kv-realtime">
-            <h4>\${swedishMode ? 'Realtidsstatistik (denna worker)' : 'Realtime Stats (this worker)'}</h4>
-            <div class="kv-realtime-grid">
-              <div class="kv-stat">
-                <span class="kv-stat-value">\${data.realtime.reads}</span>
-                <span class="kv-stat-label">\${swedishMode ? 'Läsningar' : 'Reads'}</span>
-              </div>
-              <div class="kv-stat">
-                <span class="kv-stat-value">\${data.realtime.writes}</span>
-                <span class="kv-stat-label">\${swedishMode ? 'Skrivningar' : 'Writes'}</span>
-              </div>
-              <div class="kv-stat">
-                <span class="kv-stat-value">\${data.realtime.cacheHitRate}%</span>
-                <span class="kv-stat-label">\${swedishMode ? 'Cache träff' : 'Cache Hit Rate'}</span>
-              </div>
-              <div class="kv-stat">
-                <span class="kv-stat-value">\${data.realtime.cacheHits}</span>
-                <span class="kv-stat-label">\${swedishMode ? 'Cache träffar' : 'Cache Hits'}</span>
-              </div>
-            </div>
-          </div>
-          \` : ''}
-
-          <div class="kv-trend">
-            <h4>\${swedishMode ? 'Trend' : 'Trend'}</h4>
-            <p>\${swedishMode ? 'Riktning' : 'Direction'}: <strong>\${data.trend?.direction || 'stable'}</strong></p>
-            <p>\${swedishMode ? 'Idag vs genomsnitt' : 'Today vs Average'}: \${data.trend?.todayVsAvg || 'N/A'}</p>
-          </div>
-
-          \${data.recommendations && data.recommendations.length > 0 ? \`
-          <div class="kv-recommendations">
-            <h4>\${swedishMode ? '💡 Rekommendationer' : '💡 Recommendations'}</h4>
-            <ul>
-              \${data.recommendations.map(r => \`<li>\${r}</li>\`).join('')}
-            </ul>
-          </div>
-          \` : ''}
-
-          <div class="kv-activity">
-            <h4>\${swedishMode ? 'Dagens aktivitet' : 'Today\\'s Activity'}</h4>
-            <div class="kv-activity-grid">
-              <div class="kv-activity-item">
-                <span class="kv-activity-num">\${data.activity?.signIns || 0}</span>
-                <span class="kv-activity-label">\${swedishMode ? 'Inloggningar' : 'Sign-ins'}</span>
-              </div>
-              <div class="kv-activity-item">
-                <span class="kv-activity-num">\${data.activity?.libraryScans || 0}</span>
-                <span class="kv-activity-label">\${swedishMode ? 'Skanningar' : 'Scans'}</span>
-              </div>
-              <div class="kv-activity-item">
-                <span class="kv-activity-num">\${data.activity?.playlistsCreated || 0}</span>
-                <span class="kv-activity-label">\${swedishMode ? 'Spellistor' : 'Playlists'}</span>
-              </div>
-            </div>
-          </div>
+          \${getKVStatusSummaryHTML(data, statusEmoji, statusText)}
+          \${getKVUsageBarsHTML(data)}
+          \${getKVBreakdownHTML(data)}
+          \${getKVRealtimeHTML(data)}
+          \${getKVTrendAndRecommendationsHTML(data)}
+          \${getKVActivityHTML(data)}
         </div>
       \`;
 
