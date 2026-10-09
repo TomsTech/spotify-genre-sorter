@@ -13038,15 +13038,8 @@ export function getHtml(nonce: string): string {
       \`;
     }
 
-    function renderGenres() {
-      const filteredGenres = filterGenres('');
-      const cacheInfo = genreData.cachedAt
-        ? \`<span class="cache-info" title="\${genreData.fromCache ? (swedishMode ? 'Från cache' : 'From cache') : (swedishMode ? 'Nyss hämtad' : 'Just fetched')}">
-            \${genreData.fromCache ? '⚡' : '✨'} \${formatCacheTime(genreData.cachedAt)}
-          </span>\`
-        : '';
-
-      app.innerHTML = \`
+    function renderStatsContainer() {
+      return \`
         <div class="stats">
           <div class="stat">
             <div class="stat-value">\${genreData.totalTracks.toLocaleString()}</div>
@@ -13061,8 +13054,12 @@ export function getHtml(nonce: string): string {
             <div class="stat-label" data-i18n="selected">\${t('selected')}</div>
           </div>
         </div>
+      \`;
+    }
 
-        \${genreData.truncated ? \`
+    function renderTruncationWarning() {
+      if (!genreData.truncated) return '';
+      return \`
         <div class="truncation-warning">
           ⚠️ \${swedishMode
             ? \`Visar \${genreData.totalTracks.toLocaleString()} av \${genreData.totalInLibrary?.toLocaleString()} låtar\`
@@ -13071,15 +13068,22 @@ export function getHtml(nonce: string): string {
             \${swedishMode ? 'Ladda alla' : 'Load all'}
           </button>
         </div>
-        \` : ''}
+      \`;
+    }
 
+    function renderCacheStatusContainer(cacheInfo) {
+      return \`
         <div class="cache-status">
           \${cacheInfo}
           <button onclick="refreshGenres()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Hämta ny data från Spotify' : 'Fetch fresh data from Spotify'}" aria-label="\${swedishMode ? 'Uppdatera (Hämta ny data från Spotify)' : 'Refresh (Fetch fresh data from Spotify)'}">
             🔄 \${swedishMode ? 'Uppdatera' : 'Refresh'}
           </button>
         </div>
+      \`;
+    }
 
+    function renderToolbarRow() {
+      return \`
         <div class="toolbar-row">
           <button onclick="showGenreWrapped()" class="btn btn-primary btn-sm wrapped-btn" title="\${swedishMode ? 'Dela din musiksmak!' : 'Share your music taste!'}" aria-label="\${swedishMode ? 'Dela din musiksmak!' : 'Share your music taste!'}">
             ✨ \${swedishMode ? 'Dela Din Smak' : 'Share Your Taste'}
@@ -13097,9 +13101,11 @@ export function getHtml(nonce: string): string {
             📥 CSV
           </button>
         </div>
+      \`;
+    }
 
-        \${renderStatsDashboard()}
-
+    function renderHiddenToolbarContainer() {
+      return \`
         <div class="hidden-toolbar" id="hidden-toolbar" style="display: \${hiddenGenres.size > 0 ? 'flex' : 'none'}">
           <span>\${swedishMode ? 'Dolda genrer:' : 'Hidden genres:'} <strong id="hidden-count">\${hiddenGenres.size}</strong></span>
           <button onclick="toggleShowHidden()" class="btn btn-ghost btn-sm" aria-label="\${showHiddenGenres ? (swedishMode ? 'Dölj dolda (Dölj dolda genrer)' : 'Hide hidden (Hide hidden genres)') : (swedishMode ? 'Visa dolda (Visa dolda genrer)' : 'Show hidden (Show hidden genres)')}">
@@ -13112,7 +13118,11 @@ export function getHtml(nonce: string): string {
             \${swedishMode ? 'Dölj små (<5)' : 'Hide small (<5)'}
           </button>
         </div>
+      \`;
+    }
 
+    function renderMainCard() {
+      return \`
         <div class="card">
           <h2 class="card-title" data-i18n="yourGenres">\${t('yourGenres')}</h2>
 
@@ -13188,7 +13198,25 @@ export function getHtml(nonce: string): string {
             </span>
           </div>
         </div>
+      \`;
+    }
 
+    function renderGenres() {
+      const filteredGenres = filterGenres('');
+      const cacheInfo = genreData.cachedAt
+        ? \`<span class="cache-info" title="\${genreData.fromCache ? (swedishMode ? 'Från cache' : 'From cache') : (swedishMode ? 'Nyss hämtad' : 'Just fetched')}">
+            \${genreData.fromCache ? '⚡' : '✨'} \${formatCacheTime(genreData.cachedAt)}
+          </span>\`
+        : '';
+
+      app.innerHTML = \`
+        \${renderStatsContainer()}
+        \${renderTruncationWarning()}
+        \${renderCacheStatusContainer(cacheInfo)}
+        \${renderToolbarRow()}
+        \${renderStatsDashboard()}
+        \${renderHiddenToolbarContainer()}
+        \${renderMainCard()}
         <div id="results"></div>
       \`;
 
