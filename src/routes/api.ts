@@ -1681,12 +1681,10 @@ api.get('/scan-playlist/:playlistId', async (c) => {
 
     for (const item of tracks) {
       if (item.track && item.track.id) {
-        // PERF-FIX: Eliminate intermediate arrays created by .map() and .forEach()
-        // Iterating in a single loop avoids unnecessary allocations and improves performance.
-        const artistIdsForTrack: string[] = [];
+        const artistIdsForTrack: string[] = new Array(item.track.artists.length);
         for (let i = 0; i < item.track.artists.length; i++) {
           const id = item.track.artists[i].id;
-          artistIdsForTrack.push(id);
+          artistIdsForTrack[i] = id;
           artistIds.add(id);
         }
         trackData.push({
