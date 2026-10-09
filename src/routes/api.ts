@@ -2382,13 +2382,15 @@ async function fetchHoFUsers(kv: KVNamespace, seenIds: Set<string>, users: Admin
     }
   }
 
+  // ⚡ Bolt: Build map for O(1) lookups instead of O(N) array finds in loop
+  const userMap = new Map(users.map(u => [u.spotifyId, u]));
   for (let i = 0; i < hofResults.length; i++) {
     const hofUser = hofResults[i];
     if (hofUser) {
       // Only add if not already in users list
       if (!seenIds.has(hofUser.spotifyId)) {
         seenIds.add(hofUser.spotifyId);
-        users.push({
+        const newUser = {
           spotifyId: hofUser.spotifyId,
           spotifyName: hofUser.spotifyName || 'Unknown',
           spotifyAvatar: hofUser.spotifyAvatar || null,
@@ -2397,10 +2399,12 @@ async function fetchHoFUsers(kv: KVNamespace, seenIds: Set<string>, users: Admin
           lastActive: null,
           isPioneer: true,
           hofPosition: i + 1,
-        });
+        };
+        users.push(newUser);
+        userMap.set(newUser.spotifyId, newUser);
       } else {
         // Mark existing user as pioneer
-        const existingUser = users.find(u => u.spotifyId === hofUser.spotifyId);
+        const existingUser = userMap.get(hofUser.spotifyId);
         if (existingUser) {
           existingUser.isPioneer = true;
           existingUser.hofPosition = i + 1;
