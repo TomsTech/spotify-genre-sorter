@@ -8906,9 +8906,19 @@ export function getHtml(nonce: string): string {
         }
       }
 
+      // ⚡ Bolt: Optimize array lookups inside loop using a single Map
+      const genreMap = new Map();
+      if (genreData && genreData.genres) {
+        for (let i = 0; i < genreData.genres.length; i++) {
+          if (!genreMap.has(genreData.genres[i].name)) {
+            genreMap.set(genreData.genres[i].name, genreData.genres[i]);
+          }
+        }
+      }
+
       let totalTracks = 0;
       for (const name of genresToMerge) {
-        const genre = genreData.genres.find(g => g.name === name);
+        const genre = genreMap.get(name);
         if (genre) totalTracks += genre.count;
       }
 
@@ -8936,9 +8946,19 @@ export function getHtml(nonce: string): string {
         return;
       }
 
+      // ⚡ Bolt: Optimize array lookups using Map
+      const modalGenreMap = new Map();
+      if (genreData && genreData.genres) {
+        for (let i = 0; i < genreData.genres.length; i++) {
+          if (!modalGenreMap.has(genreData.genres[i].name)) {
+            modalGenreMap.set(genreData.genres[i].name, genreData.genres[i]);
+          }
+        }
+      }
+
       const genreNames = [...genresToMerge];
       const genreItems = genreNames.map(name => {
-        const genre = genreData.genres.find(g => g.name === name);
+        const genre = modalGenreMap.get(name);
         return { name, count: genre ? genre.count : 0 };
       }).sort((a, b) => b.count - a.count);
 
@@ -8989,8 +9009,18 @@ export function getHtml(nonce: string): string {
 
       // Collect all track IDs from selected genres
       const trackIds = new Set();
+      // ⚡ Bolt: Optimize track lookups using Map
+      const playlistGenreMap = new Map();
+      if (genreData && genreData.genres) {
+        for (let i = 0; i < genreData.genres.length; i++) {
+          if (!playlistGenreMap.has(genreData.genres[i].name)) {
+            playlistGenreMap.set(genreData.genres[i].name, genreData.genres[i]);
+          }
+        }
+      }
+
       for (const genreName of genresToMerge) {
-        const genre = genreData.genres.find(g => g.name === genreName);
+        const genre = playlistGenreMap.get(genreName);
         if (genre && genre.trackIds) {
           genre.trackIds.forEach(id => trackIds.add(id));
         }
