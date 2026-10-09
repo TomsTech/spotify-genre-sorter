@@ -8988,10 +8988,11 @@ export function getHtml(nonce: string): string {
       }
 
       // Collect all track IDs from selected genres
+      // Optimized: Iterate over genreData.genres once (O(N)) instead of calling .find() inside the loop (O(N^2))
       const trackIds = new Set();
-      for (const genreName of genresToMerge) {
-        const genre = genreData.genres.find(g => g.name === genreName);
-        if (genre && genre.trackIds) {
+      const genresToMergeSet = new Set(genresToMerge); // Ensure O(1) lookups if genresToMerge is an array
+      for (const genre of genreData.genres) {
+        if (genresToMergeSet.has(genre.name) && genre.trackIds) {
           genre.trackIds.forEach(id => trackIds.add(id));
         }
       }
