@@ -405,6 +405,18 @@ export interface ErrorLogEntry {
 /**
  * Log error for debugging and monitoring
  */
+export async function logErrorToKV(kv: KVNamespace, error: ErrorLogEntry): Promise<void> {
+  try {
+    const timestamp = new Date(error.timestamp).getTime();
+    const key = `error:${timestamp}:${crypto.randomUUID()}`;
+    await kv.put(key, JSON.stringify(error), {
+      expirationTtl: 604800 // 7 days
+    });
+  } catch (err) {
+    console.error('Failed to log error to KV:', err);
+  }
+}
+
 export function logError(
   error: ErrorContext | Error,
   ctx?: {
