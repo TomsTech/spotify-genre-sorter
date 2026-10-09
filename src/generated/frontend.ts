@@ -8906,9 +8906,18 @@ export function getHtml(nonce: string): string {
         }
       }
 
+      // ⚡ Bolt: Build a Map once to find genres in O(1) instead of O(N) inside loop
+      const genreMap = new Map();
+      for (let i = 0; i < genreData.genres.length; i++) {
+        const g = genreData.genres[i];
+        if (!genreMap.has(g.name)) {
+          genreMap.set(g.name, g);
+        }
+      }
+
       let totalTracks = 0;
       for (const name of genresToMerge) {
-        const genre = genreData.genres.find(g => g.name === name);
+        const genre = genreMap.get(name);
         if (genre) totalTracks += genre.count;
       }
 
@@ -8936,9 +8945,18 @@ export function getHtml(nonce: string): string {
         return;
       }
 
+      // ⚡ Bolt: Build a Map once to find genres in O(1) instead of O(N) inside map() loop
+      const genreMap = new Map();
+      for (let i = 0; i < genreData.genres.length; i++) {
+        const g = genreData.genres[i];
+        if (!genreMap.has(g.name)) {
+          genreMap.set(g.name, g);
+        }
+      }
+
       const genreNames = [...genresToMerge];
       const genreItems = genreNames.map(name => {
-        const genre = genreData.genres.find(g => g.name === name);
+        const genre = genreMap.get(name);
         return { name, count: genre ? genre.count : 0 };
       }).sort((a, b) => b.count - a.count);
 
