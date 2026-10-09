@@ -6212,6 +6212,53 @@
     // Initialize
     init();
 
+    // ALLOWED FUNCTIONS WHITELIST TO PREVENT DOM XSS
+    const ALLOWED_FUNCTIONS = new Set([
+      'adminClearCache',
+      'adminRebuildCaches',
+      'browseKVKeys',
+      'cancelMerge',
+      'closePlaylistModal',
+      'closeScoreboard',
+      'confirmDeleteUser',
+      'copyShareLink',
+      'copyWrappedToClipboard',
+      'createMergedPlaylist',
+      'createPlaylist',
+      'createPlaylistForce',
+      'createSelectedPlaylists',
+      'deleteKVKey',
+      'dismissRateLimitBanner',
+      'downloadWrappedCard',
+      'endTutorial',
+      'exportGenresCSV',
+      'exportGenresJSON',
+      'hideSmallGenres',
+      'loadFullLibrary',
+      'loadGenres',
+      'nextTutorialStep',
+      'pauseProgressiveScan',
+      'refreshGenres',
+      'renderPlaylistList',
+      'resetDescTemplate',
+      'resetTemplate',
+      'resumeProgressiveScan',
+      'scanPlaylist',
+      'selectAll',
+      'selectNone',
+      'shareWrappedNative',
+      'showGenreWrapped',
+      'showMergeModal',
+      'showRequestAccessModal',
+      'stopProgressiveScan',
+      'toggleHideGenre',
+      'toggleMergeMode',
+      'toggleShowHidden',
+      'toggleStatsDashboard',
+      'unhideAllGenres',
+      'viewKVKey'
+    ]);
+
     // =========================================
     // CSP FIX: Global Event Delegation
     // Handles onclick attributes blocked by CSP
@@ -6233,52 +6280,6 @@
         const fnName = match[1];
         const argsStr = match[2];
 
-      // ALLOWED FUNCTIONS WHITELIST TO PREVENT DOM XSS
-      const ALLOWED_FUNCTIONS = new Set([
-        'adminClearCache',
-        'adminRebuildCaches',
-        'browseKVKeys',
-        'cancelMerge',
-        'closePlaylistModal',
-        'closeScoreboard',
-        'confirmDeleteUser',
-        'copyShareLink',
-        'copyWrappedToClipboard',
-        'createMergedPlaylist',
-        'createPlaylist',
-        'createPlaylistForce',
-        'createSelectedPlaylists',
-        'deleteKVKey',
-        'dismissRateLimitBanner',
-        'downloadWrappedCard',
-        'endTutorial',
-        'exportGenresCSV',
-        'exportGenresJSON',
-        'hideSmallGenres',
-        'loadFullLibrary',
-        'loadGenres',
-        'nextTutorialStep',
-        'pauseProgressiveScan',
-        'refreshGenres',
-        'renderPlaylistList',
-        'resetDescTemplate',
-        'resetTemplate',
-        'resumeProgressiveScan',
-        'scanPlaylist',
-        'selectAll',
-        'selectNone',
-        'shareWrappedNative',
-        'showGenreWrapped',
-        'showMergeModal',
-        'showRequestAccessModal',
-        'stopProgressiveScan',
-        'toggleHideGenre',
-        'toggleMergeMode',
-        'toggleShowHidden',
-        'toggleStatsDashboard',
-        'unhideAllGenres',
-        'viewKVKey'
-      ]);
 
         // Only allow whitelisted functions to be executed
         if (!ALLOWED_FUNCTIONS.has(fnName)) {
@@ -6337,52 +6338,6 @@
             if (fnMatch) {
               const fnName = fnMatch[1];
 
-      // ALLOWED FUNCTIONS WHITELIST TO PREVENT DOM XSS
-      const ALLOWED_FUNCTIONS = new Set([
-        'adminClearCache',
-        'adminRebuildCaches',
-        'browseKVKeys',
-        'cancelMerge',
-        'closePlaylistModal',
-        'closeScoreboard',
-        'confirmDeleteUser',
-        'copyShareLink',
-        'copyWrappedToClipboard',
-        'createMergedPlaylist',
-        'createPlaylist',
-        'createPlaylistForce',
-        'createSelectedPlaylists',
-        'deleteKVKey',
-        'dismissRateLimitBanner',
-        'downloadWrappedCard',
-        'endTutorial',
-        'exportGenresCSV',
-        'exportGenresJSON',
-        'hideSmallGenres',
-        'loadFullLibrary',
-        'loadGenres',
-        'nextTutorialStep',
-        'pauseProgressiveScan',
-        'refreshGenres',
-        'renderPlaylistList',
-        'resetDescTemplate',
-        'resetTemplate',
-        'resumeProgressiveScan',
-        'scanPlaylist',
-        'selectAll',
-        'selectNone',
-        'shareWrappedNative',
-        'showGenreWrapped',
-        'showMergeModal',
-        'showRequestAccessModal',
-        'stopProgressiveScan',
-        'toggleHideGenre',
-        'toggleMergeMode',
-        'toggleShowHidden',
-        'toggleStatsDashboard',
-        'unhideAllGenres',
-        'viewKVKey'
-      ]);
 
               if (!ALLOWED_FUNCTIONS.has(fnName)) {
                 console.warn('[CSP Handler] Blocked execution of unauthorized function:', fnName);
