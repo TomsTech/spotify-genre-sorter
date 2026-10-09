@@ -277,12 +277,10 @@ export async function getAllLikedTracks(
     const responses = [];
     const BATCH_SIZE = 5;
     for (let i = 0; i < remainingOffsets.length; i += BATCH_SIZE) {
-      const batchOffsets = remainingOffsets.slice(i, i + BATCH_SIZE);
+      // ⚡ Bolt: Directly create batch chunk using Array.from to avoid intermediate .slice().map() allocations
+      const size = Math.min(BATCH_SIZE, remainingOffsets.length - i);
       const batchResponses = await Promise.all(
-        batchOffsets.map(async (off) => {
-          const response = await getLikedTracks(accessToken, limit, off);
-          return response;
-        })
+        Array.from({ length: size }, (_, j) => getLikedTracks(accessToken, limit, remainingOffsets[i + j]))
       );
 
       for (const response of batchResponses) {
@@ -525,11 +523,12 @@ export async function getUserPlaylists(
     if (remainingOffsets.length > 0) {
       const BATCH_SIZE = 5;
       for (let i = 0; i < remainingOffsets.length; i += BATCH_SIZE) {
-        const batchOffsets = remainingOffsets.slice(i, i + BATCH_SIZE);
+        // ⚡ Bolt: Use Array.from() to generate batch tasks without creating intermediate slice arrays
+        const size = Math.min(BATCH_SIZE, remainingOffsets.length - i);
         const responses = await Promise.all(
-          batchOffsets.map(off =>
+          Array.from({ length: size }, (_, j) =>
             spotifyFetch<{ items: SpotifyPlaylist[] }>(
-              `/me/playlists?limit=${limit}&offset=${off}`,
+              `/me/playlists?limit=${limit}&offset=${remainingOffsets[i + j]}`,
               accessToken
             )
           )
@@ -580,11 +579,12 @@ export async function getPlaylistTracks(
     if (remainingOffsets.length > 0) {
       const BATCH_SIZE = 5;
       for (let i = 0; i < remainingOffsets.length; i += BATCH_SIZE) {
-        const batchOffsets = remainingOffsets.slice(i, i + BATCH_SIZE);
+        // ⚡ Bolt: Eliminate intermediate .slice().map() allocations by explicitly building the batch tasks with Array.from()
+        const size = Math.min(BATCH_SIZE, remainingOffsets.length - i);
         const responses = await Promise.all(
-          batchOffsets.map(off =>
+          Array.from({ length: size }, (_, j) =>
             spotifyFetch<{ items: PlaylistTrack[] }>(
-              `/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${off}`,
+              `/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${remainingOffsets[i + j]}`,
               accessToken
             )
           )
