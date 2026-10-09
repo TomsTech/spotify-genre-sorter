@@ -277,11 +277,12 @@ export async function getAllLikedTracks(
     const responses = [];
     const BATCH_SIZE = 5;
     for (let i = 0; i < remainingOffsets.length; i += BATCH_SIZE) {
-      const batchOffsets = remainingOffsets.slice(i, i + BATCH_SIZE);
+      // OPTIMIZATION: Use Array.from instead of .slice().map() to avoid intermediate array allocations
+      const size = Math.min(BATCH_SIZE, remainingOffsets.length - i);
       const batchResponses = await Promise.all(
-        batchOffsets.map(async (off) => {
-          const response = await getLikedTracks(accessToken, limit, off);
-          return response;
+        Array.from({ length: size }, (_, j) => {
+          const off = remainingOffsets[i + j];
+          return getLikedTracks(accessToken, limit, off);
         })
       );
 
@@ -465,23 +466,22 @@ export async function addTracksToPlaylist(
   // Note: Using a controlled concurrency limit of 3 to balance speed and safety.
   const CONCURRENCY_LIMIT = 3;
   for (let i = 0; i < trackUris.length; i += 100 * CONCURRENCY_LIMIT) {
-    const batchPromises = [];
-    for (let j = 0; j < CONCURRENCY_LIMIT && (i + j * 100) < trackUris.length; j++) {
+    const remainingChunks = Math.ceil((trackUris.length - i) / 100);
+    const size = Math.min(CONCURRENCY_LIMIT, remainingChunks);
+    const batchPromises = Array.from({ length: size }, (_, j) => {
       const chunkStart = i + j * 100;
       const chunk = trackUris.slice(chunkStart, chunkStart + 100);
-      batchPromises.push(
-        (async () => {
-          try {
-            await spotifyFetch(`/playlists/${playlistId}/tracks`, accessToken, {
-              method: 'POST',
-              body: JSON.stringify({ uris: chunk }),
-            });
-          } catch (error) {
-            console.error(`Failed to add tracks chunk starting at index ${chunkStart}:`, error);
-          }
-        })()
-      );
-    }
+      return (async () => {
+        try {
+          await spotifyFetch(`/playlists/${playlistId}/tracks`, accessToken, {
+            method: 'POST',
+            body: JSON.stringify({ uris: chunk }),
+          });
+        } catch (error) {
+          console.error(`Failed to add tracks chunk starting at index ${chunkStart}:`, error);
+        }
+      })();
+    });
     await Promise.all(batchPromises);
   }
 }
@@ -525,14 +525,16 @@ export async function getUserPlaylists(
     if (remainingOffsets.length > 0) {
       const BATCH_SIZE = 5;
       for (let i = 0; i < remainingOffsets.length; i += BATCH_SIZE) {
-        const batchOffsets = remainingOffsets.slice(i, i + BATCH_SIZE);
+        // OPTIMIZATION: Use Array.from instead of .slice().map() to avoid intermediate array allocations
+        const size = Math.min(BATCH_SIZE, remainingOffsets.length - i);
         const responses = await Promise.all(
-          batchOffsets.map(off =>
-            spotifyFetch<{ items: SpotifyPlaylist[] }>(
+          Array.from({ length: size }, (_, j) => {
+            const off = remainingOffsets[i + j];
+            return spotifyFetch<{ items: SpotifyPlaylist[] }>(
               `/me/playlists?limit=${limit}&offset=${off}`,
               accessToken
-            )
-          )
+            );
+          })
         );
         for (const res of responses) {
           allPlaylists.push(...res.items);
@@ -580,14 +582,16 @@ export async function getPlaylistTracks(
     if (remainingOffsets.length > 0) {
       const BATCH_SIZE = 5;
       for (let i = 0; i < remainingOffsets.length; i += BATCH_SIZE) {
-        const batchOffsets = remainingOffsets.slice(i, i + BATCH_SIZE);
+        // OPTIMIZATION: Use Array.from instead of .slice().map() to avoid intermediate array allocations
+        const size = Math.min(BATCH_SIZE, remainingOffsets.length - i);
         const responses = await Promise.all(
-          batchOffsets.map(off =>
-            spotifyFetch<{ items: PlaylistTrack[] }>(
+          Array.from({ length: size }, (_, j) => {
+            const off = remainingOffsets[i + j];
+            return spotifyFetch<{ items: PlaylistTrack[] }>(
               `/playlists/${playlistId}/tracks?limit=${pageLimit}&offset=${off}`,
               accessToken
-            )
-          )
+            );
+          })
         );
         for (const res of responses) {
           allTracks.push(...res.items);
@@ -650,18 +654,18 @@ async function fetchArtistsFromSpotify(
   accessToken: string,
   artistIds: string[]
 ): Promise<SpotifyArtist[]> {
-  const chunks: string[][] = [];
-  for (let i = 0; i < artistIds.length; i += 50) {
-    chunks.push(artistIds.slice(i, i + 50));
-  }
-
   // OPTIMIZATION: Parallelize artist fetching to reduce total request time
-  const chunkPromises = chunks.map((chunk) =>
-    spotifyFetch<{ artists: (SpotifyArtist | null)[] }>(
-      `/artists?ids=${chunk.join(',')}`,
+  // Using Array.from to avoid intermediate chunk arrays via slice/map
+  const CHUNK_SIZE = 50;
+  const numChunks = Math.ceil(artistIds.length / CHUNK_SIZE);
+  const chunkPromises = Array.from({ length: numChunks }, (_, i) => {
+    const chunkStart = i * CHUNK_SIZE;
+    const chunkIds = artistIds.slice(chunkStart, chunkStart + CHUNK_SIZE);
+    return spotifyFetch<{ artists: (SpotifyArtist | null)[] }>(
+      `/artists?ids=${chunkIds.join(',')}`,
       accessToken
-    )
-  );
+    );
+  });
 
   const responses = await Promise.all(chunkPromises);
   const results: SpotifyArtist[] = [];
