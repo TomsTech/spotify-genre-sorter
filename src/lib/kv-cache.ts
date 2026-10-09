@@ -286,7 +286,13 @@ export const cachedKV = {
       clearTimeout(writeFlushTimeout);
       writeFlushTimeout = null;
     }
-    await flushWriteQueue(kv);
+    while (writeQueue.length > 0) {
+      await flushWriteQueue(kv);
+    }
+    if (writeFlushTimeout) {
+      clearTimeout(writeFlushTimeout);
+      writeFlushTimeout = null;
+    }
   },
 
   /**

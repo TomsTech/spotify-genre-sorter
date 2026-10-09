@@ -79,6 +79,22 @@ describe('KV Cache', () => {
       consoleErrorSpy.mockRestore();
     });
 
+    it('flushes all pending items during forced flush even if queue exceeds max batch size', async () => {
+      vi.useRealTimers();
+
+      // Delay put to allow queue to build up
+      mockKV.put.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 5)));
+
+      const puts = Array.from({ length: 15 }).map((_, i) =>
+        cachedKV.put(mockKV, `key-${i}`, `val-${i}`, { immediate: false })
+      );
+
+      await cachedKV.flush(mockKV);
+      await Promise.all(puts);
+
+      expect(mockKV.put).toHaveBeenCalledTimes(15);
+    });
+
     it('catches unexpected errors from flushWriteQueue in scheduleFlush', async () => {
       // Mock Promise.all to simulate a catastrophic failure in flushWriteQueue
       const error = new Error('Promise.all failed');
