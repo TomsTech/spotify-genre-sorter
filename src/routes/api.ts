@@ -2315,7 +2315,7 @@ type AdminUser = {
   hofPosition?: number;
 };
 
-async function fetchRegularUsers(kv: KVNamespace, seenIds: Set<string>, users: AdminUser[], BATCH_SIZE: number) {
+async function fetchRegularUsers(kv: KVNamespace, users: AdminUser[], userMap: Map<string, AdminUser>, BATCH_SIZE: number) {
   const userStatsList = await kv.list({ prefix: 'user_stats:', limit: 500 });
   for (let i = 0; i < userStatsList.keys.length; i += BATCH_SIZE) {
     const size = Math.min(BATCH_SIZE, userStatsList.keys.length - i);
@@ -2348,14 +2348,15 @@ async function fetchRegularUsers(kv: KVNamespace, seenIds: Set<string>, users: A
     const dataResults = await Promise.all(dataPromises);
     for (const user of dataResults) {
       if (user) {
-        seenIds.add(user.spotifyId);
+
         users.push(user);
+        userMap.set(user.spotifyId, user);
       }
     }
   }
 }
 
-async function fetchHoFUsers(kv: KVNamespace, seenIds: Set<string>, users: AdminUser[], BATCH_SIZE: number) {
+async function fetchHoFUsers(kv: KVNamespace, users: AdminUser[], userMap: Map<string, AdminUser>, BATCH_SIZE: number) {
   const hofKeys = Array.from({ length: 20 }, (_, i) => `hof:${String(i + 1).padStart(3, '0')}`);
   const hofResults: ({ spotifyId: string; spotifyName: string; spotifyAvatar?: string; registeredAt?: string } | null)[] = [];
   for (let i = 0; i < hofKeys.length; i += BATCH_SIZE) {
@@ -2386,9 +2387,8 @@ async function fetchHoFUsers(kv: KVNamespace, seenIds: Set<string>, users: Admin
     const hofUser = hofResults[i];
     if (hofUser) {
       // Only add if not already in users list
-      if (!seenIds.has(hofUser.spotifyId)) {
-        seenIds.add(hofUser.spotifyId);
-        users.push({
+      if (!userMap.has(hofUser.spotifyId)) {
+        const newUser = {
           spotifyId: hofUser.spotifyId,
           spotifyName: hofUser.spotifyName || 'Unknown',
           spotifyAvatar: hofUser.spotifyAvatar || null,
@@ -2397,10 +2397,12 @@ async function fetchHoFUsers(kv: KVNamespace, seenIds: Set<string>, users: Admin
           lastActive: null,
           isPioneer: true,
           hofPosition: i + 1,
-        });
+        };
+        users.push(newUser);
+        userMap.set(hofUser.spotifyId, newUser);
       } else {
-        // Mark existing user as pioneer
-        const existingUser = users.find(u => u.spotifyId === hofUser.spotifyId);
+        // ⚡ Bolt: Use Map for O(1) user lookup instead of O(N) array find
+        const existingUser = userMap.get(hofUser.spotifyId);
         if (existingUser) {
           existingUser.isPioneer = true;
           existingUser.hofPosition = i + 1;
@@ -2412,13 +2414,13 @@ async function fetchHoFUsers(kv: KVNamespace, seenIds: Set<string>, users: Admin
 
 async function getAdminUsersList(kv: KVNamespace): Promise<AdminUser[]> {
   const users: AdminUser[] = [];
-  const seenIds = new Set<string>();
+  const userMap = new Map<string, AdminUser>();
 
   // ⚡ Bolt: Chunked parallel reads for KV.get to avoid limits and reduce GC via Array.from over slice().map()
   const BATCH_SIZE = 40;
 
-  await fetchRegularUsers(kv, seenIds, users, BATCH_SIZE);
-  await fetchHoFUsers(kv, seenIds, users, BATCH_SIZE);
+  await fetchRegularUsers(kv, users, userMap, BATCH_SIZE);
+  await fetchHoFUsers(kv, users, userMap, BATCH_SIZE);
 
   // Sort by registration date (newest first)
   users.sort((a, b) => {
