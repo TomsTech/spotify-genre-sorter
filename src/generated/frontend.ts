@@ -15656,7 +15656,7 @@ export function getHtml(nonce: string): string {
 
       const submitBtn = e.target.querySelector('button');
       submitBtn.disabled = true;
-      submitBtn.textContent = swedishMode ? 'Skickar...' : 'Sending...';
+      submitBtn.innerHTML = '<div class="spinner" style="width: 1em; height: 1em; border-width: 2px; border-color: currentColor; border-top-color: transparent;"></div> ' + (swedishMode ? 'Skickar...' : 'Sending...');
 
       try {
         const response = await fetch('/api/invite-request', {
@@ -16933,7 +16933,7 @@ export function getHtml(nonce: string): string {
 
       const submitBtn = document.querySelector('.request-submit-btn');
       const originalText = submitBtn.textContent;
-      submitBtn.textContent = swedishMode ? 'Skickar...' : 'Submitting...';
+      submitBtn.innerHTML = '<div class="spinner" style="width: 1em; height: 1em; border-width: 2px; border-color: currentColor; border-top-color: transparent;"></div> ' + (swedishMode ? 'Skickar...' : 'Submitting...');
       submitBtn.disabled = true;
 
       try {

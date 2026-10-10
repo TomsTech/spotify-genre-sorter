@@ -24,3 +24,6 @@
 ## 2024-05-18 - Semantic Disabled States
 **Learning:** Found that some buttons use the `disabled` attribute but don't explicitly set `aria-disabled="true"`. While `disabled` implies `aria-disabled="true"`, explicitly setting `aria-disabled` is better practice, especially for custom interactive elements, and helps ensure assistive technologies accurately interpret the element's state, specifically when the disabled state changes dynamically.
 **Action:** Always ensure dynamic disabled states explicitly toggle `aria-disabled` along with the `disabled` attribute, and ensure the CSS handles `[aria-disabled="true"]` alongside `:disabled` for consistent visual styling.
+## 2026-10-10 - Add loading spinners to async submit buttons
+**Learning:** For modal-based forms like the "Request Access" and "Invite" modals, changing the text of the submit button from "Submit" to "Submitting..." provides some feedback, but appending a visual CSS spinner alongside the text significantly improves the perceived responsiveness of async operations, especially when using standard components.
+**Action:** Always append an animated element (like `<div class="spinner">`) via `innerHTML` along with text changes when indicating an async operation state in UI components.
