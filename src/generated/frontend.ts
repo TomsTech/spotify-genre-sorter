@@ -13250,15 +13250,15 @@ export function getHtml(nonce: string): string {
           <input
             type="checkbox"
             class="genre-checkbox"
-            value="\${genre.name}"
+            value="\${escapeForHtml(genre.name)}"
             \${selectedGenres.has(genre.name) ? 'checked' : ''}
-            onchange="toggleGenre('\${genre.name.replace(/'/g, "\\\\'")}', this.checked)"
+            onchange="toggleGenre('\${escapeForHtml(genre.name.replace(/'/g, "\\\\'"))}', this.checked)"
           >
-          <span class="genre-name">\${genre.name}</span>
+          <span class="genre-name">\${escapeForHtml(genre.name)}</span>
           <span class="genre-count">\${genre.count} \${t('tracks')}</span>
           <button
             class="btn btn-ghost genre-hide"
-            onclick="event.preventDefault(); toggleHideGenre('\${genre.name.replace(/'/g, "\\\\'")}')"
+            onclick="event.preventDefault(); toggleHideGenre('\${escapeForHtml(genre.name.replace(/'/g, "\\\\'"))}')"
             title="\${isHidden ? (swedishMode ? 'Visa' : 'Show') : (swedishMode ? 'Dölj' : 'Hide')}"
             aria-label="\${isHidden ? (swedishMode ? 'Visa' : 'Show') : (swedishMode ? 'Dölj' : 'Hide')} \${escapeForHtml(genre.name)}"
           >
@@ -13266,7 +13266,7 @@ export function getHtml(nonce: string): string {
           </button>
           <button
             class="btn btn-ghost genre-create"
-            onclick="event.preventDefault(); createPlaylist('\${genre.name.replace(/'/g, "\\\\'")}')"
+            onclick="event.preventDefault(); createPlaylist('\${escapeForHtml(genre.name.replace(/'/g, "\\\\'"))}')"
             data-i18n="create"
             aria-label="\${t('create')} \${escapeForHtml(genre.name)}"
           >
@@ -13758,7 +13758,7 @@ export function getHtml(nonce: string): string {
             <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">
               \${swedishMode ? 'Avbryt' : 'Cancel'}
             </button>
-            <button class="btn btn-primary" onclick="createPlaylistForce('\${genre.name.replace(/'/g, "\\\\'")}'); this.closest('.modal-overlay').remove();">
+            <button class="btn btn-primary" onclick="createPlaylistForce('\${escapeForHtml(genre.name.replace(/'/g, "\\\\'"))}'); this.closest('.modal-overlay').remove();">
               \${swedishMode ? 'Skapa ändå' : 'Create Anyway'}
             </button>
           </div>
@@ -13978,12 +13978,12 @@ export function getHtml(nonce: string): string {
             <div class="results">
               \${result.results.map(r => \`
                 <div class="result-item">
-                  <span>\${r.genre}</span>
+                  <span>\${escapeForHtml(r.genre)}</span>
                   \${r.success
                     ? \`<a href="\${getSafeUrl(r.url)}" target="_blank" rel="noopener noreferrer" class="result-success" data-i18n="openSpotify">\${t('openSpotify')}</a>\`
                     : r.skipped
                       ? \`<span class="result-skipped">\${swedishMode ? 'Finns redan' : 'Already exists'}</span>\`
-                      : \`<span class="result-error">\${r.error}</span>\`
+                      : \`<span class="result-error">\${escapeForHtml(r.error)}</span>\`
                   }
                 </div>
               \`).join('')}
