@@ -1,0 +1,1 @@
+## YYYY-MM-DD - [Loading state visibility] **Learning:** [Users need clear visual feedback when async operations like form submissions are in progress, purely textual updates often go unnoticed.] **Action:** [When indicating an async operation state in UI components, always append a visual animated element (like a spinner) via innerHTML along with text changes.]

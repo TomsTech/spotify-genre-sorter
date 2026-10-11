@@ -5348,6 +5348,7 @@
       const btn = document.getElementById('create-btn');
       btn.disabled = true;
       btn.setAttribute('aria-disabled', 'true');
+      btn.innerHTML = (swedishMode ? 'Skapar...' : 'Creating...') + ' <div class="spinner spinner-small"></div>';
 
       const genres = genreData.genres
         .filter(g => selectedGenres.has(g.name))
@@ -7068,7 +7069,7 @@
 
       const submitBtn = e.target.querySelector('button');
       submitBtn.disabled = true;
-      submitBtn.textContent = swedishMode ? 'Skickar...' : 'Sending...';
+      submitBtn.innerHTML = (swedishMode ? 'Skickar...' : 'Sending...') + ' <div class="spinner spinner-small"></div>';
 
       try {
         const response = await fetch('/api/invite-request', {
@@ -8345,7 +8346,7 @@
 
       const submitBtn = document.querySelector('.request-submit-btn');
       const originalText = submitBtn.textContent;
-      submitBtn.textContent = swedishMode ? 'Skickar...' : 'Submitting...';
+      submitBtn.innerHTML = (swedishMode ? 'Skickar...' : 'Submitting...') + ' <div class="spinner spinner-small"></div>';
       submitBtn.disabled = true;
 
       try {
