@@ -1,0 +1,1 @@
+## YYYY-MM-DD - [Button Loading States] **Learning:** [Adding visual animated spinners to async submit buttons provides immediate feedback and significantly improves perceived responsiveness compared to just changing text.] **Action:** [Always include an animated element when indicating async loading states in UI components.]
