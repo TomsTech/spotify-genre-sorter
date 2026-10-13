@@ -1,0 +1,1 @@
+## YYYY-MM-DD - [Loading Spinners for Async Buttons] **Learning:** Text changes alone on buttons (like "Creating...") can be easily missed. An animated element provides immediate, undeniable visual feedback that a process is running. **Action:** Always append a spinner icon along with text changes when indicating an async operation state in UI components.

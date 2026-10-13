@@ -224,6 +224,12 @@
         return;
       }
 
+      const btn = document.querySelector('.merge-modal .btn-primary');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = (swedishMode ? 'Skapar...' : 'Creating...') + '<div class="spinner" style="width: 14px; height: 14px; border-width: 2px; margin: 0 0 0 8px; display: inline-block; vertical-align: middle;"></div>';
+      }
+
       showNotification(swedishMode ? '⏳ Skapar spellista...' : '⏳ Creating playlist...', 'info');
 
       try {
@@ -5089,7 +5095,7 @@
       const btn = event?.target;
       if (btn) {
         btn.disabled = true;
-        btn.textContent = t('creating');
+        btn.innerHTML = t('creating') + '<div class="spinner" style="width: 14px; height: 14px; border-width: 2px; margin: 0 0 0 8px; display: inline-block; vertical-align: middle;"></div>';
       }
 
       try {
@@ -5111,7 +5117,7 @@
 
         if (result.success) {
           if (btn) {
-            btn.textContent = t('created');
+            btn.innerHTML = t('created');
             btn.style.color = 'var(--accent)';
           }
           showNotification(\`\${swedishMode ? 'Skapade spellista' : 'Created playlist'}: \${genre.name} (\${genre.count} \${t('tracks')})\`, 'success');
@@ -5128,7 +5134,7 @@
           showDuplicateDialog(genre, result);
           if (btn) {
             btn.disabled = false;
-            btn.textContent = t('create');
+            btn.innerHTML = t('create');
           }
           return;
         } else {
@@ -5136,7 +5142,7 @@
         }
       } catch (error) {
         if (btn) {
-          btn.textContent = t('failed');
+          btn.innerHTML = t('failed');
           btn.style.color = 'var(--danger)';
         }
         showNotification(\`\${t('failed')}: \${error.message}\`, 'error');
@@ -5145,7 +5151,7 @@
       if (btn) {
         setTimeout(() => {
           btn.disabled = false;
-          btn.textContent = t('create');
+          btn.innerHTML = t('create');
           btn.style.color = '';
         }, 3000);
       }
@@ -5348,6 +5354,7 @@
       const btn = document.getElementById('create-btn');
       btn.disabled = true;
       btn.setAttribute('aria-disabled', 'true');
+      btn.innerHTML = (swedishMode ? 'Skapar...' : 'Creating...') + '<div class="spinner" style="width: 14px; height: 14px; border-width: 2px; margin: 0 0 0 8px; display: inline-block; vertical-align: middle;"></div>';
 
       const genres = genreData.genres
         .filter(g => selectedGenres.has(g.name))
@@ -5418,7 +5425,7 @@
 
       btn.disabled = false;
       btn.setAttribute('aria-disabled', 'false');
-      btn.textContent = t('createPlaylists');
+      btn.innerHTML = t('createPlaylists');
     }
 
     function showNotification(message, type) {
@@ -7068,7 +7075,7 @@
 
       const submitBtn = e.target.querySelector('button');
       submitBtn.disabled = true;
-      submitBtn.textContent = swedishMode ? 'Skickar...' : 'Sending...';
+      submitBtn.innerHTML = (swedishMode ? 'Skickar...' : 'Sending...') + '<div class="spinner" style="width: 14px; height: 14px; border-width: 2px; margin: 0 0 0 8px; display: inline-block; vertical-align: middle;"></div>';
 
       try {
         const response = await fetch('/api/invite-request', {
@@ -8345,7 +8352,7 @@
 
       const submitBtn = document.querySelector('.request-submit-btn');
       const originalText = submitBtn.textContent;
-      submitBtn.textContent = swedishMode ? 'Skickar...' : 'Submitting...';
+      submitBtn.innerHTML = (swedishMode ? 'Skickar...' : 'Submitting...') + '<div class="spinner" style="width: 14px; height: 14px; border-width: 2px; margin: 0 0 0 8px; display: inline-block; vertical-align: middle;"></div>';
       submitBtn.disabled = true;
 
       try {
