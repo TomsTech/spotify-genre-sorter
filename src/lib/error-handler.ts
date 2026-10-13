@@ -355,13 +355,15 @@ export async function processBatch<T, R>(
       chunk.map(item => processor(item).then(result => ({ item, result })))
     );
 
-    for (const result of results) {
+    for (let j = 0; j < results.length; j++) {
+      const result = results[j];
       if (result.status === 'fulfilled') {
         successful.push(result.value);
       } else {
+        // ⚡ Bolt: Use O(1) index access (j) instead of O(N) indexOf to map results back to original chunk items
         const error = classifyError(result.reason);
         failed.push({
-          item: chunk[results.indexOf(result)],
+          item: chunk[j],
           error,
         });
 
