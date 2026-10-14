@@ -7068,7 +7068,7 @@
 
       const submitBtn = e.target.querySelector('button');
       submitBtn.disabled = true;
-      submitBtn.textContent = swedishMode ? 'Skickar...' : 'Sending...';
+      submitBtn.innerHTML = (swedishMode ? 'Skickar...' : 'Sending...') + ' <span class="spinner spinner-small" style="display:inline-block; margin-left:8px; vertical-align:middle;"></span>';
 
       try {
         const response = await fetch('/api/invite-request', {
@@ -8345,7 +8345,7 @@
 
       const submitBtn = document.querySelector('.request-submit-btn');
       const originalText = submitBtn.textContent;
-      submitBtn.textContent = swedishMode ? 'Skickar...' : 'Submitting...';
+      submitBtn.innerHTML = (swedishMode ? 'Skickar...' : 'Submitting...') + ' <span class="spinner spinner-small" style="display:inline-block; margin-left:8px; vertical-align:middle;"></span>';
       submitBtn.disabled = true;
 
       try {
