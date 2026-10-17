@@ -174,3 +174,8 @@
 ## YYYY-MM-DD - [Eliminating O(N^2) array.indexOf inside batch loop]
 **Learning:** Using `array.indexOf(item)` inside a loop over the same (or parallel) array to find the current item's index creates an O(N^2) operation. When processing batches, this scales poorly and increases execution time.
 **Action:** Replaced `results.indexOf(result)` with a standard `for` loop index `j` to access both `result` and `chunk[j]` in O(N) time in `src/lib/error-handler.ts`.
+## YYYY-MM-DD - [O(N^2) Bottleneck in Error Handler]
+**Learning:** Using Array.prototype.indexOf() inside a loop to find the original item from a settled Promise array creates an O(N^2) bottleneck, especially on large batches in processBatch().
+**Action:** Always use an explicit indexed for loop (e.g., for (let j = 0; j < results.length; j++)) to directly access the corresponding item in the parallel chunk array instead of looking it up with indexOf.
+
+## YYYY-MM-DD - [Optimize LRU Cache Update for Rate Limiter] **Learning:** [JavaScript Map objects maintain insertion order. By deleting and re-inserting elements on access, the Map implicitly becomes an LRU cache where the oldest element is the first item.] **Action:** [Refactored rate limiter in `src/routes/api.ts` to delete and re-insert keys on access to maintain LRU order naturally for O(1) eviction without arrays.]
