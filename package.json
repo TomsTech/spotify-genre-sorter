@@ -42,7 +42,7 @@
     "hono": "^4.12.34"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250525.0",
+    "@cloudflare/workers-types": "^4.20250109.0",
     "@playwright/test": "^1.57.0",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
     "@typescript-eslint/parser": "^8.15.0",
