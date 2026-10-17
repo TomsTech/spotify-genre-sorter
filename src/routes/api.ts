@@ -1758,8 +1758,7 @@ api.post('/preferences', async (c) => {
   }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const body: Record<string, unknown> = await c.req.json();
+    const body = await c.req.json<Record<string, unknown>>();
 
     // Validate allowed fields
     const allowedFields = ['theme', 'swedishMode', 'playlistTemplate', 'hiddenGenres', 'showHiddenGenres', 'tutorialCompleted'] as const;
@@ -1785,8 +1784,7 @@ const INVITE_REQUESTS_KEY = 'invite_requests';
 // Submit invite request
 api.post('/invite-request', async (c) => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const body: Record<string, unknown> = await c.req.json();
+    const body = await c.req.json<Record<string, unknown>>();
     const email = typeof body.email === 'string' ? body.email.trim() : '';
     const note = typeof body.note === 'string' ? body.note.trim() : '';
 
@@ -1869,8 +1867,7 @@ const PERF_LOG_KEY = 'client_perf';
 // Log frontend JS errors
 api.post('/log-error', async (c) => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const body: Record<string, unknown> = await c.req.json();
+    const body = await c.req.json<Record<string, unknown>>();
     const errors = Array.isArray(body.errors) ? body.errors : [];
 
     if (errors.length === 0) {
@@ -1907,8 +1904,7 @@ api.post('/log-error', async (c) => {
 // Log frontend performance metrics
 api.post('/log-perf', async (c) => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const body: Record<string, unknown> = await c.req.json();
+    const body = await c.req.json<Record<string, unknown>>();
 
     // Validate basic structure
     if (typeof body.pageLoadTime !== 'number') {
