@@ -123,7 +123,7 @@ describe('State Management', () => {
   });
 });
 
-import { getScoreboard, cachedKV, getScanProgress } from '../src/lib/session';
+import { getScoreboard, cachedKV, getScanProgress, saveScanProgress } from '../src/lib/session';
 
 import { buildScoreboard } from '../src/lib/session';
 
@@ -186,6 +186,63 @@ describe('getScoreboard', () => {
     cachedKV.get = originalGet;
   });
 });
+
+
+describe('saveScanProgress', () => {
+  it('should call cachedKV.put with correct key, serialized data and options', async () => {
+    const originalPut = cachedKV.put;
+    cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    const mockProgress = {
+      userId: 'test-user-123',
+      offset: 0,
+      totalInLibrary: 100,
+      partialGenres: [],
+      partialArtistCount: 0,
+      partialTrackCount: 0,
+      startedAt: new Date().toISOString(),
+      lastUpdatedAt: new Date().toISOString(),
+      status: 'in_progress' as const
+    };
+
+    const mockKv = {} as any;
+    await saveScanProgress(mockKv, mockProgress);
+
+    expect(cachedKV.put).toHaveBeenCalledWith(
+      mockKv,
+      'scan_progress:test-user-123',
+      JSON.stringify(mockProgress),
+      { expirationTtl: 3600, immediate: true }
+    );
+
+    cachedKV.put = originalPut;
+  });
+
+  it('should propagate errors from cachedKV.put', async () => {
+    const originalPut = cachedKV.put;
+    const error = new Error('KV Error');
+    cachedKV.put = vi.fn().mockRejectedValue(error);
+
+    const mockProgress = {
+      userId: 'test-user-123',
+      offset: 0,
+      totalInLibrary: 100,
+      partialGenres: [],
+      partialArtistCount: 0,
+      partialTrackCount: 0,
+      startedAt: new Date().toISOString(),
+      lastUpdatedAt: new Date().toISOString(),
+      status: 'in_progress' as const
+    };
+
+    const mockKv = {} as any;
+
+    await expect(saveScanProgress(mockKv, mockProgress)).rejects.toThrow('KV Error');
+
+    cachedKV.put = originalPut;
+  });
+});
+
 describe('getScanProgress', () => {
   it('should call cachedKV.get with correct key and ttl', async () => {
     const originalGet = cachedKV.get;
@@ -301,5 +358,65 @@ describe('getUserStats', () => {
     await expect(getUserStats(mockKv, spotifyId)).rejects.toThrow('KV Error');
 
     cachedKV.get = originalGet;
+  });
+});
+
+describe('createSession', () => {
+  it('should generate UUID, CSRF token, store in KV, and set cookie', async () => {
+    const mockUUID = '123e4567-e89b-12d3-a456-426614174000';
+    const originalRandomUUID = crypto.randomUUID;
+    crypto.randomUUID = vi.fn().mockReturnValue(mockUUID);
+
+    vi.resetModules();
+
+    vi.doMock('hono/cookie', () => ({
+      getCookie: vi.fn(),
+      setCookie: vi.fn(),
+      deleteCookie: vi.fn(),
+    }));
+
+    vi.doMock('../src/lib/csrf', () => ({
+      generateCsrfToken: vi.fn().mockReturnValue('mock-csrf-token'),
+    }));
+
+    const { createSession } = await import('../src/lib/session');
+    const { setCookie } = await import('hono/cookie');
+    const { cachedKV: dynamicCachedKV } = await import('../src/lib/kv-cache');
+    const { generateCsrfToken } = await import('../src/lib/csrf');
+
+    const originalPut = dynamicCachedKV.put;
+    dynamicCachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    const mockContext = {
+      env: { SESSIONS: {} as any },
+    } as any;
+
+    const sessionData = { githubUser: 'testuser' };
+
+    const result = await createSession(mockContext, sessionData as any);
+
+    expect(crypto.randomUUID).toHaveBeenCalled();
+    expect(result).toBe(mockUUID);
+    expect(generateCsrfToken).toHaveBeenCalled();
+
+    expect(dynamicCachedKV.put).toHaveBeenCalledWith(
+      mockContext.env.SESSIONS,
+      `session:${mockUUID}`,
+      JSON.stringify({ ...sessionData, csrfToken: 'mock-csrf-token' }),
+      { expirationTtl: 60 * 60 * 24 * 7, immediate: true }
+    );
+
+    expect(setCookie).toHaveBeenCalledWith(mockContext, 'session_id', mockUUID, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    });
+
+    crypto.randomUUID = originalRandomUUID;
+    dynamicCachedKV.put = originalPut;
+    vi.doUnmock('hono/cookie');
+    vi.doUnmock('../src/lib/csrf');
   });
 });
