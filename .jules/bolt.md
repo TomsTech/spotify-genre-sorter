@@ -171,6 +171,9 @@
 **Learning:** When evicting the oldest entries from a `Map` (like in a rate limiter), converting the entire Map to an array with `push` and then calling `sort` is O(N log N) and creates intermediate allocations. Because JavaScript `Map` iterators yield elements in insertion order (FIFO), you can achieve O(K) eviction without arrays by directly iterating over `map.keys()` and deleting the required number of entries.
 **Action:** Replaced the array conversion, push loop, and sort operation in `rateLimitMap` eviction with a simple loop over `rateLimitMap.keys()` that deletes elements directly.
 ## 2025-02-18 - [Eliminate intermediate array allocations via Array.from over slice().map()] **Learning:** Using `array.slice().map()` creates intermediate arrays that increase garbage collection overhead, especially when chunking data for `Promise.all()` in tight loops. **Action:** Replace `.slice().map()` with `Array.from({ length: size }, (_, j) => array[start + j])` to directly construct the promised elements array without intermediate allocations.
+## YYYY-MM-DD - [Eliminating O(N^2) array.indexOf inside batch loop]
+**Learning:** Using `array.indexOf(item)` inside a loop over the same (or parallel) array to find the current item's index creates an O(N^2) operation. When processing batches, this scales poorly and increases execution time.
+**Action:** Replaced `results.indexOf(result)` with a standard `for` loop index `j` to access both `result` and `chunk[j]` in O(N) time in `src/lib/error-handler.ts`.
 ## YYYY-MM-DD - [O(N^2) Bottleneck in Array Processing] **Learning:** [Using Array.prototype.indexOf() inside a for...of loop over a parallel array creates an O(N^2) bottleneck, which is particularly bad for batch processing large arrays.] **Action:** [Use a standard for loop with an index variable for O(1) direct element access when correlating items between parallel arrays.]
 
 ## YYYY-MM-DD - Optimize O(N^2) array find to O(1) map lookup in HoF loop
