@@ -11774,7 +11774,8 @@ export function getHtml(nonce: string): string {
 
     // Escape text for safe HTML/JSON output
     function escapeForHtml(text) {
-      return text
+      if (text === null || text === undefined) return '';
+      return String(text)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
@@ -13315,11 +13316,11 @@ export function getHtml(nonce: string): string {
           <input
             type="checkbox"
             class="genre-checkbox"
-            value="\${genre.name}"
+            value="\${escapeHtml(genre.name)}"
             \${selectedGenres.has(genre.name) ? 'checked' : ''}
             onchange="toggleGenre('\${genre.name.replace(/'/g, "\\\\'")}', this.checked)"
           >
-          <span class="genre-name">\${genre.name}</span>
+          <span class="genre-name">\${escapeHtml(genre.name)}</span>
           <span class="genre-count">\${genre.count} \${t('tracks')}</span>
           <button
             class="btn btn-ghost genre-hide"
