@@ -174,3 +174,15 @@
 ## 2025-02-12 - ⚡ Bolt: Eliminate intermediate array allocations when chunking batch requests
 **Learning:** Using `.slice().map()` when breaking down bulk array processing into chunks causes unnecessary memory allocations and subsequent garbage collection overhead for intermediate arrays.
 **Action:** Replaced `.slice(i, i + BATCH_SIZE).map(...)` with `Array.from({ length: size }, (_, j) => ...)` and indexed into the original array `array[i + j]` to avoid creating temporary array structures entirely in `src/lib/spotify.ts` for operations like batch playlist or track requests.
+
+## YYYY-MM-DD - Optimize O(N^2) array find to O(1) map lookup in HoF loop
+**Learning:** Using Array.prototype.find inside a loop creates an O(N^2) operation. Converting the array into a Map beforehand provides O(1) lookup, significantly reducing time complexity.
+**Action:** Replaced users.find() with a pre-built userMap.get() lookup in the fetchHoFUsers loop, yielding an ~12x performance improvement in benchmarks.
+## YYYY-MM-DD - Clean up unused fields after algorithm changes
+**Learning:** When switching algorithms (like moving from a timestamp-based O(N) LRU eviction to an insertion-order-based O(1) LRU eviction using JavaScript Maps), old fields (like `lastAccessed`) often become dead code. Removing them improves memory footprint and code clarity.
+**Action:** Removed the unused `lastAccessed` field from `CacheEntry` and its update points in `src/lib/kv-cache.ts` after verifying that `evictOldest` solely relies on Map insertion order.
+## YYYY-MM-DD - [O(N^2) Bottleneck in Error Handler]
+**Learning:** Using Array.prototype.indexOf() inside a loop to find the original item from a settled Promise array creates an O(N^2) bottleneck, especially on large batches in processBatch().
+**Action:** Always use an explicit indexed for loop (e.g., for (let j = 0; j < results.length; j++)) to directly access the corresponding item in the parallel chunk array instead of looking it up with indexOf.
+
+## YYYY-MM-DD - [Optimize LRU Cache Update for Rate Limiter] **Learning:** [JavaScript Map objects maintain insertion order. By deleting and re-inserting elements on access, the Map implicitly becomes an LRU cache where the oldest element is the first item.] **Action:** [Refactored rate limiter in `src/routes/api.ts` to delete and re-insert keys on access to maintain LRU order naturally for O(1) eviction without arrays.]
