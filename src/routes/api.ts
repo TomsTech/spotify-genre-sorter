@@ -79,7 +79,8 @@ const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 30; // 30 requests per minute
 const SPOTIFY_TRACK_ID_REGEX = /^[a-zA-Z0-9]{22}$/;
 
-// PERF-003 FIX: Bounded rate limiter with deterministic cleanup
+// ⚡ Bolt: Optimize Map eviction loop
+// Bounded rate limiter with deterministic cleanup
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_MAX_ENTRIES = 10000; // Prevent unbounded memory growth
 let rateLimitRequestCount = 0;
@@ -127,9 +128,8 @@ api.use('/*', async (c, next) => {
     const entriesToRemove = Math.floor(RATE_LIMIT_MAX_ENTRIES * 0.2);
     let removed = 0;
     for (const key of rateLimitMap.keys()) {
-      if (removed >= entriesToRemove) break;
       rateLimitMap.delete(key);
-      removed++;
+      if (++removed >= entriesToRemove) break;
     }
   }
 
