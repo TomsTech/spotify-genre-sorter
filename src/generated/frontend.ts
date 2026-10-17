@@ -8591,7 +8591,6 @@ export function getHtml(nonce: string): string {
 
     let genreData = null;
 
-
     // === Security Utilities ===
     // Secure alternative to getSecureRandom()
     function getSecureRandom() {
@@ -9484,7 +9483,6 @@ export function getHtml(nonce: string): string {
 
     window.confirmDeleteUser = confirmDeleteUser;
 
-
     // Helper to render KV Summary card
     function renderAdminKVSummary(summary) {
       return \`
@@ -10211,7 +10209,6 @@ export function getHtml(nonce: string): string {
     window.adminRebuildCaches = adminRebuildCaches;
     window.showAdminPanel = showAdminPanel;
 
-
     function startFikaTimer() {
       if (fikaTimerStarted || !swedishMode) return;
       fikaTimerStarted = true;
@@ -10743,7 +10740,7 @@ export function getHtml(nonce: string): string {
     // KV Status Monitoring
     // =====================================
     let kvUsageCache = null;
-    // PERF-006 FIX: Reduced polling frequencies to save API calls
+
     const KV_POLL_INTERVAL = 300000; // Poll every 5 minutes (was 1 min)
 
     async function checkKVUsage() {
@@ -10962,19 +10959,17 @@ export function getHtml(nonce: string): string {
     window.showKVStatusModal = showKVStatusModal;
     window.closeKVModal = closeKVModal;
 
-    // PERF-006 FIX: Track all polling intervals for visibility API cleanup
     let kvPollInterval = null;
 
     // Start deployment and KV status polling
     function startDeployMonitor() {
       checkDeployStatus();
       checkKVUsage(); // Also check KV status
-      // PERF-006 FIX: Reduced deploy polling from 10s to 60s
+
       deployPollInterval = setInterval(checkDeployStatus, 60000); // Poll every 60s (was 10s)
       kvPollInterval = setInterval(checkKVUsage, KV_POLL_INTERVAL); // Poll KV usage every 5 min
     }
 
-    // PERF-006 FIX: Stop polling intervals
     function stopDeployMonitor() {
       if (deployPollInterval) {
         clearInterval(deployPollInterval);
@@ -11084,7 +11079,7 @@ export function getHtml(nonce: string): string {
     function startNowPlayingMonitor() {
       // Initial fetch
       updateNowPlaying();
-      // PERF-006 FIX: Reduced polling from 10s to 30s
+
       nowPlayingInterval = setInterval(updateNowPlaying, 30000); // Poll every 30s (was 10s)
 
       // Add dismiss button handler
@@ -11441,7 +11436,6 @@ export function getHtml(nonce: string): string {
     } else {
       initGenieClick();
     }
-
 
     // Apply Swedish mode on load if previously enabled
     if (swedishMode) {
@@ -15938,17 +15932,15 @@ export function getHtml(nonce: string): string {
       showNotification(details.join(' | '), healthStatus.ok ? 'success' : 'warning');
     }
 
-    // PERF-006 FIX: Track health check interval for visibility API
     let healthCheckInterval = null;
 
     // Check health on load and periodically
     document.addEventListener('DOMContentLoaded', () => {
       setTimeout(checkHealth, 3000); // Initial check after 3s
-      // PERF-006 FIX: Reduced from 60s to 5 minutes
+
       healthCheckInterval = setInterval(checkHealth, 300000); // Then every 5 min (was 1 min)
     });
 
-    // PERF-006 FIX: Master visibility handler to stop ALL polling when tab is hidden
     // This saves significant API calls when user switches tabs
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
