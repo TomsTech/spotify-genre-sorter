@@ -568,6 +568,7 @@ interface ChunkCacheData {
   trackCount: number;
   artistCount: number;
   cachedAt: number;
+  totalInLibrary: number;
 }
 
 // Get scan progress status (check if there's an interrupted scan to resume)
@@ -850,9 +851,8 @@ api.get('/genres/chunk', async (c) => {
     if (playlistIds.length === 0) {
       const cachedChunk = await cachedKV.get<ChunkCacheData>(c.env.SESSIONS, chunkCacheKey);
       if (cachedChunk) {
-        // Get total from a quick /me/tracks call
-        const totalResponse = await getLikedTracks(session.spotifyAccessToken, 1, 0);
-        const totalInLibrary = totalResponse.total;
+        // Read total from cache instead of making another API call
+        const totalInLibrary = cachedChunk.totalInLibrary;
         const hasMore = offset + limit < totalInLibrary;
 
         return c.json({
@@ -938,6 +938,7 @@ api.get('/genres/chunk', async (c) => {
           trackCount: 0,
           artistCount: 0,
           cachedAt: Date.now(),
+          totalInLibrary,
         },
         pagination: {
           offset,
@@ -986,6 +987,7 @@ api.get('/genres/chunk', async (c) => {
       trackCount: allChunkTracks.length,
       artistCount: artistIds.size,
       cachedAt: Date.now(),
+      totalInLibrary,
     };
 
     // Cache this chunk
