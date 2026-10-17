@@ -123,7 +123,7 @@ describe('State Management', () => {
   });
 });
 
-import { getScoreboard, cachedKV, getScanProgress } from '../src/lib/session';
+import { getScoreboard, cachedKV, getScanProgress, saveScanProgress } from '../src/lib/session';
 
 import { buildScoreboard } from '../src/lib/session';
 
@@ -186,6 +186,63 @@ describe('getScoreboard', () => {
     cachedKV.get = originalGet;
   });
 });
+
+
+describe('saveScanProgress', () => {
+  it('should call cachedKV.put with correct key, serialized data and options', async () => {
+    const originalPut = cachedKV.put;
+    cachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    const mockProgress = {
+      userId: 'test-user-123',
+      offset: 0,
+      totalInLibrary: 100,
+      partialGenres: [],
+      partialArtistCount: 0,
+      partialTrackCount: 0,
+      startedAt: new Date().toISOString(),
+      lastUpdatedAt: new Date().toISOString(),
+      status: 'in_progress' as const
+    };
+
+    const mockKv = {} as any;
+    await saveScanProgress(mockKv, mockProgress);
+
+    expect(cachedKV.put).toHaveBeenCalledWith(
+      mockKv,
+      'scan_progress:test-user-123',
+      JSON.stringify(mockProgress),
+      { expirationTtl: 3600, immediate: true }
+    );
+
+    cachedKV.put = originalPut;
+  });
+
+  it('should propagate errors from cachedKV.put', async () => {
+    const originalPut = cachedKV.put;
+    const error = new Error('KV Error');
+    cachedKV.put = vi.fn().mockRejectedValue(error);
+
+    const mockProgress = {
+      userId: 'test-user-123',
+      offset: 0,
+      totalInLibrary: 100,
+      partialGenres: [],
+      partialArtistCount: 0,
+      partialTrackCount: 0,
+      startedAt: new Date().toISOString(),
+      lastUpdatedAt: new Date().toISOString(),
+      status: 'in_progress' as const
+    };
+
+    const mockKv = {} as any;
+
+    await expect(saveScanProgress(mockKv, mockProgress)).rejects.toThrow('KV Error');
+
+    cachedKV.put = originalPut;
+  });
+});
+
 describe('getScanProgress', () => {
   it('should call cachedKV.get with correct key and ttl', async () => {
     const originalGet = cachedKV.get;
