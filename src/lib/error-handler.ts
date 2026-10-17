@@ -355,13 +355,15 @@ export async function processBatch<T, R>(
       chunk.map(item => processor(item).then(result => ({ item, result })))
     );
 
-    for (const result of results) {
+    for (let j = 0; j < results.length; j++) {
+      const result = results[j];
       if (result.status === 'fulfilled') {
         successful.push(result.value);
       } else {
         const error = classifyError(result.reason);
+        // ⚡ Bolt: Replaced O(N^2) indexOf with O(1) direct index access
         failed.push({
-          item: chunk[results.indexOf(result)],
+          item: chunk[j],
           error,
         });
 
@@ -405,6 +407,18 @@ export interface ErrorLogEntry {
 /**
  * Log error for debugging and monitoring
  */
+export async function logErrorToKV(kv: KVNamespace, error: ErrorLogEntry): Promise<void> {
+  try {
+    const timestamp = new Date(error.timestamp).getTime();
+    const key = `error:${timestamp}:${crypto.randomUUID()}`;
+    await kv.put(key, JSON.stringify(error), {
+      expirationTtl: 604800 // 7 days
+    });
+  } catch (err) {
+    console.error('Failed to log error to KV:', err);
+  }
+}
+
 export function logError(
   error: ErrorContext | Error,
   ctx?: {
