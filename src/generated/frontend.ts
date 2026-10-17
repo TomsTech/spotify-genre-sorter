@@ -12542,7 +12542,7 @@ export function getHtml(nonce: string): string {
           app.innerHTML = \`
             <div class="error">
               <strong>Error \${stepLabels[step] || ''}</strong>
-              <p>\${errorDetail}</p>
+              <p>\${escapeHtml(errorDetail)}</p>
               \${data.tracksFound ? \`<p class="error-detail">Tracks found: \${data.tracksFound}</p>\` : ''}
               \${data.artistsToFetch ? \`<p class="error-detail">Artists to fetch: \${data.artistsToFetch}</p>\` : ''}
             </div>
@@ -12595,7 +12595,7 @@ export function getHtml(nonce: string): string {
           <div class="error">
             <strong>Connection Error</strong>
             <p>Could not connect to the server. Please check your internet connection.</p>
-            <p class="error-detail">\${error.message || 'Unknown error'}</p>
+            <p class="error-detail">\${escapeHtml(error.message || 'Unknown error')}</p>
           </div>
           <button onclick="loadGenres()" class="btn btn-secondary">Try Again</button>
         \`;
@@ -13978,12 +13978,12 @@ export function getHtml(nonce: string): string {
             <div class="results">
               \${result.results.map(r => \`
                 <div class="result-item">
-                  <span>\${r.genre}</span>
+                  <span>\${escapeHtml(r.genre)}</span>
                   \${r.success
                     ? \`<a href="\${getSafeUrl(r.url)}" target="_blank" rel="noopener noreferrer" class="result-success" data-i18n="openSpotify">\${t('openSpotify')}</a>\`
                     : r.skipped
                       ? \`<span class="result-skipped">\${swedishMode ? 'Finns redan' : 'Already exists'}</span>\`
-                      : \`<span class="result-error">\${r.error}</span>\`
+                      : \`<span class="result-error">\${escapeHtml(r.error)}</span>\`
                   }
                 </div>
               \`).join('')}
