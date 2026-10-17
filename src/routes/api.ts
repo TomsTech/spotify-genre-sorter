@@ -2038,26 +2038,32 @@ type KVBreakdown = {
 };
 
 export function calculateKVBreakdown(today: AnalyticsData): KVBreakdown {
+  // Ensure we safely handle potentially missing fields from older or malformed KV records
+  const libraryScans = today.libraryScans || 0;
+  const playlistsCreated = today.playlistsCreated || 0;
+  const signIns = today.signIns || 0;
+  const pageViews = today.pageViews || 0;
+
   return {
     sessions: {
-      reads: Math.round(today.libraryScans * 2 + today.playlistsCreated * 2),
-      writes: today.signIns * 2, // create + update
+      reads: Math.round(libraryScans * 2 + playlistsCreated * 2),
+      writes: signIns * 2, // create + update
     },
     caches: {
-      reads: Math.round(today.pageViews * 0.5), // Most are cache hits
-      writes: Math.round(today.pageViews * 0.02), // Rare cache rebuilds
+      reads: Math.round(pageViews * 0.5), // Most are cache hits
+      writes: Math.round(pageViews * 0.02), // Rare cache rebuilds
     },
     userStats: {
-      reads: today.playlistsCreated,
-      writes: today.playlistsCreated,
+      reads: playlistsCreated,
+      writes: playlistsCreated,
     },
     recentPlaylists: {
-      reads: Math.round(today.pageViews * 0.3), // Polling (now 3min interval)
-      writes: today.playlistsCreated,
+      reads: Math.round(pageViews * 0.3), // Polling (now 3min interval)
+      writes: playlistsCreated,
     },
     auth: {
-      reads: today.signIns * 3,
-      writes: today.signIns * 2,
+      reads: signIns * 3,
+      writes: signIns * 2,
     },
   };
 }

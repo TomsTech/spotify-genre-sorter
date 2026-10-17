@@ -641,4 +641,29 @@ describe('calculateKVBreakdown', () => {
     expect(result.caches.writes).toBe(0);
     expect(result.recentPlaylists.reads).toBe(1);
   });
+
+  it('should fallback to 0 when input fields are undefined (malformed data)', () => {
+    const badData = { ...baseToday };
+    // @ts-ignore - simulate missing values from bad kv data
+    delete badData.libraryScans;
+    // @ts-ignore
+    delete badData.playlistsCreated;
+    // @ts-ignore
+    delete badData.signIns;
+    // @ts-ignore
+    delete badData.pageViews;
+
+    const result = calculateKVBreakdown(badData);
+
+    expect(result.sessions.reads).toBe(0);
+    expect(result.sessions.writes).toBe(0);
+    expect(result.caches.reads).toBe(0);
+    expect(result.caches.writes).toBe(0);
+    expect(result.userStats.reads).toBe(0);
+    expect(result.userStats.writes).toBe(0);
+    expect(result.recentPlaylists.reads).toBe(0);
+    expect(result.recentPlaylists.writes).toBe(0);
+    expect(result.auth.reads).toBe(0);
+    expect(result.auth.writes).toBe(0);
+  });
 });
