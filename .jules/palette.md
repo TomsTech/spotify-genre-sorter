@@ -24,3 +24,7 @@
 ## 2024-05-18 - Semantic Disabled States
 **Learning:** Found that some buttons use the `disabled` attribute but don't explicitly set `aria-disabled="true"`. While `disabled` implies `aria-disabled="true"`, explicitly setting `aria-disabled` is better practice, especially for custom interactive elements, and helps ensure assistive technologies accurately interpret the element's state, specifically when the disabled state changes dynamically.
 **Action:** Always ensure dynamic disabled states explicitly toggle `aria-disabled` along with the `disabled` attribute, and ensure the CSS handles `[aria-disabled="true"]` alongside `:disabled` for consistent visual styling.
+
+## YYYY-MM-DD - Async UI Feedback
+**Learning:** Users lack immediate visual feedback on long-running async actions (like inviting users), which can make the app appear unresponsive. Appending a spinning loader to the button's HTML effectively mitigates this without modifying structural CSS.
+**Action:** Added inline HTML `<span class="spinner spinner-small">` alongside text changes when a button's `disabled` state is activated during async operations.
