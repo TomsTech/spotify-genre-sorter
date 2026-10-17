@@ -97,14 +97,18 @@ api.use('/*', async (c, next) => {
 
   const rateData = rateLimitMap.get(clientIP);
   if (rateData) {
+    // ⚡ Bolt: Delete and re-insert to maintain LRU order in the Map
+    rateLimitMap.delete(clientIP);
     if (now > rateData.resetAt) {
       // Window expired, reset
       rateLimitMap.set(clientIP, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
     } else if (rateData.count >= RATE_LIMIT_MAX_REQUESTS) {
+      rateLimitMap.set(clientIP, rateData); // Re-insert to keep it in map
       c.header('Retry-After', String(Math.ceil((rateData.resetAt - now) / 1000)));
       return c.json({ error: 'Rate limit exceeded. Please try again later.' }, 429);
     } else {
       rateData.count++;
+      rateLimitMap.set(clientIP, rateData);
     }
   } else {
     rateLimitMap.set(clientIP, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
