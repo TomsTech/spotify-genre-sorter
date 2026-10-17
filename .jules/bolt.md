@@ -171,6 +171,9 @@
 **Learning:** When evicting the oldest entries from a `Map` (like in a rate limiter), converting the entire Map to an array with `push` and then calling `sort` is O(N log N) and creates intermediate allocations. Because JavaScript `Map` iterators yield elements in insertion order (FIFO), you can achieve O(K) eviction without arrays by directly iterating over `map.keys()` and deleting the required number of entries.
 **Action:** Replaced the array conversion, push loop, and sort operation in `rateLimitMap` eviction with a simple loop over `rateLimitMap.keys()` that deletes elements directly.
 ## 2025-02-18 - [Eliminate intermediate array allocations via Array.from over slice().map()] **Learning:** Using `array.slice().map()` creates intermediate arrays that increase garbage collection overhead, especially when chunking data for `Promise.all()` in tight loops. **Action:** Replace `.slice().map()` with `Array.from({ length: size }, (_, j) => array[start + j])` to directly construct the promised elements array without intermediate allocations.
+## 2025-05-26 - [Optimize array find in loop to Map lookup]
+**Learning:** Using `array.find` inside a loop results in an O(N^2) operation, which scales poorly when both the loop array and target array grow. Pre-computing a Map turns this into an O(N) operation.
+**Action:** Refactored loops finding items in `genreData.genres` in `src/frontend/app.js` by first creating a `genreMap` map, enabling O(1) lookups during iteration.
 ## YYYY-MM-DD - [Eliminating O(N^2) array.indexOf inside batch loop]
 **Learning:** Using `array.indexOf(item)` inside a loop over the same (or parallel) array to find the current item's index creates an O(N^2) operation. When processing batches, this scales poorly and increases execution time.
 **Action:** Replaced `results.indexOf(result)` with a standard `for` loop index `j` to access both `result` and `chunk[j]` in O(N) time in `src/lib/error-handler.ts`.

@@ -8799,8 +8799,10 @@ export function getHtml(nonce: string): string {
 
       // Collect all track IDs
       const trackIds = new Set();
+      // Optimization: use Map for O(1) lookups instead of O(N) find
+      const genreMap = new Map(genreData.genres.map(g => [g.name, g]));
       for (const genreName of selectedGenres) {
-        const genre = genreData.genres.find(g => g.name === genreName);
+        const genre = genreMap.get(genreName);
         if (genre && genre.trackIds) {
           genre.trackIds.forEach(id => trackIds.add(id));
         }
@@ -8906,8 +8908,10 @@ export function getHtml(nonce: string): string {
       }
 
       let totalTracks = 0;
+      // Optimization: use Map for O(1) lookups instead of O(N) find
+      const genreMap = new Map(genreData.genres.map(g => [g.name, g]));
       for (const name of genresToMerge) {
-        const genre = genreData.genres.find(g => g.name === name);
+        const genre = genreMap.get(name);
         if (genre) totalTracks += genre.count;
       }
 
