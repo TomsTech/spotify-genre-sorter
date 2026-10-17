@@ -2757,9 +2757,9 @@ api.get('/admin/access-requests', async (c) => {
     const dataPromises = Array.from({ length: size }, async (_, j) => {
       const key = `access_request_${emails[i + j]}`;
       try {
-        const data = await kv.get(key);
+        const data = await kv.get<AccessRequest>(key, 'json');
         if (data) {
-          return JSON.parse(data) as AccessRequest;
+          return data;
         }
       } catch { /* skip malformed entries */ }
       return null;
