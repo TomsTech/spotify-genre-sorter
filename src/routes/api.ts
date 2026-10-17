@@ -2063,8 +2063,9 @@ export function calculateKVBreakdown(today: AnalyticsData): KVBreakdown {
 }
 
 export function determineKVStatus(writeUsagePercent: number, readUsagePercent: number): 'ok' | 'warning' | 'critical' {
-  if (writeUsagePercent > 90 || readUsagePercent > 90) return 'critical';
-  if (writeUsagePercent > 80 || readUsagePercent > 80) return 'warning';
+  const maxUsage = Math.max(writeUsagePercent, readUsagePercent);
+  if (maxUsage > 90) return 'critical';
+  if (maxUsage > 80) return 'warning';
   return 'ok';
 }
 
