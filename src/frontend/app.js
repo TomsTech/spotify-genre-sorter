@@ -3954,7 +3954,7 @@
           app.innerHTML = \`
             <div class="error">
               <strong>Error \${stepLabels[step] || ''}</strong>
-              <p>\${errorDetail}</p>
+              <p>\${escapeHtml(errorDetail)}</p>
               \${data.tracksFound ? \`<p class="error-detail">Tracks found: \${data.tracksFound}</p>\` : ''}
               \${data.artistsToFetch ? \`<p class="error-detail">Artists to fetch: \${data.artistsToFetch}</p>\` : ''}
             </div>
@@ -4007,7 +4007,7 @@
           <div class="error">
             <strong>Connection Error</strong>
             <p>Could not connect to the server. Please check your internet connection.</p>
-            <p class="error-detail">\${error.message || 'Unknown error'}</p>
+            <p class="error-detail">\${escapeHtml(error.message || 'Unknown error')}</p>
           </div>
           <button onclick="loadGenres()" class="btn btn-secondary">Try Again</button>
         \`;
@@ -5390,12 +5390,12 @@
             <div class="results">
               \${result.results.map(r => \`
                 <div class="result-item">
-                  <span>\${r.genre}</span>
+                  <span>\${escapeHtml(r.genre)}</span>
                   \${r.success
                     ? \`<a href="\${getSafeUrl(r.url)}" target="_blank" rel="noopener noreferrer" class="result-success" data-i18n="openSpotify">\${t('openSpotify')}</a>\`
                     : r.skipped
                       ? \`<span class="result-skipped">\${swedishMode ? 'Finns redan' : 'Already exists'}</span>\`
-                      : \`<span class="result-error">\${r.error}</span>\`
+                      : \`<span class="result-error">\${escapeHtml(r.error)}</span>\`
                   }
                 </div>
               \`).join('')}
@@ -6848,14 +6848,14 @@
         dialog.innerHTML =
           '<div class="tutorial-welcome">' +
             '<div class="genie-icon">🧞</div>' +
-            '<h2>' + title + '</h2>' +
-            '<p>' + content + '</p>' +
+            '<h2>' + escapeHtml(title) + '</h2>' +
+            '<p>' + escapeHtml(content) + '</p>' +
             '<div class="tutorial-welcome-actions">' +
               '<button class="tutorial-btn tutorial-btn-start" onclick="nextTutorialStep()">' +
-                (swedishMode ? 'Börja Rundturen' : 'Start Tour') +
+                escapeHtml(swedishMode ? 'Börja Rundturen' : 'Start Tour') +
               '</button>' +
               '<button class="tutorial-btn tutorial-btn-skip" onclick="endTutorial()">' +
-                (swedishMode ? 'Jag kan redan' : 'I know my way around') +
+                escapeHtml(swedishMode ? 'Jag kan redan' : 'I know my way around') +
               '</button>' +
             '</div>' +
           '</div>';
@@ -6883,14 +6883,14 @@
       }
 
       dialog.innerHTML =
-        '<h3>' + title + '</h3>' +
-        '<p>' + content + '</p>' +
+        '<h3>' + escapeHtml(title) + '</h3>' +
+        '<p>' + escapeHtml(content) + '</p>' +
         '<div class="tutorial-footer">' +
           '<span class="tutorial-progress">' + (currentTutorialStep + 1) + '/' + tutorialSteps.length + '</span>' +
           '<div class="tutorial-actions">' +
-            '<button class="tutorial-btn tutorial-btn-skip" onclick="endTutorial()">' + skipText + '</button>' +
+            '<button class="tutorial-btn tutorial-btn-skip" onclick="endTutorial()">' + escapeHtml(skipText) + '</button>' +
             '<button class="tutorial-btn tutorial-btn-next" onclick="nextTutorialStep()">' +
-              (isLast ? finishText : nextText) +
+              escapeHtml(isLast ? finishText : nextText) +
             '</button>' +
           '</div>' +
         '</div>';
