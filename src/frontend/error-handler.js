@@ -11,6 +11,16 @@
 
 // Error codes matching backend
 
+
+// === Central Logger ===
+const Logger = window.Logger || {
+  info: (...args) => console.log('[INFO]', ...args),
+  warn: (...args) => console.warn('[WARN]', ...args),
+  error: (...args) => console.error('[ERROR]', ...args),
+  debug: (...args) => console.debug('[DEBUG]', ...args)
+};
+window.Logger = Logger;
+
 // Secure alternative to Math.random()
 function getSecureRandom() {
   const array = new Uint32Array(1);
@@ -274,7 +284,7 @@ function logErrorToBackend(error, context) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ errors }),
       }).catch(err => {
-        console.error('Failed to log errors:', err);
+        Logger.error('Failed to log errors:', err);
       });
     }
   }, 2000); // Batch window of 2 seconds
@@ -307,7 +317,7 @@ function saveSessionState(state) {
       savedAt: new Date().toISOString(),
     }));
   } catch (error) {
-    console.warn('Failed to save session state:', error);
+    Logger.warn('Failed to save session state:', error);
   }
 }
 
