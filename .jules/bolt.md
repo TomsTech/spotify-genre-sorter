@@ -179,6 +179,7 @@
 **Action:** Replaced `results.indexOf(result)` with a standard `for` loop index `j` to access both `result` and `chunk[j]` in O(N) time in `src/lib/error-handler.ts`.
 ## YYYY-MM-DD - [O(N^2) Bottleneck in Array Processing] **Learning:** [Using Array.prototype.indexOf() inside a for...of loop over a parallel array creates an O(N^2) bottleneck, which is particularly bad for batch processing large arrays.] **Action:** [Use a standard for loop with an index variable for O(1) direct element access when correlating items between parallel arrays.]
 
+## YYYY-MM-DD - [Parallelize Hall of Fame Fetches] **Learning:** [Sequential awaits in a loop create a waterfall effect for I/O bound operations (like KV fetching). Replacing it with Promise.all reduces network latency linearly in relation to the number of operations.] **Action:** [Replaced sequential KV fetches in the '/stats' endpoint with a concurrent Promise.all implementation in src/index.ts.]
 ## YYYY-MM-DD - Optimize O(N^2) array find to O(1) map lookup in HoF loop
 **Learning:** Using Array.prototype.find inside a loop creates an O(N^2) operation. Converting the array into a Map beforehand provides O(1) lookup, significantly reducing time complexity.
 **Action:** Replaced users.find() with a pre-built userMap.get() lookup in the fetchHoFUsers loop, yielding an ~12x performance improvement in benchmarks.
