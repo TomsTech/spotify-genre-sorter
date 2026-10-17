@@ -98,14 +98,18 @@ api.use('/*', async (c, next) => {
 
   const rateData = rateLimitMap.get(clientIP);
   if (rateData) {
+    // ⚡ Bolt: Delete and re-insert to maintain LRU order in the Map
+    rateLimitMap.delete(clientIP);
     if (now > rateData.resetAt) {
       // Window expired, reset
       rateLimitMap.set(clientIP, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
     } else if (rateData.count >= RATE_LIMIT_MAX_REQUESTS) {
+      rateLimitMap.set(clientIP, rateData); // Re-insert to keep it in map
       c.header('Retry-After', String(Math.ceil((rateData.resetAt - now) / 1000)));
       return c.json({ error: 'Rate limit exceeded. Please try again later.' }, 429);
     } else {
       rateData.count++;
+      rateLimitMap.set(clientIP, rateData);
     }
   } else {
     rateLimitMap.set(clientIP, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
@@ -1074,7 +1078,6 @@ function sanitiseGenreName(genre: unknown): ValidationResult<string> {
 }
 
 
-// Helper function to extract duplicated playlist creation logic
 async function createPlaylistForGenre(
   spotifyAccessToken: string,
   userId: string,
@@ -1254,8 +1257,10 @@ api.post('/playlists/bulk', async (c) => {
     // Fetch existing playlists once for duplicate checking
     const existingPlaylists = await getUserPlaylists(session.spotifyAccessToken);
     // ⚡ BOLT OPTIMIZATION: Avoid intermediate array creations in filter + map by doing a single pass
+    // ⚡ Bolt: Use a standard for loop instead of for...of for performance to avoid iterator overhead
     const existingNames = new Set<string>();
-    for (const p of existingPlaylists) {
+    for (let i = 0; i < existingPlaylists.length; i++) {
+      const p = existingPlaylists[i];
       if (p.owner.id === user.id) {
         existingNames.add(p.name.toLowerCase());
       }
@@ -1681,12 +1686,10 @@ api.get('/scan-playlist/:playlistId', async (c) => {
 
     for (const item of tracks) {
       if (item.track && item.track.id) {
-        // PERF-FIX: Eliminate intermediate arrays created by .map() and .forEach()
-        // Iterating in a single loop avoids unnecessary allocations and improves performance.
-        const artistIdsForTrack: string[] = [];
+        const artistIdsForTrack: string[] = new Array<string>(item.track.artists.length);
         for (let i = 0; i < item.track.artists.length; i++) {
           const id = item.track.artists[i].id;
-          artistIdsForTrack.push(id);
+          artistIdsForTrack[i] = id;
           artistIds.add(id);
         }
         trackData.push({
@@ -2238,7 +2241,7 @@ api.get('/admin', async (c) => {
   const kv = c.env.SESSIONS;
   const metrics = getKVMetrics();
 
-  // PERF-023 FIX: Use Promise.all for parallel KV listing
+  // Fetch KV prefix counts in parallel
   const prefixes = ['session:', 'user:', 'user_stats:', 'hof:', 'genre_cache_', 'scan_progress:'];
   const listPromises = prefixes.map(prefix => kv.list({ prefix, limit: 1000 }));
   const [analytics, listResults] = await Promise.all([
@@ -2382,13 +2385,15 @@ async function fetchHoFUsers(kv: KVNamespace, seenIds: Set<string>, users: Admin
     }
   }
 
+  // ⚡ Bolt: Build map for O(1) lookups instead of O(N) array finds in loop
+  const userMap = new Map(users.map(u => [u.spotifyId, u]));
   for (let i = 0; i < hofResults.length; i++) {
     const hofUser = hofResults[i];
     if (hofUser) {
       // Only add if not already in users list
       if (!seenIds.has(hofUser.spotifyId)) {
         seenIds.add(hofUser.spotifyId);
-        users.push({
+        const newUser = {
           spotifyId: hofUser.spotifyId,
           spotifyName: hofUser.spotifyName || 'Unknown',
           spotifyAvatar: hofUser.spotifyAvatar || null,
@@ -2397,10 +2402,12 @@ async function fetchHoFUsers(kv: KVNamespace, seenIds: Set<string>, users: Admin
           lastActive: null,
           isPioneer: true,
           hofPosition: i + 1,
-        });
+        };
+        users.push(newUser);
+        userMap.set(newUser.spotifyId, newUser);
       } else {
         // Mark existing user as pioneer
-        const existingUser = users.find(u => u.spotifyId === hofUser.spotifyId);
+        const existingUser = userMap.get(hofUser.spotifyId);
         if (existingUser) {
           existingUser.isPioneer = true;
           existingUser.hofPosition = i + 1;
