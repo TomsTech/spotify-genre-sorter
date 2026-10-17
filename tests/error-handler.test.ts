@@ -382,7 +382,7 @@ describe('withRetry', () => {
 
 
 describe('logError fallback', () => {
-  it('should catch logger errors and fallback to console.error', () => {
+  it('should fallback to console.error when creating the logger fails', () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.spyOn(logger, 'createLogger').mockImplementation(() => {
       throw new Error('Logger setup failed');
@@ -395,6 +395,73 @@ describe('logError fallback', () => {
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       'Failed to send error to logger:',
       expect.any(Error)
+    );
+
+    vi.restoreAllMocks();
+  });
+
+  it('should fallback to console.error when logger.error throws', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Mock createLogger to return an object where .error throws
+    vi.spyOn(logger, 'createLogger').mockImplementation(() => {
+      return {
+        error: () => { throw new Error('logger.error failed'); },
+        logError: () => {},
+        logRequest: () => {},
+      } as any;
+    });
+
+    logError(new Error('Test error'), {
+      executionContext: {} as any,
+    });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to send error to logger:',
+      expect.any(Error)
+    );
+
+    vi.restoreAllMocks();
+  });
+it('should fallback to console.error when logger.logError throws', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Mock createLogger to return an object where .logError throws
+    vi.spyOn(logger, 'createLogger').mockImplementation(() => {
+      return {
+        error: () => {},
+        logError: () => { throw new Error('logger.logError failed'); },
+        logRequest: () => {},
+      } as any;
+    });
+
+    logError(new Error('Test error'), {
+      executionContext: {} as any,
+      betterStackToken: 'fake-token' // Ensure betterStackToken is passed to hit the logError code path
+    });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to send error to logger:',
+      expect.any(Error)
+    );
+
+    vi.restoreAllMocks();
+  });
+
+  it('should fallback strictly to console.error when ExecutionContext is unavailable', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    logError(new Error('Test error'), {
+      // Intentionally omitting executionContext
+    });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[ERROR]',
+      expect.objectContaining({
+        message: 'Test error',
+        statusCode: 500,
+        code: 'UNKNOWN_ERROR'
+      })
     );
 
     vi.restoreAllMocks();
