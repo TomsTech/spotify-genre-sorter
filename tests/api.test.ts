@@ -606,6 +606,18 @@ describe('calculateKVBreakdown', () => {
     expect(result.auth.writes).toBe(0);
   });
 
+  it('should return all zeros if today data is null or undefined', () => {
+    // Cast to any to bypass TS compilation check for this edge case
+    const resultUndefined = calculateKVBreakdown(undefined as any);
+    expect(resultUndefined.sessions.reads).toBe(0);
+    expect(resultUndefined.caches.reads).toBe(0);
+
+    const resultNull = calculateKVBreakdown(null as any);
+    expect(resultNull.auth.reads).toBe(0);
+    expect(resultNull.userStats.writes).toBe(0);
+  });
+
+
   it('should correctly calculate reads and writes based on input data', () => {
     const today = {
       ...baseToday,

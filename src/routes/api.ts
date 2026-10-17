@@ -2039,6 +2039,16 @@ type KVBreakdown = {
 };
 
 export function calculateKVBreakdown(today: AnalyticsData): KVBreakdown {
+  if (!today) {
+    return {
+      sessions: { reads: 0, writes: 0 },
+      caches: { reads: 0, writes: 0 },
+      userStats: { reads: 0, writes: 0 },
+      recentPlaylists: { reads: 0, writes: 0 },
+      auth: { reads: 0, writes: 0 },
+    };
+  }
+
   return {
     sessions: {
       reads: Math.round(today.libraryScans * 2 + today.playlistsCreated * 2),
