@@ -178,7 +178,6 @@ function calculateNamespaceTotals(namespaceData: KVNamespaceData[]): { totalKeys
 /**
  * Get comprehensive KV monitoring data
  */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 export async function getKVMonitorData(kv: KVNamespace): Promise<KVMonitorResponse> {
   const metrics = getKVMetrics();
 
@@ -192,7 +191,7 @@ export async function getKVMonitorData(kv: KVNamespace): Promise<KVMonitorRespon
   // Calculate usage percentages
   const keyUsagePercent = (totalKeys / KV_LIMITS.maxKeys) * 100;
 
-  return {
+  const response: KVMonitorResponse = {
     timestamp: new Date().toISOString(),
     summary: {
       totalKeys,
@@ -218,5 +217,6 @@ export async function getKVMonitorData(kv: KVNamespace): Promise<KVMonitorRespon
     },
     namespaces: namespaceData,
   };
+
+  return response;
 }
-/* eslint-enable @typescript-eslint/no-unsafe-return */
