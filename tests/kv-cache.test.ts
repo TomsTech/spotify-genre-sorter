@@ -58,6 +58,23 @@ describe('KV Cache', () => {
   });
 
   describe('flushWriteQueue error handling', () => {
+
+    it('catches an error thrown from flushWriteQueue in batch.map loop', async () => {
+      // Mock KV.put to reject with an error
+      const error = new Error('Simulated KV put error');
+      mockKV.put.mockRejectedValue(error);
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Add item to write queue with metadata and expirationTtl to hit lines 143, 144
+      await cachedKV.put(mockKV, 'test-error-key', 'test-value', { immediate: false, expirationTtl: 3600, metadata: { test: true } });
+
+      // Trigger flush
+      await cachedKV.flush(mockKV);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(`KV write failed for key test-error-key:`, error);
+      consoleErrorSpy.mockRestore();
+    });
+
     it('handles write errors during flush gracefully without crashing', async () => {
       const error = new Error('KV Write Error');
       mockKV.put.mockRejectedValue(error);
