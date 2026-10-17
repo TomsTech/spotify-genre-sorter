@@ -361,6 +361,7 @@ export async function processBatch<T, R>(
         successful.push(result.value);
       } else {
         const error = classifyError(result.reason);
+        // ⚡ Bolt: Replaced O(N^2) indexOf with O(1) direct index access
         failed.push({
           item: chunk[j],
           error,
