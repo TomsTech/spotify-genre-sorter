@@ -97,14 +97,18 @@ api.use('/*', async (c, next) => {
 
   const rateData = rateLimitMap.get(clientIP);
   if (rateData) {
+    // ⚡ Bolt: Delete and re-insert to maintain LRU order in the Map
+    rateLimitMap.delete(clientIP);
     if (now > rateData.resetAt) {
       // Window expired, reset
       rateLimitMap.set(clientIP, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
     } else if (rateData.count >= RATE_LIMIT_MAX_REQUESTS) {
+      rateLimitMap.set(clientIP, rateData); // Re-insert to keep it in map
       c.header('Retry-After', String(Math.ceil((rateData.resetAt - now) / 1000)));
       return c.json({ error: 'Rate limit exceeded. Please try again later.' }, 429);
     } else {
       rateData.count++;
+      rateLimitMap.set(clientIP, rateData);
     }
   } else {
     rateLimitMap.set(clientIP, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
@@ -2238,7 +2242,7 @@ api.get('/admin', async (c) => {
   const kv = c.env.SESSIONS;
   const metrics = getKVMetrics();
 
-  // PERF-023 FIX: Use Promise.all for parallel KV listing
+  // Fetch KV prefix counts in parallel
   const prefixes = ['session:', 'user:', 'user_stats:', 'hof:', 'genre_cache_', 'scan_progress:'];
   const listPromises = prefixes.map(prefix => kv.list({ prefix, limit: 1000 }));
   const [analytics, listResults] = await Promise.all([
@@ -2382,13 +2386,15 @@ async function fetchHoFUsers(kv: KVNamespace, seenIds: Set<string>, users: Admin
     }
   }
 
+  // ⚡ Bolt: Build map for O(1) lookups instead of O(N) array finds in loop
+  const userMap = new Map(users.map(u => [u.spotifyId, u]));
   for (let i = 0; i < hofResults.length; i++) {
     const hofUser = hofResults[i];
     if (hofUser) {
       // Only add if not already in users list
       if (!seenIds.has(hofUser.spotifyId)) {
         seenIds.add(hofUser.spotifyId);
-        users.push({
+        const newUser = {
           spotifyId: hofUser.spotifyId,
           spotifyName: hofUser.spotifyName || 'Unknown',
           spotifyAvatar: hofUser.spotifyAvatar || null,
@@ -2397,10 +2403,12 @@ async function fetchHoFUsers(kv: KVNamespace, seenIds: Set<string>, users: Admin
           lastActive: null,
           isPioneer: true,
           hofPosition: i + 1,
-        });
+        };
+        users.push(newUser);
+        userMap.set(newUser.spotifyId, newUser);
       } else {
         // Mark existing user as pioneer
-        const existingUser = users.find(u => u.spotifyId === hofUser.spotifyId);
+        const existingUser = userMap.get(hofUser.spotifyId);
         if (existingUser) {
           existingUser.isPioneer = true;
           existingUser.hofPosition = i + 1;
