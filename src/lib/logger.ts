@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * BetterStack Logs integration for in-worker logging
  * Sends logs via HTTP POST to BetterStack's Logs API
@@ -36,18 +37,13 @@ export function sendLog(
 ): void {
   if (!token) {
     // No token configured, fallback to console (intentional for local dev)
-    // eslint-disable-next-line no-console
     if (entry.level === 'error') {
-      // eslint-disable-next-line no-console
       console.error(`[${entry.level.toUpperCase()}] ${entry.message}`, entry.error ? '\n' + entry.error : '', entry.stack ? '\n' + entry.stack : '');
     } else if (entry.level === 'warn') {
-      // eslint-disable-next-line no-console
       console.warn(`[${entry.level.toUpperCase()}] ${entry.message}`);
     } else if (entry.level === 'debug') {
-      // eslint-disable-next-line no-console
       console.debug(`[${entry.level.toUpperCase()}] ${entry.message}`);
     } else {
-      // eslint-disable-next-line no-console
       console.info(`[${entry.level.toUpperCase()}] ${entry.message}`);
     }
     return;
