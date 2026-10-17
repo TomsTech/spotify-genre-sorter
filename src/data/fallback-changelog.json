@@ -1,0 +1,10 @@
+{
+  "changelog": [
+    {
+      "version": "3.4.0",
+      "date": "2025-12-09",
+      "changes": ["Dynamic changelog from GitHub releases", "Bug fixes and improvements"]
+    }
+  ],
+  "error": "Failed to fetch releases, showing fallback"
+}
