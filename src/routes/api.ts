@@ -1257,8 +1257,10 @@ api.post('/playlists/bulk', async (c) => {
     // Fetch existing playlists once for duplicate checking
     const existingPlaylists = await getUserPlaylists(session.spotifyAccessToken);
     // ⚡ BOLT OPTIMIZATION: Avoid intermediate array creations in filter + map by doing a single pass
+    // ⚡ Bolt: Use a standard for loop instead of for...of for performance to avoid iterator overhead
     const existingNames = new Set<string>();
-    for (const p of existingPlaylists) {
+    for (let i = 0; i < existingPlaylists.length; i++) {
+      const p = existingPlaylists[i];
       if (p.owner.id === user.id) {
         existingNames.add(p.name.toLowerCase());
       }
