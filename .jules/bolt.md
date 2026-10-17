@@ -174,3 +174,5 @@
 ## YYYY-MM-DD - [O(N^2) Bottleneck in Error Handler]
 **Learning:** Using Array.prototype.indexOf() inside a loop to find the original item from a settled Promise array creates an O(N^2) bottleneck, especially on large batches in processBatch().
 **Action:** Always use an explicit indexed for loop (e.g., for (let j = 0; j < results.length; j++)) to directly access the corresponding item in the parallel chunk array instead of looking it up with indexOf.
+
+## YYYY-MM-DD - [Optimize LRU Cache Update for Rate Limiter] **Learning:** [JavaScript Map objects maintain insertion order. By deleting and re-inserting elements on access, the Map implicitly becomes an LRU cache where the oldest element is the first item.] **Action:** [Refactored rate limiter in `src/routes/api.ts` to delete and re-insert keys on access to maintain LRU order naturally for O(1) eviction without arrays.]
