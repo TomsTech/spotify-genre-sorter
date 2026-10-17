@@ -393,6 +393,27 @@ describe('Health & Setup Endpoints', () => {
 });
 
 describe('determineKVStatus', () => {
+
+  it('should test exact threshold edge cases for critical (90)', () => {
+    // 90 is NOT > 90, so it shouldn't be critical. It should fall through to warning.
+    expect(determineKVStatus(90, 85)).toBe('warning');
+    expect(determineKVStatus(85, 90)).toBe('warning');
+    expect(determineKVStatus(90, 90)).toBe('warning');
+    // Test decimals just above 90
+    expect(determineKVStatus(90.0001, 50)).toBe('critical');
+    expect(determineKVStatus(50, 90.0001)).toBe('critical');
+  });
+
+  it('should test exact threshold edge cases for warning (80)', () => {
+    // 80 is NOT > 80, so it shouldn't be warning. It should fall through to ok.
+    expect(determineKVStatus(80, 50)).toBe('ok');
+    expect(determineKVStatus(50, 80)).toBe('ok');
+    expect(determineKVStatus(80, 80)).toBe('ok');
+    // Test decimals just above 80
+    expect(determineKVStatus(80.0001, 50)).toBe('warning');
+    expect(determineKVStatus(50, 80.0001)).toBe('warning');
+  });
+
   it('should return critical when either usage exceeds 90', () => {
     expect(determineKVStatus(91, 50)).toBe('critical');
     expect(determineKVStatus(50, 91)).toBe('critical');
@@ -627,6 +648,18 @@ describe('calculateKVBreakdown', () => {
     expect(result.auth.reads).toBe(0);
     expect(result.auth.writes).toBe(0);
   });
+
+  it('should return all zeros if today data is null or undefined', () => {
+    // Cast to any to bypass TS compilation check for this edge case
+    const resultUndefined = calculateKVBreakdown(undefined as any);
+    expect(resultUndefined.sessions.reads).toBe(0);
+    expect(resultUndefined.caches.reads).toBe(0);
+
+    const resultNull = calculateKVBreakdown(null as any);
+    expect(resultNull.auth.reads).toBe(0);
+    expect(resultNull.userStats.writes).toBe(0);
+  });
+
 
   it('should correctly calculate reads and writes based on input data', () => {
     const today = {
