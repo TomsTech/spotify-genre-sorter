@@ -8591,7 +8591,6 @@ export function getHtml(nonce: string): string {
 
     let genreData = null;
 
-
     // === Security Utilities ===
     // Secure alternative to getSecureRandom()
     function getSecureRandom() {
@@ -9488,7 +9487,6 @@ export function getHtml(nonce: string): string {
 
     window.confirmDeleteUser = confirmDeleteUser;
 
-
     // Helper to render KV Summary card
     function renderAdminKVSummary(summary) {
       return \`
@@ -10215,7 +10213,6 @@ export function getHtml(nonce: string): string {
     window.adminRebuildCaches = adminRebuildCaches;
     window.showAdminPanel = showAdminPanel;
 
-
     function startFikaTimer() {
       if (fikaTimerStarted || !swedishMode) return;
       fikaTimerStarted = true;
@@ -10747,7 +10744,7 @@ export function getHtml(nonce: string): string {
     // KV Status Monitoring
     // =====================================
     let kvUsageCache = null;
-    // PERF-006 FIX: Reduced polling frequencies to save API calls
+
     const KV_POLL_INTERVAL = 300000; // Poll every 5 minutes (was 1 min)
 
     async function checkKVUsage() {
@@ -10803,6 +10800,141 @@ export function getHtml(nonce: string): string {
       indicator.title = \`KV Free Tier Usage Today: \${readPercent}% reads, \${writePercent}% writes (click for details)\`;
     }
 
+
+    function getKVStatusHeaderHTML() {
+      return \`
+        <div class="changelog-header">
+          <h3>\${swedishMode ? '📊 KV Lagring Status' : '📊 KV Storage Status'}</h3>
+          <button class="changelog-close kv-modal-close" aria-label="Close KV status">&times;</button>
+        </div>
+      \`;
+    }
+
+    function getKVStatusSummaryHTML(data, statusEmoji, statusText) {
+      return \`
+        <div class="kv-status-summary">
+          <div class="kv-status-badge \${data.status}">\${statusEmoji} \${statusText}</div>
+          <div class="kv-status-date">\${data.date}</div>
+        </div>
+      \`;
+    }
+
+    function getKVUsageBarsHTML(data) {
+      return \`
+        <div class="kv-usage-bars">
+          <div class="kv-bar-section">
+            <div class="kv-bar-label">\${swedishMode ? 'Läsningar' : 'Reads'} (\${data.estimated?.reads?.toLocaleString() || 0} / \${data.limits?.reads?.toLocaleString() || '100,000'})</div>
+            <div class="kv-bar-container">
+              <div class="kv-bar kv-bar-reads" style="width: \${Math.min(data.usage?.readsPercent || 0, 100)}%"></div>
+            </div>
+            <div class="kv-bar-percent">\${data.usage?.readsPercent || 0}%</div>
+          </div>
+          <div class="kv-bar-section">
+            <div class="kv-bar-label">\${swedishMode ? 'Skrivningar' : 'Writes'} (\${data.estimated?.writes?.toLocaleString() || 0} / \${data.limits?.writes?.toLocaleString() || '1,000'})</div>
+            <div class="kv-bar-container">
+              <div class="kv-bar kv-bar-writes" style="width: \${Math.min(data.usage?.writesPercent || 0, 100)}%"></div>
+            </div>
+            <div class="kv-bar-percent">\${data.usage?.writesPercent || 0}%</div>
+          </div>
+        </div>
+      \`;
+    }
+
+    function getKVBreakdownHTML(data) {
+      return \`
+        <div class="kv-breakdown">
+          <h4>\${swedishMode ? 'Nedbrytning per kategori' : 'Usage by Category'}</h4>
+          <table class="kv-breakdown-table">
+            <thead>
+              <tr>
+                <th>\${swedishMode ? 'Kategori' : 'Category'}</th>
+                <th>\${swedishMode ? 'Läsningar' : 'Reads'}</th>
+                <th>\${swedishMode ? 'Skrivningar' : 'Writes'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              \${Object.entries(data.breakdown || {}).map(([key, val]) => \`
+                <tr>
+                  <td>\${key}</td>
+                  <td>\${val.reads?.toLocaleString() || 0}</td>
+                  <td>\${val.writes?.toLocaleString() || 0}</td>
+                </tr>
+              \`).join('')}
+            </tbody>
+          </table>
+        </div>
+      \`;
+    }
+
+    function getKVRealtimeHTML(data) {
+      if (!data.realtime) return '';
+      return \`
+        <div class="kv-realtime">
+          <h4>\${swedishMode ? 'Realtidsstatistik (denna worker)' : 'Realtime Stats (this worker)'}</h4>
+          <div class="kv-realtime-grid">
+            <div class="kv-stat">
+              <span class="kv-stat-value">\${data.realtime.reads}</span>
+              <span class="kv-stat-label">\${swedishMode ? 'Läsningar' : 'Reads'}</span>
+            </div>
+            <div class="kv-stat">
+              <span class="kv-stat-value">\${data.realtime.writes}</span>
+              <span class="kv-stat-label">\${swedishMode ? 'Skrivningar' : 'Writes'}</span>
+            </div>
+            <div class="kv-stat">
+              <span class="kv-stat-value">\${data.realtime.cacheHitRate}%</span>
+              <span class="kv-stat-label">\${swedishMode ? 'Cache träff' : 'Cache Hit Rate'}</span>
+            </div>
+            <div class="kv-stat">
+              <span class="kv-stat-value">\${data.realtime.cacheHits}</span>
+              <span class="kv-stat-label">\${swedishMode ? 'Cache träffar' : 'Cache Hits'}</span>
+            </div>
+          </div>
+        </div>
+      \`;
+    }
+
+    function getKVTrendAndRecommendationsHTML(data) {
+      const recommendationsHTML = data.recommendations && data.recommendations.length > 0 ? \`
+        <div class="kv-recommendations">
+          <h4>\${swedishMode ? '💡 Rekommendationer' : '💡 Recommendations'}</h4>
+          <ul>
+            \${data.recommendations.map(r => \`<li>\${r}</li>\`).join('')}
+          </ul>
+        </div>
+      \` : '';
+
+      return \`
+        <div class="kv-trend">
+          <h4>\${swedishMode ? 'Trend' : 'Trend'}</h4>
+          <p>\${swedishMode ? 'Riktning' : 'Direction'}: <strong>\${data.trend?.direction || 'stable'}</strong></p>
+          <p>\${swedishMode ? 'Idag vs genomsnitt' : 'Today vs Average'}: \${data.trend?.todayVsAvg || 'N/A'}</p>
+        </div>
+        \${recommendationsHTML}
+      \`;
+    }
+
+    function getKVActivityHTML(data) {
+      return \`
+        <div class="kv-activity">
+          <h4>\${swedishMode ? 'Dagens aktivitet' : 'Today\\'s Activity'}</h4>
+          <div class="kv-activity-grid">
+            <div class="kv-activity-item">
+              <span class="kv-activity-num">\${data.activity?.signIns || 0}</span>
+              <span class="kv-activity-label">\${swedishMode ? 'Inloggningar' : 'Sign-ins'}</span>
+            </div>
+            <div class="kv-activity-item">
+              <span class="kv-activity-num">\${data.activity?.libraryScans || 0}</span>
+              <span class="kv-activity-label">\${swedishMode ? 'Skanningar' : 'Scans'}</span>
+            </div>
+            <div class="kv-activity-item">
+              <span class="kv-activity-num">\${data.activity?.playlistsCreated || 0}</span>
+              <span class="kv-activity-label">\${swedishMode ? 'Spellistor' : 'Playlists'}</span>
+            </div>
+          </div>
+        </div>
+      \`;
+    }
+
     async function showKVStatusModal() {
       // Fetch fresh data
       try {
@@ -10832,111 +10964,14 @@ export function getHtml(nonce: string): string {
                          (swedishMode ? 'Kritisk' : 'Critical');
 
       panel.innerHTML = \`
-        <div class="changelog-header">
-          <h3>\${swedishMode ? '📊 KV Lagring Status' : '📊 KV Storage Status'}</h3>
-          <button class="changelog-close kv-modal-close" aria-label="Close KV status">&times;</button>
-        </div>
+        \${getKVStatusHeaderHTML()}
         <div class="kv-status-content">
-          <div class="kv-status-summary">
-            <div class="kv-status-badge \${data.status}">\${statusEmoji} \${statusText}</div>
-            <div class="kv-status-date">\${data.date}</div>
-          </div>
-
-          <div class="kv-usage-bars">
-            <div class="kv-bar-section">
-              <div class="kv-bar-label">\${swedishMode ? 'Läsningar' : 'Reads'} (\${data.estimated?.reads?.toLocaleString() || 0} / \${data.limits?.reads?.toLocaleString() || '100,000'})</div>
-              <div class="kv-bar-container">
-                <div class="kv-bar kv-bar-reads" style="width: \${Math.min(data.usage?.readsPercent || 0, 100)}%"></div>
-              </div>
-              <div class="kv-bar-percent">\${data.usage?.readsPercent || 0}%</div>
-            </div>
-            <div class="kv-bar-section">
-              <div class="kv-bar-label">\${swedishMode ? 'Skrivningar' : 'Writes'} (\${data.estimated?.writes?.toLocaleString() || 0} / \${data.limits?.writes?.toLocaleString() || '1,000'})</div>
-              <div class="kv-bar-container">
-                <div class="kv-bar kv-bar-writes" style="width: \${Math.min(data.usage?.writesPercent || 0, 100)}%"></div>
-              </div>
-              <div class="kv-bar-percent">\${data.usage?.writesPercent || 0}%</div>
-            </div>
-          </div>
-
-          <div class="kv-breakdown">
-            <h4>\${swedishMode ? 'Nedbrytning per kategori' : 'Usage by Category'}</h4>
-            <table class="kv-breakdown-table">
-              <thead>
-                <tr>
-                  <th>\${swedishMode ? 'Kategori' : 'Category'}</th>
-                  <th>\${swedishMode ? 'Läsningar' : 'Reads'}</th>
-                  <th>\${swedishMode ? 'Skrivningar' : 'Writes'}</th>
-                </tr>
-              </thead>
-              <tbody>
-                \${Object.entries(data.breakdown || {}).map(([key, val]) => \`
-                  <tr>
-                    <td>\${key}</td>
-                    <td>\${val.reads?.toLocaleString() || 0}</td>
-                    <td>\${val.writes?.toLocaleString() || 0}</td>
-                  </tr>
-                \`).join('')}
-              </tbody>
-            </table>
-          </div>
-
-          \${data.realtime ? \`
-          <div class="kv-realtime">
-            <h4>\${swedishMode ? 'Realtidsstatistik (denna worker)' : 'Realtime Stats (this worker)'}</h4>
-            <div class="kv-realtime-grid">
-              <div class="kv-stat">
-                <span class="kv-stat-value">\${data.realtime.reads}</span>
-                <span class="kv-stat-label">\${swedishMode ? 'Läsningar' : 'Reads'}</span>
-              </div>
-              <div class="kv-stat">
-                <span class="kv-stat-value">\${data.realtime.writes}</span>
-                <span class="kv-stat-label">\${swedishMode ? 'Skrivningar' : 'Writes'}</span>
-              </div>
-              <div class="kv-stat">
-                <span class="kv-stat-value">\${data.realtime.cacheHitRate}%</span>
-                <span class="kv-stat-label">\${swedishMode ? 'Cache träff' : 'Cache Hit Rate'}</span>
-              </div>
-              <div class="kv-stat">
-                <span class="kv-stat-value">\${data.realtime.cacheHits}</span>
-                <span class="kv-stat-label">\${swedishMode ? 'Cache träffar' : 'Cache Hits'}</span>
-              </div>
-            </div>
-          </div>
-          \` : ''}
-
-          <div class="kv-trend">
-            <h4>\${swedishMode ? 'Trend' : 'Trend'}</h4>
-            <p>\${swedishMode ? 'Riktning' : 'Direction'}: <strong>\${data.trend?.direction || 'stable'}</strong></p>
-            <p>\${swedishMode ? 'Idag vs genomsnitt' : 'Today vs Average'}: \${data.trend?.todayVsAvg || 'N/A'}</p>
-          </div>
-
-          \${data.recommendations && data.recommendations.length > 0 ? \`
-          <div class="kv-recommendations">
-            <h4>\${swedishMode ? '💡 Rekommendationer' : '💡 Recommendations'}</h4>
-            <ul>
-              \${data.recommendations.map(r => \`<li>\${r}</li>\`).join('')}
-            </ul>
-          </div>
-          \` : ''}
-
-          <div class="kv-activity">
-            <h4>\${swedishMode ? 'Dagens aktivitet' : 'Today\\'s Activity'}</h4>
-            <div class="kv-activity-grid">
-              <div class="kv-activity-item">
-                <span class="kv-activity-num">\${data.activity?.signIns || 0}</span>
-                <span class="kv-activity-label">\${swedishMode ? 'Inloggningar' : 'Sign-ins'}</span>
-              </div>
-              <div class="kv-activity-item">
-                <span class="kv-activity-num">\${data.activity?.libraryScans || 0}</span>
-                <span class="kv-activity-label">\${swedishMode ? 'Skanningar' : 'Scans'}</span>
-              </div>
-              <div class="kv-activity-item">
-                <span class="kv-activity-num">\${data.activity?.playlistsCreated || 0}</span>
-                <span class="kv-activity-label">\${swedishMode ? 'Spellistor' : 'Playlists'}</span>
-              </div>
-            </div>
-          </div>
+          \${getKVStatusSummaryHTML(data, statusEmoji, statusText)}
+          \${getKVUsageBarsHTML(data)}
+          \${getKVBreakdownHTML(data)}
+          \${getKVRealtimeHTML(data)}
+          \${getKVTrendAndRecommendationsHTML(data)}
+          \${getKVActivityHTML(data)}
         </div>
       \`;
 
@@ -10966,19 +11001,17 @@ export function getHtml(nonce: string): string {
     window.showKVStatusModal = showKVStatusModal;
     window.closeKVModal = closeKVModal;
 
-    // PERF-006 FIX: Track all polling intervals for visibility API cleanup
     let kvPollInterval = null;
 
     // Start deployment and KV status polling
     function startDeployMonitor() {
       checkDeployStatus();
       checkKVUsage(); // Also check KV status
-      // PERF-006 FIX: Reduced deploy polling from 10s to 60s
+
       deployPollInterval = setInterval(checkDeployStatus, 60000); // Poll every 60s (was 10s)
       kvPollInterval = setInterval(checkKVUsage, KV_POLL_INTERVAL); // Poll KV usage every 5 min
     }
 
-    // PERF-006 FIX: Stop polling intervals
     function stopDeployMonitor() {
       if (deployPollInterval) {
         clearInterval(deployPollInterval);
@@ -11088,7 +11121,7 @@ export function getHtml(nonce: string): string {
     function startNowPlayingMonitor() {
       // Initial fetch
       updateNowPlaying();
-      // PERF-006 FIX: Reduced polling from 10s to 30s
+
       nowPlayingInterval = setInterval(updateNowPlaying, 30000); // Poll every 30s (was 10s)
 
       // Add dismiss button handler
@@ -11445,7 +11478,6 @@ export function getHtml(nonce: string): string {
     } else {
       initGenieClick();
     }
-
 
     // Apply Swedish mode on load if previously enabled
     if (swedishMode) {
@@ -13043,15 +13075,8 @@ export function getHtml(nonce: string): string {
       \`;
     }
 
-    function renderGenres() {
-      const filteredGenres = filterGenres('');
-      const cacheInfo = genreData.cachedAt
-        ? \`<span class="cache-info" title="\${genreData.fromCache ? (swedishMode ? 'Från cache' : 'From cache') : (swedishMode ? 'Nyss hämtad' : 'Just fetched')}">
-            \${genreData.fromCache ? '⚡' : '✨'} \${formatCacheTime(genreData.cachedAt)}
-          </span>\`
-        : '';
-
-      app.innerHTML = \`
+    function renderStatsContainer() {
+      return \`
         <div class="stats">
           <div class="stat">
             <div class="stat-value">\${genreData.totalTracks.toLocaleString()}</div>
@@ -13066,8 +13091,12 @@ export function getHtml(nonce: string): string {
             <div class="stat-label" data-i18n="selected">\${t('selected')}</div>
           </div>
         </div>
+      \`;
+    }
 
-        \${genreData.truncated ? \`
+    function renderTruncationWarning() {
+      if (!genreData.truncated) return '';
+      return \`
         <div class="truncation-warning">
           ⚠️ \${swedishMode
             ? \`Visar \${genreData.totalTracks.toLocaleString()} av \${genreData.totalInLibrary?.toLocaleString()} låtar\`
@@ -13076,15 +13105,22 @@ export function getHtml(nonce: string): string {
             \${swedishMode ? 'Ladda alla' : 'Load all'}
           </button>
         </div>
-        \` : ''}
+      \`;
+    }
 
+    function renderCacheStatusContainer(cacheInfo) {
+      return \`
         <div class="cache-status">
           \${cacheInfo}
           <button onclick="refreshGenres()" class="btn btn-ghost btn-sm" title="\${swedishMode ? 'Hämta ny data från Spotify' : 'Fetch fresh data from Spotify'}" aria-label="\${swedishMode ? 'Uppdatera (Hämta ny data från Spotify)' : 'Refresh (Fetch fresh data from Spotify)'}">
             🔄 \${swedishMode ? 'Uppdatera' : 'Refresh'}
           </button>
         </div>
+      \`;
+    }
 
+    function renderToolbarRow() {
+      return \`
         <div class="toolbar-row">
           <button onclick="showGenreWrapped()" class="btn btn-primary btn-sm wrapped-btn" title="\${swedishMode ? 'Dela din musiksmak!' : 'Share your music taste!'}" aria-label="\${swedishMode ? 'Dela din musiksmak!' : 'Share your music taste!'}">
             ✨ \${swedishMode ? 'Dela Din Smak' : 'Share Your Taste'}
@@ -13102,9 +13138,11 @@ export function getHtml(nonce: string): string {
             📥 CSV
           </button>
         </div>
+      \`;
+    }
 
-        \${renderStatsDashboard()}
-
+    function renderHiddenToolbarContainer() {
+      return \`
         <div class="hidden-toolbar" id="hidden-toolbar" style="display: \${hiddenGenres.size > 0 ? 'flex' : 'none'}">
           <span>\${swedishMode ? 'Dolda genrer:' : 'Hidden genres:'} <strong id="hidden-count">\${hiddenGenres.size}</strong></span>
           <button onclick="toggleShowHidden()" class="btn btn-ghost btn-sm" aria-label="\${showHiddenGenres ? (swedishMode ? 'Dölj dolda (Dölj dolda genrer)' : 'Hide hidden (Hide hidden genres)') : (swedishMode ? 'Visa dolda (Visa dolda genrer)' : 'Show hidden (Show hidden genres)')}">
@@ -13117,7 +13155,11 @@ export function getHtml(nonce: string): string {
             \${swedishMode ? 'Dölj små (<5)' : 'Hide small (<5)'}
           </button>
         </div>
+      \`;
+    }
 
+    function renderMainCard() {
+      return \`
         <div class="card">
           <h2 class="card-title" data-i18n="yourGenres">\${t('yourGenres')}</h2>
 
@@ -13193,7 +13235,25 @@ export function getHtml(nonce: string): string {
             </span>
           </div>
         </div>
+      \`;
+    }
 
+    function renderGenres() {
+      const filteredGenres = filterGenres('');
+      const cacheInfo = genreData.cachedAt
+        ? \`<span class="cache-info" title="\${genreData.fromCache ? (swedishMode ? 'Från cache' : 'From cache') : (swedishMode ? 'Nyss hämtad' : 'Just fetched')}">
+            \${genreData.fromCache ? '⚡' : '✨'} \${formatCacheTime(genreData.cachedAt)}
+          </span>\`
+        : '';
+
+      app.innerHTML = \`
+        \${renderStatsContainer()}
+        \${renderTruncationWarning()}
+        \${renderCacheStatusContainer(cacheInfo)}
+        \${renderToolbarRow()}
+        \${renderStatsDashboard()}
+        \${renderHiddenToolbarContainer()}
+        \${renderMainCard()}
         <div id="results"></div>
       \`;
 
@@ -14805,6 +14865,53 @@ export function getHtml(nonce: string): string {
     // Initialize
     init();
 
+    // ALLOWED FUNCTIONS WHITELIST TO PREVENT DOM XSS
+    const ALLOWED_FUNCTIONS = new Set([
+      'adminClearCache',
+      'adminRebuildCaches',
+      'browseKVKeys',
+      'cancelMerge',
+      'closePlaylistModal',
+      'closeScoreboard',
+      'confirmDeleteUser',
+      'copyShareLink',
+      'copyWrappedToClipboard',
+      'createMergedPlaylist',
+      'createPlaylist',
+      'createPlaylistForce',
+      'createSelectedPlaylists',
+      'deleteKVKey',
+      'dismissRateLimitBanner',
+      'downloadWrappedCard',
+      'endTutorial',
+      'exportGenresCSV',
+      'exportGenresJSON',
+      'hideSmallGenres',
+      'loadFullLibrary',
+      'loadGenres',
+      'nextTutorialStep',
+      'pauseProgressiveScan',
+      'refreshGenres',
+      'renderPlaylistList',
+      'resetDescTemplate',
+      'resetTemplate',
+      'resumeProgressiveScan',
+      'scanPlaylist',
+      'selectAll',
+      'selectNone',
+      'shareWrappedNative',
+      'showGenreWrapped',
+      'showMergeModal',
+      'showRequestAccessModal',
+      'stopProgressiveScan',
+      'toggleHideGenre',
+      'toggleMergeMode',
+      'toggleShowHidden',
+      'toggleStatsDashboard',
+      'unhideAllGenres',
+      'viewKVKey'
+    ]);
+
     // =========================================
     // CSP FIX: Global Event Delegation
     // Handles onclick attributes blocked by CSP
@@ -14826,52 +14933,6 @@ export function getHtml(nonce: string): string {
         const fnName = match[1];
         const argsStr = match[2];
 
-      // ALLOWED FUNCTIONS WHITELIST TO PREVENT DOM XSS
-      const ALLOWED_FUNCTIONS = new Set([
-        'adminClearCache',
-        'adminRebuildCaches',
-        'browseKVKeys',
-        'cancelMerge',
-        'closePlaylistModal',
-        'closeScoreboard',
-        'confirmDeleteUser',
-        'copyShareLink',
-        'copyWrappedToClipboard',
-        'createMergedPlaylist',
-        'createPlaylist',
-        'createPlaylistForce',
-        'createSelectedPlaylists',
-        'deleteKVKey',
-        'dismissRateLimitBanner',
-        'downloadWrappedCard',
-        'endTutorial',
-        'exportGenresCSV',
-        'exportGenresJSON',
-        'hideSmallGenres',
-        'loadFullLibrary',
-        'loadGenres',
-        'nextTutorialStep',
-        'pauseProgressiveScan',
-        'refreshGenres',
-        'renderPlaylistList',
-        'resetDescTemplate',
-        'resetTemplate',
-        'resumeProgressiveScan',
-        'scanPlaylist',
-        'selectAll',
-        'selectNone',
-        'shareWrappedNative',
-        'showGenreWrapped',
-        'showMergeModal',
-        'showRequestAccessModal',
-        'stopProgressiveScan',
-        'toggleHideGenre',
-        'toggleMergeMode',
-        'toggleShowHidden',
-        'toggleStatsDashboard',
-        'unhideAllGenres',
-        'viewKVKey'
-      ]);
 
         // Only allow whitelisted functions to be executed
         if (!ALLOWED_FUNCTIONS.has(fnName)) {
@@ -14930,52 +14991,6 @@ export function getHtml(nonce: string): string {
             if (fnMatch) {
               const fnName = fnMatch[1];
 
-      // ALLOWED FUNCTIONS WHITELIST TO PREVENT DOM XSS
-      const ALLOWED_FUNCTIONS = new Set([
-        'adminClearCache',
-        'adminRebuildCaches',
-        'browseKVKeys',
-        'cancelMerge',
-        'closePlaylistModal',
-        'closeScoreboard',
-        'confirmDeleteUser',
-        'copyShareLink',
-        'copyWrappedToClipboard',
-        'createMergedPlaylist',
-        'createPlaylist',
-        'createPlaylistForce',
-        'createSelectedPlaylists',
-        'deleteKVKey',
-        'dismissRateLimitBanner',
-        'downloadWrappedCard',
-        'endTutorial',
-        'exportGenresCSV',
-        'exportGenresJSON',
-        'hideSmallGenres',
-        'loadFullLibrary',
-        'loadGenres',
-        'nextTutorialStep',
-        'pauseProgressiveScan',
-        'refreshGenres',
-        'renderPlaylistList',
-        'resetDescTemplate',
-        'resetTemplate',
-        'resumeProgressiveScan',
-        'scanPlaylist',
-        'selectAll',
-        'selectNone',
-        'shareWrappedNative',
-        'showGenreWrapped',
-        'showMergeModal',
-        'showRequestAccessModal',
-        'stopProgressiveScan',
-        'toggleHideGenre',
-        'toggleMergeMode',
-        'toggleShowHidden',
-        'toggleStatsDashboard',
-        'unhideAllGenres',
-        'viewKVKey'
-      ]);
 
               if (!ALLOWED_FUNCTIONS.has(fnName)) {
                 console.warn('[CSP Handler] Blocked execution of unauthorized function:', fnName);
@@ -15942,17 +15957,15 @@ export function getHtml(nonce: string): string {
       showNotification(details.join(' | '), healthStatus.ok ? 'success' : 'warning');
     }
 
-    // PERF-006 FIX: Track health check interval for visibility API
     let healthCheckInterval = null;
 
     // Check health on load and periodically
     document.addEventListener('DOMContentLoaded', () => {
       setTimeout(checkHealth, 3000); // Initial check after 3s
-      // PERF-006 FIX: Reduced from 60s to 5 minutes
+
       healthCheckInterval = setInterval(checkHealth, 300000); // Then every 5 min (was 1 min)
     });
 
-    // PERF-006 FIX: Master visibility handler to stop ALL polling when tab is hidden
     // This saves significant API calls when user switches tabs
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
