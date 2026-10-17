@@ -1578,7 +1578,10 @@ api.get('/listening', async (c) => {
         return null;
       });
       const dataResults = await Promise.all(dataPromises);
-      listeners.push(...dataResults.filter((entry): entry is ListeningEntry => entry !== null));
+      for (let k = 0; k < dataResults.length; k++) {
+        const entry = dataResults[k];
+        if (entry !== null) listeners.push(entry);
+      }
     }
 
     return c.json({
@@ -2485,25 +2488,27 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   // Find and delete any active sessions for this user
   const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
   for (let i = 0; i < sessionsList.keys.length; i += BATCH_SIZE) {
-    // ⚡ Bolt: Avoid intermediate array allocation from slice().map() by using Array.from()
+    // ⚡ Bolt: Chunked parallel reads for KV.get to avoid limits and reduce GC via Array.from over slice().map()
     const chunkSize = Math.min(BATCH_SIZE, sessionsList.keys.length - i);
     const sessionPromises = Array.from({ length: chunkSize }, async (_, j) => {
-      const key = sessionsList.keys[i + j];
+      const keyName = sessionsList.keys[i + j].name;
       try {
-        const sessionJson = await kv.get(key.name);
-        if (sessionJson) {
-          const sessionData = JSON.parse(sessionJson) as { spotifyUserId?: string };
-          if (sessionData.spotifyUserId === spotifyId) {
-            await cachedKV.delete(kv, key.name);
-            return key.name;
-          }
+        // Only parse JSON if the subrequest succeeds, otherwise we waste CPU
+        const sessionJson = await kv.get(keyName);
+        if (sessionJson && sessionJson.includes(`"spotifyUserId":"${spotifyId}"`)) {
+            const sessionData = JSON.parse(sessionJson) as { spotifyUserId?: string };
+            if (sessionData.spotifyUserId === spotifyId) {
+              await cachedKV.delete(kv, keyName);
+              return keyName;
+            }
         }
       } catch { /* skip malformed sessions */ }
       return null;
     });
 
     const sessionResults = await Promise.all(sessionPromises);
-    for (const keyName of sessionResults) {
+    for (let k = 0; k < sessionResults.length; k++) {
+      const keyName = sessionResults[k];
       if (keyName) deleted.push(keyName);
     }
   }
@@ -2748,7 +2753,10 @@ api.get('/admin/access-requests', async (c) => {
       return null;
     });
     const dataResults = await Promise.all(dataPromises);
-    requests.push(...dataResults.filter((req): req is AccessRequest => req !== null));
+    for (let k = 0; k < dataResults.length; k++) {
+      const req = dataResults[k];
+      if (req !== null) requests.push(req);
+    }
   }
 
   // Sort by most recent first
