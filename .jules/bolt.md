@@ -174,3 +174,8 @@
 ## YYYY-MM-DD - Clean up unused fields after algorithm changes
 **Learning:** When switching algorithms (like moving from a timestamp-based O(N) LRU eviction to an insertion-order-based O(1) LRU eviction using JavaScript Maps), old fields (like `lastAccessed`) often become dead code. Removing them improves memory footprint and code clarity.
 **Action:** Removed the unused `lastAccessed` field from `CacheEntry` and its update points in `src/lib/kv-cache.ts` after verifying that `evictOldest` solely relies on Map insertion order.
+## YYYY-MM-DD - [O(N^2) Bottleneck in Error Handler]
+**Learning:** Using Array.prototype.indexOf() inside a loop to find the original item from a settled Promise array creates an O(N^2) bottleneck, especially on large batches in processBatch().
+**Action:** Always use an explicit indexed for loop (e.g., for (let j = 0; j < results.length; j++)) to directly access the corresponding item in the parallel chunk array instead of looking it up with indexOf.
+
+## YYYY-MM-DD - [Optimize LRU Cache Update for Rate Limiter] **Learning:** [JavaScript Map objects maintain insertion order. By deleting and re-inserting elements on access, the Map implicitly becomes an LRU cache where the oldest element is the first item.] **Action:** [Refactored rate limiter in `src/routes/api.ts` to delete and re-insert keys on access to maintain LRU order naturally for O(1) eviction without arrays.]
