@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Hono } from 'hono';
-import { errorHandler } from '../src/index';
+import app, { errorHandler } from '../src/index';
+
 import * as session from '../src/lib/session';
 import * as logger from '../src/lib/logger';
 
@@ -116,5 +117,65 @@ describe('Global Error Handler in index.ts', () => {
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: 'Another error' });
     expect(session.trackAnalyticsEvent).toHaveBeenCalled();
+  });
+});
+
+
+describe('Main App Router', () => {
+  it('should serve the main UI on GET /', async () => {
+    const req = new Request('http://localhost/');
+    const res = await app.fetch(req, {
+      BETTERSTACK_LOG_TOKEN: 'test-token',
+      SESSIONS: {} as KVNamespace,
+    } as any, {
+      waitUntil: vi.fn(),
+      passThroughOnException: vi.fn(),
+    } as any);
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toContain('text/html');
+  });
+
+  it('should redirect /favicon.ico to /favicon.png', async () => {
+    const req = new Request('http://localhost/favicon.ico');
+    const res = await app.fetch(req, {
+      BETTERSTACK_LOG_TOKEN: 'test-token',
+      SESSIONS: {} as KVNamespace,
+    } as any, {
+      waitUntil: vi.fn(),
+      passThroughOnException: vi.fn(),
+    } as any);
+
+    expect(res.status).toBe(302);
+    expect(res.headers.get('Location')).toBe('/favicon.png');
+  });
+
+  it('should serve /favicon.png', async () => {
+    const req = new Request('http://localhost/favicon.png');
+    const res = await app.fetch(req, {
+      BETTERSTACK_LOG_TOKEN: 'test-token',
+      SESSIONS: {} as KVNamespace,
+    } as any, {
+      waitUntil: vi.fn(),
+      passThroughOnException: vi.fn(),
+    } as any);
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('image/png');
+  });
+
+  it('should set security headers', async () => {
+    const req = new Request('http://localhost/');
+    const res = await app.fetch(req, {
+      BETTERSTACK_LOG_TOKEN: 'test-token',
+      SESSIONS: {} as KVNamespace,
+    } as any, {
+      waitUntil: vi.fn(),
+      passThroughOnException: vi.fn(),
+    } as any);
+
+    expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(res.headers.get('X-Frame-Options')).toBe('DENY');
+    expect(res.headers.get('X-XSS-Protection')).toBe('1; mode=block');
   });
 });

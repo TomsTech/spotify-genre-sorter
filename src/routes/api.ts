@@ -37,6 +37,8 @@ import {
 import { getKVMonitorData } from '../lib/kv-monitor';
 import { optionalCsrfProtection } from '../lib/csrf-middleware';
 import { createLogger } from '../lib/logger';
+import fallbackChangelogData from '../data/fallback-changelog.json';
+
 
 const api = new Hono<{ Bindings: Env }>();
 
@@ -79,7 +81,8 @@ const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 30; // 30 requests per minute
 const SPOTIFY_TRACK_ID_REGEX = /^[a-zA-Z0-9]{22}$/;
 
-// PERF-003 FIX: Bounded rate limiter with deterministic cleanup
+// ⚡ Bolt: Optimize Map eviction loop
+// Bounded rate limiter with deterministic cleanup
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_MAX_ENTRIES = 10000; // Prevent unbounded memory growth
 let rateLimitRequestCount = 0;
@@ -97,14 +100,18 @@ api.use('/*', async (c, next) => {
 
   const rateData = rateLimitMap.get(clientIP);
   if (rateData) {
+    // ⚡ Bolt: Delete and re-insert to maintain LRU order in the Map
+    rateLimitMap.delete(clientIP);
     if (now > rateData.resetAt) {
       // Window expired, reset
       rateLimitMap.set(clientIP, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
     } else if (rateData.count >= RATE_LIMIT_MAX_REQUESTS) {
+      rateLimitMap.set(clientIP, rateData); // Re-insert to keep it in map
       c.header('Retry-After', String(Math.ceil((rateData.resetAt - now) / 1000)));
       return c.json({ error: 'Rate limit exceeded. Please try again later.' }, 429);
     } else {
       rateData.count++;
+      rateLimitMap.set(clientIP, rateData);
     }
   } else {
     rateLimitMap.set(clientIP, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
@@ -127,9 +134,8 @@ api.use('/*', async (c, next) => {
     const entriesToRemove = Math.floor(RATE_LIMIT_MAX_ENTRIES * 0.2);
     let removed = 0;
     for (const key of rateLimitMap.keys()) {
-      if (removed >= entriesToRemove) break;
       rateLimitMap.delete(key);
-      removed++;
+      if (++removed >= entriesToRemove) break;
     }
   }
 
@@ -215,7 +221,7 @@ api.get('/me', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error fetching user:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching user:', err);
     return c.json({ error: 'Failed to fetch user info' }, 500);
   }
 });
@@ -470,7 +476,7 @@ api.get('/genres', async (c) => {
       artists = artistResult.artists;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      console.error('Error fetching artists:', message);
+      createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching artists:', message);
       return c.json({
         error: 'Failed to fetch artist data from Spotify',
         details: message,
@@ -553,7 +559,7 @@ api.get('/genres', async (c) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('Error fetching genres:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching genres:', err);
     return c.json({
       error: 'Failed to fetch genres',
       details: message,
@@ -568,6 +574,7 @@ interface ChunkCacheData {
   trackCount: number;
   artistCount: number;
   cachedAt: number;
+  totalInLibrary: number;
 }
 
 // Get scan progress status (check if there's an interrupted scan to resume)
@@ -850,9 +857,8 @@ api.get('/genres/chunk', async (c) => {
     if (playlistIds.length === 0) {
       const cachedChunk = await cachedKV.get<ChunkCacheData>(c.env.SESSIONS, chunkCacheKey);
       if (cachedChunk) {
-        // Get total from a quick /me/tracks call
-        const totalResponse = await getLikedTracks(session.spotifyAccessToken, 1, 0);
-        const totalInLibrary = totalResponse.total;
+        // Read total from cache instead of making another API call
+        const totalInLibrary = cachedChunk.totalInLibrary;
         const hasMore = offset + limit < totalInLibrary;
 
         return c.json({
@@ -884,7 +890,7 @@ api.get('/genres/chunk', async (c) => {
         const playlistId = playlistIds[i];
         playlistPromises.push(
           getPlaylistTracks(token, playlistId, 500).catch((e) => {
-            console.error(`Error fetching playlist ${playlistId}:`, e);
+            createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError(`Error fetching playlist ${playlistId}:`, e);
             return [];
           })
         );
@@ -938,6 +944,7 @@ api.get('/genres/chunk', async (c) => {
           trackCount: 0,
           artistCount: 0,
           cachedAt: Date.now(),
+          totalInLibrary,
         },
         pagination: {
           offset,
@@ -986,6 +993,7 @@ api.get('/genres/chunk', async (c) => {
       trackCount: allChunkTracks.length,
       artistCount: artistIds.size,
       cachedAt: Date.now(),
+      totalInLibrary,
     };
 
     // Cache this chunk
@@ -1074,7 +1082,6 @@ function sanitiseGenreName(genre: unknown): ValidationResult<string> {
 }
 
 
-// Helper function to extract duplicated playlist creation logic
 async function createPlaylistForGenre(
   spotifyAccessToken: string,
   userId: string,
@@ -1222,7 +1229,7 @@ api.post('/playlist', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error creating playlist:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error creating playlist:', err);
     return c.json({ error: 'Failed to create playlist' }, 500);
   }
 });
@@ -1254,8 +1261,10 @@ api.post('/playlists/bulk', async (c) => {
     // Fetch existing playlists once for duplicate checking
     const existingPlaylists = await getUserPlaylists(session.spotifyAccessToken);
     // ⚡ BOLT OPTIMIZATION: Avoid intermediate array creations in filter + map by doing a single pass
+    // ⚡ Bolt: Use a standard for loop instead of for...of for performance to avoid iterator overhead
     const existingNames = new Set<string>();
-    for (const p of existingPlaylists) {
+    for (let i = 0; i < existingPlaylists.length; i++) {
+      const p = existingPlaylists[i];
       if (p.owner.id === user.id) {
         existingNames.add(p.name.toLowerCase());
       }
@@ -1361,7 +1370,7 @@ api.post('/playlists/bulk', async (c) => {
       results,
     });
   } catch (err) {
-    console.error('Error creating playlists:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error creating playlists:', err);
     return c.json({ error: 'Failed to process request' }, 500);
   }
 });
@@ -1445,13 +1454,7 @@ async function fetchAndCacheChangelog() {
 
 function getFallbackChangelog() {
   return {
-    changelog: [
-      {
-        version: '3.4.0',
-        date: '2025-12-09',
-        changes: ['Dynamic changelog from GitHub releases', 'Bug fixes and improvements'],
-      },
-    ],
+    changelog: fallbackChangelogData.changelog,
     repoUrl: REPO_URL,
     error: 'Failed to fetch releases, showing fallback',
   };
@@ -1463,7 +1466,7 @@ api.get('/changelog', async (c) => {
     const data = await fetchAndCacheChangelog();
     return c.json(data);
   } catch (error) {
-    console.error('Failed to fetch GitHub releases:', error);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Failed to fetch GitHub releases:', error);
 
     if (changelogCache) {
       return c.json({ ...changelogCache.data as object, stale: true });
@@ -1502,7 +1505,7 @@ api.get('/scoreboard', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error fetching scoreboard:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching scoreboard:', err);
     return c.json({ error: 'Failed to fetch scoreboard' }, 500);
   }
 });
@@ -1537,7 +1540,7 @@ api.get('/leaderboard', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error fetching leaderboard:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching leaderboard:', err);
     return c.json({ error: 'Failed to fetch leaderboard' }, 500);
   }
 });
@@ -1586,7 +1589,7 @@ api.get('/listening', async (c) => {
       count: listeners.length,
     });
   } catch (err) {
-    console.error('Error fetching listening data:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching listening data:', err);
     return c.json({ listeners: [], count: 0 });
   }
 });
@@ -1597,7 +1600,7 @@ api.get('/recent-playlists', async (c) => {
     const playlists = await getRecentPlaylists(c.env.SESSIONS);
     return c.json({ playlists });
   } catch (err) {
-    console.error('Error fetching recent playlists:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching recent playlists:', err);
     return c.json({ error: 'Failed to fetch recent playlists' }, 500);
   }
 });
@@ -1639,7 +1642,7 @@ api.get('/my-playlists', async (c) => {
       }))
     });
   } catch (err) {
-    console.error('Error fetching playlists:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching playlists:', err);
     return c.json({ error: 'Failed to fetch playlists' }, 500);
   }
 });
@@ -1681,12 +1684,10 @@ api.get('/scan-playlist/:playlistId', async (c) => {
 
     for (const item of tracks) {
       if (item.track && item.track.id) {
-        // PERF-FIX: Eliminate intermediate arrays created by .map() and .forEach()
-        // Iterating in a single loop avoids unnecessary allocations and improves performance.
-        const artistIdsForTrack: string[] = [];
+        const artistIdsForTrack: string[] = new Array<string>(item.track.artists.length);
         for (let i = 0; i < item.track.artists.length; i++) {
           const id = item.track.artists[i].id;
-          artistIdsForTrack.push(id);
+          artistIdsForTrack[i] = id;
           artistIds.add(id);
         }
         trackData.push({
@@ -1727,7 +1728,7 @@ api.get('/scan-playlist/:playlistId', async (c) => {
       truncated: tracks.length >= 500
     });
   } catch (err) {
-    console.error('Error scanning playlist:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error scanning playlist:', err);
     return c.json({ error: 'Failed to scan playlist' }, 500);
   }
 });
@@ -1745,7 +1746,7 @@ api.get('/preferences', async (c) => {
     const prefs = await getUserPreferences(c.env.SESSIONS, session.spotifyUserId);
     return c.json({ preferences: prefs });
   } catch (err) {
-    console.error('Error fetching preferences:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching preferences:', err);
     return c.json({ error: 'Failed to fetch preferences' }, 500);
   }
 });
@@ -1773,7 +1774,7 @@ api.post('/preferences', async (c) => {
     const prefs = await updateUserPreferences(c.env.SESSIONS, session.spotifyUserId, updates);
     return c.json({ preferences: prefs });
   } catch (err) {
-    console.error('Error updating preferences:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error updating preferences:', err);
     return c.json({ error: 'Failed to update preferences' }, 500);
   }
 });
@@ -1837,7 +1838,7 @@ api.post('/invite-request', async (c) => {
       trackingUrl: null // Could add tracking later
     });
   } catch (err) {
-    console.error('Error submitting invite request:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error submitting invite request:', err);
     return c.json({ error: 'Failed to submit request' }, 500);
   }
 });
@@ -1854,7 +1855,7 @@ api.get('/admin/invites', async (c) => {
     const requests = await cachedKV.get<unknown[]>(c.env.SESSIONS, INVITE_REQUESTS_KEY) || [];
     return c.json({ requests });
   } catch (err) {
-    console.error('Error fetching invites:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching invites:', err);
     return c.json({ error: 'Failed to fetch invites' }, 500);
   }
 });
@@ -1899,7 +1900,7 @@ api.post('/log-error', async (c) => {
 
     return c.json({ ok: true, logged: newErrors.length });
   } catch (err) {
-    console.error('Error logging client errors:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error logging client errors:', err);
     return c.json({ error: 'Failed to log' }, 500);
   }
 });
@@ -1938,7 +1939,7 @@ api.post('/log-perf', async (c) => {
 
     return c.json({ ok: true });
   } catch (err) {
-    console.error('Error logging perf:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error logging perf:', err);
     return c.json({ error: 'Failed to log' }, 500);
   }
 });
@@ -2009,7 +2010,7 @@ api.get('/analytics', async (c) => {
     const analytics = await getAnalytics(c.env.SESSIONS);
     return c.json(analytics);
   } catch (err) {
-    console.error('Error fetching analytics:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching analytics:', err);
     return c.json({ error: 'Failed to fetch analytics' }, 500);
   }
 });
@@ -2038,6 +2039,16 @@ type KVBreakdown = {
 };
 
 export function calculateKVBreakdown(today: AnalyticsData): KVBreakdown {
+  if (!today) {
+    return {
+      sessions: { reads: 0, writes: 0 },
+      caches: { reads: 0, writes: 0 },
+      userStats: { reads: 0, writes: 0 },
+      recentPlaylists: { reads: 0, writes: 0 },
+      auth: { reads: 0, writes: 0 },
+    };
+  }
+
   return {
     sessions: {
       reads: Math.round(today.libraryScans * 2 + today.playlistsCreated * 2),
@@ -2063,8 +2074,9 @@ export function calculateKVBreakdown(today: AnalyticsData): KVBreakdown {
 }
 
 export function determineKVStatus(writeUsagePercent: number, readUsagePercent: number): 'ok' | 'warning' | 'critical' {
-  if (writeUsagePercent > 90 || readUsagePercent > 90) return 'critical';
-  if (writeUsagePercent > 80 || readUsagePercent > 80) return 'warning';
+  const maxUsage = Math.max(writeUsagePercent, readUsagePercent);
+  if (maxUsage > 90) return 'critical';
+  if (maxUsage > 80) return 'warning';
   return 'ok';
 }
 
@@ -2105,8 +2117,9 @@ api.get('/kv-usage', async (c) => {
     const breakdown = calculateKVBreakdown(today);
     let estimatedReads = 0;
     let estimatedWrites = 0;
-    for (const key in breakdown) {
-      const cat = breakdown[key as keyof typeof breakdown];
+    const keys = Object.keys(breakdown);
+    for (let i = 0; i < keys.length; i++) {
+      const cat = breakdown[keys[i] as keyof typeof breakdown];
       estimatedReads += cat.reads;
       estimatedWrites += cat.writes;
     }
@@ -2173,7 +2186,7 @@ api.get('/kv-usage', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error fetching KV usage:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching KV usage:', err);
     return c.json({ error: 'Failed to fetch KV usage' }, 500);
   }
 });
@@ -2238,7 +2251,7 @@ api.get('/admin', async (c) => {
   const kv = c.env.SESSIONS;
   const metrics = getKVMetrics();
 
-  // PERF-023 FIX: Use Promise.all for parallel KV listing
+  // Fetch KV prefix counts in parallel
   const prefixes = ['session:', 'user:', 'user_stats:', 'hof:', 'genre_cache_', 'scan_progress:'];
   const listPromises = prefixes.map(prefix => kv.list({ prefix, limit: 1000 }));
   const [analytics, listResults] = await Promise.all([
@@ -2382,13 +2395,15 @@ async function fetchHoFUsers(kv: KVNamespace, seenIds: Set<string>, users: Admin
     }
   }
 
+  // ⚡ Bolt: Build map for O(1) lookups instead of O(N) array finds in loop
+  const userMap = new Map(users.map(u => [u.spotifyId, u]));
   for (let i = 0; i < hofResults.length; i++) {
     const hofUser = hofResults[i];
     if (hofUser) {
       // Only add if not already in users list
       if (!seenIds.has(hofUser.spotifyId)) {
         seenIds.add(hofUser.spotifyId);
-        users.push({
+        const newUser = {
           spotifyId: hofUser.spotifyId,
           spotifyName: hofUser.spotifyName || 'Unknown',
           spotifyAvatar: hofUser.spotifyAvatar || null,
@@ -2397,10 +2412,12 @@ async function fetchHoFUsers(kv: KVNamespace, seenIds: Set<string>, users: Admin
           lastActive: null,
           isPioneer: true,
           hofPosition: i + 1,
-        });
+        };
+        users.push(newUser);
+        userMap.set(newUser.spotifyId, newUser);
       } else {
         // Mark existing user as pioneer
-        const existingUser = users.find(u => u.spotifyId === hofUser.spotifyId);
+        const existingUser = userMap.get(hofUser.spotifyId);
         if (existingUser) {
           existingUser.isPioneer = true;
           existingUser.hofPosition = i + 1;
@@ -2564,7 +2581,7 @@ api.get('/cache/artist-genres/stats', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error fetching cache stats:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching cache stats:', err);
     return c.json({ error: 'Failed to fetch cache statistics' }, 500);
   }
 });
@@ -2584,7 +2601,7 @@ api.post('/admin/cache/artist-genres/clear', async (c) => {
       message: `Cleared ${deletedCount} cached artist entries`,
     });
   } catch (err) {
-    console.error('Error clearing artist genre cache:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error clearing artist genre cache:', err);
     return c.json({ error: 'Failed to clear cache' }, 500);
   }
 });
@@ -2608,7 +2625,7 @@ api.post('/admin/cache/artist-genres/cleanup', async (c) => {
       message: `Cleaned up ${deletedCount} cache entries older than ${maxAgeDays} days`,
     });
   } catch (err) {
-    console.error('Error cleaning up cache:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error cleaning up cache:', err);
     return c.json({ error: 'Failed to cleanup cache' }, 500);
   }
 });
@@ -2635,7 +2652,7 @@ api.post('/admin/cache/artist-genres/invalidate', async (c) => {
       message: `Invalidated ${deletedCount} artist cache entries`,
     });
   } catch (err) {
-    console.error('Error invalidating cache:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error invalidating cache:', err);
     return c.json({ error: 'Failed to invalidate cache' }, 500);
   }
 });
@@ -2717,7 +2734,7 @@ api.post('/request-access', async (c) => {
 
     return c.json({ success: true, message: 'Request submitted successfully' });
   } catch (err) {
-    console.error('Request access error:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Request access error:', err);
     return c.json({ error: 'Failed to submit request' }, 500);
   }
 });
@@ -2771,7 +2788,7 @@ api.get('/admin/kv-monitor', async (c) => {
     const data = await getKVMonitorData(c.env.SESSIONS);
     return c.json(data);
   } catch (err) {
-    console.error('Error getting KV monitor data:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error getting KV monitor data:', err);
     return c.json({ error: 'Failed to fetch KV monitoring data' }, 500);
   }
 });
@@ -2810,7 +2827,7 @@ api.get('/admin/kv-keys', async (c) => {
     });
   } catch (err) {
     // err is unknown type from catch
-    console.error('Error listing keys:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error listing keys:', err);
     return c.json({ error: 'Failed to list keys' }, 500);
   }
 });
@@ -2860,7 +2877,7 @@ api.get('/admin/kv-key/:key', async (c) => {
       expiresAt: keyMeta?.expiration ? new Date(keyMeta.expiration * 1000).toISOString() : null,
     });
   } catch (err) {
-    console.error('Error getting key:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error getting key:', err);
     return c.json({ error: 'Failed to get key value' }, 500);
   }
 });
@@ -2882,7 +2899,7 @@ api.delete('/admin/kv-key/:key', async (c) => {
     await kv.delete(keyName);
     return c.json({ success: true, key: keyName, deletedAt: new Date().toISOString() });
   } catch (err) {
-    console.error('Error deleting key:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error deleting key:', err);
     return c.json({ error: 'Failed to delete key' }, 500);
   }
 });
