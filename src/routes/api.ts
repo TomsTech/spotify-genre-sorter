@@ -1074,7 +1074,6 @@ function sanitiseGenreName(genre: unknown): ValidationResult<string> {
 }
 
 
-// Helper function to extract duplicated playlist creation logic
 async function createPlaylistForGenre(
   spotifyAccessToken: string,
   userId: string,
