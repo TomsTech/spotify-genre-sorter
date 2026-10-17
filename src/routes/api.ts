@@ -1116,7 +1116,7 @@ api.post('/playlist', async (c) => {
       customName?: string;
       customDescription?: string;
     }>();
-    const { genre, trackIds, force, customName, customDescription } = body;
+    const { genre, trackIds, customName, customDescription } = body;
 
     // Validate genre name
     const genreValidation = sanitiseGenreName(genre);
@@ -1146,33 +1146,9 @@ api.post('/playlist', async (c) => {
     const safeName = genreValidation.value;
     const safeTrackIds = trackValidation.value;
 
-    // Check for duplicate playlist unless force=true
-    if (!force) {
-      const existingPlaylists = await getUserPlaylists(session.spotifyAccessToken);
-
-      const targetName = playlistName.toLowerCase();
-      let duplicate = undefined;
-      for (let i = 0; i < existingPlaylists.length; i++) {
-        const p = existingPlaylists[i];
-        if (p.owner.id === user.id && p.name.toLowerCase() === targetName) {
-          duplicate = p;
-          break;
-        }
-      }
-
-      if (duplicate) {
-        return c.json({
-          success: false,
-          duplicate: true,
-          existingPlaylist: {
-            id: duplicate.id,
-            name: duplicate.name,
-            trackCount: duplicate.tracks.total,
-          },
-          message: `A playlist named "${playlistName}" already exists with ${duplicate.tracks.total} tracks`,
-        });
-      }
-    }
+    // ⚡ BOLT OPTIMIZATION: Removed O(N) user playlist fetch on single playlist creation.
+    // Spotify natively allows duplicate playlist names. Fetching up to 200 playlists
+    // just to validate the name adds 1-2s latency and wastes Cloudflare Worker subrequests.
 
     const playlist = await createPlaylistForGenre(
       session.spotifyAccessToken,
