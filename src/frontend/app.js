@@ -6848,14 +6848,14 @@
         dialog.innerHTML =
           '<div class="tutorial-welcome">' +
             '<div class="genie-icon">🧞</div>' +
-            '<h2>' + title + '</h2>' +
-            '<p>' + content + '</p>' +
+            '<h2>' + escapeHtml(title) + '</h2>' +
+            '<p>' + escapeHtml(content) + '</p>' +
             '<div class="tutorial-welcome-actions">' +
               '<button class="tutorial-btn tutorial-btn-start" onclick="nextTutorialStep()">' +
-                (swedishMode ? 'Börja Rundturen' : 'Start Tour') +
+                escapeHtml(swedishMode ? 'Börja Rundturen' : 'Start Tour') +
               '</button>' +
               '<button class="tutorial-btn tutorial-btn-skip" onclick="endTutorial()">' +
-                (swedishMode ? 'Jag kan redan' : 'I know my way around') +
+                escapeHtml(swedishMode ? 'Jag kan redan' : 'I know my way around') +
               '</button>' +
             '</div>' +
           '</div>';
@@ -6883,14 +6883,14 @@
       }
 
       dialog.innerHTML =
-        '<h3>' + title + '</h3>' +
-        '<p>' + content + '</p>' +
+        '<h3>' + escapeHtml(title) + '</h3>' +
+        '<p>' + escapeHtml(content) + '</p>' +
         '<div class="tutorial-footer">' +
           '<span class="tutorial-progress">' + (currentTutorialStep + 1) + '/' + tutorialSteps.length + '</span>' +
           '<div class="tutorial-actions">' +
-            '<button class="tutorial-btn tutorial-btn-skip" onclick="endTutorial()">' + skipText + '</button>' +
+            '<button class="tutorial-btn tutorial-btn-skip" onclick="endTutorial()">' + escapeHtml(skipText) + '</button>' +
             '<button class="tutorial-btn tutorial-btn-next" onclick="nextTutorialStep()">' +
-              (isLast ? finishText : nextText) +
+              escapeHtml(isLast ? finishText : nextText) +
             '</button>' +
           '</div>' +
         '</div>';
