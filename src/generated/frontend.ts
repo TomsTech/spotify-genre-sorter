@@ -10796,7 +10796,7 @@ export function getHtml(nonce: string): string {
       const displayPercent = Math.max(writePercent, readPercent);
       const displayType = writePercent >= readPercent ? 'writes' : 'reads';
 
-      indicator.innerHTML = \`<span class="kv-icon">\${statusEmoji}</span><span class="kv-text">Daily: \${displayPercent}%</span>\`;
+      indicator.innerHTML = \`<span class="kv-icon">\${escapeHtml(statusEmoji)}</span><span class="kv-text">Daily: \${escapeHtml(String(displayPercent))}%</span>\`;
       indicator.title = \`KV Free Tier Usage Today: \${readPercent}% reads, \${writePercent}% writes (click for details)\`;
     }
 
