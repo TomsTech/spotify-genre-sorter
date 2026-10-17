@@ -110,3 +110,7 @@
 **Vulnerability:** The application passed `data.track.url` directly to `window.open(data.track.url, '_blank')` in `src/frontend/app.js` without any validation or sanitization.
 **Learning:** `escapeHtml` only escapes HTML entities, which is insufficient for preventing DOM XSS when a variable is placed in a navigation sink like `window.open()` or assigned to properties like `element.href`. If an attacker were able to supply a `javascript:` URL, it would be executed when the user clicked the element.
 **Prevention:** Always wrap variables representing URLs with a validation function like `getSafeUrl()` before using them in navigation sinks or assigning them to `href`/`src` DOM properties.
+## YYYY-MM-DD - DOM XSS in KV Status Indicator
+**Vulnerability:** Potential DOM XSS due to unescaped variables being interpolated into a template string and assigned directly to `innerHTML`.
+**Learning:** Even variables derived from numerical calculations or mapping objects (like `statusEmoji`) can be hijacked if the upstream source data is manipulated. Always sanitize dynamic data before assigning it to `innerHTML`.
+**Prevention:** Use `textContent` whenever possible. When `innerHTML` is required for rendering HTML elements along with text, ensure any dynamic string interpolation is wrapped in a sanitization function such as `escapeHtml()`.
