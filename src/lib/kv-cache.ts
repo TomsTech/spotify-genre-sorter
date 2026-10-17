@@ -11,7 +11,6 @@
 interface CacheEntry<T> {
   value: T;
   expiresAt: number;
-  lastAccessed: number;
 }
 
 const MEMORY_CACHE_MAX_SIZE = 100;
@@ -29,9 +28,6 @@ class MemoryCache {
       this.cache.delete(key);
       return null;
     }
-
-    // Update last accessed for LRU
-    entry.lastAccessed = Date.now();
 
     // PERF-026 FIX: Re-insert to update Map order for O(1) LRU eviction
     // Impact: Allows evictOldest to be O(1) instead of O(N)
@@ -52,7 +48,6 @@ class MemoryCache {
     this.cache.set(key, {
       value,
       expiresAt: Date.now() + ttlMs,
-      lastAccessed: Date.now(),
     });
   }
 
