@@ -4,6 +4,16 @@
     let genreData = null;
 
 
+
+    // === Central Logger ===
+    window.Logger = {
+      info: (...args) => console.log('[INFO]', ...args),
+      warn: (...args) => console.warn('[WARN]', ...args),
+      error: (...args) => console.error('[ERROR]', ...args),
+      debug: (...args) => console.debug('[DEBUG]', ...args)
+    };
+    const Logger = window.Logger;
+
     // === Security Utilities ===
     // Secure alternative to getSecureRandom()
     function getSecureRandom() {
@@ -81,12 +91,12 @@
 
     // Register global error handlers
     window.addEventListener('error', (event) => {
-      console.error('Global error:', event.error);
+      Logger.error('Global error:', event.error);
       showErrorModal(event.error, 'Global error handler');
     });
 
     window.addEventListener('unhandledrejection', (event) => {
-      console.error('Unhandled promise rejection:', event.reason);
+      Logger.error('Unhandled promise rejection:', event.reason);
       showErrorModal(event.reason, 'Unhandled promise rejection');
     });
 
@@ -257,7 +267,7 @@
         renderGenres();
 
       } catch (error) {
-        console.error('Merge error:', error);
+        Logger.error('Merge error:', error);
         showNotification(swedishMode ? '❌ Kunde inte skapa spellista' : '❌ Failed to create playlist', 'error');
       }
     }
@@ -447,7 +457,7 @@
         cancelMerge();
 
       } catch (error) {
-        console.error('Merge error:', error);
+        Logger.error('Merge error:', error);
         showNotification(swedishMode ? '❌ Kunde inte skapa spellista' : '❌ Failed to create playlist', 'error');
       }
     }
@@ -1107,7 +1117,7 @@
           \${renderAdminKVQuotaWarning(readPercent, writePercent)}
         \`;
       } catch (err) {
-        console.error('Failed to load KV monitor:', err);
+        Logger.error('Failed to load KV monitor:', err);
         content.innerHTML = \`<div class="admin-error">Failed to load KV monitoring data: \${escapeHtml(err.message)}</div>\`;
       }
     }
@@ -1175,7 +1185,7 @@
           </div>
         \`;
       } catch (err) {
-        console.error('Failed to browse keys:', err);
+        Logger.error('Failed to browse keys:', err);
         content.innerHTML = \`<div class="admin-error">Failed to load keys: \${escapeHtml(err.message)}</div>\`;
       }
     }
@@ -1306,7 +1316,7 @@
         document.getElementById('cache-status-scoreboard').textContent =
           scoreboardData._cache?.fromCache ? '✅ Cached' : '⚠️ Fresh Build';
       } catch (err) {
-        console.error('Failed to check cache status:', err);
+        Logger.error('Failed to check cache status:', err);
       }
     }
 
@@ -2176,7 +2186,7 @@
           showRateLimitBanner(data);
         }
       } catch (err) {
-        console.warn('Failed to fetch KV usage:', err);
+        Logger.warn('Failed to fetch KV usage:', err);
         // Update indicator to show unknown state (owner only)
         if (isOwnerUser) {
           updateKVStatusIndicator(null);
@@ -2461,7 +2471,7 @@
         }
       } catch (err) {
         // Silently fail - Now Playing is non-critical
-        console.debug('Now Playing fetch failed:', err);
+        Logger.debug('Now Playing fetch failed:', err);
       }
     }
 
@@ -2817,10 +2827,10 @@
           audio.volume = 0.6;
           // Attempt to play - user click provides interaction for autoplay policy
           audio.play().catch(err => {
-            console.warn('[Genie] Audio play failed:', err.message);
+            Logger.warn('[Genie] Audio play failed:', err.message);
           });
         } catch (err) {
-          console.warn('[Genie] Audio init failed:', err.message);
+          Logger.warn('[Genie] Audio init failed:', err.message);
         }
 
         // Turn brown (Will Smith mode) and animate
@@ -3622,7 +3632,7 @@
         const response = await fetch('/api/user-playlists');
         if (!response.ok) {
           // If we can't fetch playlists, just proceed with liked songs only
-          console.warn('Could not fetch playlists, using liked songs only');
+          Logger.warn('Could not fetch playlists, using liked songs only');
           selectedSources = { likedSongs: true, playlists: [] };
           await loadGenres();
           return;
@@ -3639,7 +3649,7 @@
         bindSourceSelectorEvents(modal);
 
       } catch (err) {
-        console.error('Error showing source selector:', err);
+        Logger.error('Error showing source selector:', err);
         // Fallback to just liked songs
         selectedSources = { likedSongs: true, playlists: [] };
         await loadGenres();
@@ -3656,7 +3666,7 @@
           timestamp: Date.now()
         }));
       } catch (e) {
-        console.warn('Could not save scan state:', e);
+        Logger.warn('Could not save scan state:', e);
       }
     }
 
@@ -3674,7 +3684,7 @@
         // Clear old state
         localStorage.removeItem('genreScanState');
       } catch (e) {
-        console.warn('Could not load scan state:', e);
+        Logger.warn('Could not load scan state:', e);
       }
       return null;
     }
@@ -3684,7 +3694,7 @@
       try {
         localStorage.removeItem('genreScanState');
       } catch (e) {
-        console.warn('Could not clear scan state:', e);
+        Logger.warn('Could not clear scan state:', e);
       }
     }
 
@@ -3840,7 +3850,7 @@
           'success'
         );
       } catch (error) {
-        console.error('Progressive load error:', error);
+        Logger.error('Progressive load error:', error);
         stopAlbumCarousel(); // Clean up carousel on error too
         showNotification(
           swedishMode ? 'Kunde inte ladda alla låtar' : 'Failed to load all tracks',
@@ -3878,7 +3888,7 @@
           }
         }
       } catch (e) {
-        console.warn('Could not check scan status:', e);
+        Logger.warn('Could not check scan status:', e);
       }
       return false;
     }
@@ -3897,7 +3907,7 @@
           libraryInfo = await sizeRes.json();
         }
       } catch (e) {
-        console.log('Could not fetch library size:', e);
+        Logger.info('Could not fetch library size:', e);
       }
 
       // Show library size with scan estimate
@@ -3966,7 +3976,7 @@
 
         // Handle large library redirect to progressive loading
         if (data.requiresProgressiveLoad) {
-          console.log('Large library detected (' + data.totalInLibrary + ' tracks), switching to progressive loading');
+          Logger.info('Large library detected (' + data.totalInLibrary + ' tracks), switching to progressive loading');
           showNotification(
             swedishMode ? '📚 Stort bibliotek (' + data.totalInLibrary + ' låtar) - laddar progressivt...' : '📚 Large library (' + data.totalInLibrary + ' tracks) - loading progressively...',
             'info'
@@ -3987,7 +3997,7 @@
 
         // Auto-switch to progressive loading for large/truncated libraries
         if (data.truncated && data.totalInLibrary > data.totalTracks) {
-          console.log('Large library detected, switching to progressive loading');
+          Logger.info('Large library detected, switching to progressive loading');
           showNotification(
             swedishMode ? '📚 Stort bibliotek - laddar alla låtar...' : '📚 Large library - loading all tracks...',
             'info'
@@ -4002,7 +4012,7 @@
         triggerFireworks(); // Celebrate completion!
         renderGenres();
       } catch (error) {
-        console.error('Load genres error:', error);
+        Logger.error('Load genres error:', error);
         app.innerHTML = \`
           <div class="error">
             <strong>Connection Error</strong>
@@ -4032,7 +4042,7 @@
         renderGenres();
         showNotification(swedishMode ? '✨ Data uppdaterad!' : '✨ Data refreshed!', 'success');
       } catch (error) {
-        console.error('Refresh error:', error);
+        Logger.error('Refresh error:', error);
         showNotification(swedishMode ? 'Kunde inte uppdatera' : 'Failed to refresh', 'error');
         // Re-render with existing data if we have it
         if (genreData) {
@@ -5798,7 +5808,7 @@
         renderNewUsers();
       } catch (err) {
         // eslint-disable-next-line no-console
-        console.error('Failed to load leaderboard:', err);
+        Logger.error('Failed to load leaderboard:', err);
       }
     }
 
@@ -5812,7 +5822,7 @@
         renderRecentPlaylists();
       } catch (err) {
         // eslint-disable-next-line no-console
-        console.error('Failed to load recent playlists:', err);
+        Logger.error('Failed to load recent playlists:', err);
       }
     }
 
@@ -6282,7 +6292,7 @@
 
         // Only allow whitelisted functions to be executed
         if (!ALLOWED_FUNCTIONS.has(fnName)) {
-          console.warn('[CSP Handler] Blocked execution of unauthorized function:', fnName);
+          Logger.warn('[CSP Handler] Blocked execution of unauthorized function:', fnName);
           return;
         }
 
@@ -6385,7 +6395,7 @@
       ]);
 
               if (!ALLOWED_FUNCTIONS.has(fnName)) {
-                console.warn('[CSP Handler] Blocked execution of unauthorized function:', fnName);
+                Logger.warn('[CSP Handler] Blocked execution of unauthorized function:', fnName);
                 return;
               }
 
@@ -6397,7 +6407,7 @@
             }
           }
         } catch (err) {
-          console.warn('[CSP Handler] Failed to execute:', onclickAttr, err);
+          Logger.warn('[CSP Handler] Failed to execute:', onclickAttr, err);
         }
       }
     });
@@ -6518,7 +6528,7 @@
         userPlaylists = data.playlists;
         renderPlaylistList();
       } catch (err) {
-        console.error('Error loading playlists:', err);
+        Logger.error('Error loading playlists:', err);
         const container = document.getElementById('playlist-list-container');
         if (container) {
           const errorText = swedishMode ? 'Kunde inte ladda spellistor' : 'Failed to load playlists';
@@ -6605,7 +6615,7 @@
         scannedPlaylistGenres = data;
         renderScannedPlaylistGenres(playlistName);
       } catch (err) {
-        console.error('Error scanning playlist:', err);
+        Logger.error('Error scanning playlist:', err);
         const errorText = swedishMode ? 'Kunde inte skanna spellistan' : 'Failed to scan playlist';
         container.innerHTML = '<p style="color: var(--danger)">' + errorText + '</p>' +
           '<button class="back-to-playlists-btn" aria-label="Go back to playlists" onclick="renderPlaylistList()">← Back</button>';
@@ -6687,7 +6697,7 @@
           checkAndShowTutorial();
         }
       } catch (err) {
-        console.log('Could not load preferences, using defaults');
+        Logger.info('Could not load preferences, using defaults');
       }
     }
 
@@ -6705,7 +6715,7 @@
           userPreferences = data.preferences;
         }
       } catch (err) {
-        console.error('Could not save preference:', err);
+        Logger.error('Could not save preference:', err);
       }
     }
 
@@ -8178,7 +8188,7 @@
             : '📸 Take a screenshot of the card above!', 4000);
         }
       } catch (err) {
-        console.error('Download error:', err);
+        Logger.error('Download error:', err);
         showToast(swedishMode ? '📸 Ta en skärmbild istället!' : '📸 Take a screenshot instead!', 3000);
       }
     }
@@ -8211,7 +8221,7 @@
           showToast(swedishMode ? '✓ Text kopierad!' : '✓ Text copied!');
         }
       } catch (err) {
-        console.error('Copy error:', err);
+        Logger.error('Copy error:', err);
         showToast(swedishMode ? '✗ Kunde inte kopiera' : '✗ Could not copy');
       }
     }
@@ -8258,7 +8268,7 @@
           });
         } catch (err) {
           if (err.name !== 'AbortError') {
-            console.error('Share failed:', err);
+            Logger.error('Share failed:', err);
             showToast(swedishMode ? '✗ Kunde inte dela' : '✗ Could not share');
           }
         }
@@ -8268,7 +8278,7 @@
           await navigator.clipboard.writeText(text);
           showToast(swedishMode ? '✓ Kopierad till urklipp!' : '✓ Copied to clipboard!');
         } catch (err) {
-          console.error('Copy failed:', err);
+          Logger.error('Copy failed:', err);
           showToast(swedishMode ? '✗ Kunde inte kopiera' : '✗ Could not copy');
         }
       }
@@ -8362,7 +8372,7 @@
           throw new Error('Request failed');
         }
       } catch (err) {
-        console.error('Access request error:', err);
+        Logger.error('Access request error:', err);
         showToast(t('requestAccessError'));
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
