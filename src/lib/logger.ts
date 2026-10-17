@@ -63,7 +63,6 @@ export function sendLog(
       },
       body: JSON.stringify(entry),
     }).catch((err: unknown) => {
-      // Don't let logging failures affect the app
       console.error('Failed to send log to BetterStack:', err);
     })
   );
