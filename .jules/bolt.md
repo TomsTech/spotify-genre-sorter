@@ -171,3 +171,7 @@
 **Learning:** When evicting the oldest entries from a `Map` (like in a rate limiter), converting the entire Map to an array with `push` and then calling `sort` is O(N log N) and creates intermediate allocations. Because JavaScript `Map` iterators yield elements in insertion order (FIFO), you can achieve O(K) eviction without arrays by directly iterating over `map.keys()` and deleting the required number of entries.
 **Action:** Replaced the array conversion, push loop, and sort operation in `rateLimitMap` eviction with a simple loop over `rateLimitMap.keys()` that deletes elements directly.
 ## 2025-02-18 - [Eliminate intermediate array allocations via Array.from over slice().map()] **Learning:** Using `array.slice().map()` creates intermediate arrays that increase garbage collection overhead, especially when chunking data for `Promise.all()` in tight loops. **Action:** Replace `.slice().map()` with `Array.from({ length: size }, (_, j) => array[start + j])` to directly construct the promised elements array without intermediate allocations.
+
+## YYYY-MM-DD - Optimize Array Push in buildScoreboard
+**Learning:** Using `Array.prototype.push(...items)` inside a loop over a large dataset creates performance bottlenecks and dynamic reallocation overhead.
+**Action:** Pre-allocated a fixed-size array (`new Array<UserStats>(keys.length)`) and assigned items individually using an index tracker (`allStats[statsCount++] = stats`). Truncated the array at the end (`allStats.length = statsCount`) to handle filtered items.
