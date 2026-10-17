@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError, createErrorResponse, withRetry, logError, processBatch } from '../src/lib/error-handler';
+import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError, createErrorResponse, withRetry, logError, processBatch, logErrorToKV } from '../src/lib/error-handler';
 import * as logger from '../src/lib/logger';
 
 
@@ -469,5 +469,52 @@ describe('processBatch', () => {
 
     expect(maxObservedConcurrent).toBeLessThanOrEqual(2);
     expect(processor).toHaveBeenCalledTimes(5);
+  });
+});
+
+describe('logErrorToKV', () => {
+  let mockKV: any;
+
+  beforeEach(() => {
+    mockKV = {
+      put: vi.fn().mockResolvedValue(undefined),
+    };
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should successfully log an error to KV', async () => {
+    const errorEntry = {
+      timestamp: '2023-10-10T12:00:00.000Z',
+      code: ErrorCode.UNKNOWN_ERROR,
+      message: 'Test message',
+      statusCode: 500,
+    };
+
+    await logErrorToKV(mockKV, errorEntry);
+
+    expect(mockKV.put).toHaveBeenCalledTimes(1);
+    expect(mockKV.put).toHaveBeenCalledWith(
+      expect.stringMatching(/^error:\d+:.+$/),
+      JSON.stringify(errorEntry),
+      { expirationTtl: 604800 }
+    );
+  });
+
+  it('should handle KV put failure gracefully', async () => {
+    mockKV.put.mockRejectedValueOnce(new Error('KV failure'));
+
+    const errorEntry = {
+      timestamp: '2023-10-10T12:00:00.000Z',
+      code: ErrorCode.UNKNOWN_ERROR,
+      message: 'Test message',
+      statusCode: 500,
+    };
+
+    await expect(logErrorToKV(mockKV, errorEntry)).resolves.toBeUndefined();
+    expect(console.error).toHaveBeenCalledWith('Failed to log error to KV:', expect.any(Error));
   });
 });
