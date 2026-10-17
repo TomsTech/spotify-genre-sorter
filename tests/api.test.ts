@@ -371,6 +371,45 @@ describe('Health & Setup Endpoints', () => {
 });
 
 describe('determineKVStatus', () => {
+
+  it('should handle large positive and negative numbers', () => {
+    expect(determineKVStatus(1000000, 50)).toBe('critical');
+    expect(determineKVStatus(50, 1000000)).toBe('critical');
+    expect(determineKVStatus(-1000000, -1000000)).toBe('ok');
+    expect(determineKVStatus(-1000000, 50)).toBe('ok');
+  });
+
+  it('should handle small fractional values near boundaries', () => {
+    expect(determineKVStatus(80.0001, 50)).toBe('warning');
+    expect(determineKVStatus(50, 80.0001)).toBe('warning');
+    expect(determineKVStatus(90.0001, 50)).toBe('critical');
+    expect(determineKVStatus(50, 90.0001)).toBe('critical');
+    expect(determineKVStatus(79.9999, 50)).toBe('ok');
+    expect(determineKVStatus(89.9999, 50)).toBe('warning');
+  });
+
+  it('should handle 0 and negative values safely', () => {
+    expect(determineKVStatus(0, 0)).toBe('ok');
+    expect(determineKVStatus(-0, -0)).toBe('ok');
+    expect(determineKVStatus(-50, 50)).toBe('ok');
+    expect(determineKVStatus(50, -50)).toBe('ok');
+  });
+
+
+  it('should handle edge cases', () => {
+    // Edge cases like NaN
+    expect(determineKVStatus(NaN, 50)).toBe('ok');
+    expect(determineKVStatus(50, NaN)).toBe('ok');
+    expect(determineKVStatus(NaN, NaN)).toBe('ok');
+
+    // Infinity cases
+    expect(determineKVStatus(Infinity, 50)).toBe('critical');
+    expect(determineKVStatus(50, Infinity)).toBe('critical');
+
+    // Negative infinity
+    expect(determineKVStatus(-Infinity, 50)).toBe('ok');
+  });
+
   it('should return critical when either usage exceeds 90', () => {
     expect(determineKVStatus(91, 50)).toBe('critical');
     expect(determineKVStatus(50, 91)).toBe('critical');
