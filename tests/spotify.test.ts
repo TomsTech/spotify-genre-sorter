@@ -990,3 +990,80 @@ describe('getAllLikedTracks', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
+
+
+describe('exchangeSpotifyCode', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should successfully exchange code for tokens', async () => {
+    const mockTokens = {
+      access_token: 'fake-access-token',
+      refresh_token: 'fake-refresh-token',
+      expires_in: 3600,
+      token_type: 'Bearer'
+    };
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => mockTokens,
+      headers: new Headers()
+    }));
+
+    const { exchangeSpotifyCode } = await import('../src/lib/spotify');
+
+    const result = await exchangeSpotifyCode('fake-code', 'fake-client-id', 'fake-client-secret', 'http://localhost/callback');
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith('https://accounts.spotify.com/api/token', expect.objectContaining({
+      method: 'POST',
+      headers: expect.objectContaining({
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Basic ${btoa('fake-client-id:fake-client-secret')}`,
+      }),
+      body: expect.any(URLSearchParams)
+    }));
+
+    // Check URLSearchParams body contents
+    const fetchCallArgs = (global.fetch as any).mock.calls[0];
+    const bodyArgs = fetchCallArgs[1].body as URLSearchParams;
+    expect(bodyArgs.get('grant_type')).toBe('authorization_code');
+    expect(bodyArgs.get('code')).toBe('fake-code');
+    expect(bodyArgs.get('redirect_uri')).toBe('http://localhost/callback');
+    expect(bodyArgs.get('code_verifier')).toBeNull();
+
+    expect(result).toEqual(mockTokens);
+  });
+
+  it('should include code_verifier if provided for PKCE', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+      headers: new Headers()
+    }));
+
+    const { exchangeSpotifyCode } = await import('../src/lib/spotify');
+
+    await exchangeSpotifyCode('fake-code', 'fake-client-id', 'fake-client-secret', 'http://localhost/callback', 'fake-verifier');
+
+    const fetchCallArgs = (global.fetch as any).mock.calls[0];
+    const bodyArgs = fetchCallArgs[1].body as URLSearchParams;
+    expect(bodyArgs.get('code_verifier')).toBe('fake-verifier');
+  });
+
+  it('should throw an error if the token exchange fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: async () => 'invalid_grant',
+      headers: new Headers()
+    }));
+
+    const { exchangeSpotifyCode } = await import('../src/lib/spotify');
+
+    await expect(exchangeSpotifyCode('fake-code', 'fake-client-id', 'fake-client-secret', 'http://localhost/callback')).rejects.toThrow('Spotify token exchange failed: invalid_grant');
+  });
+});
