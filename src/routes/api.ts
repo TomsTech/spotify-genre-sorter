@@ -37,6 +37,7 @@ import {
 import { getKVMonitorData } from '../lib/kv-monitor';
 import { optionalCsrfProtection } from '../lib/csrf-middleware';
 import { createLogger } from '../lib/logger';
+import fallbackChangelog from '../data/fallback-changelog.json';
 
 const api = new Hono<{ Bindings: Env }>();
 
@@ -1445,15 +1446,8 @@ async function fetchAndCacheChangelog() {
 
 function getFallbackChangelog() {
   return {
-    changelog: [
-      {
-        version: '3.4.0',
-        date: '2025-12-09',
-        changes: ['Dynamic changelog from GitHub releases', 'Bug fixes and improvements'],
-      },
-    ],
+    ...fallbackChangelog,
     repoUrl: REPO_URL,
-    error: 'Failed to fetch releases, showing fallback',
   };
 }
 
