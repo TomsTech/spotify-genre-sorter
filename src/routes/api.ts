@@ -2105,8 +2105,9 @@ api.get('/kv-usage', async (c) => {
     const breakdown = calculateKVBreakdown(today);
     let estimatedReads = 0;
     let estimatedWrites = 0;
-    for (const key in breakdown) {
-      const cat = breakdown[key as keyof typeof breakdown];
+    const keys = Object.keys(breakdown);
+    for (let i = 0; i < keys.length; i++) {
+      const cat = breakdown[keys[i] as keyof typeof breakdown];
       estimatedReads += cat.reads;
       estimatedWrites += cat.writes;
     }
