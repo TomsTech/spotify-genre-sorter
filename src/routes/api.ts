@@ -1123,7 +1123,7 @@ api.post('/playlist', async (c) => {
       customName?: string;
       customDescription?: string;
     }>();
-    const { genre, trackIds, force, customName, customDescription } = body;
+    const { genre, trackIds, customName, customDescription } = body;
 
     // Validate genre name
     const genreValidation = sanitiseGenreName(genre);
@@ -1153,33 +1153,9 @@ api.post('/playlist', async (c) => {
     const safeName = genreValidation.value;
     const safeTrackIds = trackValidation.value;
 
-    // Check for duplicate playlist unless force=true
-    if (!force) {
-      const existingPlaylists = await getUserPlaylists(session.spotifyAccessToken);
-
-      const targetName = playlistName.toLowerCase();
-      let duplicate = undefined;
-      for (let i = 0; i < existingPlaylists.length; i++) {
-        const p = existingPlaylists[i];
-        if (p.owner.id === user.id && p.name.toLowerCase() === targetName) {
-          duplicate = p;
-          break;
-        }
-      }
-
-      if (duplicate) {
-        return c.json({
-          success: false,
-          duplicate: true,
-          existingPlaylist: {
-            id: duplicate.id,
-            name: duplicate.name,
-            trackCount: duplicate.tracks.total,
-          },
-          message: `A playlist named "${playlistName}" already exists with ${duplicate.tracks.total} tracks`,
-        });
-      }
-    }
+    // ⚡ BOLT OPTIMIZATION: Removed O(N) user playlist fetch on single playlist creation.
+    // Spotify natively allows duplicate playlist names. Fetching up to 200 playlists
+    // just to validate the name adds 1-2s latency and wastes Cloudflare Worker subrequests.
 
     const playlist = await createPlaylistForGenre(
       session.spotifyAccessToken,
@@ -2497,7 +2473,10 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   const BATCH_SIZE = 40;
   // Find and delete any active sessions for this user
   const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
-  for (let i = 0; i < sessionsList.keys.length; i += BATCH_SIZE) {
+
+  const numBatches = Math.ceil(sessionsList.keys.length / BATCH_SIZE);
+  const batchPromises = Array.from({ length: numBatches }, async (_, b) => {
+    const i = b * BATCH_SIZE;
     // ⚡ Bolt: Avoid intermediate array allocation from slice().map() by using Array.from()
     const chunkSize = Math.min(BATCH_SIZE, sessionsList.keys.length - i);
     const sessionPromises = Array.from({ length: chunkSize }, async (_, j) => {
@@ -2519,7 +2498,9 @@ api.delete('/admin/user/:spotifyId', async (c) => {
     for (const keyName of sessionResults) {
       if (keyName) deleted.push(keyName);
     }
-  }
+  });
+
+  await Promise.all(batchPromises);
 
   // Decrement user count if we deleted a user_stats entry
   if (deleted.includes(`user_stats:${spotifyId}`)) {
