@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError, createErrorResponse, withRetry, logError, processBatch } from '../src/lib/error-handler';
+import { determineRecoveryStrategy, ErrorCode, ErrorContext, classifyError, AppError, createErrorResponse, withRetry, logError, processBatch, logErrorToKV } from '../src/lib/error-handler';
 import * as logger from '../src/lib/logger';
 
 
@@ -382,7 +382,7 @@ describe('withRetry', () => {
 
 
 describe('logError fallback', () => {
-  it('should catch logger errors and fallback to console.error', () => {
+  it('should fallback to console.error when creating the logger fails', () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.spyOn(logger, 'createLogger').mockImplementation(() => {
       throw new Error('Logger setup failed');
@@ -395,6 +395,73 @@ describe('logError fallback', () => {
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       'Failed to send error to logger:',
       expect.any(Error)
+    );
+
+    vi.restoreAllMocks();
+  });
+
+  it('should fallback to console.error when logger.error throws', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Mock createLogger to return an object where .error throws
+    vi.spyOn(logger, 'createLogger').mockImplementation(() => {
+      return {
+        error: () => { throw new Error('logger.error failed'); },
+        logError: () => {},
+        logRequest: () => {},
+      } as any;
+    });
+
+    logError(new Error('Test error'), {
+      executionContext: {} as any,
+    });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to send error to logger:',
+      expect.any(Error)
+    );
+
+    vi.restoreAllMocks();
+  });
+it('should fallback to console.error when logger.logError throws', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Mock createLogger to return an object where .logError throws
+    vi.spyOn(logger, 'createLogger').mockImplementation(() => {
+      return {
+        error: () => {},
+        logError: () => { throw new Error('logger.logError failed'); },
+        logRequest: () => {},
+      } as any;
+    });
+
+    logError(new Error('Test error'), {
+      executionContext: {} as any,
+      betterStackToken: 'fake-token' // Ensure betterStackToken is passed to hit the logError code path
+    });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to send error to logger:',
+      expect.any(Error)
+    );
+
+    vi.restoreAllMocks();
+  });
+
+  it('should fallback strictly to console.error when ExecutionContext is unavailable', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    logError(new Error('Test error'), {
+      // Intentionally omitting executionContext
+    });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[ERROR]',
+      expect.objectContaining({
+        message: 'Test error',
+        statusCode: 500,
+        code: 'UNKNOWN_ERROR'
+      })
     );
 
     vi.restoreAllMocks();
@@ -469,5 +536,52 @@ describe('processBatch', () => {
 
     expect(maxObservedConcurrent).toBeLessThanOrEqual(2);
     expect(processor).toHaveBeenCalledTimes(5);
+  });
+});
+
+describe('logErrorToKV', () => {
+  let mockKV: any;
+
+  beforeEach(() => {
+    mockKV = {
+      put: vi.fn().mockResolvedValue(undefined),
+    };
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should successfully log an error to KV', async () => {
+    const errorEntry = {
+      timestamp: '2023-10-10T12:00:00.000Z',
+      code: ErrorCode.UNKNOWN_ERROR,
+      message: 'Test message',
+      statusCode: 500,
+    };
+
+    await logErrorToKV(mockKV, errorEntry);
+
+    expect(mockKV.put).toHaveBeenCalledTimes(1);
+    expect(mockKV.put).toHaveBeenCalledWith(
+      expect.stringMatching(/^error:\d+:.+$/),
+      JSON.stringify(errorEntry),
+      { expirationTtl: 604800 }
+    );
+  });
+
+  it('should handle KV put failure gracefully', async () => {
+    mockKV.put.mockRejectedValueOnce(new Error('KV failure'));
+
+    const errorEntry = {
+      timestamp: '2023-10-10T12:00:00.000Z',
+      code: ErrorCode.UNKNOWN_ERROR,
+      message: 'Test message',
+      statusCode: 500,
+    };
+
+    await expect(logErrorToKV(mockKV, errorEntry)).resolves.toBeUndefined();
+    expect(console.error).toHaveBeenCalledWith('Failed to log error to KV:', expect.any(Error));
   });
 });
