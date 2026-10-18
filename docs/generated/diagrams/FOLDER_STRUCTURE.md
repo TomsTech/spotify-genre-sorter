@@ -117,6 +117,8 @@
 ├── src
 │   ├── assets
 │   │   └── intro-video.b64
+│   ├── data
+│   │   └── fallback-changelog.json
 │   ├── frontend
 │   │   ├── app.js
 │   │   ├── body.html
@@ -156,6 +158,7 @@
 │   ├── error-middleware.test.ts
 │   ├── frontend-url-sanitiser.test.ts
 │   ├── frontend.test.ts
+│   ├── generated-frontend.test.ts
 │   ├── github.test.ts
 │   ├── index.test.ts
 │   ├── invalidate-genre-cache.test.ts
@@ -167,6 +170,7 @@
 │   ├── session.test.ts
 │   ├── spotify-add-tracks.test.ts
 │   ├── spotify.test.ts
+│   ├── types.test.ts
 │   └── user-playlists.test.ts
 ├── .eslintrc.json
 ├── .gitignore
@@ -196,7 +200,7 @@
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-31 directories, 159 files
+32 directories, 162 files
 ```
 
 ## Key Directories
