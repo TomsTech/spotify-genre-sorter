@@ -174,6 +174,8 @@
 ## YYYY-MM-DD - Removed O(N) User Playlist Fetch on Single Playlist Creation
 **Learning:** Checking for duplicate playlists by fetching all of a user's playlists (up to 200) via multiple Spotify API pagination requests adds massive latency (1-2s) to single playlist creation. Since Spotify naturally allows duplicate playlist names and the frontend logic gracefully handles success regardless, this check is an unnecessary overhead.
 **Action:** Removed the `getUserPlaylists` check from the single playlist creation endpoint in `api.ts`, relying on Spotify's default behavior and saving multiple subrequest hits to the Cloudflare Worker, reducing response latency by >60%.
+
+## YYYY-MM-DD - [Optimize caching array by leveraging built-in JSON parsing] **Learning:** [Calling JSON.parse in a tight loop manually when the kv storage mechanism supports built-in type coercion with 'json' parameter is wasteful] **Action:** [Replaced manual stringification parsing with the built-in json parser logic of Cloudflare KV store via `kv.get<T>(key, 'json')`]
 ## YYYY-MM-DD - Replace for...in loop with Object.keys **Learning:** for...in loops are slower in V8 than Object.keys iteration because they need to check the object's prototype chain. **Action:** Refactored a for...in loop in `/admin/kv-monitor` to use Object.keys and a standard for loop for faster iteration.
 
 ## YYYY-MM-DD - Remove Duplicate API Call to Get Library Size

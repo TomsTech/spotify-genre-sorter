@@ -1,8 +1,27 @@
 import { generateKVRecommendations, aggregateGenresFromTrackData, calculateKVTrend, calculateKVBreakdown } from '../src/routes/api';
 import { describe, it, expect, vi } from 'vitest';
+
+
 import { determineKVStatus } from '../src/routes/api';
 
 describe('API Response Formats', () => {
+  describe('GET /analytics Integration', () => {
+    it('should return 500 when getAnalytics throws an error', async () => {
+      // Mock the getAnalytics function to throw an error
+      const mockGetAnalytics = vi.spyOn(session, 'getAnalytics').mockRejectedValue(new Error('Test KV Error'));
+
+      const req = new Request('http://localhost/analytics');
+      // Pass a dummy execution context
+      const res = await api.fetch(req, { SESSIONS: {} as any }, { waitUntil: () => {}, passThroughOnException: () => {} } as any);
+
+      expect(res.status).toBe(500);
+      const json = await res.json();
+      expect(json).toEqual({ error: 'Failed to fetch analytics' });
+
+      mockGetAnalytics.mockRestore();
+    });
+  });
+
 
 
   describe('GET /api/me', () => {
@@ -212,6 +231,7 @@ describe('generateKVRecommendations', () => {
 });
 
 vi.mock('../src/lib/session', () => ({
+  getAnalytics: vi.fn(),
   getSession: vi.fn(),
   updateSession: vi.fn(),
 }));
@@ -229,6 +249,8 @@ vi.mock('../src/lib/logger', () => ({
 }));
 
 import api from '../src/routes/api';
+import * as session from '../src/lib/session';
+
 
 describe('Authentication Middleware (Integration)', () => {
   it('should return 401 when Spotify session is expired and no refresh token exists', async () => {

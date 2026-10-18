@@ -221,7 +221,7 @@ api.get('/me', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error fetching user:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching user:', err);
     return c.json({ error: 'Failed to fetch user info' }, 500);
   }
 });
@@ -476,7 +476,7 @@ api.get('/genres', async (c) => {
       artists = artistResult.artists;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      console.error('Error fetching artists:', message);
+      createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching artists:', message);
       return c.json({
         error: 'Failed to fetch artist data from Spotify',
         details: message,
@@ -559,7 +559,7 @@ api.get('/genres', async (c) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('Error fetching genres:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching genres:', err);
     return c.json({
       error: 'Failed to fetch genres',
       details: message,
@@ -890,7 +890,7 @@ api.get('/genres/chunk', async (c) => {
         const playlistId = playlistIds[i];
         playlistPromises.push(
           getPlaylistTracks(token, playlistId, 500).catch((e) => {
-            console.error(`Error fetching playlist ${playlistId}:`, e);
+            createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError(`Error fetching playlist ${playlistId}:`, e);
             return [];
           })
         );
@@ -1205,7 +1205,7 @@ api.post('/playlist', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error creating playlist:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error creating playlist:', err);
     return c.json({ error: 'Failed to create playlist' }, 500);
   }
 });
@@ -1346,7 +1346,7 @@ api.post('/playlists/bulk', async (c) => {
       results,
     });
   } catch (err) {
-    console.error('Error creating playlists:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error creating playlists:', err);
     return c.json({ error: 'Failed to process request' }, 500);
   }
 });
@@ -1442,7 +1442,7 @@ api.get('/changelog', async (c) => {
     const data = await fetchAndCacheChangelog();
     return c.json(data);
   } catch (error) {
-    console.error('Failed to fetch GitHub releases:', error);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Failed to fetch GitHub releases:', error);
 
     if (changelogCache) {
       return c.json({ ...changelogCache.data as object, stale: true });
@@ -1481,7 +1481,7 @@ api.get('/scoreboard', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error fetching scoreboard:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching scoreboard:', err);
     return c.json({ error: 'Failed to fetch scoreboard' }, 500);
   }
 });
@@ -1516,7 +1516,7 @@ api.get('/leaderboard', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error fetching leaderboard:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching leaderboard:', err);
     return c.json({ error: 'Failed to fetch leaderboard' }, 500);
   }
 });
@@ -1565,7 +1565,7 @@ api.get('/listening', async (c) => {
       count: listeners.length,
     });
   } catch (err) {
-    console.error('Error fetching listening data:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching listening data:', err);
     return c.json({ listeners: [], count: 0 });
   }
 });
@@ -1576,7 +1576,7 @@ api.get('/recent-playlists', async (c) => {
     const playlists = await getRecentPlaylists(c.env.SESSIONS);
     return c.json({ playlists });
   } catch (err) {
-    console.error('Error fetching recent playlists:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching recent playlists:', err);
     return c.json({ error: 'Failed to fetch recent playlists' }, 500);
   }
 });
@@ -1618,7 +1618,7 @@ api.get('/my-playlists', async (c) => {
       }))
     });
   } catch (err) {
-    console.error('Error fetching playlists:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching playlists:', err);
     return c.json({ error: 'Failed to fetch playlists' }, 500);
   }
 });
@@ -1704,7 +1704,7 @@ api.get('/scan-playlist/:playlistId', async (c) => {
       truncated: tracks.length >= 500
     });
   } catch (err) {
-    console.error('Error scanning playlist:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error scanning playlist:', err);
     return c.json({ error: 'Failed to scan playlist' }, 500);
   }
 });
@@ -1722,7 +1722,7 @@ api.get('/preferences', async (c) => {
     const prefs = await getUserPreferences(c.env.SESSIONS, session.spotifyUserId);
     return c.json({ preferences: prefs });
   } catch (err) {
-    console.error('Error fetching preferences:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching preferences:', err);
     return c.json({ error: 'Failed to fetch preferences' }, 500);
   }
 });
@@ -1735,8 +1735,7 @@ api.post('/preferences', async (c) => {
   }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const body: Record<string, unknown> = await c.req.json();
+    const body = await c.req.json<Record<string, unknown>>();
 
     // Validate allowed fields
     const allowedFields = ['theme', 'swedishMode', 'playlistTemplate', 'hiddenGenres', 'showHiddenGenres', 'tutorialCompleted'] as const;
@@ -1750,7 +1749,7 @@ api.post('/preferences', async (c) => {
     const prefs = await updateUserPreferences(c.env.SESSIONS, session.spotifyUserId, updates);
     return c.json({ preferences: prefs });
   } catch (err) {
-    console.error('Error updating preferences:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error updating preferences:', err);
     return c.json({ error: 'Failed to update preferences' }, 500);
   }
 });
@@ -1762,8 +1761,7 @@ const INVITE_REQUESTS_KEY = 'invite_requests';
 // Submit invite request
 api.post('/invite-request', async (c) => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const body: Record<string, unknown> = await c.req.json();
+    const body = await c.req.json<Record<string, unknown>>();
     const email = typeof body.email === 'string' ? body.email.trim() : '';
     const note = typeof body.note === 'string' ? body.note.trim() : '';
 
@@ -1814,7 +1812,7 @@ api.post('/invite-request', async (c) => {
       trackingUrl: null // Could add tracking later
     });
   } catch (err) {
-    console.error('Error submitting invite request:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error submitting invite request:', err);
     return c.json({ error: 'Failed to submit request' }, 500);
   }
 });
@@ -1831,7 +1829,7 @@ api.get('/admin/invites', async (c) => {
     const requests = await cachedKV.get<unknown[]>(c.env.SESSIONS, INVITE_REQUESTS_KEY) || [];
     return c.json({ requests });
   } catch (err) {
-    console.error('Error fetching invites:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching invites:', err);
     return c.json({ error: 'Failed to fetch invites' }, 500);
   }
 });
@@ -1846,8 +1844,7 @@ const PERF_LOG_KEY = 'client_perf';
 // Log frontend JS errors
 api.post('/log-error', async (c) => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const body: Record<string, unknown> = await c.req.json();
+    const body = await c.req.json<Record<string, unknown>>();
     const errors = Array.isArray(body.errors) ? body.errors : [];
 
     if (errors.length === 0) {
@@ -1876,7 +1873,7 @@ api.post('/log-error', async (c) => {
 
     return c.json({ ok: true, logged: newErrors.length });
   } catch (err) {
-    console.error('Error logging client errors:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error logging client errors:', err);
     return c.json({ error: 'Failed to log' }, 500);
   }
 });
@@ -1884,8 +1881,7 @@ api.post('/log-error', async (c) => {
 // Log frontend performance metrics
 api.post('/log-perf', async (c) => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const body: Record<string, unknown> = await c.req.json();
+    const body = await c.req.json<Record<string, unknown>>();
 
     // Validate basic structure
     if (typeof body.pageLoadTime !== 'number') {
@@ -1915,7 +1911,7 @@ api.post('/log-perf', async (c) => {
 
     return c.json({ ok: true });
   } catch (err) {
-    console.error('Error logging perf:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error logging perf:', err);
     return c.json({ error: 'Failed to log' }, 500);
   }
 });
@@ -1986,7 +1982,7 @@ api.get('/analytics', async (c) => {
     const analytics = await getAnalytics(c.env.SESSIONS);
     return c.json(analytics);
   } catch (err) {
-    console.error('Error fetching analytics:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching analytics:', err);
     return c.json({ error: 'Failed to fetch analytics' }, 500);
   }
 });
@@ -2050,8 +2046,9 @@ export function calculateKVBreakdown(today: AnalyticsData): KVBreakdown {
 }
 
 export function determineKVStatus(writeUsagePercent: number, readUsagePercent: number): 'ok' | 'warning' | 'critical' {
-  if (writeUsagePercent > 90 || readUsagePercent > 90) return 'critical';
-  if (writeUsagePercent > 80 || readUsagePercent > 80) return 'warning';
+  const maxUsage = Math.max(writeUsagePercent, readUsagePercent);
+  if (maxUsage > 90) return 'critical';
+  if (maxUsage > 80) return 'warning';
   return 'ok';
 }
 
@@ -2161,7 +2158,7 @@ api.get('/kv-usage', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error fetching KV usage:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching KV usage:', err);
     return c.json({ error: 'Failed to fetch KV usage' }, 500);
   }
 });
@@ -2556,7 +2553,7 @@ api.get('/cache/artist-genres/stats', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Error fetching cache stats:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error fetching cache stats:', err);
     return c.json({ error: 'Failed to fetch cache statistics' }, 500);
   }
 });
@@ -2576,7 +2573,7 @@ api.post('/admin/cache/artist-genres/clear', async (c) => {
       message: `Cleared ${deletedCount} cached artist entries`,
     });
   } catch (err) {
-    console.error('Error clearing artist genre cache:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error clearing artist genre cache:', err);
     return c.json({ error: 'Failed to clear cache' }, 500);
   }
 });
@@ -2600,7 +2597,7 @@ api.post('/admin/cache/artist-genres/cleanup', async (c) => {
       message: `Cleaned up ${deletedCount} cache entries older than ${maxAgeDays} days`,
     });
   } catch (err) {
-    console.error('Error cleaning up cache:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error cleaning up cache:', err);
     return c.json({ error: 'Failed to cleanup cache' }, 500);
   }
 });
@@ -2627,7 +2624,7 @@ api.post('/admin/cache/artist-genres/invalidate', async (c) => {
       message: `Invalidated ${deletedCount} artist cache entries`,
     });
   } catch (err) {
-    console.error('Error invalidating cache:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error invalidating cache:', err);
     return c.json({ error: 'Failed to invalidate cache' }, 500);
   }
 });
@@ -2709,7 +2706,7 @@ api.post('/request-access', async (c) => {
 
     return c.json({ success: true, message: 'Request submitted successfully' });
   } catch (err) {
-    console.error('Request access error:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Request access error:', err);
     return c.json({ error: 'Failed to submit request' }, 500);
   }
 });
@@ -2732,9 +2729,9 @@ api.get('/admin/access-requests', async (c) => {
     const dataPromises = Array.from({ length: size }, async (_, j) => {
       const key = `access_request_${emails[i + j]}`;
       try {
-        const data = await kv.get(key);
+        const data = await kv.get<AccessRequest>(key, 'json');
         if (data) {
-          return JSON.parse(data) as AccessRequest;
+          return data;
         }
       } catch { /* skip malformed entries */ }
       return null;
@@ -2763,7 +2760,7 @@ api.get('/admin/kv-monitor', async (c) => {
     const data = await getKVMonitorData(c.env.SESSIONS);
     return c.json(data);
   } catch (err) {
-    console.error('Error getting KV monitor data:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error getting KV monitor data:', err);
     return c.json({ error: 'Failed to fetch KV monitoring data' }, 500);
   }
 });
@@ -2802,7 +2799,7 @@ api.get('/admin/kv-keys', async (c) => {
     });
   } catch (err) {
     // err is unknown type from catch
-    console.error('Error listing keys:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error listing keys:', err);
     return c.json({ error: 'Failed to list keys' }, 500);
   }
 });
@@ -2852,7 +2849,7 @@ api.get('/admin/kv-key/:key', async (c) => {
       expiresAt: keyMeta?.expiration ? new Date(keyMeta.expiration * 1000).toISOString() : null,
     });
   } catch (err) {
-    console.error('Error getting key:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error getting key:', err);
     return c.json({ error: 'Failed to get key value' }, 500);
   }
 });
@@ -2874,7 +2871,7 @@ api.delete('/admin/kv-key/:key', async (c) => {
     await kv.delete(keyName);
     return c.json({ success: true, key: keyName, deletedAt: new Date().toISOString() });
   } catch (err) {
-    console.error('Error deleting key:', err);
+    createLogger(c.executionCtx, c.env.BETTERSTACK_LOG_TOKEN, { path: c.req.path, method: c.req.method }).logError('Error deleting key:', err);
     return c.json({ error: 'Failed to delete key' }, 500);
   }
 });
