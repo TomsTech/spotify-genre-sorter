@@ -175,6 +175,9 @@
 **Learning:** Checking for duplicate playlists by fetching all of a user's playlists (up to 200) via multiple Spotify API pagination requests adds massive latency (1-2s) to single playlist creation. Since Spotify naturally allows duplicate playlist names and the frontend logic gracefully handles success regardless, this check is an unnecessary overhead.
 **Action:** Removed the `getUserPlaylists` check from the single playlist creation endpoint in `api.ts`, relying on Spotify's default behavior and saving multiple subrequest hits to the Cloudflare Worker, reducing response latency by >60%.
 
+## YYYY-MM-DD - Optimize Array Push in buildScoreboard
+**Learning:** Using `Array.prototype.push(...items)` inside a loop over a large dataset creates performance bottlenecks and dynamic reallocation overhead.
+**Action:** Pre-allocated a fixed-size array (`new Array<UserStats>(keys.length)`) and assigned items individually using an index tracker (`allStats[statsCount++] = stats`). Truncated the array at the end (`allStats.length = statsCount`) to handle filtered items.
 ## 2025-05-27 - Parallelize KV Read Batch Loops
 **Learning:** A sequential `for` loop that awaits `Promise.all` inside the loop iterates synchronously through batches. This misses the opportunity for the underlying I/O layers (like Cloudflare Workers' subrequest fetching) to execute batches concurrently, significantly increasing end-to-end latency for large sets.
 **Action:** Refactored a sequential chunked loop for session deletion into parallel nested `Array.from` iterations, mapping to batch promises first and awaiting them collectively at the end via `Promise.all(batchPromises)`.

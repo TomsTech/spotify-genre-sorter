@@ -378,11 +378,12 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
   } while (cursor);
 
   // PERF-001 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
-  const allStats: UserStats[] = [];
+  const allStats = new Array<UserStats>(keys.length);
+  let statsCount = 0;
   const BATCH_SIZE = 40;
   for (let i = 0; i < keys.length; i += BATCH_SIZE) {
     const size = Math.min(BATCH_SIZE, keys.length - i);
-    const dataPromises = new Array(size);
+    const dataPromises = new Array<Promise<UserStats | null>>(size);
     for (let j = 0; j < size; j++) {
       const key = keys[i + j];
       dataPromises[j] = (async () => {
@@ -404,8 +405,14 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
     }
 
     const parsedResults = await Promise.all(dataPromises);
-    allStats.push(...parsedResults.filter((stats): stats is UserStats => stats !== null));
+    for (let j = 0; j < parsedResults.length; j++) {
+      const stats = parsedResults[j];
+      if (stats !== null) {
+        allStats[statsCount++] = stats;
+      }
+    }
   }
+  allStats.length = statsCount;
 
   // Sort and rank for each category
   const makeRanking = (
