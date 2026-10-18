@@ -2473,7 +2473,10 @@ api.delete('/admin/user/:spotifyId', async (c) => {
   const BATCH_SIZE = 40;
   // Find and delete any active sessions for this user
   const sessionsList = await kv.list({ prefix: 'session:', limit: 1000 });
-  for (let i = 0; i < sessionsList.keys.length; i += BATCH_SIZE) {
+
+  const numBatches = Math.ceil(sessionsList.keys.length / BATCH_SIZE);
+  const batchPromises = Array.from({ length: numBatches }, async (_, b) => {
+    const i = b * BATCH_SIZE;
     // ⚡ Bolt: Avoid intermediate array allocation from slice().map() by using Array.from()
     const chunkSize = Math.min(BATCH_SIZE, sessionsList.keys.length - i);
     const sessionPromises = Array.from({ length: chunkSize }, async (_, j) => {
@@ -2495,7 +2498,9 @@ api.delete('/admin/user/:spotifyId', async (c) => {
     for (const keyName of sessionResults) {
       if (keyName) deleted.push(keyName);
     }
-  }
+  });
+
+  await Promise.all(batchPromises);
 
   // Decrement user count if we deleted a user_stats entry
   if (deleted.includes(`user_stats:${spotifyId}`)) {
