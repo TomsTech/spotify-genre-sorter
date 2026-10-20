@@ -165,12 +165,10 @@ export async function verifyState(
   kv: KVNamespace,
   state: string
 ): Promise<Record<string, string> | null> {
-  const [data] = await Promise.all([
-    cachedKV.getString(kv, `state:${state}`, { cacheTtlMs: 0 }),
+  const [parsed] = await Promise.all([
+    cachedKV.get<Record<string, string>>(kv, `state:${state}`, { cacheTtlMs: 0 }),
     cachedKV.delete(kv, `state:${state}`)
   ]);
-  if (!data) return null;
-  const parsed = JSON.parse(data) as Record<string, string>;
   return parsed;
 }
 
@@ -685,7 +683,8 @@ export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
 
     // Today's analytics (i=0) get 5 min cache, historical days get 1 hr cache
     const ttl = i === 0 ? CACHE_TTL.ANALYTICS : CACHE_TTL.ANALYTICS_HISTORICAL;
-    dataPromises.push(cachedKV.getString(kv, key, { cacheTtlMs: ttl }));
+    // ⚡ Bolt: Use cachedKV.get to return parsed objects instead of strings
+    dataPromises.push(cachedKV.get<AnalyticsData>(kv, key, { cacheTtlMs: ttl }));
   }
 
   // Fetch all 7 days in parallel with memory caching to prevent N+1 DB calls
@@ -706,10 +705,8 @@ export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
   let today: AnalyticsData | null = null;
 
   for (let i = 0; i < dataResults.length; i++) {
-    const data = dataResults[i];
-    if (data) {
-      const dayData = JSON.parse(data) as AnalyticsData;
-
+    const dayData = dataResults[i];
+    if (dayData) {
       // First result is today
       if (i === 0) {
         today = dayData;
