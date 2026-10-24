@@ -1549,9 +1549,9 @@ api.get('/listening', async (c) => {
       const dataPromises = Array.from({ length: size }, async (_, j) => {
         const key = list.keys[i + j];
         try {
-          const data = await kv.get(key.name);
+          const data = await kv.get<ListeningEntry>(key.name, 'json');
           if (data) {
-            return JSON.parse(data) as ListeningEntry;
+            return data;
           }
         } catch { /* skip malformed entries */ }
         return null;
@@ -2307,16 +2307,15 @@ async function fetchRegularUsers(kv: KVNamespace, seenIds: Set<string>, users: A
     const dataPromises = Array.from({ length: size }, async (_, j) => {
       const key = userStatsList.keys[i + j];
       try {
-        const statsJson = await kv.get(key.name);
-        if (statsJson) {
-          const stats = JSON.parse(statsJson) as {
-            spotifyId: string;
-            spotifyName: string;
-            spotifyAvatar?: string;
-            playlistsCreated?: number;
-            firstSeen?: string;
-            lastActive?: string;
-          };
+        const stats = await kv.get<{
+          spotifyId: string;
+          spotifyName: string;
+          spotifyAvatar?: string;
+          playlistsCreated?: number;
+          firstSeen?: string;
+          lastActive?: string;
+        }>(key.name, 'json');
+        if (stats) {
           return {
             spotifyId: stats.spotifyId,
             spotifyName: stats.spotifyName || 'Unknown',
@@ -2348,14 +2347,14 @@ async function fetchHoFUsers(kv: KVNamespace, seenIds: Set<string>, users: Admin
     const hofPromises = Array.from({ length: size }, async (_, j) => {
       const key = hofKeys[i + j];
       try {
-        const hofJson = await kv.get(key);
+        const hofJson = await kv.get<{
+          spotifyId: string;
+          spotifyName: string;
+          spotifyAvatar?: string;
+          registeredAt?: string;
+        }>(key, 'json');
         if (hofJson) {
-          return JSON.parse(hofJson) as {
-            spotifyId: string;
-            spotifyName: string;
-            spotifyAvatar?: string;
-            registeredAt?: string;
-          };
+          return hofJson;
         }
       } catch { /* skip malformed entries */ }
       return null;
@@ -2483,7 +2482,7 @@ api.delete('/admin/user/:spotifyId', async (c) => {
       const key = sessionsList.keys[i + j];
       try {
         const sessionJson = await kv.get(key.name);
-        if (sessionJson) {
+        if (sessionJson && sessionJson.includes(`"spotifyUserId":"${spotifyId}"`)) {
           const sessionData = JSON.parse(sessionJson) as { spotifyUserId?: string };
           if (sessionData.spotifyUserId === spotifyId) {
             await cachedKV.delete(kv, key.name);
