@@ -131,37 +131,28 @@ async function parseErrorResponse(response) {
 }
 
 /**
- * Show error notification with recovery options
+ * Create error notification DOM element
  */
-function showErrorNotification(error, options = {}) {
+function createErrorNotificationElement(error, message, options = {}) {
   const {
     swedish = false,
     onRetry = null,
-    onDismiss = null,
-    context = 'operation',
   } = options;
-
-  // Get user-friendly message
-  const message = getUserFriendlyMessage(error, swedish);
 
   // Determine if retry is available
   const canRetry = error.retryable !== false && onRetry !== null;
 
-  // Log error for telemetry
-  logErrorToBackend(error, context);
-
-  // Show notification UI
-  const notification = document.createElement('div');
-  notification.className = 'error-notification';
-  notification.setAttribute('role', 'alert');
-  notification.setAttribute('aria-live', 'assertive');
+  const notification = document.createElement("div");
+  notification.className = "error-notification";
+  notification.setAttribute("role", "alert");
+  notification.setAttribute("aria-live", "assertive");
 
   const actions = [];
 
   if (canRetry) {
     actions.push(
       `<button class="btn btn-sm btn-primary" onclick="this.closest('.error-notification').dispatchEvent(new CustomEvent('retry'))">
-        ${swedish ? '🔄 Försök igen' : '🔄 Retry'}
+        ${swedish ? "🔄 Försök igen" : "🔄 Retry"}
       </button>`
     );
   }
@@ -172,7 +163,7 @@ function showErrorNotification(error, options = {}) {
 
   actions.push(
     `<button class="btn btn-sm btn-ghost" onclick="this.closest('.error-notification').remove()">
-      ${swedish ? 'Stäng' : 'Dismiss'}
+      ${swedish ? "Stäng" : "Dismiss"}
     </button>`
   );
 
@@ -180,12 +171,12 @@ function showErrorNotification(error, options = {}) {
     <div class="error-content">
       <div class="error-icon">⚠️</div>
       <div class="error-message">${escapeHtml(message)}</div>
-      <div class="error-actions">${actions.join('')}</div>
+      <div class="error-actions">${actions.join("")}</div>
     </div>
   `;
 
   // Handle retry
-  notification.addEventListener('retry', () => {
+  notification.addEventListener("retry", () => {
     notification.remove();
     if (onRetry) onRetry();
   });
@@ -194,11 +185,32 @@ function showErrorNotification(error, options = {}) {
   if (error.code !== ErrorCode.AUTH_ERROR) {
     setTimeout(() => {
       if (notification.parentNode) {
-        notification.classList.add('fade-out');
+        notification.classList.add("fade-out");
         setTimeout(() => notification.remove(), 300);
       }
     }, 10000);
   }
+
+  return notification;
+}
+
+/**
+ * Show error notification with recovery options
+ */
+function showErrorNotification(error, options = {}) {
+  const {
+    swedish = false,
+    context = "operation",
+  } = options;
+
+  // Get user-friendly message
+  const message = getUserFriendlyMessage(error, swedish);
+
+  // Log error for telemetry
+  logErrorToBackend(error, context);
+
+  // Create notification element UI
+  const notification = createErrorNotificationElement(error, message, options);
 
   document.body.appendChild(notification);
 
@@ -418,6 +430,7 @@ window.ErrorHandler = {
   fetchWithRetry,
   parseErrorResponse,
   showErrorNotification,
+  createErrorNotificationElement,
   getUserFriendlyMessage,
   logErrorToBackend,
   recoverSession,
