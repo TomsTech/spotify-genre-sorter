@@ -445,8 +445,18 @@ describe('determineKVStatus', () => {
 
   it('should handle negative and fractional inputs', () => {
     expect(determineKVStatus(-10, -50)).toBe('ok');
+    expect(determineKVStatus(-10, 50)).toBe('ok');
+    expect(determineKVStatus(50, -10)).toBe('ok');
+    expect(determineKVStatus(-10, 85)).toBe('warning');
+    expect(determineKVStatus(95, -10)).toBe('critical');
     expect(determineKVStatus(90.1, 50)).toBe('critical');
     expect(determineKVStatus(50, 80.5)).toBe('warning');
+  });
+
+  it('should handle inputs greater than 100%', () => {
+    expect(determineKVStatus(100, 100)).toBe('critical');
+    expect(determineKVStatus(150, 50)).toBe('critical');
+    expect(determineKVStatus(50, 200)).toBe('critical');
   });
 });
 
