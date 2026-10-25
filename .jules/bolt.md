@@ -219,3 +219,7 @@
 
 ## 2025-05-25 - [O(N^2) Array find bottleneck in KV write error handling] **Learning:** `Array.prototype.indexOf()` inside a `for...of` loop over a parallel array causes an O(N^2) bottleneck. **Action:** Refactored to use a standard `for` loop with an index variable to access elements directly in O(N) time.
 ## YYYY-MM-DD - [Optimize LRU Cache Update for Rate Limiter] **Learning:** [JavaScript Map objects maintain insertion order. By deleting and re-inserting elements on access, the Map implicitly becomes an LRU cache where the oldest element is the first item.] **Action:** [Refactored rate limiter in `src/routes/api.ts` to delete and re-insert keys on access to maintain LRU order naturally for O(1) eviction without arrays.]
+
+## 2026-10-25 - Optimize genre lookup in showMergeModal
+**Learning:** In JavaScript array mapping loops over selected keys, performing an inner `Array.prototype.find()` creates an $O(N \times M)$ search. Pre-indexing the source array into a `Map` prior to mapping reduces lookup complexity to $O(1)$, yielding an overall $O(N + M)$ time complexity.
+**Action:** When mapping over a list of keys to find matching objects in an array, build a lookup `Map` first.

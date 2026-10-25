@@ -1045,3 +1045,21 @@ describe('Visual Element Positioning', () => {
   });
 });
 
+
+describe("Merge Modal Genre Lookup", () => {
+  it("should look up genre counts using Map for selected genres", () => {
+    const genresToMerge = new Set(["rock", "pop", "nonexistent"]);
+    const genreNames = [...genresToMerge];
+    const genreMap = new Map(mockGenreData.genres.map(g => [g.name, g]));
+    const genreItems = genreNames.map(name => {
+      const genre = genreMap.get(name);
+      return { name, count: genre ? genre.count : 0 };
+    }).sort((a, b) => b.count - a.count);
+
+    expect(genreItems).toEqual([
+      { name: "rock", count: 100 },
+      { name: "pop", count: 80 },
+      { name: "nonexistent", count: 0 },
+    ]);
+  });
+});
