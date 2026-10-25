@@ -15610,7 +15610,7 @@ export function getHtml(nonce: string): string {
       const title = swedishMode ? titleSE : titleEN;
       const msg = swedishMode ? msgSE : msgEN;
 
-      banner.innerHTML = '<strong>' + title + '</strong> — ' + msg +
+      banner.innerHTML = '<strong>' + escapeHtml(title) + '</strong> — ' + escapeHtml(msg) +
         ' <a href="https://status.tomstech.dev" target="_blank" rel="noopener noreferrer">' +
         (swedishMode ? 'Statussida' : 'Status Page') + '</a>' +
         '<button class="close-btn" onclick="dismissRateLimitBanner()" aria-label="Dismiss banner">&times;</button>';
