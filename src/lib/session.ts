@@ -674,8 +674,7 @@ export async function trackAnalyticsEvent(
   }
 }
 
-export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
-  // Build all keys for the last 7 days
+async function fetch7DaysAnalyticsRaw(kv: KVNamespace): Promise<(string | null)[]> {
   const dataPromises = [];
   for (let i = 0; i < 7; i++) {
     const date = new Date();
@@ -688,11 +687,11 @@ export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
     dataPromises.push(cachedKV.getString(kv, key, { cacheTtlMs: ttl }));
   }
 
-  // Fetch all 7 days in parallel with memory caching to prevent N+1 DB calls
-  const dataResults = await Promise.all(dataPromises);
+  return Promise.all(dataPromises);
+}
 
-  // Get last 7 days
-  const last7Days = {
+function aggregateAnalytics(dataResults: (string | null)[]) {
+  const last7DaysData = {
     pageViews: 0,
     uniqueVisitors: new Set<string>(),
     signIns: 0,
@@ -710,42 +709,48 @@ export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
     if (data) {
       const dayData = JSON.parse(data) as AnalyticsData;
 
-      // First result is today
       if (i === 0) {
         today = dayData;
       }
 
-      last7Days.pageViews += dayData.pageViews;
-      dayData.uniqueVisitors.forEach(v => last7Days.uniqueVisitors.add(v));
-      last7Days.signIns += dayData.signIns;
-      last7Days.authFailures += dayData.authFailures;
-      last7Days.errors += dayData.errors.length;
-      last7Days.libraryScans += dayData.libraryScans;
-      last7Days.playlistsCreated += dayData.playlistsCreated;
+      last7DaysData.pageViews += dayData.pageViews;
+      dayData.uniqueVisitors.forEach(v => last7DaysData.uniqueVisitors.add(v));
+      last7DaysData.signIns += dayData.signIns;
+      last7DaysData.authFailures += dayData.authFailures;
+      last7DaysData.errors += dayData.errors.length;
+      last7DaysData.libraryScans += dayData.libraryScans;
+      last7DaysData.playlistsCreated += dayData.playlistsCreated;
       allErrors.push(...dayData.errors);
     }
   }
 
-  // If today wasn't in cache, get it fresh
-  if (!today) {
-    today = await getDailyAnalytics(kv);
-  }
-
-  // Sort errors by timestamp descending and take last 20
   allErrors.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return {
     today,
     last7Days: {
-      pageViews: last7Days.pageViews,
-      uniqueVisitors: last7Days.uniqueVisitors.size,
-      signIns: last7Days.signIns,
-      authFailures: last7Days.authFailures,
-      errors: last7Days.errors,
-      libraryScans: last7Days.libraryScans,
-      playlistsCreated: last7Days.playlistsCreated,
+      pageViews: last7DaysData.pageViews,
+      uniqueVisitors: last7DaysData.uniqueVisitors.size,
+      signIns: last7DaysData.signIns,
+      authFailures: last7DaysData.authFailures,
+      errors: last7DaysData.errors,
+      libraryScans: last7DaysData.libraryScans,
+      playlistsCreated: last7DaysData.playlistsCreated,
     },
     recentErrors: allErrors.slice(0, 20),
+  };
+}
+
+export async function getAnalytics(kv: KVNamespace): Promise<AnalyticsSummary> {
+  const dataResults = await fetch7DaysAnalyticsRaw(kv);
+  const { today: initialToday, last7Days, recentErrors } = aggregateAnalytics(dataResults);
+
+  const today = initialToday ?? (await getDailyAnalytics(kv));
+
+  return {
+    today,
+    last7Days,
+    recentErrors,
   };
 }
 

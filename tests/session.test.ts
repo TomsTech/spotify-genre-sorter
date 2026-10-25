@@ -420,3 +420,66 @@ describe('createSession', () => {
     vi.doUnmock('../src/lib/csrf');
   });
 });
+
+
+import { getAnalytics } from "../src/lib/session";
+
+describe("getAnalytics", () => {
+  it("should aggregate analytics for 7 days correctly", async () => {
+    const originalGetString = cachedKV.getString;
+
+    const mockTodayData = {
+      date: new Date().toISOString().split("T")[0],
+      pageViews: 10,
+      uniqueVisitors: ["v1", "v2"],
+      signIns: 5,
+      authFailures: 1,
+      errors: [{ message: "Error 1", path: "/test", timestamp: "2023-01-01T00:00:00.000Z" }],
+      libraryScans: 2,
+      playlistsCreated: 3,
+      totalTracksAnalysed: 50,
+      kvErrors: 0,
+      kvReads: 100,
+      kvWrites: 10,
+      kvDeletes: 0,
+    };
+
+    cachedKV.getString = vi.fn().mockImplementation((kv, key) => {
+      if (key.includes(mockTodayData.date)) {
+        return Promise.resolve(JSON.stringify(mockTodayData));
+      }
+      return Promise.resolve(null);
+    });
+
+    const mockKv = {
+      get: vi.fn().mockResolvedValue(null),
+    } as any;
+
+    const analytics = await getAnalytics(mockKv);
+
+    expect(analytics.today).toEqual(mockTodayData);
+    expect(analytics.last7Days.pageViews).toBe(10);
+    expect(analytics.last7Days.uniqueVisitors).toBe(2);
+    expect(analytics.last7Days.signIns).toBe(5);
+    expect(analytics.recentErrors).toHaveLength(1);
+
+    cachedKV.getString = originalGetString;
+  });
+
+  it("should fallback to getDailyAnalytics when today is not in cache", async () => {
+    const originalGetString = cachedKV.getString;
+    cachedKV.getString = vi.fn().mockResolvedValue(null);
+
+    const mockKv = {
+      get: vi.fn().mockResolvedValue(null),
+    } as any;
+
+    const analytics = await getAnalytics(mockKv);
+
+    expect(analytics.today).toBeDefined();
+    expect(analytics.today.pageViews).toBe(0);
+    expect(analytics.last7Days.pageViews).toBe(0);
+
+    cachedKV.getString = originalGetString;
+  });
+});
