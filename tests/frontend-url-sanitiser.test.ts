@@ -120,3 +120,12 @@ describe('the rendered page preserves regex escapes', () => {
     expect(html).toContain(pattern);
   });
 });
+
+describe("album art src sanitization in rendered HTML", () => {
+  const html = getHtml("test-nonce");
+
+  it("sanitizes album art src assignments with getSafeUrl", () => {
+    expect(html).toContain("artEl.src = getSafeUrl(data.track.albumArt);");
+    expect(html).toContain("img.src = getSafeUrl(data.track.albumArt);");
+  });
+});
