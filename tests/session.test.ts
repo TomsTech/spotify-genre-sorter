@@ -9,6 +9,14 @@ describe('Session Management', () => {
       expect(state).toMatch(uuidRegex);
     });
 
+    it('should return a non-empty string with consistent 36-character format', () => {
+      const state = generateState();
+      expect(typeof state).toBe('string');
+      expect(state.length).toBe(36);
+      expect(state).not.toBe('');
+      expect(state).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+    });
+
     it('should generate unique states on each call', () => {
       const states = new Set<string>();
       for (let i = 0; i < 100; i++) {
