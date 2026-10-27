@@ -351,9 +351,10 @@
         return;
       }
 
+      const genreMap = new Map(genreData.genres.map(g => [g.name, g]));
       const genreNames = [...genresToMerge];
       const genreItems = genreNames.map(name => {
-        const genre = genreData.genres.find(g => g.name === name);
+        const genre = genreMap.get(name);
         return { name, count: genre ? genre.count : 0 };
       }).sort((a, b) => b.count - a.count);
 
