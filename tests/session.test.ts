@@ -420,3 +420,132 @@ describe('createSession', () => {
     vi.doUnmock('../src/lib/csrf');
   });
 });
+
+describe('getSession, updateSession, and deleteSession', () => {
+  it('getSession should return null when cookie is missing', async () => {
+    vi.resetModules();
+    vi.doMock('hono/cookie', () => ({
+      getCookie: vi.fn().mockReturnValue(undefined),
+      setCookie: vi.fn(),
+      deleteCookie: vi.fn(),
+    }));
+
+    const { getSession } = await import('../src/lib/session');
+    const mockContext = { env: { SESSIONS: {} as any } } as any;
+
+    const result = await getSession(mockContext);
+    expect(result).toBeNull();
+    vi.doUnmock('hono/cookie');
+  });
+
+  it('getSession should fetch session via cachedKV and add missing csrfToken', async () => {
+    vi.resetModules();
+    vi.doMock('hono/cookie', () => ({
+      getCookie: vi.fn().mockReturnValue('session-123'),
+      setCookie: vi.fn(),
+      deleteCookie: vi.fn(),
+    }));
+    vi.doMock('../src/lib/csrf', () => ({
+      generateCsrfToken: vi.fn().mockReturnValue('new-csrf-token'),
+    }));
+
+    const { getSession } = await import('../src/lib/session');
+    const { cachedKV: dynamicCachedKV } = await import('../src/lib/kv-cache');
+
+    const sessionWithoutCsrf = { githubUser: 'alice' };
+    const originalGet = dynamicCachedKV.get;
+    const originalPut = dynamicCachedKV.put;
+
+    dynamicCachedKV.get = vi.fn().mockResolvedValue(sessionWithoutCsrf);
+    dynamicCachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    const mockContext = { env: { SESSIONS: {} as any } } as any;
+
+    const result = await getSession(mockContext);
+
+    expect(dynamicCachedKV.get).toHaveBeenCalledWith(
+      mockContext.env.SESSIONS,
+      'session:session-123',
+      { cacheTtlMs: 60000 }
+    );
+    expect(result).toEqual({ githubUser: 'alice', csrfToken: 'new-csrf-token' });
+    expect(dynamicCachedKV.put).toHaveBeenCalledWith(
+      mockContext.env.SESSIONS,
+      'session:session-123',
+      JSON.stringify({ githubUser: 'alice', csrfToken: 'new-csrf-token' }),
+      { expirationTtl: 60 * 60 * 24 * 7, immediate: true }
+    );
+
+    dynamicCachedKV.get = originalGet;
+    dynamicCachedKV.put = originalPut;
+    vi.doUnmock('hono/cookie');
+    vi.doUnmock('../src/lib/csrf');
+  });
+
+  it('updateSession should read existing session and save updates immediately', async () => {
+    vi.resetModules();
+    vi.doMock('hono/cookie', () => ({
+      getCookie: vi.fn().mockReturnValue('session-456'),
+      setCookie: vi.fn(),
+      deleteCookie: vi.fn(),
+    }));
+
+    const { updateSession } = await import('../src/lib/session');
+    const { cachedKV: dynamicCachedKV } = await import('../src/lib/kv-cache');
+
+    const existingSession = { githubUser: 'bob', csrfToken: 'existing-csrf' };
+    const originalGet = dynamicCachedKV.get;
+    const originalPut = dynamicCachedKV.put;
+
+    dynamicCachedKV.get = vi.fn().mockResolvedValue(existingSession);
+    dynamicCachedKV.put = vi.fn().mockResolvedValue(undefined);
+
+    const mockContext = { env: { SESSIONS: {} as any } } as any;
+
+    await updateSession(mockContext, { spotifyUser: 'bob_spotify' });
+
+    expect(dynamicCachedKV.get).toHaveBeenCalledWith(
+      mockContext.env.SESSIONS,
+      'session:session-456'
+    );
+    expect(dynamicCachedKV.put).toHaveBeenCalledWith(
+      mockContext.env.SESSIONS,
+      'session:session-456',
+      JSON.stringify({ githubUser: 'bob', csrfToken: 'existing-csrf', spotifyUser: 'bob_spotify' }),
+      { expirationTtl: 60 * 60 * 24 * 7, immediate: true }
+    );
+
+    dynamicCachedKV.get = originalGet;
+    dynamicCachedKV.put = originalPut;
+    vi.doUnmock('hono/cookie');
+  });
+
+  it('deleteSession should delete key from cachedKV and delete cookie', async () => {
+    vi.resetModules();
+    const mockDeleteCookie = vi.fn();
+    vi.doMock('hono/cookie', () => ({
+      getCookie: vi.fn().mockReturnValue('session-789'),
+      setCookie: vi.fn(),
+      deleteCookie: mockDeleteCookie,
+    }));
+
+    const { deleteSession } = await import('../src/lib/session');
+    const { cachedKV: dynamicCachedKV } = await import('../src/lib/kv-cache');
+
+    const originalDelete = dynamicCachedKV.delete;
+    dynamicCachedKV.delete = vi.fn().mockResolvedValue(undefined);
+
+    const mockContext = { env: { SESSIONS: {} as any } } as any;
+
+    await deleteSession(mockContext);
+
+    expect(dynamicCachedKV.delete).toHaveBeenCalledWith(
+      mockContext.env.SESSIONS,
+      'session:session-789'
+    );
+    expect(mockDeleteCookie).toHaveBeenCalledWith(mockContext, 'session_id', { path: '/' });
+
+    dynamicCachedKV.delete = originalDelete;
+    vi.doUnmock('hono/cookie');
+  });
+});
