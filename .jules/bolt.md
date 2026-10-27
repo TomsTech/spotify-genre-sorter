@@ -219,3 +219,7 @@
 
 ## 2025-05-25 - [O(N^2) Array find bottleneck in KV write error handling] **Learning:** `Array.prototype.indexOf()` inside a `for...of` loop over a parallel array causes an O(N^2) bottleneck. **Action:** Refactored to use a standard `for` loop with an index variable to access elements directly in O(N) time.
 ## YYYY-MM-DD - [Optimize LRU Cache Update for Rate Limiter] **Learning:** [JavaScript Map objects maintain insertion order. By deleting and re-inserting elements on access, the Map implicitly becomes an LRU cache where the oldest element is the first item.] **Action:** [Refactored rate limiter in `src/routes/api.ts` to delete and re-insert keys on access to maintain LRU order naturally for O(1) eviction without arrays.]
+
+## YYYY-MM-DD - Code Review/Persona Pattern for Performance Optimizations
+**Learning:** When acting as the "Bolt" performance persona, modifying code to be more procedural (like replacing `.push(...arr.filter())` with a standard `for` loop) in the name of performance can trigger a rejection if no explanatory inline comment is provided, as it is seen as sacrificing readability for a micro-optimization.
+**Action:** Always include a comment (e.g., `// ⚡ Bolt: Eliminate intermediate array allocations via standard indexed for loop over push spread filter`) adjacent to the optimized block to justify the procedural refactor and ensure code review approval.
