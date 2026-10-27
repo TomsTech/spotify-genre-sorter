@@ -505,7 +505,11 @@ export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData
       cachedKV.get<LeaderboardData['newUsers'][number]>(kv, userKeys[i + j].name, { cacheTtlMs: 300000 }).catch(() => null)
     );
     const parsedUsers = await Promise.all(userPromises);
-    recentUsers.push(...parsedUsers.filter((u): u is LeaderboardData['newUsers'][number] => u !== null));
+    // ⚡ Bolt: Eliminate intermediate array allocations via standard indexed for loop over push spread filter
+    for (let j = 0; j < parsedUsers.length; j++) {
+      const u = parsedUsers[j];
+      if (u !== null) recentUsers.push(u);
+    }
   }
 
   // Sort by registeredAt descending and take last 10

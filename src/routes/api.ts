@@ -1557,7 +1557,11 @@ api.get('/listening', async (c) => {
         return null;
       });
       const dataResults = await Promise.all(dataPromises);
-      listeners.push(...dataResults.filter((entry): entry is ListeningEntry => entry !== null));
+      // ⚡ Bolt: Eliminate intermediate array allocations via standard indexed for loop over push spread filter
+      for (let j = 0; j < dataResults.length; j++) {
+        const entry = dataResults[j];
+        if (entry !== null) listeners.push(entry);
+      }
     }
 
     return c.json({
@@ -2742,7 +2746,11 @@ api.get('/admin/access-requests', async (c) => {
       return null;
     });
     const dataResults = await Promise.all(dataPromises);
-    requests.push(...dataResults.filter((req): req is AccessRequest => req !== null));
+    // ⚡ Bolt: Eliminate intermediate array allocations via standard indexed for loop over push spread filter
+    for (let j = 0; j < dataResults.length; j++) {
+      const req = dataResults[j];
+      if (req !== null) requests.push(req);
+    }
   }
 
   // Sort by most recent first

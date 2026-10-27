@@ -669,8 +669,11 @@ async function fetchArtistsFromSpotify(
 
   for (const response of responses) {
     // Filter out null entries (some artists may not have data)
-    const validArtists = response.artists.filter((a): a is SpotifyArtist => a !== null);
-    results.push(...validArtists);
+    // ⚡ Bolt: Eliminate intermediate array allocations via standard indexed for loop over push spread filter
+    for (let j = 0; j < response.artists.length; j++) {
+      const a = response.artists[j];
+      if (a !== null) results.push(a);
+    }
   }
 
   return results;
