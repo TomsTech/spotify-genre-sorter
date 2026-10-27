@@ -139,4 +139,77 @@ describe('KV Cache', () => {
       vi.useRealTimers();
     });
   });
+
+  describe('MemoryCache LRU Eviction & Re-ordering (PERF-026)', () => {
+    it('evicts the oldest inserted item when capacity (100) is exceeded', async () => {
+      // Fill cache to MAX_SIZE (100)
+      for (let i = 0; i < 100; i++) {
+        await cachedKV.put(mockKV, `key-${i}`, JSON.stringify({ item: i }));
+      }
+
+      // Read back key-0 from cache (should be hit)
+      const hit0 = await cachedKV.get(mockKV, 'key-0');
+      expect(hit0).toEqual({ item: 0 });
+
+      // Insert 101st item to trigger evictOldest
+      // Since key-0 was accessed above, accessing key-0 moved key-0 to the end (most recently used).
+      // Therefore, key-1 is now the oldest and should be evicted!
+      await cachedKV.put(mockKV, 'key-100', JSON.stringify({ item: 100 }));
+
+      // Key-1 should have been evicted (cache miss from memory, falls back to KV mock)
+      mockKV.get.mockResolvedValueOnce(null);
+      const missed1 = await cachedKV.get(mockKV, 'key-1');
+      expect(missed1).toBeNull();
+      expect(mockKV.get).toHaveBeenCalledWith('key-1');
+
+      // Key-0 should still be in memory cache (cache hit, no mockKV.get call)
+      mockKV.get.mockClear();
+      const hit0Again = await cachedKV.get(mockKV, 'key-0');
+      expect(hit0Again).toEqual({ item: 0 });
+      expect(mockKV.get).not.toHaveBeenCalled();
+    });
+
+    it('updates LRU order on set when overwriting existing key', async () => {
+      for (let i = 0; i < 100; i++) {
+        await cachedKV.put(mockKV, `key-${i}`, JSON.stringify({ item: i }));
+      }
+
+      // Overwrite key-0
+      await cachedKV.put(mockKV, 'key-0', JSON.stringify({ item: 'updated-0' }));
+
+      // Insert new key to trigger eviction
+      // key-0 was overwritten so it moved to newest; key-1 is now oldest
+      await cachedKV.put(mockKV, 'key-100', JSON.stringify({ item: 100 }));
+
+      // key-1 evicted
+      mockKV.get.mockResolvedValueOnce(null);
+      const missed1 = await cachedKV.get(mockKV, 'key-1');
+      expect(missed1).toBeNull();
+
+      // key-0 retained with updated value
+      mockKV.get.mockClear();
+      const hit0 = await cachedKV.get(mockKV, 'key-0');
+      expect(hit0).toEqual({ item: 'updated-0' });
+      expect(mockKV.get).not.toHaveBeenCalled();
+    });
+
+    it('handles cache entry expiry correctly during get', async () => {
+      vi.useFakeTimers();
+      const now = Date.now();
+      vi.setSystemTime(now);
+
+      await cachedKV.put(mockKV, 'ttl-key', JSON.stringify({ val: 'test' }), { expirationTtl: 10 }); // 10s TTL
+
+      // Advance time beyond TTL (10 seconds + 1ms)
+      vi.setSystemTime(now + 10000 + 1);
+
+      mockKV.get.mockResolvedValueOnce(null);
+      const expiredVal = await cachedKV.get(mockKV, 'ttl-key');
+      expect(expiredVal).toBeNull();
+      expect(mockKV.get).toHaveBeenCalledWith('ttl-key');
+
+      vi.useRealTimers();
+    });
+  });
+
 });
