@@ -202,10 +202,10 @@ app.get('/kv-health', async (c) => {
 
     let estimatedReads = 0;
     let estimatedWrites = 0;
-    for (const key in breakdown) {
-      estimatedReads += breakdown[key as keyof typeof breakdown].reads;
-      estimatedWrites += breakdown[key as keyof typeof breakdown].writes;
-    }
+    Object.values(breakdown).forEach(item => {
+      estimatedReads += item.reads;
+      estimatedWrites += item.writes;
+    });
 
     const readUsagePercent = Math.round((estimatedReads / READ_LIMIT) * 100);
     const writeUsagePercent = Math.round((estimatedWrites / WRITE_LIMIT) * 100);
