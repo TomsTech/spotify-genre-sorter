@@ -12760,15 +12760,26 @@ export function getHtml(nonce: string): string {
       // Normalize unicode to NFC form
       let result = text.normalize('NFC');
 
-      // Remove control characters manually (safer than regex escapes)
-      let cleaned = '';
+      // Fast-path: return early if no control characters exist
+      let hasControl = false;
       for (let i = 0; i < result.length; i++) {
         const code = result.charCodeAt(i);
-        // Skip control characters: 0x00-0x1F (C0) and 0x7F-0x9F (DEL + C1)
-        if ((code >= 0x20 && code <= 0x7E) || code >= 0xA0) {
-          cleaned += result[i];
+        if (code < 0x20 || (code >= 0x7F && code < 0xA0)) {
+          hasControl = true;
+          break;
         }
       }
+      if (!hasControl) return result.trim();
+
+      // Filter control characters using array collection and join
+      const chars = [];
+      for (let i = 0; i < result.length; i++) {
+        const code = result.charCodeAt(i);
+        if ((code >= 0x20 && code <= 0x7E) || code >= 0xA0) {
+          chars.push(result[i]);
+        }
+      }
+      let cleaned = chars.join('');
 
       return cleaned.trim();
     }
