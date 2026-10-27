@@ -87,8 +87,8 @@ describe('State Management', () => {
 
   describe('verifyState', () => {
     it('should return null if state not found', async () => {
-      const originalGetString = cachedKV.getString;
-      cachedKV.getString = vi.fn().mockResolvedValue(null);
+      const originalGet = cachedKV.get;
+      cachedKV.get = vi.fn().mockResolvedValue(null);
       const originalDelete = cachedKV.delete;
       cachedKV.delete = vi.fn().mockResolvedValue(undefined);
 
@@ -96,28 +96,28 @@ describe('State Management', () => {
       const result = await verifyState(mockKv, 'missing-id');
 
       expect(result).toBeNull();
-      expect(cachedKV.getString).toHaveBeenCalledWith(mockKv, 'state:missing-id', { cacheTtlMs: 0 });
+      expect(cachedKV.get).toHaveBeenCalledWith(mockKv, 'state:missing-id', { cacheTtlMs: 0 });
 
-      cachedKV.getString = originalGetString;
+      cachedKV.get = originalGet;
       cachedKV.delete = originalDelete;
     });
 
     it('should return parsed state and delete it from KV', async () => {
-      const originalGetString = cachedKV.getString;
+      const originalGet = cachedKV.get;
       const originalDelete = cachedKV.delete;
 
       const mockData = { token: '123' };
-      cachedKV.getString = vi.fn().mockResolvedValue(JSON.stringify(mockData));
+      cachedKV.get = vi.fn().mockResolvedValue(mockData);
       cachedKV.delete = vi.fn().mockResolvedValue(undefined);
 
       const mockKv = {} as any;
       const result = await verifyState(mockKv, 'valid-id');
 
       expect(result).toEqual(mockData);
-      expect(cachedKV.getString).toHaveBeenCalledWith(mockKv, 'state:valid-id', { cacheTtlMs: 0 });
+      expect(cachedKV.get).toHaveBeenCalledWith(mockKv, 'state:valid-id', { cacheTtlMs: 0 });
       expect(cachedKV.delete).toHaveBeenCalledWith(mockKv, 'state:valid-id');
 
-      cachedKV.getString = originalGetString;
+      cachedKV.get = originalGet;
       cachedKV.delete = originalDelete;
     });
   });
