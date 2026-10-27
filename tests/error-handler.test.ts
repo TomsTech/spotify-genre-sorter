@@ -231,6 +231,16 @@ describe('determineRecoveryStrategy', () => {
       expect(strategy.message).toBe(userMessage);
     });
 
+    it('should abort for fatal non-retryable system errors like SUBREQUEST_LIMIT', () => {
+      const userMessage = 'Subrequest limit exceeded';
+      const error = createMockError(ErrorCode.SUBREQUEST_LIMIT, false, userMessage);
+      error.recoverable = false;
+      const strategy = determineRecoveryStrategy(error);
+
+      expect(strategy.action).toBe('abort');
+      expect(strategy.message).toBe(userMessage);
+    });
+
     it('should use a default abort message if userMessage is missing for non-retryable errors', () => {
       const error = createMockError(ErrorCode.UNKNOWN_ERROR, false, undefined);
       // Explicitly delete userMessage to test the fallback
