@@ -1036,7 +1036,7 @@
                     <td style="padding: 0.75rem;">${(ns.totalSize / 1024).toFixed(2)} KB</td>
                     <td style="padding: 0.75rem;">${ns.avgSize} bytes</td>
                     <td style="padding: 0.75rem;">
-                      <button class="btn btn-ghost btn-sm" onclick="browseKVKeys('${ns.prefix}', '${ns.name}')">
+                      <button class="btn btn-ghost btn-sm" onclick="browseKVKeys('${ns.prefix}', '${ns.name}')" aria-label="Browse KV namespace ${escapeHtml(ns.name)}">
                         🔍 Browse
                       </button>
                     </td>
@@ -7074,6 +7074,7 @@
         '<form class="invite-form" onsubmit="submitInviteRequest(event)">' +
           '<label for="invite-email" class="sr-only">' + emailLabel + '</label>' +
           '<input type="text" id="invite-email" placeholder="' + emailLabel + '" aria-label="' + emailLabel + '" required>' +
+          '<label for="invite-note" class="sr-only">' + noteLabel + '</label>' +
           '<textarea id="invite-note" placeholder="' + noteLabel + '" aria-label="' + noteLabel + '"></textarea>' +
           '<button type="submit" class="btn btn-primary">' + submitText + '</button>' +
         '</form>' +
