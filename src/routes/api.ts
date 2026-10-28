@@ -2483,7 +2483,8 @@ api.delete('/admin/user/:spotifyId', async (c) => {
       const key = sessionsList.keys[i + j];
       try {
         const sessionJson = await kv.get(key.name);
-        if (sessionJson) {
+        if (sessionJson && sessionJson.includes(spotifyId)) {
+          // ⚡ Bolt: Fast-path string check avoids expensive JSON.parse for mismatched sessions
           const sessionData = JSON.parse(sessionJson) as { spotifyUserId?: string };
           if (sessionData.spotifyUserId === spotifyId) {
             await cachedKV.delete(kv, key.name);
