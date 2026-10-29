@@ -160,7 +160,7 @@ function showErrorNotification(error, options = {}) {
 
   if (canRetry) {
     actions.push(
-      `<button class="btn btn-sm btn-primary" onclick="this.closest('.error-notification').dispatchEvent(new CustomEvent('retry'))">
+      `<button class="btn btn-sm btn-primary" aria-label="${swedish ? 'Försök igen' : 'Retry'}" onclick="this.closest('.error-notification').dispatchEvent(new CustomEvent('retry'))">
         ${swedish ? '🔄 Försök igen' : '🔄 Retry'}
       </button>`
     );
@@ -171,7 +171,7 @@ function showErrorNotification(error, options = {}) {
   }
 
   actions.push(
-    `<button class="btn btn-sm btn-ghost" onclick="this.closest('.error-notification').remove()">
+    `<button class="btn btn-sm btn-ghost" aria-label="${swedish ? 'Stäng' : 'Dismiss'}" onclick="this.closest('.error-notification').remove()">
       ${swedish ? 'Stäng' : 'Dismiss'}
     </button>`
   );
