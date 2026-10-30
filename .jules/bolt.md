@@ -219,3 +219,7 @@
 
 ## 2025-05-25 - [O(N^2) Array find bottleneck in KV write error handling] **Learning:** `Array.prototype.indexOf()` inside a `for...of` loop over a parallel array causes an O(N^2) bottleneck. **Action:** Refactored to use a standard `for` loop with an index variable to access elements directly in O(N) time.
 ## YYYY-MM-DD - [Optimize LRU Cache Update for Rate Limiter] **Learning:** [JavaScript Map objects maintain insertion order. By deleting and re-inserting elements on access, the Map implicitly becomes an LRU cache where the oldest element is the first item.] **Action:** [Refactored rate limiter in `src/routes/api.ts` to delete and re-insert keys on access to maintain LRU order naturally for O(1) eviction without arrays.]
+
+## 2026-10-26 - Add fast-path string check to avoid JSON.parse on mismatched entries
+**Learning:** In loops scanning through raw JSON strings (like checking active sessions for a specific user ID), calling `JSON.parse` on every item is very expensive. Adding a preliminary `.includes` string check as a fast path to skip mismatched entries significantly reduces CPU block time by bypassing parsing entirely.
+**Action:** When searching for a specific string identifier in a batch of serialized JSON strings, prepend the `JSON.parse` call with a fast-path string check `if (!jsonStr.includes('"' + targetId + '"')) return;` (or `continue`) to skip irrelevant records efficiently.

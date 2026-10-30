@@ -2484,11 +2484,14 @@ api.delete('/admin/user/:spotifyId', async (c) => {
       try {
         const sessionJson = await kv.get(key.name);
         if (sessionJson) {
-          const sessionData = JSON.parse(sessionJson) as { spotifyUserId?: string };
+          // ⚡ Bolt: Fast-path string check to avoid expensive JSON.parse for mismatched entries
+          if (sessionJson.includes('"' + spotifyId + '"')) {
+            const sessionData = JSON.parse(sessionJson) as { spotifyUserId?: string };
           if (sessionData.spotifyUserId === spotifyId) {
             await cachedKV.delete(kv, key.name);
             return key.name;
           }
+        }
         }
       } catch { /* skip malformed sessions */ }
       return null;
