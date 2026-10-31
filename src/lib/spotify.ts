@@ -131,6 +131,21 @@ export function getSpotifyAuthUrl(
   return `${SPOTIFY_AUTH}/authorize?${params.toString()}`;
 }
 
+async function fetchSpotifyToken(
+  body: URLSearchParams,
+  clientId: string,
+  clientSecret: string
+): Promise<Response> {
+  return fetchWithRetry(`${SPOTIFY_AUTH}/api/token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+    },
+    body,
+  });
+}
+
 export async function exchangeSpotifyCode(
   code: string,
   clientId: string,
@@ -149,14 +164,7 @@ export async function exchangeSpotifyCode(
     body.set('code_verifier', codeVerifier);
   }
 
-  const response = await fetchWithRetry(`${SPOTIFY_AUTH}/api/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
-    },
-    body,
-  });
+  const response = await fetchSpotifyToken(body, clientId, clientSecret);
 
   if (!response.ok) {
     const error = await response.text();
@@ -172,17 +180,12 @@ export async function refreshSpotifyToken(
   clientId: string,
   clientSecret: string
 ): Promise<SpotifyTokens> {
-  const response = await fetchWithRetry(`${SPOTIFY_AUTH}/api/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
-    },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-    }),
+  const body = new URLSearchParams({
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
   });
+
+  const response = await fetchSpotifyToken(body, clientId, clientSecret);
 
   if (!response.ok) {
     throw new Error('Failed to refresh Spotify token');
