@@ -2469,7 +2469,7 @@
 
           // Update album art
           if (data.track.albumArt) {
-            artEl.src = data.track.albumArt; // DOM property expects raw string, DO NOT use escapeHtml
+            artEl.src = getSafeUrl(data.track.albumArt); // DOM property expects raw string, DO NOT use escapeHtml
             artEl.alt = data.track.album;
           }
 
@@ -5799,7 +5799,7 @@
             existingTooltip.querySelector('.now-playing-artists').textContent = data.track.artists;
             const img = existingTooltip.querySelector('.now-playing-album-art');
             if (data.track.albumArt) {
-              img.src = data.track.albumArt; // DOM property expects raw string, DO NOT use escapeHtml
+              img.src = getSafeUrl(data.track.albumArt); // DOM property expects raw string, DO NOT use escapeHtml
               img.style.display = '';
             } else {
               img.style.display = 'none';
