@@ -388,10 +388,8 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
       const key = keys[i + j];
       dataPromises[j] = (async () => {
       try {
-        const data = await kv.get(key.name);
-        if (!data) return null;
-
-        const stats = JSON.parse(data) as UserStats;
+        const stats = await kv.get<UserStats>(key.name, 'json');
+        if (!stats) return null;
         // Backfill estimation: if totalTracksInPlaylists is 0 but user has playlists,
         // estimate based on average tracks per playlist
         if ((!stats.totalTracksInPlaylists || stats.totalTracksInPlaylists === 0) && stats.playlistsCreated > 0) {
@@ -574,10 +572,10 @@ function getDateKey(): string {
 async function getDailyAnalytics(kv: KVNamespace): Promise<AnalyticsData> {
   const dateKey = getDateKey();
   const key = `${ANALYTICS_KEY}:${dateKey}`;
-  const existing = await kv.get(key);
+  const existing = await kv.get<AnalyticsData>(key, 'json');
 
   if (existing) {
-    const data = JSON.parse(existing) as AnalyticsData;
+    const data = existing;
     // Ensure new fields exist (backwards compatibility)
     data.kvReads = data.kvReads || 0;
     data.kvWrites = data.kvWrites || 0;
