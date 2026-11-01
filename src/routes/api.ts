@@ -1557,7 +1557,12 @@ api.get('/listening', async (c) => {
         return null;
       });
       const dataResults = await Promise.all(dataPromises);
-      listeners.push(...dataResults.filter((entry): entry is ListeningEntry => entry !== null));
+      // ⚡ Bolt: Replace spread-operator push(...arr.filter()) with an indexed loop to avoid intermediate allocations
+      for (let k = 0; k < dataResults.length; k++) {
+        if (dataResults[k] !== null) {
+          listeners.push(dataResults[k] as ListeningEntry);
+        }
+      }
     }
 
     return c.json({
@@ -2742,7 +2747,12 @@ api.get('/admin/access-requests', async (c) => {
       return null;
     });
     const dataResults = await Promise.all(dataPromises);
-    requests.push(...dataResults.filter((req): req is AccessRequest => req !== null));
+    // ⚡ Bolt: Replace spread-operator push(...arr.filter()) with an indexed loop to avoid intermediate allocations
+    for (let k = 0; k < dataResults.length; k++) {
+      if (dataResults[k] !== null) {
+        requests.push(dataResults[k] as AccessRequest);
+      }
+    }
   }
 
   // Sort by most recent first
