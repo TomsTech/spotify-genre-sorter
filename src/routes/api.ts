@@ -1557,7 +1557,12 @@ api.get('/listening', async (c) => {
         return null;
       });
       const dataResults = await Promise.all(dataPromises);
-      listeners.push(...dataResults.filter((entry): entry is ListeningEntry => entry !== null));
+      // ⚡ Bolt: Prevent intermediate array allocations and reduce GC overhead by using a standard O(N) loop instead of spread with .filter()
+      for (let j = 0; j < dataResults.length; j++) {
+        if (dataResults[j] !== null) {
+          listeners.push(dataResults[j] as ListeningEntry);
+        }
+      }
     }
 
     return c.json({
@@ -2742,7 +2747,12 @@ api.get('/admin/access-requests', async (c) => {
       return null;
     });
     const dataResults = await Promise.all(dataPromises);
-    requests.push(...dataResults.filter((req): req is AccessRequest => req !== null));
+    // ⚡ Bolt: Prevent intermediate array allocations and reduce GC overhead by using a standard O(N) loop instead of spread with .filter()
+    for (let j = 0; j < dataResults.length; j++) {
+      if (dataResults[j] !== null) {
+        requests.push(dataResults[j] as AccessRequest);
+      }
+    }
   }
 
   // Sort by most recent first
