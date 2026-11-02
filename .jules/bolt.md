@@ -1,176 +1,15 @@
-## 2024-05-04 - [Debouncing Search Input]
-**Learning:** The frontend filters the genre list synchronously on every keystroke (`oninput="filterAndRenderGenres(this.value)"`), which can cause main thread blocking and jank when dealing with hundreds or thousands of genres.
-**Action:** Implement debouncing for search input handlers to delay the filtering logic until the user pauses typing. This is a classic frontend performance optimization that is simple to add and measurably improves responsiveness.
-## 2024-05-07 - [Debouncing Template Inputs]
-**Learning:** The frontend updates playlist and description templates synchronously on every keystroke (`oninput="updatePlaylistTemplate(this.value)"`), which causes main thread blocking and unnecessary localStorage writes.
-**Action:** Implement debouncing for template input handlers to delay the updates until the user pauses typing. This is a classic frontend performance optimization that prevents jank and excessive IO operations.
-## 2024-05-08 - [Interleaving JSON.parse with KV fetches]
-**Learning:** Sequential processing of `Promise.all` results for KV fetches causes a large synchronous parsing block and delays CPU-bound work until all I/O is finished. By moving `JSON.parse` and data transformations directly into the async `map` closure, parsing can execute as soon as each individual KV read completes, reducing peak memory usage and overall wall-clock time.
-**Action:** Always interleave parsing with async KV fetches by performing `JSON.parse` inside the `async` callback passed to `map`, rather than iterating over raw JSON results afterwards.
-## 2024-05-14 - [Parallelizing KV Delete and List Operations]
-**Learning:** Sequential `await kv.delete()` and `await kv.list()` operations inside `for...of` loops cause massive N+1 slowdowns in Cloudflare Workers, significantly increasing wall-clock time for API routes like `/admin/clear-cache` and `/admin`.
-**Action:** Always wrap concurrent `kv` operations (e.g., `list`, `delete`, `get`, `put`) in `Promise.all()` to execute them in parallel, effectively binding total latency to the slowest single operation instead of the sum of all operations.
-
-## 2024-05-24 - [Parallelizing KV Put Operations]
-**Learning:** The `flushWriteQueue` function in `kv-cache.ts` used a `for...of` loop with `await kv.put`, creating an N+1 latency bottleneck for batch KV writes. Cloudflare Workers handle concurrent I/O well, so sequential awaits unnecessarily block execution.
-**Action:** Use `Promise.all()` with an array of mapped promises to parallelize `kv.put` operations when processing queues or batches, reducing O(N) network latency to O(1).
-## 2024-05-24 - [Use cachedKV for Session Deletion]
-**Learning:** When using a memory cache wrapper (like `cachedKV`) over Cloudflare KV for read/write operations (e.g., session management), all operations including `delete` must use the wrapper. Direct calls to `kv.delete` bypass the cache, leaving stale data in memory which can cause inconsistencies or security issues with session management.
-**Action:** Ensure all CRUD operations for cached resources route through the caching layer (e.g., `cachedKV.delete`) rather than calling the underlying KV directly.
-## 2024-06-14 - [Optimize Genre Aggregation]
-**Learning:** When aggregating nested relations (e.g., tracks -> artists -> genres), creating temporary Sets for uniqueness on a per-item basis inside a loop generates massive garbage collection overhead.
-**Action:** Instantiate a single reusable Set outside the loop and use .clear() to achieve O(1) deduplication without the memory penalty of continuous object allocation.
-## 2024-06-15 - [Optimize Track Genre Aggregation]
-**Learning:** Instantiating a new `Set` inside a nested loop for deduping per-track genres causes massive garbage collection overhead when dealing with large Spotify libraries.
-**Action:** Pulled the `Set` instantiation out of the loop and cleared it each iteration to process each track, significantly reducing memory allocation pressure while retaining O(N) lookup/add performance.
-## 2024-05-18 - Use waitUntil for background tasks
-**Learning:** In Cloudflare Workers / Hono, non-essential background tasks (like analytics tracking or updating user stats) in middleware or route handlers should be wrapped in `c.executionCtx.waitUntil(...)` to return the HTTP response immediately while ensuring the background task completes.
-**Action:** Always wrap non-critical background operations in `c.executionCtx.waitUntil()` when writing route handlers in Cloudflare Workers.
-## 2024-06-27 - [Optimize .find() call on potentially large playlist arrays]
-**Learning:** While Maps/Sets provide O(1) lookups, the overhead of building them entirely inside a hot endpoint loop for a single lookup on arrays up to a few hundred elements often outweighs the benefits compared to a highly optimized standard `for` loop with hoisted target values.
-**Action:** Always benchmark collection conversion vs optimized loops for small-medium arrays when only single lookups occur.
-## 2025-05-28 - [Parallelizing Spotify API Requests]
-**Learning:** Fetching paginated Spotify API data (e.g., liked tracks) with sequential `while` loops causes N+1 network latency issues, significantly slowing down library scans.
-**Action:** Always fetch the first page to get the total item count, calculate the required remaining offsets, and fetch the remaining pages concurrently using `Promise.all()` (in chunks to preserve UI progress behavior) to minimize network latency.
-## 2025-05-28 - [Parallelizing Spotify API Requests]
-**Learning:** Fetching paginated Spotify API data (e.g., playlists, playlist tracks) with sequential `while` loops causes N+1 network latency issues.
-**Action:** Always fetch the first page to get the total item count, calculate the required remaining offsets, and fetch the remaining pages concurrently using `Promise.all()` to minimize network latency.
-
-## 2024-05-18 - Replacing Sequential Pagination Chunking with Unbounded Concurrency
-**Learning:** Artificially throttling API requests into small, sequential chunks (e.g., waiting for one block of 5 requests to resolve before firing the next 5) introduces severe N+1 latency, especially when the total number of subrequests is inherently capped by environmental limits (like Cloudflare's 50 subrequests).
-**Action:** Replace arbitrary `for`-loop chunking with fully concurrent mapped `Promise.all` arrays for independent offsets. Maintain iterative progress callbacks (like UI progress bars) by incrementing a shared `loadedCount` inside the mapped asynchronous functions rather than awaiting entire batches at a time.
-## 2025-05-28 - [Eliminating Intermediate Collections]
-**Learning:** Chaining array methods like `.filter()` and `.map()` before passing to a `Set` creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure in hot endpoints.
-**Action:** Replace functional `.filter().map()` chains with a single `for` loop that iteratively populates the destination collection (e.g. `Set`) in one pass to achieve better throughput and reduced memory pressure.
-## 2024-05-24 - Async Map Interleaving
-**Learning:** In Node.js/V8, using `Array.prototype.map` to create an array of async functions automatically interleaves I/O operations and synchronous processing (like JSON.parse) when passed to `Promise.all`. The runtime processes microtasks independently as soon as each I/O completes. Attempting to "optimize" this with shared array mutation inside `.then()` callbacks introduces race conditions and breaks data ordering because I/O resolution order is non-deterministic.
-**Action:** Recognize that `await Promise.all(arr.map(async () => ...))` already provides optimal, ordered, interleaved execution. Avoid shared state mutation in asynchronous callbacks.
-## 2024-05-19 - Use Map/Return pattern with Promise.all for safe state mutation
-**Learning:** When a `Promise.all()` maps over operations that also need to mutate a shared array (like recording successful operations), doing a `.push()` inside the async callback can be prone to logical bugs and order inconsistencies (especially if the underlying operation throws but the `.push()` was executed first or vice-versa).
-**Action:** The safer pattern is to map the asynchronous operations to return a value (e.g., returning the ID upon success), await the `Promise.all()`, and then use `.push(...results)` synchronously afterwards. This removes the side-effect from the async callback.
-## 2024-05-24 - Chunking Promise.all for Cloudflare KV Deletions
-**Learning:** Cloudflare Workers have a hard limit of 50 concurrent subrequests per invocation. Firing `Promise.all` with more than 50 KV operations (like deletes) will trigger exceptions and fail the worker.
-**Action:** When performing bulk operations against external APIs or KV stores in a Cloudflare Worker, always chunk the promises into arrays of size < 50 and await each chunk sequentially.
-## 2023-10-27 - Optimize Promise.all Concurrency in KV cache writes
-**Learning:** Using an unbounded `Promise.all` on operations that trigger network requests (like Cloudflare KV puts) can quickly exceed hard subrequest limits (e.g., Cloudflare Worker's 50 subrequests).
-**Action:** When firing concurrent I/O operations from an unbounded array or Map, slice the collection into chunks and process each chunk sequentially, awaiting a batched `Promise.all` for each slice. This bounds concurrency and prevents catastrophic limit exceptions.
-## 2026-08-03 - Avoid async wrappers in loops for pure Promise arrays
-**Learning:** Wrapping promise-returning functions (like API calls) in `async` mappings just to use `await` sequentially or unnecessarily creates extra overhead and can be flagged as sub-optimal when the array of Promises is already meant for `Promise.all`.
-**Action:** Push directly to a promise array using a synchronous loop, chaining `.catch` for error handling, then resolve the array collectively with `Promise.all()`.
-## 2024-08-10 - Bounding Concurrent External API/KV Requests
-**Learning:** Using an unbounded `Promise.all` on an array of external requests (like Cloudflare KV deletes) can quickly exhaust concurrent request limits (e.g., Cloudflare Workers' 50 subrequest limit per invocation), leading to failed requests and high peak memory usage.
-**Action:** When batching operations that perform external or asynchronous resource-intensive requests, always implement a chunking mechanism (using a `for` loop over slices of the array combined with `Promise.all` for each chunk) to limit maximum concurrency to a safe, documented threshold (e.g., 40 for CF Workers).
-## 2026-08-03 - Chunk KV deletes to avoid Cloudflare Workers subrequest limits
-**Learning:** Cloudflare Workers have a limit of 50 subrequests per worker invocation, which can be easily exceeded when iterating and calling `kv.delete()` on a large list of keys. Additionally, `kv.list()` returns a paginated list of keys.
-**Action:** When performing parallel operations like `kv.delete()` on a list of keys in Cloudflare Workers, split the array into smaller chunks (e.g., 45) and iterate over the chunks with `Promise.all()` to respect subrequest limits. Always use cursor pagination for `kv.list()` when checking for a potentially large number of keys.
-## 2025-05-28 - [Eliminating Intermediate Collections in Routes]
-**Learning:** Chaining array methods like `.flatMap()`, `.map()`, and `.forEach()` in hot endpoint loops (like progressive scanning or playlist analysis) creates hidden intermediate arrays, unnecessarily increasing memory allocations and garbage collection pressure.
-**Action:** Replace functional array method chains with standard `for` loops that iteratively populate the destination collection (e.g. `Set` or `Array`) in one pass to achieve better throughput and reduced memory pressure.
-## 2025-05-25 - Chunk Promise.all in Cloudflare Workers **Learning:** Cloudflare Workers have a 50 subrequests limit per invocation. Naively mapping Promise.all over large arrays can hit this limit and cause silent failures. **Action:** Always batch or chunk concurrent external/KV calls (e.g. using a chunk size of 25) when dealing with arrays larger than 50 elements in Worker contexts.
-## 2024-05-15 - [Batch Parallel Requests to Fix Subrequest Limits] **Learning:** When making parallel requests in Cloudflare Workers using `Promise.all` with a large number of promises, it can hit the 50 subrequests limit and crash. **Action:** Group the parallel requests into chunks (batches) and sequentially await `Promise.all` for each batch (e.g., `batchSize = 5`) to stay within limit but still benefit from parallelism.
-## 2024-05-15 - [Batching Parallel Promises for Environment Limits]
-**Learning:** When deploying in restricted environments (like Cloudflare Workers, which has a 50 subrequest limit), using `Promise.all()` over an unbounded or large array of external API fetches can lead to sudden crashes.
-**Action:** Instead of fetching all items at once, use sequential chunking (e.g. `batchSize = 5`) inside a `for` loop, awaiting `Promise.all(chunk)` iteratively. This keeps concurrency safe without sacrificing the speed benefits of parallel execution. Ensure to clean up any temporary workspace files used during script creation and testing.
-
-## 2024-11-21 - [I/O] Concurrent KV Deletes in Cache Invalidation
-**Learning:** When retrieving and processing data via keys (e.g. from Cloudflare KV), performing sequential network/I/O requests (e.g. `await get()`, then conditionally `await delete()`) can lead to N+1 network latency.
-**Action:** Use `.map()` with `Promise.all()` inside a chunked sequential loop. The inner callback must use `try/catch` block inside the async operation because failed promises will cause the entire `Promise.all()` block to fail which introduces regressions.
-## 2024-05-31 - [Eliminating Intermediate Collections in Data Iteration]
-**Learning:** Using spread syntax combined with functional mapping `[...collection.entries()].map(...)` creates intermediate, short-lived arrays which increase memory overhead and garbage collection pressure, leading to measurable slowdowns, especially on large iterables like KV responses or cached tracks/artists.
-**Action:** Replace `[...collection.entries()].map(...)` with standard `for...of` loops appending directly into an array initialized with `const arr = []`. This avoids allocating multiple throwaway objects and improves loop execution times significantly.
-
-## 2025-05-28 - [Performance] Chunking Promise.all for CF Limits
-**Learning:** In Cloudflare Workers, mapping over an array directly with `await Promise.all` can exhaust the 50 concurrent subrequest limit when the array has more than 50 elements. This is commonly seen in `.map(async () => { ... })` over large keysets.
-**Action:** Always chunk arrays into pieces smaller than 50 (e.g. 40) before mapping `Promise.all()` when they might trigger KV subrequests.
-## 2025-05-28 - [Replacing Spread/Array.from on Map.entries() with standard loops]
-**Learning:** Using spread syntax (`[...map.entries()]`) or `Array.from()` to convert Map iterators into arrays creates hidden intermediate arrays, which increases memory allocations and garbage collection overhead in hot loops.
-**Action:** Replace these operations with a single `for...of` loop over `map.entries()` that pushes elements directly into the target array to avoid creating intermediate arrays.
-## 2024-05-18 - Avoid array iteration intermediates using Array.from **Learning:** When processing chunks of an array using Promise.all mapping, using `array.slice(start, end).map()` creates an intermediate array that costs performance via object allocation and copying. Instead, it is faster to bypass `slice()` and `map()` entirely by generating the promises directly via `Array.from({ length: end - start }, (_, j) => ...array[start + j]...)` saving memory operations. **Action:** Apply `Array.from` length constructors when converting known index ranges of large arrays to promise arrays instead of chaining array operations like `slice.map`.
-## 2024-05-19 - ⚡ Bolt: Optimize KV Usage Estimation by avoiding intermediate arrays
-**Learning:** `Object.values(obj).reduce(...)` creates an intermediate array of values before performing the reduction. When this pattern is used multiple times (or in a hot path) to sum up fields from an object, the overhead of array allocation and iteration via `reduce` can be significantly higher than a simple `for...in` loop directly accumulating the values.
-**Action:** When summing up values from an object, particularly in performance-critical code or when executed repeatedly, use a `for...in` loop to iterate directly over the object's keys and accumulate the values without creating intermediate arrays.
-## 2024-05-17 - Optimize Track ID Validation Array Iteration
-**Learning:** Using `Array.prototype.slice()` in a loop to limit the number of items iterated over causes unnecessary array allocations, which degrades performance especially in hot paths.
-**Action:** Replace `array.slice(0, N)` in iteration loops with a standard `for` loop, using `Math.min(N, array.length)` as the limit, to avoid allocating a new array.
-## 2026-09-02 - [Replacing Array.from/map chains with direct loops]
-**Learning:** Using `Array.from()` combined with `.map()` to generate dynamic arrays of Promises creates unnecessary intermediate arrays and closures, increasing memory allocation and CPU overhead.
-**Action:** Replace `Array.from(...).map(...)` chains with a standard `for` loop that directly populates a pre-initialized array (e.g. `const arr = []`) to avoid intermediate allocations and reduce garbage collection pressure.
-## 2024-05-19 - Replace reduce() with loops for performance
-**Learning:** Using `reduce()` can result in slower execution speeds due to function overhead in each iteration, compared to a direct for loop or for...of loop. This is especially relevant in frequently called performance paths or when iterating over large datasets.
-**Action:** Replace `reduce()` calls with `for` loops or `for...of` loops where possible to eliminate the callback overhead and avoid potential intermediate array creations (if used with map/filter before it), which reduces garbage collection pressure and increases throughput.
-## 2023-11-20 - Prevent intermediate array allocations with chunked iteration
-**Learning:** Using `.slice(i, i + size).map(...)` to process array chunks sequentially with `Promise.all()` creates short-lived, intermediate array allocations that increase garbage collection overhead, particularly for large arrays.
-**Action:** Instead, use `new Array(size)` and a direct `for` loop to eliminate the intermediate array copies and callback overhead.
-## 2024-10-24 - Avoid array iteration intermediates using Promise.all mapping
-**Learning:** When processing chunks of an array using Promise.all mapping, using `array.slice(start, end).map()` creates an intermediate array that costs performance via object allocation and copying. Instead, it is faster to bypass `slice()` and `map()` entirely by generating the promises directly via `for` loop and pushing to a pre-initialized array.
-**Action:** Apply standard `for` loops when converting known index ranges of large arrays to promise arrays instead of chaining array operations like `slice.map`.
-## 2023-11-20 - Bolt: Optimize daily analytics fetching with memory caching
-**Learning:** Fetching items from Cloudflare KV using sequential or parallelized `kv.get` for largely static values (like historical daily analytics or logs) introduces significant read latency and uses unnecessary KV operations.
-**Action:** When working with historical windowed keys, introduce `cachedKV.getString` with dynamic cache TTLs to keep older static keys in memory longer (1 hour) and fresher keys in memory for less (5 minutes). This reduces KV hits in repetitive loops or array map processes (preventing the N+1 issue for KV lookups) significantly.
-## 2025-02-18 - Fix PERF-014 chunked Promise.all for parallel reads
-**Learning:** Using `Array.from` with `index` arithmetic creates intermediate mapping layers that can increase memory allocation and overhead, as well as making code harder to read.
-**Action:** Replace `Array.from` index-based iteration with array `.slice()` mapping to process chunks of elements, reducing code complexity and improving performance.
-## 2024-05-19 - ⚡ Bolt: Optimize KV Usage Estimation by avoiding intermediate arrays
-**Learning:** `Object.values(obj).reduce(...)` creates an intermediate array of values before performing the reduction. When this pattern is used multiple times (or in a hot path) to sum up fields from an object, the overhead of array allocation and iteration via `reduce` can be significantly higher than a simple `for...in` loop directly accumulating the values.
-**Action:** When summing up values from an object, particularly in performance-critical code or when executed repeatedly, use a `for...in` loop to iterate directly over the object's keys and accumulate the values without creating intermediate arrays.
-## 2024-05-18 - Avoid Intermediate Array Allocations
-**Learning:** Chaining `.map()` and `.slice().map()` when chunking data for `Promise.all` creates intermediate arrays that increase memory usage and garbage collection pressure.
-**Action:** Use `Array.from({ length: size }, (_, j) => process(arr[start + j]))` to directly compute chunks from the original array, bypassing intermediate allocations.
-## 2024-05-19 - Avoid slice().map() with Promise.all **Learning:** Using `array.slice().map()` creates intermediate arrays, putting pressure on the garbage collector, especially when processing large chunked datasets with `Promise.all()`. **Action:** Use `Array.from({ length }, (_, j) => ...)` to generate promises directly from indices, bypassing the intermediate array creation.
-## 2025-02-12 - Remove array slice and map in chunking **Learning:** Using `.slice().map()` creates intermediate arrays that increase garbage collection overhead and memory allocation, especially in loops. **Action:** Use `Array.from()` to construct the mapped array directly without intermediate slicing.
-## 2024-05-23 - Optimize KV Monitor Loop **Learning:** Replaced Array.map and Promise.all maps with pre-allocated arrays and native for loops to eliminate intermediate garbage collection allocations when processing CF workers limits. **Action:** Refactored `src/lib/kv-monitor.ts` to use native loops and pre-allocated arrays, avoiding slice and map chains.
-
-## 2024-05-23 - Batch Concurrent Network Requests **Learning:** Using `Promise.all(array.map(...))` scales poorly in serverless environments (like Cloudflare Workers) due to hard limits on concurrent outbound connections (e.g. 50 subrequests). **Action:** Implemented a chunked `Promise.all()` batch processor to safely iterate over arrays of network calls, combining it with pre-allocated arrays and native loops to reduce garbage collection overhead.
-
-## 2024-03-24 - Promise.all for read-and-delete operations
-**Learning:** When retrieving and deleting a single-use token from a storage layer like KV, awaiting the read and delete operations sequentially introduces unnecessary latency. Bypassing memory cache using `{ cacheTtlMs: 0 }` ensures no stale reads occur.
-**Action:** Refactored sequential `cachedKV.getString` and `cachedKV.delete` calls into a concurrent `Promise.all` array for parallel execution, reducing token verification time.
-## 2025-05-25 - Chunking and Array Allocation Performance
-**Learning:** Using `.slice().map()` creates intermediate array allocations that increase garbage collection overhead.
-**Action:** Used `Array.from` with direct index access (`artistIds[i + j]`) to build chunk promises directly from the original array indices, decreasing intermediate allocations while honoring max concurrency limits for subrequests.
-
-## 2024-05-19 - Object.values().reduce() optimization in e2e mocks and index.ts
-**Learning:** `Object.values(obj).reduce(...)` creates an intermediate array of values before performing the reduction. When this pattern is used multiple times (or in a hot path) to sum up fields from an object, the overhead of array allocation and iteration via `reduce` can be significantly higher than a simple `for...in` loop directly accumulating the values.
-**Action:** Replaced `Object.values(breakdown).reduce(...)` with a direct `for...in` loop in `src/index.ts` and `e2e/mocks/mock-server.ts` to eliminate intermediate array creation and reduce garbage collection overhead, improving performance.
-## 2025-02-12 - Pre-allocate arrays where length is known
-**Learning:** Initializing an empty array and repeatedly calling `.push()` in a tight loop forces the JS engine to dynamically reallocate and resize the array backing buffer, which creates garbage collection pressure and increases overhead.
-**Action:** When mapping over items and creating an array (like iterating over a `Map`), pre-allocate the array if the exact final size is known (e.g. `new Array(map.size)`) and assign items by index.
-## 2024-05-18 - [Chunked Promise.all for parallel reads] **Learning:** [Instead of array.slice().map(), using Array.from with length allows for direct index-based chunking which reduces intermediate array allocations, hence less garbage collection overhead in hot loops] **Action:** [Refactored chunked array iteration in getAdminUsersList to use Array.from for parallel KV reads.]
-
-## 2025-02-23 - PERF-031 FIX: Pass full array and let getArtists handle parallelization instead of sequential awaits
-**Learning:** `getArtists` natively parallelizes requests. Passing a pre-sliced array to `getArtists` prevents the function from parallelizing the fetches, forcing the caller to handle slicing manually, which often leads to sequential awaiting of slices or missing items.
-**Action:** Removed `.slice(0, 500)` when calling `getArtists` in `src/routes/api.ts` to allow `getArtists` to handle parallelization internally.
-## 2024-05-24 - Parallel KV Reads in Leaderboard **Learning:** Using `Promise.all` directly with an array map approach avoids unnecessary sequential initialization loops for KV reads, preventing performance bottlenecks in leaderboard generation. **Action:** Refactored `buildLeaderboard` in `src/lib/session.ts` to use `Promise.all` with `Array.from()` for both pioneer and new user reads, improving concurrent fetching capabilities without introducing complex batching logic.
-
-## 2024-06-25 - [Optimize loop to convert Map to Array] **Learning:** Using Array.from directly on a Map, with a mapping function, is actually slower in Node 22 (V8 engine) than a traditional loop-and-push, but is structurally cleaner and is the required architectural approach.] **Action:** [Updated the loop at src/routes/api.ts:490 to use Array.from with a mapping function.]
-## 2023-10-27 - Improve parallel reads memory efficiency **Learning:** Intermediate array allocations in small, fixed-size iterations (like building an array of promises) can introduce unnecessary garbage collection overhead when native loops can handle the logic directly. **Action:** Refactored multiple mapped array creations (`Array.from`, `map`) into a single standard `for` loop to directly construct the Promise array for parallel processing.
-## 2024-05-18 - Loop Optimization: Inefficient loop building array from map **Learning:** When converting a Map's key/value pairs to an Array, using Array.from directly on the Map (or using `Map.prototype.entries()`) and passing a mapFn avoids the overhead of manual array pushing in a for-of loop and creates more idiomatic code, though V8's optimization makes the performance difference negligible in many simple cases. **Action:** Refactored multiple instances of `const genres = []; for (const [name, data] of genreData) { ... }` in `src/routes/api.ts` to `const genres = Array.from(genreData, ([name, data]) => ({ ... }))`.
-## 2024-05-20 - [Replacing Spread on Set iterators with standard loops]
-**Learning:** Using spread syntax (`[...set]`) to convert a Set into an array creates intermediate arrays and increases garbage collection overhead, especially when done in a tight loop.
-**Action:** Replace `[...set]` with a pre-initialized array (`const arr = []`) and a `for...of` loop over the Set that pushes elements directly to the array. This avoids intermediate allocations and reduces memory pressure.
-
-## 2026-09-14 - [Eliminating Intermediate Arrays and Array.prototype.reduce() Overhead]
-**Learning:** Using `.reduce()` combined with intermediate arrays from `.map()` and `Promise.all()` in chunked iteration creates unnecessary memory allocations and function call overhead, impacting performance. Directly accumulating counts using `for` loops and a typed Promise array (`Promise<number>[]`) prevents these allocations and improves execution speed significantly (measured ~3x speedup in isolated tests).
-**Action:** Replace `results.reduce((sum, count) => sum + count, 0)` on intermediate arrays with a standard `for` loop that directly accumulates the values from `chunkResults` in hot paths and batch operations.
-## 2025-02-14 - Optimize promise arrays for memory efficiency
-**Learning:** Initializing intermediate arrays for `Promise.all` can increase garbage collector pressure due to unnecessary inner-loop closures and dynamic `.push()` allocations, especially in large iterations.
-**Action:** Used `Array.from()` to construct array iterations optimally in parallel map tasks in `src/routes/api.ts`, and appending `.catch(() => null)` to handle rejected promises silently across array processing iterations.
-## 2023-10-26 - O(1) Reverse-Lookup Index for HoF Deletion
-**Learning:** Scanning all KV records to find a user's Hall of Fame entry during deletion requires O(N) concurrent KV reads, leading to unnecessary operations and latency.
-**Action:** Implemented a reverse-lookup index (`hof_index:spotifyId` -> `hofKey`) in `src/routes/auth.ts` which is populated upon HoF entry creation. Refactored the HoF scan in `src/routes/api.ts` to use a single O(1) lookup against this index, reducing latency from ~255ms to ~5ms for 10,000 iterations in local testing.
-## 2024-05-15 - Optimize cache cleanup by eliminating N+1 KV reads **Learning:** Reading from KV in a loop just to check expiration times is highly inefficient and creates an N+1 query problem. Storing expiration timestamps in KV metadata allows for fast filtering during `kv.list()` operations. **Action:** Updated the KV wrapper to support metadata and modified `cleanupOldArtistGenreCache` to check expiration times using metadata, bypassing `cachedKV.get()` entirely for entries with metadata.
-## 2026-09-24 - Optimize LRU Cache Eviction **Learning:** JavaScript Map objects maintain insertion order. By deleting and re-inserting elements on access, the Map implicitly becomes an LRU cache where the oldest element is the first item. **Action:** Refactored `evictOldest` from O(N) iteration to O(1) by accessing `map.keys().next().value` and updating Map insertion order on `get` and `set`.
-## 2025-10-18 - Avoid slice().map() in artist-genre-cache chunking
-**Learning:** Using `.slice(i, i + size).map(...)` allocates intermediate arrays that create unnecessary garbage collection overhead when batching operations into `Promise.all()` over large sets.
-**Action:** Use `Array.from({ length: size }, (_, j) => process(array[i + j]))` to directly generate chunks for Cloudflare KV batch requests, avoiding intermediate allocations.
+## 2025-02-12 - Eliminate intermediate array allocations via Array.from over slice().map()
+**Learning:** Using `array.slice().map()` creates intermediate arrays that increase garbage collection overhead, especially when chunking data for `Promise.all()` in tight loops.
+**Action:** Replace `.slice().map()` with `Array.from({ length: size }, (_, j) => array[start + j])` to directly construct the promised elements array without intermediate allocations.
 
 ## 2025-05-25 - [Optimize Set to Array Conversion]
 **Learning:** Using `Array.from(set)` is noticeably more performant (~40% faster) than using the spread syntax `[...set]` for converting Sets to Arrays in Node.js. It avoids intermediate array allocations and dynamic resizing by knowing the Set's size upfront.
 **Action:** Replaced spread syntax `[...set]` with `Array.from(set)` when converting `artistIds` Sets to arrays in `src/routes/api.ts` and `src/lib/spotify.ts`.
+
 ## 2025-05-26 - Eliminate array allocation for Map eviction
 **Learning:** When evicting the oldest entries from a `Map` (like in a rate limiter), converting the entire Map to an array with `push` and then calling `sort` is O(N log N) and creates intermediate allocations. Because JavaScript `Map` iterators yield elements in insertion order (FIFO), you can achieve O(K) eviction without arrays by directly iterating over `map.keys()` and deleting the required number of entries.
 **Action:** Replaced the array conversion, push loop, and sort operation in `rateLimitMap` eviction with a simple loop over `rateLimitMap.keys()` that deletes elements directly.
-## 2025-02-18 - [Eliminate intermediate array allocations via Array.from over slice().map()] **Learning:** Using `array.slice().map()` creates intermediate arrays that increase garbage collection overhead, especially when chunking data for `Promise.all()` in tight loops. **Action:** Replace `.slice().map()` with `Array.from({ length: size }, (_, j) => array[start + j])` to directly construct the promised elements array without intermediate allocations.
+
 ## YYYY-MM-DD - Removed O(N) User Playlist Fetch on Single Playlist Creation
 **Learning:** Checking for duplicate playlists by fetching all of a user's playlists (up to 200) via multiple Spotify API pagination requests adds massive latency (1-2s) to single playlist creation. Since Spotify naturally allows duplicate playlist names and the frontend logic gracefully handles success regardless, this check is an unnecessary overhead.
 **Action:** Removed the `getUserPlaylists` check from the single playlist creation endpoint in `api.ts`, relying on Spotify's default behavior and saving multiple subrequest hits to the Cloudflare Worker, reducing response latency by >60%.
@@ -178,15 +17,19 @@
 ## YYYY-MM-DD - Optimize Array Push in buildScoreboard
 **Learning:** Using `Array.prototype.push(...items)` inside a loop over a large dataset creates performance bottlenecks and dynamic reallocation overhead.
 **Action:** Pre-allocated a fixed-size array (`new Array<UserStats>(keys.length)`) and assigned items individually using an index tracker (`allStats[statsCount++] = stats`). Truncated the array at the end (`allStats.length = statsCount`) to handle filtered items.
+
 ## 2025-05-27 - Parallelize KV Read Batch Loops
 **Learning:** A sequential `for` loop that awaits `Promise.all` inside the loop iterates synchronously through batches. This misses the opportunity for the underlying I/O layers (like Cloudflare Workers' subrequest fetching) to execute batches concurrently, significantly increasing end-to-end latency for large sets.
 **Action:** Refactored a sequential chunked loop for session deletion into parallel nested `Array.from` iterations, mapping to batch promises first and awaiting them collectively at the end via `Promise.all(batchPromises)`.
-## YYYY-MM-DD - [Optimize caching array by leveraging built-in JSON parsing] **Learning:** [Calling JSON.parse in a tight loop manually when the kv storage mechanism supports built-in type coercion with 'json' parameter is wasteful] **Action:** [Replaced manual stringification parsing with the built-in json parser logic of Cloudflare KV store via `kv.get<T>(key, 'json')`]
-## YYYY-MM-DD - Replace for...in loop with Object.keys **Learning:** for...in loops are slower in V8 than Object.keys iteration because they need to check the object's prototype chain. **Action:** Refactored a for...in loop in `/admin/kv-monitor` to use Object.keys and a standard for loop for faster iteration.
+
+## YYYY-MM-DD - Replace for...in loop with Object.keys
+**Learning:** for...in loops are slower in V8 than Object.keys iteration because they need to check the object's prototype chain.
+**Action:** Refactored a for...in loop in `/admin/kv-monitor` to use Object.keys and a standard for loop for faster iteration.
 
 ## YYYY-MM-DD - Remove Duplicate API Call to Get Library Size
 **Learning:** We saved a roundtrip to Spotify API by storing `totalInLibrary` in KV cache alongside other chunk metadata. This limits API latency during cache hits.
 **Action:** Added `totalInLibrary` to `ChunkCacheData` interface and updated cache write/read operations to use the stored value.
+
 ## YYYY-MM-DD - Optimize Map eviction loop
 **Learning:** Moving loop counters inside exit condition evaluations and utilizing prefix increment operators can modestly improve inner loop speed by reducing instruction count per iteration.
 **Action:** Refactored rate limiter eviction loop in src/routes/api.ts to use `if (++removed >= entriesToRemove) break;`.
@@ -194,28 +37,51 @@
 ## YYYY-MM-DD - Suboptimal Map Iteration for Bulk Duplicate Playlist Check
 **Learning:** Using a \`for...of\` loop to iterate over arrays requires iterator instantiation which adds overhead, especially when iterating over large datasets or creating Sets in bulk operations.
 **Action:** Replaced the \`for...of\` loop with a standard \`for\` loop in \`src/routes/api.ts\` when converting \`existingPlaylists\` to a \`Set\` to improve performance by directly accessing array indices.
-## YYYY-MM-DD - [Pre-allocate Arrays in loops] **Learning:** Pre-allocating array size with `new Array(length)` avoids array resizing and improves loop execution speed instead of using `push`. **Action:** Use pre-allocation wherever array size is known ahead of time.
+
+## YYYY-MM-DD - [Pre-allocate Arrays in loops]
+**Learning:** Pre-allocating array size with `new Array(length)` avoids array resizing and improves loop execution speed instead of using `push`.
+**Action:** Use pre-allocation wherever array size is known ahead of time.
+
 ## 2025-02-12 - ⚡ Bolt: Eliminate intermediate array allocations when chunking batch requests
 **Learning:** Using `.slice().map()` when breaking down bulk array processing into chunks causes unnecessary memory allocations and subsequent garbage collection overhead for intermediate arrays.
 **Action:** Replaced `.slice(i, i + BATCH_SIZE).map(...)` with `Array.from({ length: size }, (_, j) => ...)` and indexed into the original array `array[i + j]` to avoid creating temporary array structures entirely in `src/lib/spotify.ts` for operations like batch playlist or track requests.
+
 ## 2025-05-26 - [Optimize array find in loop to Map lookup]
 **Learning:** Using `array.find` inside a loop results in an O(N^2) operation, which scales poorly when both the loop array and target array grow. Pre-computing a Map turns this into an O(N) operation.
 **Action:** Refactored loops finding items in `genreData.genres` in `src/frontend/app.js` by first creating a `genreMap` map, enabling O(1) lookups during iteration.
+
 ## YYYY-MM-DD - [Eliminating O(N^2) array.indexOf inside batch loop]
 **Learning:** Using `array.indexOf(item)` inside a loop over the same (or parallel) array to find the current item's index creates an O(N^2) operation. When processing batches, this scales poorly and increases execution time.
 **Action:** Replaced `results.indexOf(result)` with a standard `for` loop index `j` to access both `result` and `chunk[j]` in O(N) time in `src/lib/error-handler.ts`.
-## YYYY-MM-DD - [O(N^2) Bottleneck in Array Processing] **Learning:** [Using Array.prototype.indexOf() inside a for...of loop over a parallel array creates an O(N^2) bottleneck, which is particularly bad for batch processing large arrays.] **Action:** [Use a standard for loop with an index variable for O(1) direct element access when correlating items between parallel arrays.]
 
-## YYYY-MM-DD - [Parallelize Hall of Fame Fetches] **Learning:** [Sequential awaits in a loop create a waterfall effect for I/O bound operations (like KV fetching). Replacing it with Promise.all reduces network latency linearly in relation to the number of operations.] **Action:** [Replaced sequential KV fetches in the '/stats' endpoint with a concurrent Promise.all implementation in src/index.ts.]
+## YYYY-MM-DD - [O(N^2) Bottleneck in Array Processing]
+**Learning:** [Using Array.prototype.indexOf() inside a for...of loop over a parallel array creates an O(N^2) bottleneck, which is particularly bad for batch processing large arrays.]
+**Action:** [Use a standard for loop with an index variable for O(1) direct element access when correlating items between parallel arrays.]
+
+## YYYY-MM-DD - [Parallelize Hall of Fame Fetches]
+**Learning:** [Sequential awaits in a loop create a waterfall effect for I/O bound operations (like KV fetching). Replacing it with Promise.all reduces network latency linearly in relation to the number of operations.]
+**Action:** [Replaced sequential KV fetches in the '/stats' endpoint with a concurrent Promise.all implementation in src/index.ts.]
+
 ## YYYY-MM-DD - Optimize O(N^2) array find to O(1) map lookup in HoF loop
 **Learning:** Using Array.prototype.find inside a loop creates an O(N^2) operation. Converting the array into a Map beforehand provides O(1) lookup, significantly reducing time complexity.
 **Action:** Replaced users.find() with a pre-built userMap.get() lookup in the fetchHoFUsers loop, yielding an ~12x performance improvement in benchmarks.
+
 ## YYYY-MM-DD - Clean up unused fields after algorithm changes
 **Learning:** When switching algorithms (like moving from a timestamp-based O(N) LRU eviction to an insertion-order-based O(1) LRU eviction using JavaScript Maps), old fields (like `lastAccessed`) often become dead code. Removing them improves memory footprint and code clarity.
 **Action:** Removed the unused `lastAccessed` field from `CacheEntry` and its update points in `src/lib/kv-cache.ts` after verifying that `evictOldest` solely relies on Map insertion order.
+
 ## YYYY-MM-DD - [O(N^2) Bottleneck in Error Handler]
 **Learning:** Using Array.prototype.indexOf() inside a loop to find the original item from a settled Promise array creates an O(N^2) bottleneck, especially on large batches in processBatch().
 **Action:** Always use an explicit indexed for loop (e.g., for (let j = 0; j < results.length; j++)) to directly access the corresponding item in the parallel chunk array instead of looking it up with indexOf.
 
-## 2025-05-25 - [O(N^2) Array find bottleneck in KV write error handling] **Learning:** `Array.prototype.indexOf()` inside a `for...of` loop over a parallel array causes an O(N^2) bottleneck. **Action:** Refactored to use a standard `for` loop with an index variable to access elements directly in O(N) time.
-## YYYY-MM-DD - [Optimize LRU Cache Update for Rate Limiter] **Learning:** [JavaScript Map objects maintain insertion order. By deleting and re-inserting elements on access, the Map implicitly becomes an LRU cache where the oldest element is the first item.] **Action:** [Refactored rate limiter in `src/routes/api.ts` to delete and re-insert keys on access to maintain LRU order naturally for O(1) eviction without arrays.]
+## 2025-05-25 - [O(N^2) Array find bottleneck in KV write error handling]
+**Learning:** `Array.prototype.indexOf()` inside a `for...of` loop over a parallel array causes an O(N^2) bottleneck.
+**Action:** Refactored to use a standard `for` loop with an index variable to access elements directly in O(N) time.
+
+## YYYY-MM-DD - [Optimize LRU Cache Update for Rate Limiter]
+**Learning:** [JavaScript Map objects maintain insertion order. By deleting and re-inserting elements on access, the Map implicitly becomes an LRU cache where the oldest element is the first item.]
+**Action:** [Refactored rate limiter in `src/routes/api.ts` to delete and re-insert keys on access to maintain LRU order naturally for O(1) eviction without arrays.]
+
+## 2025-11-18 - ⚡ Bolt: Eliminate intermediate array allocations in array aggregations
+**Learning:** Using the spread operator with `.filter()` inside an array `.push()` (e.g., `arr.push(...subArr.filter(Boolean))`) creates intermediate array allocations and can risk maximum call stack size exceeded errors for large arrays.
+**Action:** Replace `...array.filter()` with a standard O(N) indexed `for` loop that iterates over the elements and conditionally pushes them to the target array, reducing memory overhead and garbage collection pauses.
