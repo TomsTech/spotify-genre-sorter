@@ -11057,7 +11057,7 @@ export function getHtml(nonce: string): string {
 
           // Update album art
           if (data.track.albumArt) {
-            artEl.src = data.track.albumArt; // DOM property expects raw string, DO NOT use escapeHtml
+            artEl.src = getSafeUrl(data.track.albumArt); // DOM property expects raw string, DO NOT use escapeHtml
             artEl.alt = data.track.album;
           }
 
@@ -14387,7 +14387,7 @@ export function getHtml(nonce: string): string {
             existingTooltip.querySelector('.now-playing-artists').textContent = data.track.artists;
             const img = existingTooltip.querySelector('.now-playing-album-art');
             if (data.track.albumArt) {
-              img.src = data.track.albumArt; // DOM property expects raw string, DO NOT use escapeHtml
+              img.src = getSafeUrl(data.track.albumArt); // DOM property expects raw string, DO NOT use escapeHtml
               img.style.display = '';
             } else {
               img.style.display = 'none';
@@ -14978,7 +14978,10 @@ export function getHtml(nonce: string): string {
             location.reload(true);
           } else if (onclickAttr.includes('location.href')) {
             const hrefMatch = onclickAttr.match(/location\\.href\\s*=\\s*['"]([^'"]+)['"]/);
-            if (hrefMatch) location.href = hrefMatch[1];
+            if (hrefMatch) {
+              const safeUrl = getSafeUrl(hrefMatch[1]);
+              if (safeUrl !== '#') location.href = safeUrl;
+            }
           } else if (onclickAttr.includes('.closest(') && onclickAttr.includes('.remove()')) {
             // Handle: this.closest('.selector').remove()
             const selectorMatch = onclickAttr.match(/\\.closest\\s*\\(\\s*['"]([^'"]+)['"]\\s*\\)/);
