@@ -66,7 +66,7 @@
             <summary>\${swedishMode ? 'Tekniska detaljer' : 'Technical details'}</summary>
             <pre class="error-boundary-stack">\${escapeForHtml(errorInfo.message)}\\n\\n\${escapeForHtml(errorInfo.stack || 'No stack trace')}</pre>
           </details>
-          <button class="btn btn-ghost error-dismiss-btn" onclick="this.closest('.error-boundary-overlay').remove()">
+          <button class="btn btn-ghost error-dismiss-btn" onclick="this.closest('.error-boundary-overlay').remove()" aria-label="\${swedishMode ? 'Avfärda felmeddelande' : 'Dismiss error message'}">
             \${swedishMode ? 'Avfärda' : 'Dismiss'}
           </button>
         </div>
@@ -128,7 +128,7 @@
           '<label for="prompt-input" class="sr-only">' + (swedishMode ? 'Ange namn' : 'Enter name') + '</label>',
           '<input type="text" class="prompt-input" id="prompt-input" value="' + escapeForHtml(defaultValue) + '" maxlength="100" aria-label="' + (swedishMode ? 'Ange namn' : 'Enter name') + '">',
           '<div class="prompt-buttons">',
-          '  <button class="btn btn-ghost" id="prompt-cancel">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
+          '  <button class="btn btn-ghost" id="prompt-cancel" aria-label="' + (swedishMode ? 'Avbryt och stäng' : 'Cancel and close') + '">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
           '  <button class="btn btn-primary" id="prompt-confirm">' + (swedishMode ? 'OK' : 'OK') + '</button>',
           '</div>',
         ].join('\\n');
@@ -330,7 +330,7 @@
       toolbar.innerHTML = [
         '<span class="merge-count">' + genresToMerge.size + (swedishMode ? ' genrer valda' : ' genres selected') + '</span>',
         '<span>(' + totalTracks + (swedishMode ? ' låtar totalt)' : ' tracks total)') + '</span>',
-        '<button class="btn btn-ghost btn-sm" onclick="cancelMerge()">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
+        '<button class="btn btn-ghost btn-sm" onclick="cancelMerge()" aria-label="' + (swedishMode ? 'Avbryt ihopslagning' : 'Cancel merge') + '">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
         '<button class="btn btn-primary btn-sm" onclick="showMergeModal()">' + (swedishMode ? '📦 Slå ihop' : '📦 Merge') + '</button>',
       ].join('');
     }
@@ -383,7 +383,7 @@
         '    <div class="merge-total">' + (swedishMode ? 'Totalt:' : 'Total:') + ' ' + totalTracks + ' ' + (swedishMode ? 'låtar' : 'tracks') + '</div>',
         '  </div>',
         '  <div class="modal-actions">',
-        '    <button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
+        '    <button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()" aria-label="' + (swedishMode ? 'Avbryt och stäng' : 'Cancel and close') + '">' + (swedishMode ? 'Avbryt' : 'Cancel') + '</button>',
         '    <button class="btn btn-primary" onclick="createMergedPlaylist()">' + (swedishMode ? '🎵 Skapa spellista' : '🎵 Create Playlist') + '</button>',
         '  </div>',
         '</div>',
@@ -1036,7 +1036,7 @@
                     <td style="padding: 0.75rem;">${(ns.totalSize / 1024).toFixed(2)} KB</td>
                     <td style="padding: 0.75rem;">${ns.avgSize} bytes</td>
                     <td style="padding: 0.75rem;">
-                      <button class="btn btn-ghost btn-sm" onclick="browseKVKeys('${ns.prefix}', '${ns.name}')">
+                      <button class="btn btn-ghost btn-sm" onclick="browseKVKeys('${ns.prefix}', '${ns.name}')" aria-label="Browse KV keys for ${ns.name}">
                         🔍 Browse
                       </button>
                     </td>
@@ -1131,7 +1131,7 @@
           <div class="admin-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
               <h3>🗄️ Keys in "\${escapeHtml(namespaceName)}"</h3>
-              <button class="btn btn-ghost btn-sm" onclick="document.querySelector('[data-tab=kv]').click()">
+              <button class="btn btn-ghost btn-sm" onclick="document.querySelector('[data-tab=kv]').click()" aria-label="Back to KV Monitor">
                 ← Back to KV Monitor
               </button>
             </div>
@@ -3612,7 +3612,7 @@
             </div>
 
             <div class="modal-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end;">
-              <button class="btn btn-ghost" id="source-cancel">\${swedishMode ? 'Avbryt' : 'Cancel'}</button>
+              <button class="btn btn-ghost" id="source-cancel" aria-label="\${swedishMode ? 'Avbryt och stäng' : 'Cancel and close'}">\${swedishMode ? 'Avbryt' : 'Cancel'}</button>
               <button class="btn btn-primary" id="source-confirm">
                 \${swedishMode ? '🔍 Börja analysera' : '🔍 Start Analysis'}
               </button>
@@ -4965,7 +4965,7 @@
         '    </div>',
         '  </div>',
         '  <div class="customise-footer">',
-        '    <button class="btn btn-ghost" onclick="this.closest(\\'.customise-modal\\').remove()">',
+        '    <button class="btn btn-ghost" onclick="this.closest(\\'.customise-modal\\').remove()" aria-label="' + (swedishMode ? 'Avbryt och stäng' : 'Cancel and close') + '">',
         '      ' + (swedishMode ? 'Avbryt' : 'Cancel'),
         '    </button>',
         '    <button class="btn btn-primary" id="create-custom-btn">',
@@ -5092,7 +5092,7 @@
           </div>
 
           <div class="modal-actions">
-            <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">
+            <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()" aria-label="\${swedishMode ? 'Avbryt och stäng' : 'Cancel and close'}">
               \${swedishMode ? 'Avbryt' : 'Cancel'}
             </button>
             <button class="btn btn-primary" id="create-customized-btn">
@@ -5233,7 +5233,7 @@
               : \`New: \${newCount} tracks, Existing: \${existingCount} tracks\`}
           </p>
           <div class="modal-actions">
-            <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">
+            <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()" aria-label="\${swedishMode ? 'Avbryt och stäng' : 'Cancel and close'}">
               \${swedishMode ? 'Avbryt' : 'Cancel'}
             </button>
             <button class="btn btn-primary" onclick="createPlaylistForce('\${genre.name.replace(/'/g, "\\\\'")}'); this.closest('.modal-overlay').remove();">
@@ -5638,7 +5638,7 @@
             </div>
           \`).join('')}
         </div>
-        <button class="btn btn-ghost" onclick="this.closest('.keyboard-help-overlay').remove()">
+        <button class="btn btn-ghost" onclick="this.closest('.keyboard-help-overlay').remove()" aria-label="\${swedishMode ? 'Stäng tangentbordsgenvägar' : 'Close keyboard shortcuts'}">
           \${swedishMode ? 'Stäng' : 'Close'}
         </button>
       \`;
@@ -7692,7 +7692,7 @@
         '  <p class="artist-breakdown-subtitle">' + (swedishMode ? 'Topp artister i denna genre' : 'Top artists in this genre') + '</p>',
         '  <div class="artist-breakdown-list">' + (artistList || '<p>' + (swedishMode ? 'Ingen artistdata tillgänglig' : 'No artist data available') + '</p>') + '</div>',
         '  <div class="modal-actions">',
-        '    <button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">' + (swedishMode ? 'Stäng' : 'Close') + '</button>',
+        '    <button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()" aria-label="' + (swedishMode ? 'Stäng modal' : 'Close modal') + '">' + (swedishMode ? 'Stäng' : 'Close') + '</button>',
         '  </div>',
         '</div>'
       ].join('');
@@ -8125,7 +8125,7 @@
         '    <button class="btn btn-secondary wrapped-copy" onclick="copyWrappedToClipboard()">',
         '      ' + (swedishMode ? '📋 Kopiera' : '📋 Copy') + '',
         '    </button>',
-        '    <button class="btn btn-ghost wrapped-share-social" onclick="shareWrappedNative()">',
+        '    <button class="btn btn-ghost wrapped-share-social" onclick="shareWrappedNative()" aria-label="' + (swedishMode ? 'Dela resultat' : 'Share result') + '">',
         '      ' + (swedishMode ? '📤 Dela' : '📤 Share') + '',
         '    </button>',
         '  </div>',

@@ -28,3 +28,6 @@
 ## YYYY-MM-DD - Async UI Feedback
 **Learning:** Users lack immediate visual feedback on long-running async actions (like inviting users), which can make the app appear unresponsive. Appending a spinning loader to the button's HTML effectively mitigates this without modifying structural CSS.
 **Action:** Added inline HTML `<span class="spinner spinner-small">` alongside text changes when a button's `disabled` state is activated during async operations.
+## 2025-05-18 - Accessibility improvements for functionally opaque generic buttons
+**Learning:** Discovered multiple functional buttons (e.g., 'Cancel', 'Close') that were contextually clear to sighted users based on their position in a modal, but lacked specific `aria-label` attributes. Screen readers would simply read "Cancel", which can be confusing out of visual context.
+**Action:** When adding functional buttons within specific UI components like modals or overlays, always provide an `aria-label` that includes the context of the action (e.g., "Cancel and close modal", "Dismiss error message").
