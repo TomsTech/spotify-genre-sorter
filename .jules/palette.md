@@ -28,3 +28,4 @@
 ## YYYY-MM-DD - Async UI Feedback
 **Learning:** Users lack immediate visual feedback on long-running async actions (like inviting users), which can make the app appear unresponsive. Appending a spinning loader to the button's HTML effectively mitigates this without modifying structural CSS.
 **Action:** Added inline HTML `<span class="spinner spinner-small">` alongside text changes when a button's `disabled` state is activated during async operations.
+## 2026-11-05 - Add Empty State for Search\n**Learning:** The genre search input lacked an empty state when no genres matched the user's query, leaving an unhelpful empty block instead of direct feedback. Users need explicit feedback when an action (like searching) yields zero results.\n**Action:** When filtering lists locally, always handle the edge case of 0 results and render a localized empty state message (e.g., using existing '.admin-empty' styles) instead of just clearing the container.
