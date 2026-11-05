@@ -1549,9 +1549,10 @@ api.get('/listening', async (c) => {
       const dataPromises = Array.from({ length: size }, async (_, j) => {
         const key = list.keys[i + j];
         try {
-          const data = await kv.get(key.name);
+          // ⚡ Bolt: Use built-in 'json' type to avoid JS string allocation and JSON.parse overhead
+          const data = await kv.get<ListeningEntry>(key.name, 'json');
           if (data) {
-            return JSON.parse(data) as ListeningEntry;
+            return data;
           }
         } catch { /* skip malformed entries */ }
         return null;
@@ -2307,16 +2308,16 @@ async function fetchRegularUsers(kv: KVNamespace, seenIds: Set<string>, users: A
     const dataPromises = Array.from({ length: size }, async (_, j) => {
       const key = userStatsList.keys[i + j];
       try {
-        const statsJson = await kv.get(key.name);
-        if (statsJson) {
-          const stats = JSON.parse(statsJson) as {
-            spotifyId: string;
-            spotifyName: string;
-            spotifyAvatar?: string;
-            playlistsCreated?: number;
-            firstSeen?: string;
-            lastActive?: string;
-          };
+        // ⚡ Bolt: Use built-in 'json' type to avoid JS string allocation and JSON.parse overhead
+        const stats = await kv.get<{
+          spotifyId: string;
+          spotifyName: string;
+          spotifyAvatar?: string;
+          playlistsCreated?: number;
+          firstSeen?: string;
+          lastActive?: string;
+        }>(key.name, 'json');
+        if (stats) {
           return {
             spotifyId: stats.spotifyId,
             spotifyName: stats.spotifyName || 'Unknown',
@@ -2482,9 +2483,9 @@ api.delete('/admin/user/:spotifyId', async (c) => {
     const sessionPromises = Array.from({ length: chunkSize }, async (_, j) => {
       const key = sessionsList.keys[i + j];
       try {
-        const sessionJson = await kv.get(key.name);
-        if (sessionJson) {
-          const sessionData = JSON.parse(sessionJson) as { spotifyUserId?: string };
+        // ⚡ Bolt: Use built-in 'json' type to avoid JS string allocation and JSON.parse overhead
+        const sessionData = await kv.get<{ spotifyUserId?: string }>(key.name, 'json');
+        if (sessionData) {
           if (sessionData.spotifyUserId === spotifyId) {
             await cachedKV.delete(kv, key.name);
             return key.name;
@@ -2699,8 +2700,8 @@ api.post('/request-access', async (c) => {
 
     // Also add to a list for easy admin review
     const listKey = 'access_requests_list';
-    const existingList = await kv.get(listKey);
-    const list: string[] = existingList ? JSON.parse(existingList) as string[] : [];
+    // ⚡ Bolt: Use built-in 'json' type to avoid JS string allocation and JSON.parse overhead
+    const list: string[] = (await kv.get<string[]>(listKey, 'json')) || [];
     if (!list.includes(email.toLowerCase())) {
       list.push(email.toLowerCase());
       await kv.put(listKey, JSON.stringify(list));
@@ -2723,8 +2724,8 @@ api.get('/admin/access-requests', async (c) => {
 
   const kv = c.env.SESSIONS;
   const listKey = 'access_requests_list';
-  const existingList = await kv.get(listKey);
-  const emails: string[] = existingList ? JSON.parse(existingList) as string[] : [];
+  // ⚡ Bolt: Use built-in 'json' type to avoid JS string allocation and JSON.parse overhead
+  const emails: string[] = (await kv.get<string[]>(listKey, 'json')) || [];
 
   const requests: AccessRequest[] = [];
   const BATCH_SIZE = 40;
