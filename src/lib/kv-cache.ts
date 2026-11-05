@@ -181,11 +181,11 @@ export const cachedKV = {
     // Read from KV
     metrics.cacheMisses++;
     metrics.reads++;
-    const data = await kv.get(key);
-    if (!data) return null;
-
     try {
-      const parsed = JSON.parse(data) as T;
+      // ⚡ Bolt: Use built-in 'json' type to avoid JS string allocation and JSON.parse overhead
+      const parsed = await kv.get<T>(key, 'json');
+      if (parsed === null) return null;
+
       // Store in memory cache
       memoryCache.set(key, parsed, options?.cacheTtlMs);
       return parsed;

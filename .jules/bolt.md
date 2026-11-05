@@ -219,3 +219,7 @@
 
 ## 2025-05-25 - [O(N^2) Array find bottleneck in KV write error handling] **Learning:** `Array.prototype.indexOf()` inside a `for...of` loop over a parallel array causes an O(N^2) bottleneck. **Action:** Refactored to use a standard `for` loop with an index variable to access elements directly in O(N) time.
 ## YYYY-MM-DD - [Optimize LRU Cache Update for Rate Limiter] **Learning:** [JavaScript Map objects maintain insertion order. By deleting and re-inserting elements on access, the Map implicitly becomes an LRU cache where the oldest element is the first item.] **Action:** [Refactored rate limiter in `src/routes/api.ts` to delete and re-insert keys on access to maintain LRU order naturally for O(1) eviction without arrays.]
+
+## $(date +%Y-%m-%d) - [Optimize caching array by leveraging built-in JSON parsing]
+**Learning:** Calling `JSON.parse` in a tight loop manually when the Cloudflare KV storage mechanism supports built-in type coercion with the `'json'` parameter is wasteful. Manually parsing strings from KV results in unnecessary Javascript string allocation and V8 deserialization overhead.
+**Action:** Replaced manual stringification parsing (`JSON.parse(await kv.get(key))`) with the built-in json parser logic of Cloudflare KV store via `await kv.get<T>(key, 'json')`.
