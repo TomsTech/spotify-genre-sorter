@@ -1549,9 +1549,10 @@ api.get('/listening', async (c) => {
       const dataPromises = Array.from({ length: size }, async (_, j) => {
         const key = list.keys[i + j];
         try {
-          const data = await kv.get(key.name);
+          // ⚡ Bolt: Use native JSON parsing in KV get for performance
+          const data = await kv.get<ListeningEntry>(key.name, 'json');
           if (data) {
-            return JSON.parse(data) as ListeningEntry;
+            return data;
           }
         } catch { /* skip malformed entries */ }
         return null;
@@ -2307,16 +2308,16 @@ async function fetchRegularUsers(kv: KVNamespace, seenIds: Set<string>, users: A
     const dataPromises = Array.from({ length: size }, async (_, j) => {
       const key = userStatsList.keys[i + j];
       try {
-        const statsJson = await kv.get(key.name);
-        if (statsJson) {
-          const stats = JSON.parse(statsJson) as {
-            spotifyId: string;
-            spotifyName: string;
-            spotifyAvatar?: string;
-            playlistsCreated?: number;
-            firstSeen?: string;
-            lastActive?: string;
-          };
+        // ⚡ Bolt: Use native JSON parsing in KV get for performance
+        const stats = await kv.get<{
+          spotifyId: string;
+          spotifyName: string;
+          spotifyAvatar?: string;
+          playlistsCreated?: number;
+          firstSeen?: string;
+          lastActive?: string;
+        }>(key.name, 'json');
+        if (stats) {
           return {
             spotifyId: stats.spotifyId,
             spotifyName: stats.spotifyName || 'Unknown',
@@ -2348,14 +2349,15 @@ async function fetchHoFUsers(kv: KVNamespace, seenIds: Set<string>, users: Admin
     const hofPromises = Array.from({ length: size }, async (_, j) => {
       const key = hofKeys[i + j];
       try {
-        const hofJson = await kv.get(key);
-        if (hofJson) {
-          return JSON.parse(hofJson) as {
-            spotifyId: string;
-            spotifyName: string;
-            spotifyAvatar?: string;
-            registeredAt?: string;
-          };
+        // ⚡ Bolt: Use native JSON parsing in KV get for performance
+        const hofUser = await kv.get<{
+          spotifyId: string;
+          spotifyName: string;
+          spotifyAvatar?: string;
+          registeredAt?: string;
+        }>(key, 'json');
+        if (hofUser) {
+          return hofUser;
         }
       } catch { /* skip malformed entries */ }
       return null;
@@ -2482,9 +2484,9 @@ api.delete('/admin/user/:spotifyId', async (c) => {
     const sessionPromises = Array.from({ length: chunkSize }, async (_, j) => {
       const key = sessionsList.keys[i + j];
       try {
-        const sessionJson = await kv.get(key.name);
-        if (sessionJson) {
-          const sessionData = JSON.parse(sessionJson) as { spotifyUserId?: string };
+        // ⚡ Bolt: Use native JSON parsing in KV get for performance
+        const sessionData = await kv.get<{ spotifyUserId?: string }>(key.name, 'json');
+        if (sessionData) {
           if (sessionData.spotifyUserId === spotifyId) {
             await cachedKV.delete(kv, key.name);
             return key.name;
