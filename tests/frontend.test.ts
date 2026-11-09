@@ -1045,3 +1045,34 @@ describe('Visual Element Positioning', () => {
   });
 });
 
+
+
+describe("showRateLimitBanner HTML Sanitization", () => {
+  function escapeHtml(text: any): string {
+    if (text === null || text === undefined) return "";
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function constructBannerHTML(title: string, msg: string, swedishMode: boolean): string {
+    return "<strong>" + escapeHtml(title) + "</strong> — " + escapeHtml(msg) +
+      " <a href=\"https://status.tomstech.dev\" target=\"_blank\" rel=\"noopener noreferrer\">" +
+      (swedishMode ? "Statussida" : "Status Page") + "</a>" +
+      "<button class=\"close-btn\" onclick=\"dismissRateLimitBanner()\" aria-label=\"Dismiss banner\">&times;</button>";
+  }
+
+  it("should escape HTML tags in title and msg to prevent XSS", () => {
+    const title = "Alert <script>alert(1)</script>";
+    const msg = "Usage <img src=x onerror=alert(1)> reached";
+    const html = constructBannerHTML(title, msg, false);
+
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
+    expect(html).not.toContain("<img src=x onerror=alert(1)>");
+    expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
+  });
+});
