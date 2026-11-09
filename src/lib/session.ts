@@ -388,10 +388,9 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
       const key = keys[i + j];
       dataPromises[j] = (async () => {
       try {
-        const data = await kv.get(key.name);
-        if (!data) return null;
-
-        const stats = JSON.parse(data) as UserStats;
+        // ⚡ Bolt: Use built-in 'json' type to avoid JS string allocation and JSON.parse overhead
+        const stats = await kv.get<UserStats>(key.name, 'json');
+        if (!stats) return null;
         // Backfill estimation: if totalTracksInPlaylists is 0 but user has playlists,
         // estimate based on average tracks per playlist
         if ((!stats.totalTracksInPlaylists || stats.totalTracksInPlaylists === 0) && stats.playlistsCreated > 0) {
@@ -505,7 +504,11 @@ export async function buildLeaderboard(kv: KVNamespace): Promise<LeaderboardData
       cachedKV.get<LeaderboardData['newUsers'][number]>(kv, userKeys[i + j].name, { cacheTtlMs: 300000 }).catch(() => null)
     );
     const parsedUsers = await Promise.all(userPromises);
-    recentUsers.push(...parsedUsers.filter((u): u is LeaderboardData['newUsers'][number] => u !== null));
+    // ⚡ Bolt: Eliminate intermediate array allocations via standard indexed for loop over push spread filter
+    for (let j = 0; j < parsedUsers.length; j++) {
+      const u = parsedUsers[j];
+      if (u !== null) recentUsers.push(u);
+    }
   }
 
   // Sort by registeredAt descending and take last 10
@@ -574,10 +577,10 @@ function getDateKey(): string {
 async function getDailyAnalytics(kv: KVNamespace): Promise<AnalyticsData> {
   const dateKey = getDateKey();
   const key = `${ANALYTICS_KEY}:${dateKey}`;
-  const existing = await kv.get(key);
+  // ⚡ Bolt: Use built-in 'json' type to avoid JS string allocation and JSON.parse overhead
+  const data = await kv.get<AnalyticsData>(key, 'json');
 
-  if (existing) {
-    const data = JSON.parse(existing) as AnalyticsData;
+  if (data) {
     // Ensure new fields exist (backwards compatibility)
     data.kvReads = data.kvReads || 0;
     data.kvWrites = data.kvWrites || 0;

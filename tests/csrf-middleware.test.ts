@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { csrfProtection, optionalCsrfProtection } from '../src/lib/csrf-middleware';
+import {
+  csrfProtection,
+  optionalCsrfProtection,
+  isStateMutatingMethod,
+  validateSessionCsrf,
+} from '../src/lib/csrf-middleware';
 import { getSession } from '../src/lib/session';
 import { validateCsrfToken } from '../src/lib/csrf';
 import { Context, Next } from 'hono';
@@ -28,6 +33,60 @@ describe('CSRF Middleware', () => {
     };
 
     mockNext = vi.fn().mockResolvedValue(undefined);
+  });
+
+  describe('isStateMutatingMethod', () => {
+    it('should return true for mutating methods (uppercase and lowercase)', () => {
+      const mutating = ['POST', 'PUT', 'DELETE', 'PATCH', 'post', 'put', 'delete', 'patch'];
+      for (const method of mutating) {
+        expect(isStateMutatingMethod(method)).toBe(true);
+      }
+    });
+
+    it('should return false for safe/idempotent methods', () => {
+      const safe = ['GET', 'HEAD', 'OPTIONS', 'TRACE', 'get', 'head', 'options'];
+      for (const method of safe) {
+        expect(isStateMutatingMethod(method)).toBe(false);
+      }
+    });
+  });
+
+  describe('validateSessionCsrf', () => {
+    it('should return 403 response when CSRF token is invalid', async () => {
+      const mockSession = { user: 'test' } as any;
+      vi.mocked(validateCsrfToken).mockResolvedValue(false);
+
+      const result = await validateSessionCsrf(mockContext as Context<any, any, any>, mockSession);
+
+      expect(validateCsrfToken).toHaveBeenCalledWith(mockContext, mockSession);
+      expect(mockContext.json).toHaveBeenCalledWith(
+        {
+          error: 'Forbidden',
+          message: 'Invalid or missing CSRF token',
+          code: 'CSRF_TOKEN_INVALID',
+        },
+        403
+      );
+      expect(result).toEqual({
+        data: {
+          error: 'Forbidden',
+          message: 'Invalid or missing CSRF token',
+          code: 'CSRF_TOKEN_INVALID',
+        },
+        status: 403,
+      });
+    });
+
+    it('should return null when CSRF token is valid', async () => {
+      const mockSession = { user: 'test' } as any;
+      vi.mocked(validateCsrfToken).mockResolvedValue(true);
+
+      const result = await validateSessionCsrf(mockContext as Context<any, any, any>, mockSession);
+
+      expect(validateCsrfToken).toHaveBeenCalledWith(mockContext, mockSession);
+      expect(mockContext.json).not.toHaveBeenCalled();
+      expect(result).toBeNull();
+    });
   });
 
   describe('csrfProtection', () => {

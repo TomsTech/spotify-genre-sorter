@@ -193,14 +193,13 @@
 ├── openapi.yaml
 ├── package-lock.json
 ├── package.json
-├── plan.js
 ├── playwright.config.ts
 ├── tsconfig.json
 ├── vitest.config.ts
 ├── wrangler.e2e.toml
 └── wrangler.toml
 
-32 directories, 162 files
+32 directories, 161 files
 ```
 
 ## Key Directories

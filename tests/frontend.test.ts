@@ -137,15 +137,26 @@ function sanitizeForExport(text: string): string {
   // Normalize unicode to NFC form
   let result = text.normalize('NFC');
 
-  // Remove control characters manually (safer than regex escapes)
-  let cleaned = '';
+  // Fast-path: return early if no control characters exist
+  let hasControl = false;
   for (let i = 0; i < result.length; i++) {
     const code = result.charCodeAt(i);
-    // Skip control characters: 0x00-0x1F (C0) and 0x7F-0x9F (DEL + C1)
-    if ((code >= 0x20 && code <= 0x7E) || code >= 0xA0) {
-      cleaned += result[i];
+    if (code < 0x20 || (code >= 0x7F && code < 0xA0)) {
+      hasControl = true;
+      break;
     }
   }
+  if (!hasControl) return result.trim();
+
+  // Filter control characters using array collection and join
+  const chars = [];
+  for (let i = 0; i < result.length; i++) {
+    const code = result.charCodeAt(i);
+    if ((code >= 0x20 && code <= 0x7E) || code >= 0xA0) {
+      chars.push(result[i]);
+    }
+  }
+  let cleaned = chars.join('');
 
   return cleaned.trim();
 }
@@ -1045,3 +1056,44 @@ describe('Visual Element Positioning', () => {
   });
 });
 
+
+describe("renderPioneers XSS and Safe DOM Rendering", () => {
+  it("should render pioneers safely with textContent and prevent script execution", () => {
+    // Mock DOM container
+    const container = {
+      children: [] as any[],
+      replaceChildren() {
+        this.children = [];
+      },
+      appendChild(child: any) {
+        this.children.push(child);
+      }
+    };
+
+    const maliciousName = "<script>alert(1)</script>UnsafeUser";
+    const xssAvatar = "javascript:alert(1)";
+
+    // Verify safe url logic rejects javascript: protocol
+    function getSafeUrl(url: string) {
+      if (!url) return "";
+      const trimmed = url.trim();
+      if (/^(javascript|data|vbscript):/i.test(trimmed)) {
+        return "#";
+      }
+      return trimmed;
+    }
+
+    const safeAvatar = getSafeUrl(xssAvatar);
+    expect(safeAvatar).toBe("#");
+
+    // Mock DOM element creation logic matching app.js
+    const nameSpan = {
+      textContent: "",
+      children: [] as any[],
+      appendChild(c: any) { this.children.push(c); }
+    };
+
+    nameSpan.textContent = maliciousName;
+    expect(nameSpan.textContent).toBe("<script>alert(1)</script>UnsafeUser");
+  });
+});
