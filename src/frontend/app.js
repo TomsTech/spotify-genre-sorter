@@ -5887,8 +5887,13 @@
       const container = document.getElementById('pioneers-list');
       if (!container) return;
 
+      container.replaceChildren();
+
       if (sidebarData.pioneers.length === 0) {
-        container.innerHTML = '<div class="sidebar-loading">' + (swedishMode ? 'Inga pionjärer än' : 'No pioneers yet') + '</div>';
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'sidebar-loading';
+        loadingDiv.textContent = swedishMode ? 'Inga pionjärer än' : 'No pioneers yet';
+        container.appendChild(loadingDiv);
         return;
       }
 
@@ -5896,55 +5901,116 @@
       const owners = sidebarData.pioneers.filter(u => isOwner(u.spotifyName));
       const regularPioneers = sidebarData.pioneers.filter(u => !isOwner(u.spotifyName));
 
-      let html = '';
+      // Helper to build avatar element safely
+      function createAvatarElement(avatarUrl) {
+        if (avatarUrl) {
+          const img = document.createElement('img');
+          img.className = 'user-avatar';
+          img.src = getSafeUrl(avatarUrl);
+          img.alt = '';
+          img.onerror = function() {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'user-avatar-placeholder';
+            placeholder.textContent = '👤';
+            if (this.parentNode) {
+              this.parentNode.replaceChild(placeholder, this);
+            }
+          };
+          return img;
+        } else {
+          const placeholder = document.createElement('div');
+          placeholder.className = 'user-avatar-placeholder';
+          placeholder.textContent = '👤';
+          return placeholder;
+        }
+      }
+
+      // Helper to append special tag HTML safely (specialTag is pre-constructed by getSpecialUserTag)
+      function appendUserNameWithTag(nameSpan, spotifyName) {
+        nameSpan.textContent = spotifyName || '';
+        const specialTagHtml = getSpecialUserTag(spotifyName);
+        if (specialTagHtml) {
+          const temp = document.createElement('div');
+          temp.innerHTML = specialTagHtml;
+          while (temp.firstChild) {
+            nameSpan.appendChild(temp.firstChild);
+          }
+        }
+      }
 
       // Owners section with Swedish crowns
       if (owners.length > 0) {
-        html += '<div class="owners-section">';
-        html += '<div class="owners-header">👑👑👑 ' + (swedishMode ? 'Ägare' : 'Owners') + '</div>';
-        html += owners.map((user, i) => {
+        const section = document.createElement('div');
+        section.className = 'owners-section';
+
+        const header = document.createElement('div');
+        header.className = 'owners-header';
+        header.textContent = '👑👑👑 ' + (swedishMode ? 'Ägare' : 'Owners');
+        section.appendChild(header);
+
+        owners.forEach((user, i) => {
           const delay = i * 50;
           const specialClass = getSpecialUserClass(user.spotifyName);
-          const specialTag = getSpecialUserTag(user.spotifyName);
-          return \`
-            <div class="user-list-item animate-in owner-item \${escapeHtml(specialClass)}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
-              \${user.spotifyAvatar
-                ? \`<img class="user-avatar" src="\${getSafeUrl(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
-                : '<div class="user-avatar-placeholder">👤</div>'}
-              <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
-            </div>
-          \`;
-        }).join('');
-        html += '</div>';
+
+          const item = document.createElement('div');
+          item.className = 'user-list-item animate-in owner-item' + (specialClass ? ' ' + specialClass : '');
+          item.style.animationDelay = delay + 'ms';
+          item.setAttribute('data-spotify-id', user.spotifyId || '');
+          item.title = (swedishMode ? 'Gick med ' : 'Joined ') + formatTimeAgo(new Date(user.registeredAt));
+
+          item.appendChild(createAvatarElement(user.spotifyAvatar));
+
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'user-name';
+          appendUserNameWithTag(nameSpan, user.spotifyName);
+          item.appendChild(nameSpan);
+
+          section.appendChild(item);
+        });
+
+        container.appendChild(section);
       }
 
       // Regular pioneers with gold/silver/bronze medals
       if (regularPioneers.length > 0) {
-        html += regularPioneers.map((user, i) => {
+        regularPioneers.forEach((user, i) => {
           const posClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-          // Use medal emojis for top 3
-          const regalia = i === 0 ? '<span class="pioneer-badge gold">🥇</span>' :
-                          i === 1 ? '<span class="pioneer-badge silver">🥈</span>' :
-                          i === 2 ? '<span class="pioneer-badge bronze">🥉</span>' :
-                          i < 10 ? '<span class="regalia">⭐</span>' : '';
           const delay = (owners.length + i) * 50;
-
           const specialClass = getSpecialUserClass(user.spotifyName);
-          const specialTag = getSpecialUserTag(user.spotifyName);
-          return \`
-            <div class="user-list-item animate-in \${escapeHtml(specialClass)}" style="animation-delay: \${delay}ms" data-spotify-id="\${user.spotifyId || ''}" title="\${swedishMode ? 'Gick med' : 'Joined'} \${formatTimeAgo(new Date(user.registeredAt))}">
-              <span class="position \${posClass}">#\${i + 1}</span>
-              \${user.spotifyAvatar
-                ? \`<img class="user-avatar" src="\${getSafeUrl(user.spotifyAvatar)}" alt="" onerror="this.outerHTML='<div class=user-avatar-placeholder>👤</div>'">\`
-                : '<div class="user-avatar-placeholder">👤</div>'}
-              <span class="user-name">\${escapeHtml(user.spotifyName)}\${specialTag}</span>
-              \${regalia}
-            </div>
-          \`;
-        }).join('');
-      }
 
-      container.innerHTML = html;
+          const item = document.createElement('div');
+          item.className = 'user-list-item animate-in' + (specialClass ? ' ' + specialClass : '');
+          item.style.animationDelay = delay + 'ms';
+          item.setAttribute('data-spotify-id', user.spotifyId || '');
+          item.title = (swedishMode ? 'Gick med ' : 'Joined ') + formatTimeAgo(new Date(user.registeredAt));
+
+          const posSpan = document.createElement('span');
+          posSpan.className = 'position' + (posClass ? ' ' + posClass : '');
+          posSpan.textContent = '#' + (i + 1);
+          item.appendChild(posSpan);
+
+          item.appendChild(createAvatarElement(user.spotifyAvatar));
+
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'user-name';
+          appendUserNameWithTag(nameSpan, user.spotifyName);
+          item.appendChild(nameSpan);
+
+          if (i === 0 || i === 1 || i === 2) {
+            const badgeSpan = document.createElement('span');
+            badgeSpan.className = 'pioneer-badge ' + (i === 0 ? 'gold' : i === 1 ? 'silver' : 'bronze');
+            badgeSpan.textContent = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
+            item.appendChild(badgeSpan);
+          } else if (i < 10) {
+            const starSpan = document.createElement('span');
+            starSpan.className = 'regalia';
+            starSpan.textContent = '⭐';
+            item.appendChild(starSpan);
+          }
+
+          container.appendChild(item);
+        });
+      }
     }
 
     // Render new users list in sidebar

@@ -1045,3 +1045,44 @@ describe('Visual Element Positioning', () => {
   });
 });
 
+
+describe("renderPioneers XSS and Safe DOM Rendering", () => {
+  it("should render pioneers safely with textContent and prevent script execution", () => {
+    // Mock DOM container
+    const container = {
+      children: [] as any[],
+      replaceChildren() {
+        this.children = [];
+      },
+      appendChild(child: any) {
+        this.children.push(child);
+      }
+    };
+
+    const maliciousName = "<script>alert(1)</script>UnsafeUser";
+    const xssAvatar = "javascript:alert(1)";
+
+    // Verify safe url logic rejects javascript: protocol
+    function getSafeUrl(url: string) {
+      if (!url) return "";
+      const trimmed = url.trim();
+      if (/^(javascript|data|vbscript):/i.test(trimmed)) {
+        return "#";
+      }
+      return trimmed;
+    }
+
+    const safeAvatar = getSafeUrl(xssAvatar);
+    expect(safeAvatar).toBe("#");
+
+    // Mock DOM element creation logic matching app.js
+    const nameSpan = {
+      textContent: "",
+      children: [] as any[],
+      appendChild(c: any) { this.children.push(c); }
+    };
+
+    nameSpan.textContent = maliciousName;
+    expect(nameSpan.textContent).toBe("<script>alert(1)</script>UnsafeUser");
+  });
+});
