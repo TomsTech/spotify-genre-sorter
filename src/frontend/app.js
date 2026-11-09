@@ -4706,7 +4706,14 @@
 
     function filterAndRenderGenres(query) {
       const filtered = filterGenres(query);
-      renderGenreList(filtered);
+      if (filtered.length === 0) {
+        const list = document.getElementById('genre-list');
+        if (list) {
+          list.innerHTML = `<div class="admin-empty">${swedishMode ? 'Inga genrer hittades för "' : 'No genres found for "'}${escapeHtml(query)}${swedishMode ? '"' : '"'}</div>`;
+        }
+      } else {
+        renderGenreList(filtered);
+      }
     }
 
     // Performance optimization: Debounce search to prevent UI blocking
