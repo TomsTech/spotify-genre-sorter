@@ -92,83 +92,82 @@ export class AppError extends Error {
 
 // ==================== Error Classification ====================
 
-export function classifyError(error: unknown): ErrorContext {
-  // Handle AppError instances
-  if (error instanceof AppError) {
+function classifyAppError(error: AppError): ErrorContext {
+  return {
+    code: error.code,
+    message: error.message,
+    userMessage: error.userMessage,
+    userMessageSV: error.userMessageSV,
+    recoverable: error.recoverable,
+    retryable: error.retryable,
+    statusCode: error.statusCode,
+    context: error.context,
+  };
+}
+
+function classifyStandardError(error: Error): ErrorContext | null {
+  const message = error.message.toLowerCase();
+
+  // Network errors
+  if (message.includes('fetch') || message.includes('network')) {
     return {
-      code: error.code,
+      code: ErrorCode.NETWORK_ERROR,
       message: error.message,
-      userMessage: error.userMessage,
-      userMessageSV: error.userMessageSV,
-      recoverable: error.recoverable,
-      retryable: error.retryable,
-      statusCode: error.statusCode,
-      context: error.context,
+      userMessage: 'Unable to connect to the server. Please check your internet connection.',
+      userMessageSV: 'Kan inte ansluta till servern. Kontrollera din internetanslutning.',
+      recoverable: true,
+      retryable: true,
+      statusCode: 503,
+      originalError: error,
     };
   }
 
-  // Handle standard Error instances
-  if (error instanceof Error) {
-    const message = error.message.toLowerCase();
-
-    // Network errors
-    if (message.includes('fetch') || message.includes('network')) {
-      return {
-        code: ErrorCode.NETWORK_ERROR,
-        message: error.message,
-        userMessage: 'Unable to connect to the server. Please check your internet connection.',
-        userMessageSV: 'Kan inte ansluta till servern. Kontrollera din internetanslutning.',
-        recoverable: true,
-        retryable: true,
-        statusCode: 503,
-        originalError: error,
-      };
-    }
-
-    // Rate limiting
-    if (message.includes('rate limit') || message.includes('429')) {
-      return {
-        code: ErrorCode.RATE_LIMIT_ERROR,
-        message: error.message,
-        userMessage: 'Too many requests. Please wait a moment and try again.',
-        userMessageSV: 'För många förfrågningar. Vänta en stund och försök igen.',
-        recoverable: true,
-        retryable: true,
-        statusCode: 429,
-        originalError: error,
-      };
-    }
-
-    // Authentication errors
-    if (message.includes('auth') || message.includes('401') || message.includes('token')) {
-      return {
-        code: ErrorCode.AUTH_ERROR,
-        message: error.message,
-        userMessage: 'Authentication failed. Please log in again.',
-        userMessageSV: 'Autentisering misslyckades. Logga in igen.',
-        recoverable: true,
-        retryable: false,
-        statusCode: 401,
-        originalError: error,
-      };
-    }
-
-    // Timeout errors
-    if (message.includes('timeout') || message.includes('timed out')) {
-      return {
-        code: ErrorCode.TIMEOUT_ERROR,
-        message: error.message,
-        userMessage: 'Request timed out. The server is taking too long to respond.',
-        userMessageSV: 'Begäran tog för lång tid. Servern svarar inte i tid.',
-        recoverable: true,
-        retryable: true,
-        statusCode: 504,
-        originalError: error,
-      };
-    }
+  // Rate limiting
+  if (message.includes('rate limit') || message.includes('429')) {
+    return {
+      code: ErrorCode.RATE_LIMIT_ERROR,
+      message: error.message,
+      userMessage: 'Too many requests. Please wait a moment and try again.',
+      userMessageSV: 'För många förfrågningar. Vänta en stund och försök igen.',
+      recoverable: true,
+      retryable: true,
+      statusCode: 429,
+      originalError: error,
+    };
   }
 
-  // Unknown errors
+  // Authentication errors
+  if (message.includes('auth') || message.includes('401') || message.includes('token')) {
+    return {
+      code: ErrorCode.AUTH_ERROR,
+      message: error.message,
+      userMessage: 'Authentication failed. Please log in again.',
+      userMessageSV: 'Autentisering misslyckades. Logga in igen.',
+      recoverable: true,
+      retryable: false,
+      statusCode: 401,
+      originalError: error,
+    };
+  }
+
+  // Timeout errors
+  if (message.includes('timeout') || message.includes('timed out')) {
+    return {
+      code: ErrorCode.TIMEOUT_ERROR,
+      message: error.message,
+      userMessage: 'Request timed out. The server is taking too long to respond.',
+      userMessageSV: 'Begäran tog för lång tid. Servern svarar inte i tid.',
+      recoverable: true,
+      retryable: true,
+      statusCode: 504,
+      originalError: error,
+    };
+  }
+
+  return null;
+}
+
+function classifyUnknownError(error: unknown): ErrorContext {
   return {
     code: ErrorCode.UNKNOWN_ERROR,
     message: error instanceof Error ? error.message : String(error),
@@ -179,6 +178,21 @@ export function classifyError(error: unknown): ErrorContext {
     statusCode: 500,
     originalError: error instanceof Error ? error : undefined,
   };
+}
+
+export function classifyError(error: unknown): ErrorContext {
+  if (error instanceof AppError) {
+    return classifyAppError(error);
+  }
+
+  if (error instanceof Error) {
+    const classified = classifyStandardError(error);
+    if (classified) {
+      return classified;
+    }
+  }
+
+  return classifyUnknownError(error);
 }
 
 // ==================== Retry Logic ====================
