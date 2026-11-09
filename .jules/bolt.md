@@ -234,3 +234,7 @@
 ## 2026-10-31 - Optimize genre lookup in showMergeModal
 **Learning:** Using `Array.prototype.find()` inside a `.map()` callback over a collection of selected items causes an O(M * N) time complexity bottleneck. Pre-building a `Map` creates an O(N) indexing phase with O(1) lookups during the mapping phase, reducing total execution time by ~33-50% on large genre sets.
 **Action:** Replaced `genreData.genres.find(g => g.name === name)` with a pre-indexed `genreMap = new Map(genreData.genres.map(g => [g.name, g]))` and `genreMap.get(name)` in `showMergeModal()` in `src/frontend/app.js`.
+
+## 2024-11-09 - [Performance Optimization] Replace Array Iterators with Indexed Loops
+**Learning:** Using array iterators like `.forEach()` or chaining `.filter()` in hot paths (like `filterGenres`, `calculateDiversityScore`) causes significant garbage collection overhead due to closure creation per iteration and intermediate array allocations.
+**Action:** Always prefer indexed `for` loops in hot paths that iterate over large collections (e.g., thousands of genres) to eliminate closure allocation and intermediate arrays, reducing GC pauses and UI blocking.
