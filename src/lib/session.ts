@@ -366,8 +366,7 @@ export async function getScoreboard(kv: KVNamespace): Promise<Scoreboard | null>
 // Average tracks per playlist for estimation
 const AVERAGE_TRACKS_PER_PLAYLIST = 25;
 
-export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
-  // List all user_stats keys
+async function fetchAllUserStatsKeys(kv: KVNamespace): Promise<KVNamespaceListKey<unknown>[]> {
   let keys: KVNamespaceListKey<unknown>[] = [];
   let cursor: string | undefined = undefined;
 
@@ -377,31 +376,36 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
     cursor = response.list_complete ? undefined : response.cursor;
   } while (cursor);
 
-  // PERF-001 FIX: Use chunked Promise.all for parallel reads to avoid CF worker limits
+  return keys;
+}
+
+async function fetchAllUserStats(kv: KVNamespace, keys: KVNamespaceListKey<unknown>[]): Promise<UserStats[]> {
   const allStats = new Array<UserStats>(keys.length);
   let statsCount = 0;
   const BATCH_SIZE = 40;
+
   for (let i = 0; i < keys.length; i += BATCH_SIZE) {
     const size = Math.min(BATCH_SIZE, keys.length - i);
     const dataPromises = new Array<Promise<UserStats | null>>(size);
+
     for (let j = 0; j < size; j++) {
       const key = keys[i + j];
       dataPromises[j] = (async () => {
-      try {
-        const data = await kv.get(key.name);
-        if (!data) return null;
+        try {
+          const data = await kv.get(key.name);
+          if (!data) return null;
 
-        const stats = JSON.parse(data) as UserStats;
-        // Backfill estimation: if totalTracksInPlaylists is 0 but user has playlists,
-        // estimate based on average tracks per playlist
-        if ((!stats.totalTracksInPlaylists || stats.totalTracksInPlaylists === 0) && stats.playlistsCreated > 0) {
-          stats.totalTracksInPlaylists = stats.playlistsCreated * AVERAGE_TRACKS_PER_PLAYLIST;
+          const stats = JSON.parse(data) as UserStats;
+          // Backfill estimation: if totalTracksInPlaylists is 0 but user has playlists,
+          // estimate based on average tracks per playlist
+          if ((!stats.totalTracksInPlaylists || stats.totalTracksInPlaylists === 0) && stats.playlistsCreated > 0) {
+            stats.totalTracksInPlaylists = stats.playlistsCreated * AVERAGE_TRACKS_PER_PLAYLIST;
+          }
+          return stats;
+        } catch {
+          return null;
         }
-        return stats;
-      } catch {
-        return null;
-      }
-    })();
+      })();
     }
 
     const parsedResults = await Promise.all(dataPromises);
@@ -412,32 +416,38 @@ export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
       }
     }
   }
-  allStats.length = statsCount;
 
-  // Sort and rank for each category
-  const makeRanking = (
-    stats: UserStats[],
-    field: keyof Pick<UserStats, 'totalGenresDiscovered' | 'totalArtistsDiscovered' | 'totalTracksAnalysed' | 'playlistsCreated' | 'totalTracksInPlaylists'>
-  ): ScoreboardEntry[] => {
-    return stats
-      .filter(s => s[field] > 0)
-      .sort((a, b) => b[field] - a[field])
-      .slice(0, 20)
-      .map((s, i) => ({
-        rank: i + 1,
-        spotifyId: s.spotifyId,
-        spotifyName: s.spotifyName,
-        spotifyAvatar: s.spotifyAvatar,
-        count: s[field],
-      }));
-  };
+  allStats.length = statsCount;
+  return allStats;
+}
+
+function createScoreboardRanking(
+  stats: UserStats[],
+  field: keyof Pick<UserStats, 'totalGenresDiscovered' | 'totalArtistsDiscovered' | 'totalTracksAnalysed' | 'playlistsCreated' | 'totalTracksInPlaylists'>
+): ScoreboardEntry[] {
+  return stats
+    .filter(s => s[field] > 0)
+    .sort((a, b) => b[field] - a[field])
+    .slice(0, 20)
+    .map((s, i) => ({
+      rank: i + 1,
+      spotifyId: s.spotifyId,
+      spotifyName: s.spotifyName,
+      spotifyAvatar: s.spotifyAvatar,
+      count: s[field],
+    }));
+}
+
+export async function buildScoreboard(kv: KVNamespace): Promise<Scoreboard> {
+  const keys = await fetchAllUserStatsKeys(kv);
+  const allStats = await fetchAllUserStats(kv, keys);
 
   const scoreboard: Scoreboard = {
-    byGenres: makeRanking(allStats, 'totalGenresDiscovered'),
-    byArtists: makeRanking(allStats, 'totalArtistsDiscovered'),
-    byTracks: makeRanking(allStats, 'totalTracksAnalysed'),
-    byPlaylists: makeRanking(allStats, 'playlistsCreated'),
-    byTracksInPlaylists: makeRanking(allStats, 'totalTracksInPlaylists'),
+    byGenres: createScoreboardRanking(allStats, 'totalGenresDiscovered'),
+    byArtists: createScoreboardRanking(allStats, 'totalArtistsDiscovered'),
+    byTracks: createScoreboardRanking(allStats, 'totalTracksAnalysed'),
+    byPlaylists: createScoreboardRanking(allStats, 'playlistsCreated'),
+    byTracksInPlaylists: createScoreboardRanking(allStats, 'totalTracksInPlaylists'),
     totalUsers: allStats.length,
     updatedAt: new Date().toISOString(),
   };
