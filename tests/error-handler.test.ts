@@ -116,14 +116,27 @@ describe('classifyError', () => {
     expect(classified.originalError).toBe(error);
   });
 
-  it('should classify non-Error primitives as UNKNOWN_ERROR', () => {
-    const errorStr = 'Just a string error';
-    const classified = classifyError(errorStr);
+  it("should classify non-Error primitives and unknown types as UNKNOWN_ERROR", () => {
+    const testCases = [
+      { input: "Just a string error", expectedMsg: "Just a string error" },
+      { input: 404, expectedMsg: "404" },
+      { input: true, expectedMsg: "true" },
+      { input: false, expectedMsg: "false" },
+      { input: null, expectedMsg: "null" },
+      { input: undefined, expectedMsg: "undefined" },
+      { input: { foo: "bar" }, expectedMsg: "[object Object]" },
+      { input: BigInt(12345), expectedMsg: "12345" },
+      { input: Symbol("errorSymbol"), expectedMsg: "Symbol(errorSymbol)" },
+    ];
 
-    expect(classified.code).toBe(ErrorCode.UNKNOWN_ERROR);
-    expect(classified.statusCode).toBe(500);
-    expect(classified.message).toBe('Just a string error');
-    expect(classified.originalError).toBeUndefined();
+    for (const { input, expectedMsg } of testCases) {
+      const classified = classifyError(input);
+
+      expect(classified.code).toBe(ErrorCode.UNKNOWN_ERROR);
+      expect(classified.statusCode).toBe(500);
+      expect(classified.message).toBe(expectedMsg);
+      expect(classified.originalError).toBeUndefined();
+    }
   });
 });
 
@@ -225,6 +238,16 @@ describe('determineRecoveryStrategy', () => {
     it('should abort generic errors if they are not retryable and include user message', () => {
       const userMessage = 'Something went terribly wrong';
       const error = createMockError(ErrorCode.UNKNOWN_ERROR, false, userMessage);
+      const strategy = determineRecoveryStrategy(error);
+
+      expect(strategy.action).toBe('abort');
+      expect(strategy.message).toBe(userMessage);
+    });
+
+    it('should abort for fatal non-retryable system errors like SUBREQUEST_LIMIT', () => {
+      const userMessage = 'Subrequest limit exceeded';
+      const error = createMockError(ErrorCode.SUBREQUEST_LIMIT, false, userMessage);
+      error.recoverable = false;
       const strategy = determineRecoveryStrategy(error);
 
       expect(strategy.action).toBe('abort');
