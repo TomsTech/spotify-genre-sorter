@@ -2,6 +2,17 @@
     const headerActions = document.getElementById('header-actions');
 
     let genreData = null;
+    let globalGenreMap = new Map();
+
+    function updateGlobalGenreMap(data) {
+      genreData = data;
+      globalGenreMap.clear();
+      if (data && data.genres) {
+        for (let i = 0; i < data.genres.length; i++) {
+          globalGenreMap.set(data.genres[i].name, data.genres[i]);
+        }
+      }
+    }
 
     // === Security Utilities ===
     // Secure alternative to getSecureRandom()
@@ -3872,7 +3883,7 @@
       try {
         const fullData = await loadGenresProgressively();
         stopAlbumCarousel(); // Clean up carousel when loading completes
-        genreData = fullData;
+        updateGlobalGenreMap(fullData);
         window.currentGenres = fullData?.genres || []; // For Genre Wrapped
         triggerFireworks(); // Celebrate completion!
         renderGenres();
@@ -4038,7 +4049,7 @@
           return;
         }
 
-        genreData = data;
+        updateGlobalGenreMap(data);
         window.currentGenres = data?.genres || []; // For Genre Wrapped
         triggerFireworks(); // Celebrate completion!
         renderGenres();
@@ -4069,7 +4080,7 @@
           throw new Error(data.details || data.error || 'Failed to refresh');
         }
 
-        genreData = data;
+        updateGlobalGenreMap(data);
         renderGenres();
         showNotification(swedishMode ? '✨ Data uppdaterad!' : '✨ Data refreshed!', 'success');
       } catch (error) {
@@ -4952,7 +4963,8 @@
 
     // Show playlist customisation modal
     function showCustomiseModal(genreName) {
-      const genre = genreData.genres.find(g => g.name === genreName);
+      // ⚡ Bolt: Use global pre-indexed Map for O(1) lookups instead of O(N) Array.prototype.find
+      const genre = globalGenreMap.get(genreName);
       if (!genre) return;
 
       const defaultName = genreName + ' (from Likes)';
@@ -5035,7 +5047,8 @@
 
     // Create playlist with custom options
     async function createPlaylistWithOptions(genreName, customName, customDescription, force = false) {
-      const genre = genreData.genres.find(g => g.name === genreName);
+      // ⚡ Bolt: Use global pre-indexed Map for O(1) lookups instead of O(N) Array.prototype.find
+      const genre = globalGenreMap.get(genreName);
       if (!genre) return;
 
       try {
@@ -5164,7 +5177,8 @@
     }
 
     async function createPlaylist(genreName, force = false, customization = null) {
-      const genre = genreData.genres.find(g => g.name === genreName);
+      // ⚡ Bolt: Use global pre-indexed Map for O(1) lookups instead of O(N) Array.prototype.find
+      const genre = globalGenreMap.get(genreName);
       if (!genre) return;
 
       // If no customization provided and not forcing, show customization modal first
@@ -5308,7 +5322,8 @@
       const defaultArt = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="#282828" width="100" height="100"/><circle cx="50" cy="50" r="40" fill="#1DB954"/><circle cx="50" cy="50" r="15" fill="#282828"/></svg>');
 
       // If we have track album art in genreData, use it
-      const genre = genreData?.genres?.find(g => g.name === genreName);
+      // ⚡ Bolt: Use global pre-indexed Map for O(1) lookups instead of O(N) Array.prototype.find
+      const genre = globalGenreMap.get(genreName);
       if (genre?.albumArts && genre.albumArts.length > 0) {
         // Get up to 5 random album arts
         const shuffled = [...genre.albumArts].sort(() => 0.5 - getSecureRandom());
@@ -7745,7 +7760,8 @@
     // ====================================
 
     function showArtistBreakdown(genreName) {
-      const genre = genreData?.genres?.find(g => g.name === genreName);
+      // ⚡ Bolt: Use global pre-indexed Map for O(1) lookups instead of O(N) Array.prototype.find
+      const genre = globalGenreMap.get(genreName);
       if (!genre) return;
 
       // Collect artist data from genre tracks
