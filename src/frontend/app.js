@@ -4120,11 +4120,13 @@
 
     function hideSmallGenres(minTracks) {
       if (!genreData?.genres) return;
-      genreData.genres.forEach(g => {
-        if (g.count < minTracks) {
-          hiddenGenres.add(g.name);
+      // ⚡ Bolt: Use an indexed loop instead of .forEach() to prevent closure allocation
+      const genres = genreData.genres;
+      for (let i = 0; i < genres.length; i++) {
+        if (genres[i].count < minTracks) {
+          hiddenGenres.add(genres[i].name);
         }
-      });
+      }
       saveHiddenGenres();
       filterAndRenderGenres(document.querySelector('.search-input')?.value || '');
       updateHiddenCount();
@@ -4226,11 +4228,14 @@
     function exportGenresCSV() {
       if (!genreData) return;
       const rows = [['Genre', 'Track Count', 'Track IDs']];
-      genreData.genres.forEach(g => {
+      // ⚡ Bolt: Use an indexed loop instead of .forEach() to prevent closure allocation
+      const genres = genreData.genres;
+      for (let i = 0; i < genres.length; i++) {
+        const g = genres[i];
         // Sanitize genre name and escape for CSV
         const safeName = sanitizeForExport(g.name);
         rows.push([safeName, g.count.toString(), g.trackIds.join(';')]);
-      });
+      }
       // Escape quotes and wrap in quotes, handle newlines
       const csv = rows.map(row => row.map(cell => {
         const escaped = String(cell).replace(/"/g, '""').replace(/\\r?\\n/g, ' ');
@@ -4256,10 +4261,11 @@
       if (total === 0) return 0;
       // Shannon diversity index (normalized to 0-100)
       let entropy = 0;
-      genres.forEach(g => {
-        const p = g.count / total;
+      // ⚡ Bolt: Iterate with an indexed loop instead of .forEach() to prevent closure allocation per iteration
+      for (let i = 0; i < genres.length; i++) {
+        const p = genres[i].count / total;
         if (p > 0) entropy -= p * Math.log(p);
-      });
+      }
       const maxEntropy = Math.log(genres.length);
       return maxEntropy > 0 ? Math.round((entropy / maxEntropy) * 100) : 0;
     }
@@ -4688,17 +4694,25 @@
     }
 
     function filterGenres(query) {
-      let filtered = genreData.genres;
+      // ⚡ Bolt: Use a single indexed loop instead of chaining .filter() calls to eliminate intermediate array allocations and reduce GC overhead
+      const genres = genreData.genres;
+      const filtered = [];
+      const lower = query ? query.toLowerCase() : null;
 
-      // Filter by search query
-      if (query) {
-        const lower = query.toLowerCase();
-        filtered = filtered.filter(g => g.name.toLowerCase().includes(lower));
-      }
+      for (let i = 0; i < genres.length; i++) {
+        const g = genres[i];
 
-      // Filter hidden genres (unless showing hidden)
-      if (!showHiddenGenres) {
-        filtered = filtered.filter(g => !hiddenGenres.has(g.name));
+        // Filter by search query
+        if (lower && !g.name.toLowerCase().includes(lower)) {
+          continue;
+        }
+
+        // Filter hidden genres (unless showing hidden)
+        if (!showHiddenGenres && hiddenGenres.has(g.name)) {
+          continue;
+        }
+
+        filtered.push(g);
       }
 
       return filtered;
