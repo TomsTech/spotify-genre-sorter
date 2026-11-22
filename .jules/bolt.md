@@ -238,3 +238,6 @@
 ## 2026-11-10 - [Optimize array find in hot loops to Map lookup using global state]
 **Learning:** Using `array.find` repeatedly across different functions to look up items creates an O(N) operation per call. When these functions are called frequently (like during genre selection or playlist creation), it adds up. Re-instantiating a `Map` locally (O(N) operation) in multiple functions is also wasteful if the source data rarely changes.
 **Action:** Created a `globalGenreMap` that is built once when `genreData` is updated, providing O(1) lookups globally across all functions in `src/frontend/app.js` without redundant map allocations.
+## 2024-11-09 - [Performance Optimization] Replace Array Iterators with Indexed Loops
+**Learning:** Using array iterators like `.forEach()` or chaining `.filter()` in hot paths (like `filterGenres`, `calculateDiversityScore`) causes significant garbage collection overhead due to closure creation per iteration and intermediate array allocations.
+**Action:** Always prefer indexed `for` loops in hot paths that iterate over large collections (e.g., thousands of genres) to eliminate closure allocation and intermediate arrays, reducing GC pauses and UI blocking.
