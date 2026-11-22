@@ -160,7 +160,7 @@ describe('KV Cache', () => {
       mockKV.get.mockResolvedValueOnce(null);
       const missed1 = await cachedKV.get(mockKV, 'key-1');
       expect(missed1).toBeNull();
-      expect(mockKV.get).toHaveBeenCalledWith('key-1');
+      expect(mockKV.get).toHaveBeenCalledWith('key-1', 'json');
 
       // Key-0 should still be in memory cache (cache hit, no mockKV.get call)
       mockKV.get.mockClear();
@@ -206,7 +206,7 @@ describe('KV Cache', () => {
       mockKV.get.mockResolvedValueOnce(null);
       const expiredVal = await cachedKV.get(mockKV, 'ttl-key');
       expect(expiredVal).toBeNull();
-      expect(mockKV.get).toHaveBeenCalledWith('ttl-key');
+      expect(mockKV.get).toHaveBeenCalledWith('ttl-key', 'json');
 
       vi.useRealTimers();
     });
